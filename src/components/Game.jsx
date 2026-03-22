@@ -4,6 +4,7 @@ import {
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
 } from '../engine/game'
 import { mctsSearch } from '../engine/ai'
+import { getHint } from '../engine/hints'
 import Board from './Board'
 
 const standLabel = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -31,6 +32,9 @@ export default function Game() {
   const [log, setLog] = useState([{ text: 'Начало партии', player: -1 }])
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
+  const [hint, setHint] = useState(null)
+  const [hintLoading, setHintLoading] = useState(false)
+  const [hintMode, setHintMode] = useState(false)
   const aiRunning = useRef(false)
   const logRef = useRef(null)
 
@@ -168,6 +172,7 @@ export default function Game() {
     setTransfer(null)
     setPlacement({})
     setSelected(null)
+    setHint(null)
 
     if (ns.gameOver) {
       setGs(ns)
@@ -187,6 +192,16 @@ export default function Game() {
     setPhase('place')
     setInfo(gs.isFirstTurn() ? 'Поставьте 1 фишку.' : 'Расставьте фишки (до 3 на 2 стойки).')
   }, [gs])
+
+  const requestHint = useCallback(() => {
+    if (gs.currentPlayer !== humanPlayer || gs.gameOver || aiRunning.current) return
+    setHintLoading(true)
+    setTimeout(() => {
+      const h = getHint(gs, 60)
+      setHint(h)
+      setHintLoading(false)
+    }, 50)
+  }, [gs, humanPlayer])
 
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
@@ -210,6 +225,12 @@ export default function Game() {
             <option value={50}>Средняя</option>
             <option value={100}>Сложная</option>
           </select>
+        </label>
+        <label style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={hintMode}
+            onChange={e => { setHintMode(e.target.checked); setHint(null) }}
+            style={{ marginRight: 4 }} />
+          Обучающий режим
         </label>
       </div>
 
@@ -268,7 +289,29 @@ export default function Game() {
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>Новая партия</button>
+        {hintMode && isMyTurn && (
+          <button className="btn" onClick={requestHint} disabled={hintLoading}
+            style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}>
+            {hintLoading ? 'Анализ...' : '💡 Подсказка'}
+          </button>
+        )}
       </div>
+
+      {hint && hintMode && (
+        <div style={{
+          maxWidth: 520, margin: '0 auto 16px', padding: '14px 18px',
+          background: 'var(--gold-bg)', border: '1px solid var(--gold)',
+          borderLeft: '4px solid var(--gold)', borderRadius: '0 6px 6px 0',
+          fontSize: 13, lineHeight: 1.65, color: 'var(--ink)',
+        }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--gold)' }}>
+            💡 Подсказка AI
+          </div>
+          {hint.explanation.map((line, i) => (
+            <p key={i} style={{ marginBottom: 4 }}>{line}</p>
+          ))}
+        </div>
+      )}
 
       {result !== null && (
         <div className="game-result" style={{ borderLeft: `4px solid var(--${result === humanPlayer ? 'green' : 'p2'})` }}>
