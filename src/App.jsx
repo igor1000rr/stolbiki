@@ -2,10 +2,12 @@ import { useState } from 'react'
 import Game from './components/Game'
 import Dashboard from './components/Dashboard'
 import Replay from './components/Replay'
+import Simulator from './components/Simulator'
 import './app.css'
 
 const TABS = [
   { id: 'game', label: 'Играть' },
+  { id: 'sim', label: 'Симулятор' },
   { id: 'dash', label: 'Аналитика' },
   { id: 'replay', label: 'Разбор партий' },
 ]
@@ -33,6 +35,7 @@ export default function App() {
       </nav>
 
       {tab === 'game' && <Game />}
+      {tab === 'sim' && <Simulator />}
       {tab === 'dash' && <Dashboard />}
       {tab === 'replay' && <Replay />}
     </div>
