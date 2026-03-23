@@ -127,6 +127,18 @@ ln -sf /etc/nginx/sites-available/stolbiki /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx && systemctl enable nginx
 
+# ─── Бэкап БД (ежедневно в 3:00) ───
+echo "→ Настраиваю бэкап БД..."
+mkdir -p /opt/stolbiki-api/backups
+cat > /opt/stolbiki-api/backup.sh << 'BACKUP'
+#!/bin/bash
+cp /opt/stolbiki-api/data/stolbiki.db "/opt/stolbiki-api/backups/stolbiki_$(date +%Y%m%d_%H%M).db"
+# Храним последние 7 дней
+find /opt/stolbiki-api/backups -name "*.db" -mtime +7 -delete
+BACKUP
+chmod +x /opt/stolbiki-api/backup.sh
+(crontab -l 2>/dev/null | grep -v stolbiki_backup; echo "0 3 * * * /opt/stolbiki-api/backup.sh # stolbiki_backup") | crontab -
+
 # ─── Проверка ───
 echo ""
 echo "═══════════════════════════════════════"

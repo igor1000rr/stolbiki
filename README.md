@@ -1,44 +1,61 @@
-# Стойки — анализ баланса и онлайн-версия
+# Стойки v2.1
 
-Настольная игра «Стойки» — программная среда для анализа баланса, AI-агент (MCTS + self-play), веб-интерфейс для игры.
+Стратегическая настольная игра для двух игроков. AI на основе AlphaZero (MCTS + Self-Play). Баланс подтверждён на **239K+ партиях**.
+
+**Сайт:** http://178.212.12.71
+
+## Возможности
+
+- Игра vs AI (3 сложности), PvP, AI vs AI (спектатор)
+- ELO рейтинг, 14 ачивок с прогрессом, лидерборд
+- Друзья (поиск, запросы, принятие)
+- Симулятор баланса (до 10K партий, 6 пресетов, live графики)
+- Аналитика: GPU/CPU self-play, 30 графиков
+- Правила с SVG-иллюстрациями и интерактивным примером
+- PWA (Add to Home Screen)
+
+## Стек
+
+**Фронт:** React + Vite, Chart.js, Web Audio API, CSS glass morphism, 30 анимаций
+
+**Бэк:** Node.js + Express + SQLite (better-sqlite3), JWT auth, 16 API endpoints
+
+**AI:** MCTS + Self-Play. CPU: numpy MLP 8K params, 1500 итер. GPU: PyTorch ResNet 840K params, 1146 итер, WR 97%
+
+**Инфра:** VPS (nginx + PM2), GitHub Actions CI/CD (push → deploy ~40с)
 
 ## Структура
 
 ```
-src/                  # React-приложение (Vite)
-  engine/game.js      # Движок: правила игры (JS)
-  engine/ai.js        # AI: MCTS с эвристиками
-  components/         # React-компоненты
-  data/               # Данные для дашборда и replay
-
-analysis/             # Python-аналитика (self-play, отчёт)
-  game.py             # Движок: правила игры (Python)
-  mcts.py             # MCTS агент
-  network.py          # Нейросеть (numpy)
-  train.py            # Self-play пайплайн
-  analysis.py         # Расширенный анализ
-  report_gen.py       # Генератор PDF-отчёта
-  main.py             # Точка входа
-  report.pdf          # Готовый отчёт
-  final_net.npz       # Обученная модель (v80, 80 итераций)
+src/
+  components/     # React: Game, Profile, Simulator, Dashboard, Replay, Rules, Board
+  engine/         # Движок: game.js, ai.js, hints.js, simulator.js, sounds.js, collector.js, api.js
+  data/           # Данные: dashboard.json, replays.json
+  app.css         # 1200 строк, glass morphism, 30 анимаций
+server/
+  server.js       # Express API (auth, games, leaderboard, friends, training)
+  ecosystem.config.cjs
+  setup-vps.sh    # Одна команда для настройки VPS
+analysis/
+  report.pdf      # PDF отчёт (2.2MB, 29 графиков)
+  report_gen.py   # Генератор отчёта
+gpu_train/
+  gpu_trainer.py  # PyTorch GPU self-play
+  gpu_checkpoint/ # Модели v50-v500
 ```
 
-## Запуск веб-приложения
+## Деплой
 
 ```bash
-npm install
-npm run dev
+# Первоначальная настройка VPS
+git clone https://github.com/igor1000rr/stolbiki.git /tmp/stolbiki
+cd /tmp/stolbiki && bash server/setup-vps.sh
+
+# Далее — автодеплой через GitHub Actions при push в main
 ```
 
-## Запуск анализа (Python)
+GitHub Secrets: `VPS_HOST`, `VPS_SSH_KEY`
 
-```bash
-cd analysis
-pip install numpy matplotlib reportlab
-python main.py          # Полный анализ
-python report_gen.py    # Генерация PDF-отчёта
-```
+## Автор
 
-## Обучение
-
-80 итераций self-play, ~140 000 партий. Loss: 1.10 → 0.78. Агент побеждает рандом в 85-100%.
+igor1000rr — https://t.me/igor1000rr

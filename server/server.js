@@ -149,6 +149,32 @@ app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors({ origin: '*' }))
 app.use(express.json({ limit: '5mb' }))
 
+// Rate limiting (in-memory, простой)
+const rateLimits = new Map()
+function rateLimit(windowMs = 60000, max = 60) {
+  return (req, res, next) => {
+    const key = req.ip + ':' + req.path
+    const now = Date.now()
+    const entry = rateLimits.get(key)
+    if (!entry || now - entry.start > windowMs) {
+      rateLimits.set(key, { start: now, count: 1 })
+      return next()
+    }
+    entry.count++
+    if (entry.count > max) return res.status(429).json({ error: 'Слишком много запросов' })
+    next()
+  }
+}
+// Чистка каждые 5 минут
+setInterval(() => {
+  const now = Date.now()
+  for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
+}, 300000)
+
+app.use('/api/auth', rateLimit(60000, 20))  // 20 auth/мин
+app.use('/api/games', rateLimit(60000, 60)) // 60 games/мин
+app.use('/api/', rateLimit(60000, 120))     // 120 req/мин общий
+
 // JWT auth middleware
 function auth(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '')
