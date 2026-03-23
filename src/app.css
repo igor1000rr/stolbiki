@@ -358,8 +358,6 @@ body::before {
   box-shadow: 0 0 6px currentColor;
   filter: brightness(1.3);
 }
-.close-particle.p0 { background: var(--p1); box-shadow: 0 0 6px var(--p1); }
-.close-particle.p1 { background: var(--p2); box-shadow: 0 0 6px var(--p2); }
 
 @keyframes particleExplode {
   0% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(1.2); }

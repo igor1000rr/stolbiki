@@ -119,12 +119,22 @@ export default function Online() {
   const [status, setStatus] = useState('')
   const [tournamentResult, setTournamentResult] = useState(null)
 
+  // Refs для актуальных значений в WS callback (не stale)
+  const roomIdRef = useRef('')
+  const playerIdxRef = useRef(-1)
+  const playersRef = useRef([])
+  useEffect(() => { roomIdRef.current = roomId }, [roomId])
+  useEffect(() => { playerIdxRef.current = playerIdx }, [playerIdx])
+  useEffect(() => { playersRef.current = players }, [players])
+
   // Обработчик WS сообщений
   function handleWS(msg) {
     switch (msg.type) {
       case 'joined':
         setRoomId(msg.roomId)
+        roomIdRef.current = msg.roomId
         setPlayerIdx(msg.playerIdx)
+        playerIdxRef.current = msg.playerIdx
         setMode(msg.mode || 'single')
         setTotalGames(msg.totalGames || 1)
         setScreen('waiting')
@@ -132,17 +142,19 @@ export default function Online() {
         break
       case 'waiting':
         setPlayers(msg.players)
+        playersRef.current = msg.players
         setScreen('waiting')
         break
       case 'start':
         setPlayers(msg.players)
+        playersRef.current = msg.players
         setScores(msg.scores || [0, 0])
         setCurrentGame(msg.currentGame || 1)
         setScreen('playing')
         setStatus('')
-        // Передаём в Game через window event
+        // Передаём в Game через window event (используем refs — актуальные значения)
         window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
-          detail: { players: msg.players, firstPlayer: msg.firstPlayer, roomId, playerIdx: playerIdx >= 0 ? playerIdx : (msg.players.length - 1) }
+          detail: { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current }
         }))
         break
       case 'move':
@@ -152,7 +164,7 @@ export default function Online() {
         setScores(msg.scores)
         setCurrentGame(msg.currentGame)
         window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
-          detail: { players, firstPlayer: msg.firstPlayer, roomId, playerIdx, nextGame: true }
+          detail: { players: playersRef.current, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true }
         }))
         break
       case 'tournamentOver':
@@ -163,7 +175,7 @@ export default function Online() {
         setMessages(prev => [...prev.slice(-50), { from: msg.from, text: msg.text, time: Date.now() }])
         break
       case 'disconnected':
-        if (msg.playerIdx !== playerIdx) setStatus('Противник отключился... ждём реконнект')
+        if (msg.playerIdx !== playerIdxRef.current) setStatus('Противник отключился... ждём реконнект')
         break
       case 'error':
         setError(msg.msg)

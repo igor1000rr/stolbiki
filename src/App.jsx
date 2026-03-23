@@ -55,7 +55,11 @@ export default function App() {
   useEffect(() => {
     const handler = () => setTab('game')
     window.addEventListener('stolbiki-online-start', handler)
-    return () => window.removeEventListener('stolbiki-online-start', handler)
+    window.addEventListener('stolbiki-daily-start', handler)
+    return () => {
+      window.removeEventListener('stolbiki-online-start', handler)
+      window.removeEventListener('stolbiki-daily-start', handler)
+    }
   }, [])
 
   // Если был на админ-вкладке и вышел из профиля

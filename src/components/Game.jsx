@@ -76,18 +76,23 @@ export default function Game() {
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
   const [onlinePlayers, setOnlinePlayers] = useState([])
   const onlineRef = useRef(null) // { roomId, playerIdx, myColor }
+  const gsRef = useRef(gs) // актуальное состояние для WS обработчиков
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
 
+  // Синхронизируем gsRef с gs
+  useEffect(() => { gsRef.current = gs }, [gs])
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = 0 }, [log])
 
   // ─── Онлайн мультиплеер: слушаем события из Online.jsx ───
   useEffect(() => {
     function handleOnlineStart(e) {
       const { players, firstPlayer, roomId, playerIdx, nextGame } = e.detail
-      const myColor = playerIdx // playerIdx 0 = синие, 1 = красные
+      // Кто первый ходит = синие (currentPlayer=0 в GameState)
+      // firstPlayer — индекс игрока в комнате, который играет синими
+      const myColor = (playerIdx === (firstPlayer ?? 0)) ? 0 : 1
       onlineRef.current = { roomId, playerIdx, myColor }
       setOnlineRoom(roomId)
       setOnlinePlayerIdx(playerIdx)
@@ -96,6 +101,7 @@ export default function Game() {
       // Новая игра в онлайн-режиме
       cancelRecording()
       const state = new GameState()
+      gsRef.current = state
       setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
       setScoreBump(null); setHumanPlayer(myColor); setMode('online')
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
@@ -121,48 +127,55 @@ export default function Game() {
 
     function handleOnlineMove(e) {
       const action = e.detail
-      // Применяем ход противника
-      setGs(prev => {
-        const ns = applyAction(prev, action)
-        addLog(describeAction(action, prev.currentPlayer), prev.currentPlayer)
+      const myColorBefore = onlineRef.current?.myColor ?? 0
+      const opponentColor = 1 - myColorBefore
 
-        // Звуки
-        if (action.swap) {
-          ss()
-          // Противник сделал swap — наш цвет меняется
-          const newColor = 1 - (onlineRef.current?.myColor ?? 0)
-          onlineRef.current && (onlineRef.current.myColor = newColor)
-          setHumanPlayer(newColor)
-        }
-        else if (action.transfer) st()
-        else sp()
+      // Берём актуальный стейт из ref, применяем ход
+      const prevState = gsRef.current
+      const ns = applyAction(prevState, action)
+      setGs(ns)
+      gsRef.current = ns
 
-        if (ns.gameOver) {
-          setTimeout(() => {
-            setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
-            finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
-            const myColor = onlineRef.current?.myColor ?? 0
-            const won = ns.winner === myColor
-            setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
-          }, 500)
-        } else {
+      addLog(describeAction(action, opponentColor), opponentColor)
+
+      // Swap — особый случай: противник ещё не закончил ход (ему надо ставить фишки)
+      if (action.swap) {
+        ss()
+        const newColor = 1 - myColorBefore
+        if (onlineRef.current) onlineRef.current.myColor = newColor
+        setHumanPlayer(newColor)
+        setLocked(true)
+        setInfo('Противник сделал Swap — ждём его ход...')
+        return
+      }
+
+      // Обычный ход — звуки
+      if (action.transfer) st()
+      else sp()
+
+      if (ns.gameOver) {
+        setTimeout(() => {
+          setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+          finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
           const myColor = onlineRef.current?.myColor ?? 0
-          if (ns.currentPlayer === myColor) {
-            setTimeout(() => {
-              setLocked(false)
-              setPhase('place')
-              setTransfer(null)
-              setPlacement({})
-              setInfo(ns.isFirstTurn() ? 'Ваш ход — поставьте 1 фишку' : 'Ваш ход — расставьте фишки')
-            }, 300)
-          } else {
-            setLocked(true)
-            setInfo('Ходит противник...')
-          }
+          const won = ns.winner === myColor
+          setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
+        }, 500)
+      } else {
+        const myColor = onlineRef.current?.myColor ?? 0
+        if (ns.currentPlayer === myColor) {
+          setTimeout(() => {
+            setLocked(false)
+            setPhase('place')
+            setTransfer(null)
+            setPlacement({})
+            setInfo(ns.isFirstTurn() ? 'Ваш ход — поставьте 1 фишку' : 'Ваш ход — расставьте фишки')
+          }, 300)
+        } else {
+          setLocked(true)
+          setInfo('Ходит противник...')
         }
-
-        return ns
-      })
+      }
     }
 
     window.addEventListener('stolbiki-online-start', handleOnlineStart)
@@ -329,6 +342,7 @@ export default function Game() {
     onlineRef.current = null
     setPosEval(null)
     const state = new GameState()
+    gsRef.current = state
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); setMode(m)
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
@@ -481,7 +495,7 @@ export default function Game() {
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
         finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
-        const won = mode === 'pvp' || mode === 'online' ? ns.winner === humanPlayer : ns.winner === humanPlayer
+        const won = (mode === 'pvp') ? true : ns.winner === humanPlayer
         setTimeout(() => {
           won ? sw() : sl()
           if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
