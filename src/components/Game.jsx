@@ -75,7 +75,16 @@ export default function Game() {
           setGs(ns)
           aiRunning.current = false
           if (ns.gameOver) {
-            setTimeout(() => { setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false) }, 800)
+            setTimeout(() => {
+              setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+              if (typeof window.stolbikiRecordGame === 'function') {
+                const won = ns.winner === humanPlayer
+                const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+                const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
+                const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
+                window.stolbikiRecordGame(won, score, difficulty >= 100, closedGolden, false)
+              }
+            }, 800)
             return
           }
           if (ns.currentPlayer !== humanPlayer) {
@@ -204,7 +213,17 @@ export default function Game() {
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
     if (ns.gameOver) {
-      setTimeout(() => { setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false) }, 800)
+      setTimeout(() => {
+        setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+        // Записываем результат в профиль
+        if (typeof window.stolbikiRecordGame === 'function') {
+          const won = ns.winner === humanPlayer
+          const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+          const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
+          const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
+          window.stolbikiRecordGame(won, score, difficulty >= 100, closedGolden, false)
+        }
+      }, 800)
       return
     }
     if (mode === 'pvp') {

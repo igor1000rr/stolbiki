@@ -946,7 +946,8 @@ body::before {
 @media (max-width: 680px) {
   .app { padding: 16px 12px 60px; }
   .header h1 { font-size: 26px; }
-  .nav button { padding: 9px 10px; font-size: 12px; }
+  .nav { flex-wrap: wrap; }
+  .nav button { padding: 8px 8px; font-size: 11px; flex: 0 0 calc(33.3% - 2px); }
   .board { gap: 3px; padding: 16px 8px 24px; border-radius: 14px; }
   .stand { width: 42px; min-height: 160px; }
   .chip { width: 32px; height: 10px; }

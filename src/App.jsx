@@ -3,13 +3,17 @@ import Game from './components/Game'
 import Dashboard from './components/Dashboard'
 import Replay from './components/Replay'
 import Simulator from './components/Simulator'
+import Rules from './components/Rules'
+import Profile from './components/Profile'
 import './app.css'
 
 const TABS = [
-  { id: 'game', label: 'Играть' },
-  { id: 'sim', label: 'Симулятор' },
-  { id: 'dash', label: 'Аналитика' },
-  { id: 'replay', label: 'Разбор партий' },
+  { id: 'game', label: '🎮 Играть' },
+  { id: 'profile', label: '👤 Профиль' },
+  { id: 'sim', label: '🧪 Симулятор' },
+  { id: 'dash', label: '📊 Аналитика' },
+  { id: 'replay', label: '🎬 Реплеи' },
+  { id: 'rules', label: '📖 Правила' },
 ]
 
 export default function App() {
@@ -19,7 +23,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <h1>Стойки</h1>
-        <p>Настольная игра — играйте, анализируйте, изучайте</p>
+        <p>Настольная игра — играйте, анализируйте, соревнуйтесь</p>
       </header>
 
       <nav className="nav">
@@ -35,9 +39,11 @@ export default function App() {
       </nav>
 
       {tab === 'game' && <Game />}
+      {tab === 'profile' && <Profile />}
       {tab === 'sim' && <Simulator />}
       {tab === 'dash' && <Dashboard />}
       {tab === 'replay' && <Replay />}
+      {tab === 'rules' && <Rules />}
     </div>
   )
 }
