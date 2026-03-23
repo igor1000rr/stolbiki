@@ -36,7 +36,8 @@ export default function Game() {
   const [hintLoading, setHintLoading] = useState(false)
   const [hintMode, setHintMode] = useState(false)
   const [aiThinking, setAiThinking] = useState(false)
-  const [scoreBump, setScoreBump] = useState(null) // 0 or 1
+  const [scoreBump, setScoreBump] = useState(null)
+  const [locked, setLocked] = useState(false) // блокировка UI во время анимаций
   const aiRunning = useRef(false)
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
@@ -45,16 +46,16 @@ export default function Game() {
     if (logRef.current) logRef.current.scrollTop = 0
   }, [log])
 
-  // Score change → bump animation
+  // Score bump
   useEffect(() => {
     const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
     if (s0 > prevScore.current[0]) {
       setScoreBump(0)
-      setTimeout(() => setScoreBump(null), 600)
+      setTimeout(() => setScoreBump(null), 700)
     }
     if (s1 > prevScore.current[1]) {
       setScoreBump(1)
-      setTimeout(() => setScoreBump(null), 600)
+      setTimeout(() => setScoreBump(null), 700)
     }
     prevScore.current = [s0, s1]
   }, [gs])
@@ -63,42 +64,61 @@ export default function Game() {
     setLog(prev => [{ text, player }, ...prev])
   }, [])
 
+  // AI ход — с правильными таймингами
   const runAi = useCallback((state) => {
     if (aiRunning.current || state.gameOver) return
     aiRunning.current = true
     setAiThinking(true)
+    setLocked(true)
     setInfo('AI думает')
+
+    // Минимум 1.2с "думания" чтобы человек увидел
+    const startTime = Date.now()
 
     setTimeout(() => {
       const action = mctsSearch(state, difficulty)
-      addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
-      const ns = applyAction(state, action)
-      aiRunning.current = false
-      setAiThinking(false)
+      const elapsed = Date.now() - startTime
+      const minDelay = 1200
+      const remaining = Math.max(0, minDelay - elapsed)
 
-      if (ns.gameOver) {
+      // Ждём минимальный delay
+      setTimeout(() => {
+        setAiThinking(false)
+        addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
+        const ns = applyAction(state, action)
+
         setGs(ns)
-        setResult(ns.winner)
-        setInfo('Партия окончена')
-        return
-      }
+        aiRunning.current = false
 
-      // Если AI ходит подряд (после swap)
-      if (ns.currentPlayer !== humanPlayer) {
-        setGs(ns)
-        runAi(ns)
-        return
-      }
+        if (ns.gameOver) {
+          // Пауза перед показом результата
+          setTimeout(() => {
+            setResult(ns.winner)
+            setInfo('Партия окончена')
+            setLocked(false)
+          }, 800)
+          return
+        }
 
-      setGs(ns)
-      if (ns.isFirstTurn()) {
-        setPhase('place')
-        setInfo('Ваш ход. Поставьте 1 фишку.')
-      } else {
-        setPhase('transfer')
-        setInfo('Ваш ход. Выберите стойку для переноса или пропустите.')
-      }
-    }, 300)
+        // AI ходит подряд (после swap)
+        if (ns.currentPlayer !== humanPlayer) {
+          setTimeout(() => runAi(ns), 600)
+          return
+        }
+
+        // Пауза после хода AI чтобы увидеть изменения
+        setTimeout(() => {
+          setLocked(false)
+          if (ns.isFirstTurn()) {
+            setPhase('place')
+            setInfo('Ваш ход. Поставьте 1 фишку.')
+          } else {
+            setPhase('transfer')
+            setInfo('Ваш ход. Выберите стойку для переноса или пропустите.')
+          }
+        }, 600)
+      }, remaining)
+    }, 100) // Начинаем вычисление чуть позже чтобы UI обновился
   }, [difficulty, humanPlayer, addLog])
 
   const newGame = useCallback((side, diff) => {
@@ -115,6 +135,7 @@ export default function Game() {
     setHint(null)
     setAiThinking(false)
     setScoreBump(null)
+    setLocked(false)
     setHumanPlayer(hp)
     setDifficulty(d)
     aiRunning.current = false
@@ -124,8 +145,9 @@ export default function Game() {
     setLog([{ text: `Новая партия. Вы — ${pName}`, player: -1 }])
 
     if (state.currentPlayer !== hp) {
-      setInfo('AI делает первый ход...')
-      setTimeout(() => runAi(state), 400)
+      setInfo('AI делает первый ход')
+      setLocked(true)
+      setTimeout(() => runAi(state), 600)
     } else {
       setInfo('Первый ход: поставьте 1 фишку на любую стойку.')
     }
@@ -134,7 +156,7 @@ export default function Game() {
   useEffect(() => { newGame(0, 50) }, []) // eslint-disable-line
 
   const onStandClick = useCallback((i) => {
-    if (gs.gameOver || gs.currentPlayer !== humanPlayer || aiRunning.current) return
+    if (gs.gameOver || gs.currentPlayer !== humanPlayer || aiRunning.current || locked) return
     if (i in gs.closed) return
 
     if (phase === 'transfer') {
@@ -173,11 +195,7 @@ export default function Game() {
       if (!gs.canCloseByPlacement()) space = Math.max(0, space - 1)
 
       if (i in placement) {
-        setPlacement(prev => {
-          const copy = { ...prev }
-          delete copy[i]
-          return copy
-        })
+        setPlacement(prev => { const c = { ...prev }; delete c[i]; return c })
       } else {
         if (stands >= MAX_PLACE_STANDS) { setInfo('Максимум 2 стойки.'); return }
         if (currentTotal >= maxTotal) { setInfo('Все фишки расставлены.'); return }
@@ -185,10 +203,10 @@ export default function Game() {
         if (add > 0) setPlacement(prev => ({ ...prev, [i]: add }))
       }
     }
-  }, [gs, phase, selected, placement, placeCount, humanPlayer])
+  }, [gs, phase, selected, placement, placeCount, humanPlayer, locked])
 
   const confirmTurn = useCallback(() => {
-    if (gs.currentPlayer !== humanPlayer || gs.gameOver) return
+    if (gs.currentPlayer !== humanPlayer || gs.gameOver || locked) return
     const action = { transfer, placement }
     addLog(describeAction(action, humanPlayer), humanPlayer)
     const ns = applyAction(gs, action)
@@ -196,19 +214,23 @@ export default function Game() {
     setPlacement({})
     setSelected(null)
     setHint(null)
+    setLocked(true)
+
+    setGs(ns)
 
     if (ns.gameOver) {
-      setGs(ns)
-      setResult(ns.winner)
-      setInfo('Партия окончена')
+      setTimeout(() => {
+        setResult(ns.winner)
+        setInfo('Партия окончена')
+        setLocked(false)
+      }, 800)
       return
     }
 
-    setGs(ns)
+    // Пауза чтобы игрок увидел свой ход, потом AI
     setPhase('ai')
-    setAiThinking(true)
-    runAi(ns)
-  }, [gs, transfer, placement, humanPlayer, addLog, runAi])
+    setTimeout(() => runAi(ns), 500)
+  }, [gs, transfer, placement, humanPlayer, addLog, runAi, locked])
 
   const skipTransfer = useCallback(() => {
     setTransfer(null)
@@ -218,19 +240,19 @@ export default function Game() {
   }, [gs])
 
   const requestHint = useCallback(() => {
-    if (gs.currentPlayer !== humanPlayer || gs.gameOver || aiRunning.current) return
+    if (gs.currentPlayer !== humanPlayer || gs.gameOver || aiRunning.current || locked) return
     setHintLoading(true)
     setTimeout(() => {
       const h = getHint(gs, 60)
       setHint(h)
       setHintLoading(false)
-    }, 50)
-  }, [gs, humanPlayer])
+    }, 100)
+  }, [gs, humanPlayer, locked])
 
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : true
-  const isMyTurn = gs.currentPlayer === humanPlayer && !gs.gameOver && !aiRunning.current
+  const isMyTurn = gs.currentPlayer === humanPlayer && !gs.gameOver && !aiRunning.current && !locked
 
   return (
     <div>
@@ -254,7 +276,7 @@ export default function Game() {
           <input type="checkbox" checked={hintMode}
             onChange={e => { setHintMode(e.target.checked); setHint(null) }}
             style={{ marginRight: 4 }} />
-          Обучающий режим
+          Подсказки
         </label>
       </div>
 
@@ -303,7 +325,7 @@ export default function Game() {
           <button className="btn" onClick={skipTransfer}>Без переноса →</button>
         )}
         {isMyTurn && phase === 'transfer-dst' && (
-          <button className="btn" onClick={() => { setSelected(null); setPhase('transfer'); }}>Отмена</button>
+          <button className="btn" onClick={() => { setSelected(null); setPhase('transfer') }}>Отмена</button>
         )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
           <button className="btn" onClick={() => setPlacement({})}>Сброс</button>
@@ -313,28 +335,20 @@ export default function Game() {
             Подтвердить
           </button>
         )}
-        <button className="btn" onClick={() => newGame()}>Новая партия</button>
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading}
-            style={{ borderColor: '#ffc145', color: '#ffc145' }}>
+            style={{ borderColor: '#ffbe30', color: '#ffbe30' }}>
             {hintLoading ? 'Анализ...' : '💡 Подсказка'}
           </button>
         )}
+        <button className="btn" onClick={() => newGame()}>Новая партия</button>
       </div>
 
       {hint && hintMode && (
-        <div style={{
-          maxWidth: 520, margin: '0 auto 16px', padding: '16px 20px',
-          background: 'rgba(255, 193, 69, 0.06)', border: '1px solid rgba(255, 193, 69, 0.15)',
-          borderLeft: '3px solid #ffc145', borderRadius: '0 10px 10px 0',
-          fontSize: 13, lineHeight: 1.7, color: '#e8e6f0',
-          animation: 'fadeSlideUp 0.3s ease-out',
-        }}>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 15, marginBottom: 10, color: '#ffc145', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18 }}>💡</span> Подсказка
-          </div>
+        <div className="hint-panel">
+          <div className="hint-title">💡 Подсказка</div>
           {hint.explanation.map((line, i) => (
-            <p key={i} style={{ marginBottom: 5, color: '#a09cb0' }}>{line}</p>
+            <p key={i} className="hint-line">{line}</p>
           ))}
         </div>
       )}

@@ -1,44 +1,66 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, memo } from 'react'
 import { GOLDEN_STAND } from '../engine/game'
 
-export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, lastAction, aiThinking }) {
-  const prevStandsRef = useRef(state.stands.map(s => s.length))
-  const [flashStands, setFlashStands] = useState({})
-  const [newChips, setNewChips] = useState({})
+// Фишка — memo чтобы не пересоздавалась
+const Chip = memo(function Chip({ color, isNew, delay, isPending }) {
+  const [visible, setVisible] = useState(!isNew)
 
-  // Определяем новые фишки для stagger-анимации
   useEffect(() => {
-    const prev = prevStandsRef.current
-    const nc = {}
-    const fl = {}
+    if (isNew) {
+      const t = setTimeout(() => setVisible(true), delay)
+      return () => clearTimeout(t)
+    }
+  }, [isNew, delay])
 
-    for (let i = 0; i < state.stands.length; i++) {
-      const oldLen = prev[i] || 0
+  if (isPending) {
+    return <div className={`chip p${color} chip-pending`} />
+  }
+
+  return (
+    <div
+      className={`chip p${color} ${isNew && visible ? 'chip-drop' : ''} ${isNew && !visible ? 'chip-hidden' : ''}`}
+    />
+  )
+})
+
+export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking }) {
+  const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
+  const [newChipMap, setNewChipMap] = useState({}) // { standIdx: { from, count } }
+  const [flashSet, setFlashSet] = useState(new Set())
+
+  useEffect(() => {
+    const prev = prevRef.current
+    const nc = {}
+    const fl = new Set()
+
+    for (let i = 0; i < state.numStands; i++) {
+      const oldLen = prev.stands[i]?.length || 0
       const newLen = state.stands[i].length
 
+      // Новые фишки
       if (newLen > oldLen) {
-        // Новые фишки появились
-        nc[i] = { from: oldLen, to: newLen }
+        nc[i] = { from: oldLen, count: newLen - oldLen }
       }
 
-      // Стойка только что закрылась
-      if (i in state.closed && !(i in (prevStandsRef._prevClosed || {}))) {
-        fl[i] = true
+      // Закрытие
+      if ((i in state.closed) && !(i in prev.closed)) {
+        fl.add(i)
       }
     }
+
+    prevRef.current = { stands: state.stands.map(s => [...s]), closed: { ...state.closed } }
 
     if (Object.keys(nc).length > 0) {
-      setNewChips(nc)
-      setTimeout(() => setNewChips({}), 600)
+      setNewChipMap(nc)
+      // Держим "new" статус на время анимации (stagger * count + duration)
+      const maxDelay = Math.max(...Object.values(nc).map(v => v.count * 120 + 500))
+      setTimeout(() => setNewChipMap({}), maxDelay)
     }
 
-    if (Object.keys(fl).length > 0) {
-      setFlashStands(fl)
-      setTimeout(() => setFlashStands({}), 1000)
+    if (fl.size > 0) {
+      setFlashSet(fl)
+      setTimeout(() => setFlashSet(new Set()), 1000)
     }
-
-    prevStandsRef.current = state.stands.map(s => s.length)
-    prevStandsRef._prevClosed = { ...state.closed }
   }, [state])
 
   return (
@@ -48,46 +70,41 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
         const isGolden = i === GOLDEN_STAND
         const isSelected = selected === i
         const isTarget = phase === 'transfer-dst' && !isClosed && i !== selected
-        const isFlashing = flashStands[i]
-        const newInfo = newChips[i]
-
-        const classes = [
-          'stand',
-          isGolden && 'golden',
-          isClosed && 'closed',
-          isSelected && 'selected',
-          isTarget && 'target',
-          isFlashing && 'stand-flash',
-        ].filter(Boolean).join(' ')
-
+        const isFlashing = flashSet.has(i)
+        const newInfo = newChipMap[i]
         const pendingCount = pending[i] || 0
 
+        let cls = 'stand'
+        if (isGolden) cls += ' golden'
+        if (isClosed) cls += ' closed'
+        if (isSelected) cls += ' selected'
+        if (isTarget) cls += ' target'
+        if (isFlashing) cls += ' stand-flash'
+
         return (
-          <div key={i} className={classes} onClick={() => onStandClick?.(i)}>
+          <div key={i} className={cls} onClick={() => onStandClick?.(i)}>
             <span className="stand-label">{isGolden ? '★' : i}</span>
             {isClosed && <span className="stand-owner">П{state.closed[i] + 1}</span>}
 
             {chips.map((c, j) => {
               const isNew = newInfo && j >= newInfo.from
-              const staggerDelay = isNew ? (j - newInfo.from) * 80 : 0
-
+              const staggerIdx = isNew ? j - newInfo.from : 0
               return (
-                <div
-                  key={`${i}-${j}-${c}`}
-                  className={`chip p${c} ${isNew ? 'chip-enter' : ''}`}
-                  style={isNew ? {
-                    animationDelay: `${staggerDelay}ms`,
-                  } : undefined}
+                <Chip
+                  key={`${i}-${j}`}
+                  color={c}
+                  isNew={isNew}
+                  delay={staggerIdx * 120}
+                  isPending={false}
                 />
               )
             })}
 
             {Array.from({ length: pendingCount }).map((_, j) => (
-              <div key={`p${j}`} className={`chip p${humanPlayer} chip-pending`} />
+              <Chip key={`pending-${i}-${j}`} color={humanPlayer} isNew={false} delay={0} isPending={true} />
             ))}
 
-            {/* Glow overlay для flash */}
-            {isFlashing && <div className="stand-flash-overlay" />}
+            {isFlashing && <div className="stand-flash-glow" />}
           </div>
         )
       })}
