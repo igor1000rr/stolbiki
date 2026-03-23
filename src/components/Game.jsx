@@ -33,6 +33,7 @@ export default function Game() {
   const [transfer, setTransfer] = useState(null)
   const [placement, setPlacement] = useState({})
   const [placeCount, setPlaceCount] = useState(1)
+  const placeCountRef = useRef(1)
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(50)
   const [log, setLog] = useState([])
@@ -164,6 +165,7 @@ export default function Game() {
       const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
       const currentTotal = Object.values(placement).reduce((a, b) => a + b, 0)
       const numStands = Object.keys(placement).length
+      const pc = placeCountRef.current  // Всегда актуальный
 
       let space = gs.standSpace(i)
       if (!gs.canCloseByPlacement()) space = Math.max(0, space - 1)
@@ -171,35 +173,34 @@ export default function Game() {
       if (space <= 0) { setInfo(`Стойка ${SL(i)} заполнена`); return }
 
       if (i in placement) {
-        // Повторный клик на стойку с фишками:
-        // Если можно добавить ещё — добавляем placeCount
-        // Если нельзя — убираем все с этой стойки
         const current = placement[i]
         const canAddMore = currentTotal < maxTotal && current < space
         if (canAddMore) {
-          const add = Math.min(placeCount, space - current, maxTotal - currentTotal)
+          const add = Math.min(pc, space - current, maxTotal - currentTotal)
           if (add > 0) {
-            setPlacement(prev => ({ ...prev, [i]: current + add }))
+            const newVal = current + add
             const newTotal = currentTotal + add
-            setInfo(`${newTotal}/${maxTotal} фишек на ${Object.keys(placement).length} стойках`)
+            setPlacement(prev => ({ ...prev, [i]: newVal }))
+            setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
             return
           }
         }
-        // Убираем
+        // Не можем добавить — убираем
         setPlacement(prev => { const c = { ...prev }; delete c[i]; return c })
-        setInfo(`Фишки убраны со стойки ${SL(i)}`)
+        const newTotal = currentTotal - placement[i]
+        setInfo(`Убрано. ${newTotal}/${maxTotal} фишек`)
       } else {
-        if (numStands >= MAX_PLACE_STANDS) { setInfo('Максимум 2 стойки за ход. Кликните на стойку с фишками чтобы убрать'); return }
-        if (currentTotal >= maxTotal) { setInfo(`Все ${maxTotal} фишки расставлены`); return }
-        const add = Math.min(placeCount, space, maxTotal - currentTotal)
+        if (numStands >= MAX_PLACE_STANDS) { setInfo('Макс 2 стойки. Кликните занятую чтобы убрать'); return }
+        if (currentTotal >= maxTotal) { setInfo('Все фишки расставлены — подтвердите'); return }
+        const add = Math.min(pc, space, maxTotal - currentTotal)
         if (add > 0) {
           setPlacement(prev => ({ ...prev, [i]: add }))
           const newTotal = currentTotal + add
-          setInfo(`${newTotal}/${maxTotal} фишек. ${newTotal >= maxTotal ? 'Подтвердите ход' : 'Кликните ещё стойку'}`)
+          setInfo(`+${add} на ${SL(i)}. ${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
         }
       }
     }
-  }, [gs, phase, selected, placement, placeCount, humanPlayer, locked, addLog])
+  }, [gs, phase, selected, placement, humanPlayer, locked, addLog])
 
   // ─── Подтверждение ───
   const confirmTurn = useCallback(() => {
@@ -283,7 +284,7 @@ export default function Game() {
         <div className="place-controls">
           <span>За клик:</span>
           {[1, 2, 3].map(n => (
-            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`} onClick={() => { setPlaceCount(n); setInfo(`Клик = ${n} фишек. Кликните на стойку`) }}>{n}</button>
+            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`} onClick={() => { setPlaceCount(n); placeCountRef.current = n; setInfo(`Выбрано: ${n} фишек за клик`) }}>{n}</button>
           ))}
           <span className="place-status">
             {totalPlaced}/{maxTotal} фишек · {Object.keys(placement).length}/{MAX_PLACE_STANDS} стоек

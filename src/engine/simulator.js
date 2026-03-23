@@ -87,11 +87,17 @@ function fastRandomAction(state) {
   else if (normal.length && Math.random() < 0.4) transfer = normal[Math.floor(Math.random() * normal.length)]
 
   const maxChips = state.isFirstTurn() ? 1 : MAX_PLACE
+  const canClose = state.canCloseByPlacement()
   const available = []
   for (const idx of opens) {
     const space = state.standSpace(idx)
-    if (space <= 1) continue
-    available.push([idx, Math.min(space - 1, maxChips)])
+    if (canClose) {
+      if (space <= 0) continue
+      available.push([idx, Math.min(space, maxChips)])
+    } else {
+      if (space <= 1) continue
+      available.push([idx, Math.min(space - 1, maxChips)])
+    }
   }
 
   const placement = {}

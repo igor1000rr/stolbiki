@@ -30,11 +30,17 @@ export function sampleRandomAction(state) {
     transfer = normal[Math.floor(Math.random() * normal.length)]
 
   const maxChips = state.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
+  const canClose = state.canCloseByPlacement()
   const available = []
   for (const idx of opens) {
     const space = state.standSpace(idx)
-    if (space <= 1) continue
-    available.push([idx, Math.min(space - 1, maxChips)])
+    if (canClose) {
+      if (space <= 0) continue
+      available.push([idx, Math.min(space, maxChips)])
+    } else {
+      if (space <= 1) continue
+      available.push([idx, Math.min(space - 1, maxChips)])
+    }
   }
 
   const placement = {}
@@ -66,7 +72,9 @@ export function mctsSearch(state, numSimulations = 50) {
   const maxP = state.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
 
   function randPlacement(st, exclude = []) {
-    const avail = st.openStands().filter(i => !exclude.includes(i) && st.standSpace(i) > 1)
+    const canClose = st.canCloseByPlacement()
+    const minSpace = canClose ? 0 : 1
+    const avail = st.openStands().filter(i => !exclude.includes(i) && st.standSpace(i) > minSpace)
     if (!avail.length) return {}
     const pl = {}
     let rem = maxP
@@ -74,7 +82,7 @@ export function mctsSearch(state, numSimulations = 50) {
     const chosen = [...avail].sort(() => Math.random() - 0.5).slice(0, num)
     for (const idx of chosen) {
       if (rem <= 0) break
-      const cap = Math.min(st.standSpace(idx) - 1, rem)
+      const cap = canClose ? Math.min(st.standSpace(idx), rem) : Math.min(st.standSpace(idx) - 1, rem)
       if (cap > 0) { pl[idx] = 1 + Math.floor(Math.random() * cap); rem -= pl[idx] }
     }
     return pl
@@ -100,12 +108,15 @@ export function mctsSearch(state, numSimulations = 50) {
   }
 
   // Только установка
-  const avail = state.openStands().filter(i => state.standSpace(i) > 1)
+  const canCloseP = state.canCloseByPlacement()
+  const minSpP = canCloseP ? 0 : 1
+  const avail = state.openStands().filter(i => state.standSpace(i) > minSpP)
   if (avail.length) {
     const sorted = [...avail].sort((a, b) => state.stands[b].length - state.stands[a].length)
     for (let k = 0; k < Math.min(4, sorted.length); k++) {
       const idx = sorted[k]
-      actions.push({ placement: { [idx]: Math.min(maxP, state.standSpace(idx) - 1) } })
+      const sp = canCloseP ? state.standSpace(idx) : state.standSpace(idx) - 1
+      actions.push({ placement: { [idx]: Math.min(maxP, sp) } })
     }
     if (avail.length >= 2 && maxP >= 2) {
       const [i1, i2] = [sorted[0], sorted[1 % sorted.length]]
