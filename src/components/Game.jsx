@@ -305,8 +305,41 @@ export default function Game() {
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
+  const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('stolbiki_tutorial_seen'))
+
+  function dismissTutorial() {
+    setShowTutorial(false)
+    localStorage.setItem('stolbiki_tutorial_seen', '1')
+  }
+
   return (
     <div>
+      {/* Туториал для новых игроков */}
+      {showTutorial && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={dismissTutorial}>
+          <div style={{ maxWidth: 420, background: '#1e1e28', borderRadius: 16, padding: '28px 24px', border: '1px solid #36364a', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🎮</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>Как играть в Стойки</div>
+            </div>
+            <div style={{ fontSize: 13, color: '#a09cb0', lineHeight: 1.9 }}>
+              <p><b style={{ color: '#6db4ff' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
+              <p><b style={{ color: '#6db4ff' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
+              <p><b style={{ color: '#6db4ff' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
+              <p><b style={{ color: '#ffc145' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
+              <p><b style={{ color: '#3dd68c' }}>🎯</b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
+            </div>
+            <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
+              Понятно, играем!
+            </button>
+            <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: '#555' }}>
+              Подробные правила — вкладка «📖 Правила»
+            </div>
+          </div>
+        </div>
+      )}
       <div className="game-settings">
         <label>Режим:
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
