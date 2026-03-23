@@ -244,7 +244,7 @@ class GPUTrainer:
 
         self.net = StoykaNet(self.hidden, self.num_blocks).to(DEVICE)
         self.opt = optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=1e-4)
-        self.sched = optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=self.num_iterations)
+        self.sched = optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=300, eta_min=0.0001)
 
         self.buf_x, self.buf_y = [], []
         self.history = []
@@ -358,7 +358,7 @@ if __name__ == '__main__':
     config = {
         'hidden': 256,
         'num_blocks': 6,
-        'lr': 0.001,
+        'lr': 0.002,
         'batch_size': 1024,          # Большие батчи — GPU загружен
         'epochs': 25,
         'parallel': 15,              # 30→15 партий параллельно
