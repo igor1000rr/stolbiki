@@ -594,6 +594,16 @@ export default function Game() {
               }} style={{ fontSize: 12, padding: '8px 12px' }}>
                 📤
               </button>
+              <button className="btn" onClick={() => {
+                const replay = { moves: log.map(e => e.text).reverse(), turns: gs.turn, winner: result,
+                  score: `${s0}:${s1}`, mode, difficulty, elapsed, date: new Date().toISOString() }
+                const blob = new Blob([JSON.stringify(replay, null, 2)], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a'); a.href = url; a.download = `stolbiki_${Date.now()}.json`; a.click()
+                URL.revokeObjectURL(url)
+              }} style={{ fontSize: 12, padding: '8px 12px' }}>
+                💾
+              </button>
             </div>
             {sessionStats.streak > 1 && won && (
               <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>

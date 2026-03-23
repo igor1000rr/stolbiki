@@ -53,11 +53,30 @@ export default function App() {
 
   const tabs = isAdmin ? TABS_ADMIN : TABS_PUBLIC
 
+  const [publicStats, setPublicStats] = useState(null)
+  useEffect(() => {
+    fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {})
+  }, [])
+
   return (
     <div className="app">
       <header className="header">
         <h1>Стойки</h1>
         <p>Настольная игра — играйте, анализируйте, соревнуйтесь</p>
+        {publicStats && (
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 8 }}>
+            {[
+              { v: publicStats.totalUsers, l: 'игроков' },
+              { v: publicStats.totalGames, l: 'партий' },
+              { v: publicStats.avgRating, l: 'ср. рейтинг' },
+            ].map(s => (
+              <div key={s.l} style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>{s.v}</span>
+                <span style={{ fontSize: 9, color: '#555', marginLeft: 3 }}>{s.l}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       <nav className="nav">
