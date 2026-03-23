@@ -7,6 +7,8 @@ import { mctsSearch } from '../engine/ai'
 import { getHint } from '../engine/hints'
 import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as _sw, soundLose as _sl, soundClick as _sk, soundSwap as _ss } from '../engine/sounds'
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
+import * as MP from '../engine/multiplayer'
+import { isLoggedIn } from '../engine/api'
 import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -71,12 +73,117 @@ export default function Game() {
   const [posEval, setPosEval] = useState(null) // { score: -1..1, label, color }
   // Онлайн мультиплеер
   const [onlineRoom, setOnlineRoom] = useState(null)
+  const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
+  const [onlinePlayers, setOnlinePlayers] = useState([])
+  const onlineRef = useRef(null) // { roomId, playerIdx, myColor }
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
 
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = 0 }, [log])
+
+  // ─── Онлайн мультиплеер: слушаем события из Online.jsx ───
+  useEffect(() => {
+    function handleOnlineStart(e) {
+      const { players, firstPlayer, roomId, playerIdx, nextGame } = e.detail
+      const myColor = playerIdx // playerIdx 0 = синие, 1 = красные
+      onlineRef.current = { roomId, playerIdx, myColor }
+      setOnlineRoom(roomId)
+      setOnlinePlayerIdx(playerIdx)
+      setOnlinePlayers(players)
+
+      // Новая игра в онлайн-режиме
+      cancelRecording()
+      const state = new GameState()
+      setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
+      setScoreBump(null); setHumanPlayer(myColor); setMode('online')
+      aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
+      startRecording()
+      setGameMeta('online', 0)
+      setGameStartTime(Date.now())
+      setElapsed(0)
+      setUndoStack([])
+      setPosEval(null)
+
+      const myName = players[playerIdx] || 'Вы'
+      const oppName = players[1 - playerIdx] || 'Противник'
+      setLog([{ text: `Онлайн: ${myName} vs ${oppName}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+
+      if (state.currentPlayer === myColor) {
+        setLocked(false)
+        setInfo('Ваш ход — поставьте 1 фишку')
+      } else {
+        setLocked(true)
+        setInfo('Ходит противник...')
+      }
+    }
+
+    function handleOnlineMove(e) {
+      const action = e.detail
+      // Применяем ход противника
+      setGs(prev => {
+        const ns = applyAction(prev, action)
+        addLog(describeAction(action, prev.currentPlayer), prev.currentPlayer)
+
+        // Звуки
+        if (action.swap) {
+          ss()
+          // Противник сделал swap — наш цвет меняется
+          const newColor = 1 - (onlineRef.current?.myColor ?? 0)
+          onlineRef.current && (onlineRef.current.myColor = newColor)
+          setHumanPlayer(newColor)
+        }
+        else if (action.transfer) st()
+        else sp()
+
+        if (ns.gameOver) {
+          setTimeout(() => {
+            setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+            finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
+            const myColor = onlineRef.current?.myColor ?? 0
+            const won = ns.winner === myColor
+            setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
+          }, 500)
+        } else {
+          const myColor = onlineRef.current?.myColor ?? 0
+          if (ns.currentPlayer === myColor) {
+            setTimeout(() => {
+              setLocked(false)
+              setPhase('place')
+              setTransfer(null)
+              setPlacement({})
+              setInfo(ns.isFirstTurn() ? 'Ваш ход — поставьте 1 фишку' : 'Ваш ход — расставьте фишки')
+            }, 300)
+          } else {
+            setLocked(true)
+            setInfo('Ходит противник...')
+          }
+        }
+
+        return ns
+      })
+    }
+
+    window.addEventListener('stolbiki-online-start', handleOnlineStart)
+    window.addEventListener('stolbiki-online-move', handleOnlineMove)
+    return () => {
+      window.removeEventListener('stolbiki-online-start', handleOnlineStart)
+      window.removeEventListener('stolbiki-online-move', handleOnlineMove)
+    }
+  }, []) // eslint-disable-line
+
+  // ─── Daily Challenge: слушаем событие из Online.jsx ───
+  useEffect(() => {
+    function handleDailyStart() {
+      setDailyMode(true)
+      setDailySeed(getDailySeed())
+      newGame(0, 100, 'ai')
+      setInfo(`Ежедневный челлендж #${getDailySeed() % 10000} — победите AI за минимум ходов!`)
+    }
+    window.addEventListener('stolbiki-daily-start', handleDailyStart)
+    return () => window.removeEventListener('stolbiki-daily-start', handleDailyStart)
+  }, []) // eslint-disable-line
 
   // ─── Тренер: оценка позиции через MCTS ───
   function evaluatePosition(state) {
@@ -138,7 +245,7 @@ export default function Game() {
   // Сессионная статистика
   useEffect(() => {
     if (result === null) return
-    const won = mode === 'pvp' ? true : result === humanPlayer
+    const won = (mode === 'pvp') ? true : result === humanPlayer
     setSessionStats(prev => ({
       wins: prev.wins + (won ? 1 : 0),
       losses: prev.losses + (won ? 0 : 1),
@@ -201,6 +308,7 @@ export default function Game() {
             setTransfer(null)
             setPlacement({})
             setInfo(ns.isFirstTurn() ? 'Поставьте 1 фишку' : 'Кликайте на стойки чтобы ставить фишки (макс 3, на 2 стойки)')
+            evaluatePosition(ns)
           }, 500)
         }, 300)
       }, remaining)
@@ -209,10 +317,17 @@ export default function Game() {
 
   // ─── Новая игра ───
   function newGame(side, diff, gameMode) {
-    cancelRecording() // Отменяем предыдущую
+    cancelRecording()
     const hp = side ?? humanPlayer
     const d = diff ?? difficulty
-    const m = gameMode ?? mode
+    let m = gameMode ?? mode
+    // Если были в онлайн-режиме и начинаем новую — сбрасываем в AI
+    if (m === 'online' && !gameMode) m = 'ai'
+    if (m === 'online') return // Онлайн-игры стартуют через stolbiki-online-start
+    // Сброс онлайн состояния
+    setOnlineRoom(null); setOnlinePlayerIdx(-1); setOnlinePlayers([])
+    onlineRef.current = null
+    setPosEval(null)
     const state = new GameState()
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); setMode(m)
@@ -267,7 +382,7 @@ export default function Game() {
 
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
   function onStandClick(i) {
-    const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
+    const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
     if (i in gs.closed) return
 
@@ -342,32 +457,41 @@ export default function Game() {
 
   // ─── Подтверждение ───
   function confirmTurn() {
-    const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
+    const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (!currentIsHuman || gs.gameOver || locked) return
     if (mode === 'pvp') setUndoStack(prev => [...prev, gs].slice(-10))
     const action = { transfer, placement }
     recordMove(gs, action, gs.currentPlayer)
     addLog(describeAction(action, gs.currentPlayer), gs.currentPlayer)
+
+    // Онлайн — отправляем ход противнику
+    if (mode === 'online') {
+      MP.sendMove(action)
+    }
+
     const ns = applyAction(gs, action)
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
-    setPosEval(null) // Сбрасываем оценку
+    setPosEval(null)
     if (ns.gameOver) {
+      // Онлайн — сообщаем серверу о победителе
+      if (mode === 'online') {
+        MP.sendGameOver(ns.winner)
+      }
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
         finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
-        const won = mode === 'pvp' || ns.winner === humanPlayer
+        const won = mode === 'pvp' || mode === 'online' ? ns.winner === humanPlayer : ns.winner === humanPlayer
         setTimeout(() => {
-          if (mode === 'pvp') sw()
-          else ns.winner === humanPlayer ? sw() : sl()
-          if (won || mode === 'pvp') { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
+          won ? sw() : sl()
+          if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
         }, 300)
         if (typeof window.stolbikiRecordGame === 'function') {
           const w = ns.winner === humanPlayer
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false)
+          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, mode === 'online')
         }
         // Турнир — запись результата
         if (tournament) {
@@ -378,15 +502,30 @@ export default function Game() {
             games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }],
           }))
         }
+        // Daily — отправка результата
+        if (dailyMode && isLoggedIn()) {
+          const w = ns.winner === humanPlayer ? 1 : 0
+          fetch('/api/daily/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
+            body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - gameStartTime) / 1000), won: w }),
+          }).catch(() => {})
+          setDailyMode(false)
+        }
       }, 800)
       return
     }
-    if (mode === 'pvp') {
+    if (mode === 'online') {
+      setLocked(true)
+      setPhase('place')
+      setInfo('Ходит противник...')
+    } else if (mode === 'pvp') {
       setPhase('place')
       const name = ns.currentPlayer === 0 ? 'Синие' : 'Красные'
       setInfo(ns.isFirstTurn() ? `${name}: поставьте 1 фишку` : `${name}: расставьте фишки`)
     } else {
       setLocked(true)
+      evaluatePosition(ns)
       setPhase('ai')
       setTimeout(() => runAi(ns), 500)
     }
@@ -413,7 +552,7 @@ export default function Game() {
   }
 
   function requestHint() {
-    const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
+    const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (!currentIsHuman || gs.gameOver || locked) return
     setHintLoading(true)
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
@@ -423,7 +562,7 @@ export default function Game() {
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
-  const isMyTurn = (mode === 'pvp' || gs.currentPlayer === humanPlayer) && !gs.gameOver && !aiRunning.current && !locked
+  const isMyTurn = (mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer) && !gs.gameOver && !aiRunning.current && !locked
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
@@ -462,6 +601,18 @@ export default function Game() {
           </div>
         </div>
       )}
+      {mode === 'online' && (
+        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
+          background: 'rgba(61,214,140,0.08)', borderRadius: 12, border: '1px solid rgba(61,214,140,0.15)' }}>
+          <span style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>🌐 Онлайн — {onlinePlayers.join(' vs ')}</span>
+          <label style={{ cursor: 'pointer', marginLeft: 12 }}>
+            <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
+            🔊
+          </label>
+        </div>
+      )}
+
+      {mode !== 'online' && (
       <div className="game-settings">
         <label>Режим:
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
@@ -493,11 +644,18 @@ export default function Game() {
             Подсказки
           </label>
         )}
+        {mode === 'ai' && (
+          <label style={{ cursor: 'pointer' }}>
+            <input type="checkbox" checked={trainerMode} onChange={e => { setTrainerMode(e.target.checked); setPosEval(null) }} style={{ marginRight: 4 }} />
+            Тренер
+          </label>
+        )}
         <label style={{ cursor: 'pointer' }}>
           <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
           🔊
         </label>
       </div>
+      )}
 
       {/* Сессионная статистика */}
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
@@ -508,12 +666,14 @@ export default function Game() {
         </div>
       )}
 
-      {(mode === 'pvp' || mode === 'spectate') && !gs.gameOver && (
+      {(mode === 'pvp' || mode === 'spectate' || mode === 'online') && !gs.gameOver && (
         <div style={{ textAlign: 'center', padding: '6px 12px', margin: '0 auto 8px', fontSize: 13, fontWeight: 600,
           color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
-          {mode === 'spectate' ? `AI думает (${gs.currentPlayer === 0 ? 'Синие' : 'Красные'})` : `Ходят ${gs.currentPlayer === 0 ? 'Синие' : 'Красные'}`}
+          {mode === 'spectate' ? `AI думает (${gs.currentPlayer === 0 ? 'Синие' : 'Красные'})` :
+           mode === 'online' ? (gs.currentPlayer === humanPlayer ? '🟢 Ваш ход' : '⏳ Ходит противник') :
+           `Ходят ${gs.currentPlayer === 0 ? 'Синие' : 'Красные'}`}
         </div>
       )}
 
@@ -531,7 +691,7 @@ export default function Game() {
 
       <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`}>{info}</div>
 
-      <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} />
+      <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} onlineMode={mode === 'online'} />
 
       {/* Прогресс закрытия стоек */}
       <div style={{ display: 'flex', gap: 2, margin: '8px 0', padding: '0 4px' }}>
@@ -551,6 +711,27 @@ export default function Game() {
         Ход {gs.turn} · Открыто: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
       </div>
 
+      {/* Тренер — оценка позиции */}
+      {trainerMode && posEval && mode === 'ai' && !gs.gameOver && (
+        <div style={{ margin: '0 4px 8px', padding: '6px 10px', background: 'rgba(26,26,42,0.6)',
+          borderRadius: 8, border: `1px solid ${posEval.color}22` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: posEval.color }}>{posEval.label}</span>
+            <span style={{ fontSize: 10, color: '#6b6880', marginLeft: 'auto' }}>
+              {posEval.score > 0 ? '+' : ''}{(posEval.score * 100).toFixed(0)}%
+            </span>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: '#2a2a38', overflow: 'hidden' }}>
+            <div style={{
+              width: `${Math.max(5, Math.min(95, (posEval.score + 1) / 2 * 100))}%`,
+              height: '100%', borderRadius: 3,
+              background: `linear-gradient(90deg, #ff6066, #ffc145 40%, #3dd68c)`,
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+        </div>
+      )}
+
       {/* Статус фишек */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
@@ -569,13 +750,22 @@ export default function Game() {
           </div>
           <button className="btn" onClick={() => {
             const action = { swap: true }
+            if (mode === 'online') MP.sendMove(action)
             recordMove(gs, action, gs.currentPlayer)
             addLog('Swap — цвета поменялись!', gs.currentPlayer)
             ss()
             const ns = applyAction(gs, action)
             setGs(ns)
             setPhase('place')
-            setInfo('Swap принят! Теперь вы играете за синих')
+            if (mode === 'online') {
+              // После swap в онлайне: мы забрали позицию P1, теперь наш ход
+              setHumanPlayer(0) // Мы теперь синие
+              onlineRef.current && (onlineRef.current.myColor = 0)
+              setLocked(false)
+              setInfo('Swap принят! Теперь вы синие — расставьте фишки')
+            } else {
+              setInfo('Swap принят! Теперь вы играете за синих')
+            }
           }} style={{ borderColor: '#9b59b6', color: '#9b59b6', marginRight: 8 }}>
             🔄 Swap (забрать ход)
           </button>
@@ -630,15 +820,17 @@ export default function Game() {
       )}
 
       {result !== null && (() => {
-        const won = mode === 'pvp' ? true : result === humanPlayer
+        const won = (mode === 'pvp') ? true : result === humanPlayer
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
-        const shareText = `Стойки: ${won ? 'Победа' : 'Поражение'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — 178.212.12.71`
+        const shareText = `Стойки${mode === 'online' ? ' Онлайн' : ''}: ${won ? 'Победа' : 'Поражение'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — 178.212.12.71`
         return (
           <div className="game-result" style={{ borderLeft: `3px solid ${won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '🎉' : '😔'}</div>
             <span style={{ fontSize: 20 }}>{mode === 'pvp'
               ? `${result === 0 ? 'Синие' : 'Красные'} победили!`
+              : mode === 'online'
+              ? (won ? '🏆 Победа!' : 'Противник победил')
               : (won ? 'Победа!' : 'AI побеждает')
             }</span>
             <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: '#e8e6f0' }}>{s0} : {s1}</div>
@@ -656,9 +848,61 @@ export default function Game() {
                   🔄 Сменить сторону
                 </button>
               )}
-              <button className="btn" onClick={() => {
-                if (navigator.share) navigator.share({ text: shareText }).catch(() => {})
-                else { navigator.clipboard?.writeText(shareText); }
+              <button className="btn" onClick={async () => {
+                // Генерируем картинку результата через canvas
+                try {
+                  const c = document.createElement('canvas')
+                  c.width = 600; c.height = 320
+                  const ctx = c.getContext('2d')
+                  // Фон
+                  ctx.fillStyle = '#14141e'
+                  ctx.fillRect(0, 0, 600, 320)
+                  ctx.fillStyle = '#1e1e28'
+                  ctx.fillRect(0, 0, 600, 6)
+                  // Заголовок
+                  ctx.fillStyle = won ? '#3dd68c' : '#ff6066'
+                  ctx.font = 'bold 32px sans-serif'
+                  ctx.textAlign = 'center'
+                  ctx.fillText(won ? '🎉 Победа!' : '😔 Поражение', 300, 60)
+                  // Счёт
+                  ctx.fillStyle = '#e8e6f0'
+                  ctx.font = 'bold 72px sans-serif'
+                  ctx.fillText(`${s0} : ${s1}`, 300, 150)
+                  // Стойки визуализация
+                  for (let si = 0; si < 10; si++) {
+                    const x = 60 + si * 52
+                    const owner = gs.closed[si]
+                    ctx.fillStyle = owner === 0 ? '#4a9eff' : owner === 1 ? '#ff6b6b' : '#2a2a38'
+                    ctx.globalAlpha = owner !== undefined ? 0.9 : 0.3
+                    ctx.fillRect(x, 185, 40, 16)
+                    ctx.globalAlpha = 1
+                    if (si === 0) { ctx.fillStyle = '#ffc145'; ctx.font = '10px sans-serif'; ctx.fillText('★', x + 20, 218) }
+                  }
+                  // Инфо
+                  ctx.fillStyle = '#6b6880'
+                  ctx.font = '14px sans-serif'
+                  ctx.fillText(`Ходов: ${gs.turn} · ⏱ ${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}${goldenOwned ? ' · ⭐ Золотая' : ''}`, 300, 260)
+                  // Подпись
+                  ctx.fillStyle = '#444'
+                  ctx.font = '12px sans-serif'
+                  ctx.fillText('Стойки — 178.212.12.71', 300, 300)
+
+                  const blob = await new Promise(r => c.toBlob(r, 'image/png'))
+                  const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })
+
+                  if (navigator.canShare?.({ files: [file] })) {
+                    navigator.share({ text: shareText, files: [file] }).catch(() => {})
+                  } else if (navigator.share) {
+                    navigator.share({ text: shareText }).catch(() => {})
+                  } else {
+                    // Fallback: скачиваем картинку
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a'); a.href = url; a.download = 'stolbiki-result.png'; a.click()
+                    URL.revokeObjectURL(url)
+                  }
+                } catch {
+                  navigator.clipboard?.writeText(shareText)
+                }
               }} style={{ fontSize: 12, padding: '8px 12px' }}>
                 📤
               </button>

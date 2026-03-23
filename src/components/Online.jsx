@@ -1,6 +1,88 @@
 import { useState, useEffect, useRef } from 'react'
 import * as MP from '../engine/multiplayer'
 
+// Ежедневный челлендж
+function DailyChallenge() {
+  const [daily, setDaily] = useState(null)
+  const [leaderboard, setLeaderboard] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/daily').then(r => r.json()).catch(() => null),
+      fetch('/api/daily/leaderboard').then(r => r.json()).catch(() => ({ results: [] })),
+    ]).then(([d, lb]) => {
+      setDaily(d)
+      setLeaderboard(lb?.results || [])
+      setLoading(false)
+    })
+  }, [])
+
+  function startDaily() {
+    // Передаём событие в Game.jsx для запуска daily
+    window.dispatchEvent(new CustomEvent('stolbiki-daily-start', { detail: daily }))
+  }
+
+  if (loading) return <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 12, padding: 20 }}>Загрузка...</div>
+  if (!daily) return null
+
+  const dateStr = daily.date || daily.seed
+  return (
+    <div className="dash-card" style={{ maxWidth: 440, margin: '16px auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <span style={{ fontSize: 32 }}>📅</span>
+        <div>
+          <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
+            Ежедневный челлендж
+          </h3>
+          <span style={{ fontSize: 11, color: '#6e6a82' }}>#{dateStr} · Одинаковый для всех</span>
+        </div>
+      </div>
+
+      <p style={{ fontSize: 12, color: '#a09cb0', marginBottom: 12, lineHeight: 1.6 }}>
+        У всех одинаковая начальная позиция. Победите AI за минимум ходов!
+      </p>
+
+      <button className="btn primary" onClick={startDaily}
+        style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 12 }}>
+        🎯 Играть
+      </button>
+
+      {leaderboard.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, color: '#6e6a82', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Таблица лидеров
+          </div>
+          <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+            {leaderboard.map((r, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                borderRadius: 6, background: i === 0 ? 'rgba(255,193,69,0.06)' : 'transparent',
+                fontSize: 12,
+              }}>
+                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#6e6a82' }}>
+                  {i + 1}
+                </span>
+                <span style={{ flex: 1, color: '#e8e6f0' }}>{r.username}</span>
+                <span style={{ color: '#a09cb0', fontSize: 11 }}>{r.turns} ходов</span>
+                <span style={{ color: '#6e6a82', fontSize: 10 }}>
+                  {r.duration ? `${Math.floor(r.duration/60)}:${String(r.duration%60).padStart(2,'0')}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {leaderboard.length === 0 && (
+        <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 11, padding: '8px 0' }}>
+          Пока никто не играл сегодня — будьте первым!
+        </div>
+      )}
+    </div>
+  )
+}
+
 // QR генерация через canvas (без библиотек)
 function QRCode({ text, size = 160 }) {
   const ref = useRef(null)
@@ -192,6 +274,9 @@ export default function Online() {
           <QRCode text={location.origin} size={180} />
           <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10 }}>Отсканируй чтобы играть на телефоне</p>
         </div>
+
+        {/* Ежедневный челлендж */}
+        <DailyChallenge />
       </div>
     )
   }

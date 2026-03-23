@@ -27,11 +27,13 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
   const [newChipMap, setNewChipMap] = useState({}) // { standIdx: { from, count } }
   const [flashSet, setFlashSet] = useState(new Set())
+  const [particles, setParticles] = useState({}) // { standIdx: [{ id, x, y, color, dx, dy }] }
 
   useEffect(() => {
     const prev = prevRef.current
     const nc = {}
     const fl = new Set()
+    const newParticles = {}
 
     for (let i = 0; i < state.numStands; i++) {
       const oldLen = prev.stands[i]?.length || 0
@@ -42,9 +44,20 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
         nc[i] = { from: oldLen, count: newLen - oldLen }
       }
 
-      // Закрытие
+      // Закрытие — запускаем частицы
       if ((i in state.closed) && !(i in prev.closed)) {
         fl.add(i)
+        const owner = state.closed[i]
+        const baseColor = owner === 0 ? ['#4a9eff', '#6db4ff', '#a0d0ff'] : ['#ff6b6b', '#ff8888', '#ffb0b0']
+        const sparkColors = ['#ffc145', '#fff', ...baseColor]
+        newParticles[i] = Array.from({ length: 14 }, (_, j) => ({
+          id: j,
+          color: sparkColors[j % sparkColors.length],
+          angle: (j / 14) * 360 + Math.random() * 20,
+          dist: 30 + Math.random() * 40,
+          size: 3 + Math.random() * 5,
+          delay: Math.random() * 0.15,
+        }))
       }
     }
 
@@ -52,7 +65,6 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
 
     if (Object.keys(nc).length > 0) {
       setNewChipMap(nc)
-      // Держим "new" статус на время анимации (stagger * count + duration)
       const maxDelay = Math.max(...Object.values(nc).map(v => v.count * 150 + 700))
       setTimeout(() => setNewChipMap({}), maxDelay)
     }
@@ -60,6 +72,11 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
     if (fl.size > 0) {
       setFlashSet(fl)
       setTimeout(() => setFlashSet(new Set()), 1000)
+    }
+
+    if (Object.keys(newParticles).length > 0) {
+      setParticles(newParticles)
+      setTimeout(() => setParticles({}), 1200)
     }
   }, [state])
 
@@ -131,6 +148,21 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             ))}
 
             {isFlashing && <div className="stand-flash-glow" />}
+            {/* Частицы при закрытии */}
+            {particles[i] && (
+              <div className="close-particles">
+                {particles[i].map(p => (
+                  <div key={p.id} className="close-particle"
+                    style={{
+                      '--angle': `${p.angle}deg`,
+                      '--dist': `${p.dist}px`,
+                      '--delay': `${p.delay}s`,
+                      '--size': `${p.size}px`,
+                      background: p.color,
+                    }} />
+                ))}
+              </div>
+            )}
           </div>
         )
       })}

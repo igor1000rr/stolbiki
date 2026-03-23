@@ -47,9 +47,15 @@ export default function App() {
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
     window.stolbikiCheckAdmin = check
-    // Проверяем каждую секунду (для смены профиля)
     const interval = setInterval(check, 1000)
     return () => { clearInterval(interval); delete window.stolbikiCheckAdmin }
+  }, [])
+
+  // Автопереключение на вкладку "Играть" при старте онлайн-матча
+  useEffect(() => {
+    const handler = () => setTab('game')
+    window.addEventListener('stolbiki-online-start', handler)
+    return () => window.removeEventListener('stolbiki-online-start', handler)
   }, [])
 
   // Если был на админ-вкладке и вышел из профиля
@@ -93,9 +99,9 @@ export default function App() {
         ))}
       </nav>
 
-      <div key={tab} className="tab-content">
-        {tab === 'game' && <Game />}
-        {tab === 'online' && <Online />}
+      <div className="tab-content">
+        <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
+        <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
         {tab === 'profile' && <Profile />}
         {tab === 'sim' && isAdmin && <Simulator />}
         {tab === 'dash' && isAdmin && <Dashboard />}
