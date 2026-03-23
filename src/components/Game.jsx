@@ -55,6 +55,8 @@ export default function Game() {
   const [confetti, setConfetti] = useState(false)
   const [newAch, setNewAch] = useState(null)
   const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0 })
+  const [gameStartTime, setGameStartTime] = useState(Date.now())
+  const [elapsed, setElapsed] = useState(0)
   const aiRunning = useRef(false)
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
@@ -154,6 +156,8 @@ export default function Game() {
     aiRunning.current = false; prevScore.current = [0, 0]
     startRecording()
     setGameMeta(m, d)
+    setGameStartTime(Date.now())
+    setElapsed(0)
     if (m === 'pvp') {
       setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo('Синие: поставьте 1 фишку')
@@ -183,6 +187,13 @@ export default function Game() {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   })
+
+  // Таймер
+  useEffect(() => {
+    if (gs.gameOver) return
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - gameStartTime) / 1000)), 1000)
+    return () => clearInterval(t)
+  }, [gameStartTime, gs.gameOver])
 
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
   function onStandClick(i) {
@@ -430,6 +441,24 @@ export default function Game() {
 
       <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} />
 
+      {/* Прогресс закрытия стоек */}
+      <div style={{ display: 'flex', gap: 2, margin: '8px 0', padding: '0 4px' }}>
+        {Array.from({ length: 10 }).map((_, i) => {
+          const owner = gs.closed[i]
+          return (
+            <div key={i} style={{
+              flex: 1, height: 4, borderRadius: 2,
+              background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : '#2a2a38',
+              opacity: owner !== undefined ? 0.9 : 0.3,
+              transition: 'all 0.3s',
+            }} />
+          )
+        })}
+      </div>
+      <div style={{ textAlign: 'center', fontSize: 10, color: '#555', marginBottom: 6 }}>
+        Ход {gs.turn} · Открыто: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+      </div>
+
       {/* Статус фишек */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
@@ -437,6 +466,32 @@ export default function Game() {
             {totalPlaced}/{maxTotal} фишек · {Object.keys(placement).length}/{MAX_PLACE_STANDS} стоек
             {transfer && ` · перенос ✓`}
           </span>
+        </div>
+      )}
+
+      {/* Swap кнопка */}
+      {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
+        <div style={{ textAlign: 'center', margin: '8px 0' }}>
+          <div style={{ fontSize: 12, color: '#a09cb0', marginBottom: 6 }}>
+            Игрок 1 поставил первую фишку. Хотите поменять цвета?
+          </div>
+          <button className="btn" onClick={() => {
+            const action = { swap: true }
+            recordMove(gs, action, gs.currentPlayer)
+            addLog('Swap — цвета поменялись!', gs.currentPlayer)
+            ss()
+            const ns = applyAction(gs, action)
+            setGs(ns)
+            setPhase('place')
+            setInfo('Swap принят! Теперь вы играете за синих')
+          }} style={{ borderColor: '#9b59b6', color: '#9b59b6', marginRight: 8 }}>
+            🔄 Swap (забрать ход)
+          </button>
+          <button className="btn" onClick={() => {
+            setInfo('Swap отклонён. Ставьте фишки')
+          }} style={{ fontSize: 12 }}>
+            Нет, продолжить
+          </button>
         </div>
       )}
 
@@ -494,6 +549,7 @@ export default function Game() {
             <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: '#e8e6f0' }}>{s0} : {s1}</div>
             <div style={{ fontSize: 11, color: '#6b6880', display: 'flex', gap: 12, justifyContent: 'center' }}>
               <span>Ходов: {gs.turn}</span>
+              <span>⏱ {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
               {goldenOwned && <span>⭐ Золотая: П{gs.closed[0] + 1}</span>}
             </div>
             <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center' }}>

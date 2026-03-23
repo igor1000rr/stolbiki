@@ -993,24 +993,31 @@ body::before {
    MOBILE
    ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
-  .app { padding: 16px 12px 60px; }
+  .app { padding: 16px 8px 60px; }
   .header h1 { font-size: 26px; }
   .nav { flex-wrap: wrap; }
-  .nav button { padding: 8px 8px; font-size: 11px; flex: 0 0 calc(33.3% - 2px); }
-  .board { gap: 3px; padding: 16px 8px 24px; border-radius: 14px; }
-  .stand { width: 42px; min-height: 160px; }
-  .chip { width: 32px; height: 10px; }
+  .nav button { padding: 8px 6px; font-size: 11px; flex: 0 0 calc(33.3% - 2px); }
+  .board { gap: 2px; padding: 14px 4px 20px; border-radius: 14px; }
+  .stand { width: 46px; min-height: 170px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .stand:hover { transform: none; box-shadow: none; }
+  .stand:active { transform: scale(0.96); background: rgba(255,255,255,0.04); }
+  .chip { width: 34px; height: 10px; }
   .dash-grid { grid-template-columns: 1fr; }
-  .game-settings { flex-direction: column; align-items: center; gap: 10px; }
-  .scoreboard { gap: 28px; }
-  .score-num { font-size: 38px; }
-  .big-num { font-size: 38px; }
+  .game-settings { flex-direction: column; align-items: center; gap: 8px; }
+  .game-settings label { font-size: 12px; }
+  .scoreboard { gap: 24px; }
+  .score-num { font-size: 36px; }
+  .big-num { font-size: 36px; }
+  .actions { flex-wrap: wrap; }
+  .btn { padding: 8px 12px; font-size: 12px; min-height: 40px; }
+  .game-result { padding: 16px; }
 }
 
 @media (max-width: 400px) {
-  .board { gap: 2px; padding: 12px 4px 20px; }
-  .stand { width: 34px; min-height: 130px; }
-  .stand-label { font-size: 9px; top: -16px; }
-  .chip { width: 26px; height: 9px; }
-  .score-num { font-size: 32px; }
+  .board { gap: 1px; padding: 10px 2px 16px; }
+  .stand { width: 36px; min-height: 140px; padding: 4px 2px 2px; }
+  .stand-label { font-size: 8px; top: -14px; }
+  .chip { width: 28px; height: 9px; }
+  .score-num { font-size: 30px; }
+  .nav button { padding: 7px 4px; font-size: 10px; }
 }
