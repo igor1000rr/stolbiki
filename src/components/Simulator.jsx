@@ -1,110 +1,195 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { runSimulation } from '../engine/simulator'
 
-function Bar({ value, max, color = '#6db4ff', height = 50 }) {
-  const pct = max > 0 ? value / max : 0
+// ─── Пресеты ───
+const PRESETS = [
+  { name: 'Стандарт', stands: 10, chips: 11, desc: 'Базовые правила' },
+  { name: 'Быстрая', stands: 7, chips: 9, desc: '~36 ходов' },
+  { name: 'Марафон', stands: 12, chips: 13, desc: '~74 хода' },
+  { name: 'Мини', stands: 5, chips: 7, desc: 'Самая быстрая' },
+  { name: 'Высокие', stands: 10, chips: 15, desc: 'Долгие стойки' },
+  { name: 'Широкая', stands: 16, chips: 9, desc: 'Много стоек' },
+]
+
+// ─── Компоненты ───
+function ProgressRing({ pct, size = 64, stroke = 5, color = '#f0654a' }) {
+  const r = (size - stroke) / 2
+  const circ = 2 * Math.PI * r
   return (
-    <div style={{ width: '100%', height, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{
-        width: '100%', height: `${Math.max(pct * height, 2)}px`,
-        background: `linear-gradient(180deg, ${color}, ${color}88)`,
-        borderRadius: '3px 3px 0 0', transition: 'height 0.3s',
-      }} />
-    </div>
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#2a2a38" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.3s' }} />
+    </svg>
   )
 }
 
-function StatCard({ label, value, sub, color, icon }) {
+function LiveBar({ p1, p2, height = 28 }) {
+  const total = p1 + p2 || 1
+  const p1pct = p1 / total * 100
   return (
-    <div style={{
-      textAlign: 'center', padding: '10px 6px',
-      background: 'rgba(255,255,255,0.02)', borderRadius: 10,
-      border: `1px solid ${color || '#333'}22`,
-    }}>
-      {icon && <div style={{ fontSize: 18, marginBottom: 2 }}>{icon}</div>}
-      <div style={{ fontSize: 9, color: '#6b6880', textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: color || '#e8e6f0', lineHeight: 1.2, marginTop: 2 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>{sub}</div>}
-    </div>
-  )
-}
-
-function MiniBarChart({ data, labels, colors, title, height = 60 }) {
-  if (!data || !data.length) return null
-  const max = Math.max(...data, 1)
-  return (
-    <div style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>{title}</div>
-      <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height }}>
-        {data.map((v, i) => (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ fontSize: 8, color: '#888' }}>{v > 0 ? (v / data.reduce((a, b) => a + b, 0) * 100).toFixed(0) + '%' : ''}</div>
-            <Bar value={v} max={max} color={colors?.[i] || '#6db4ff'} height={height - 15} />
-            <span style={{ fontSize: 9, color: '#6b6880' }}>{labels?.[i] ?? i}</span>
-          </div>
-        ))}
+    <div style={{ position: 'relative', height, borderRadius: height/2, overflow: 'hidden', background: '#1a1a2a' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${p1pct}%`,
+        background: 'linear-gradient(90deg, #4a9eff, #72b8ff)', borderRadius: `${height/2}px 0 0 ${height/2}px`,
+        transition: 'width 0.4s ease' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${100-p1pct}%`,
+        background: 'linear-gradient(90deg, #ff8a8e, #ff6066)', borderRadius: `0 ${height/2}px ${height/2}px 0`,
+        transition: 'width 0.4s ease' }} />
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '0 12px', fontSize: 11, fontWeight: 700, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+        <span>P1 {p1pct.toFixed(1)}%</span>
+        <span>P2 {(100-p1pct).toFixed(1)}%</span>
       </div>
     </div>
   )
 }
 
-function ProgressBar({ value, max }) {
-  const pct = max > 0 ? (value / max * 100) : 0
+function Verdict({ p1Wr, total }) {
+  if (total < 50) return null
+  const diff = Math.abs(p1Wr - 50)
+  const se = Math.sqrt(0.25 / total) * 100  // standard error
+  const z = diff / se
+  let verdict, color, icon
+  if (diff < 2) { verdict = 'Идеально сбалансировано'; color = '#3dd68c'; icon = '✅' }
+  else if (diff < 4) { verdict = 'Хороший баланс'; color = '#4ecb71'; icon = '👍' }
+  else if (diff < 7) { verdict = 'Небольшой перекос'; color = '#f0a030'; icon = '⚠️' }
+  else { verdict = 'Существенный дисбаланс'; color = '#ff6066'; icon = '❌' }
+
+  const significant = z > 1.96
   return (
-    <div style={{ width: '100%', height: 6, background: '#2a2a38', borderRadius: 3, overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #f0654a, #ff8a6b)', borderRadius: 3, transition: 'width 0.3s' }} />
+    <div style={{ padding: '12px 16px', borderRadius: 12, background: `${color}0a`, border: `1px solid ${color}22`,
+      display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+      <span style={{ fontSize: 24 }}>{icon}</span>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color }}>{verdict}</div>
+        <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>
+          P1 = {p1Wr.toFixed(1)}% • Отклонение: {diff.toFixed(1)}% • {significant ? 'Статистически значимо (p<0.05)' : 'Статистически незначимо'}
+        </div>
+      </div>
     </div>
   )
 }
 
+function Histogram({ data, bins = 15, title, color = '#6db4ff' }) {
+  if (!data?.length) return null
+  const min = Math.min(...data), max = Math.max(...data)
+  const step = Math.max(1, Math.ceil((max - min) / bins))
+  const buckets = Array(bins).fill(0)
+  for (const v of data) {
+    const idx = Math.min(bins - 1, Math.floor((v - min) / step))
+    buckets[idx]++
+  }
+  const maxB = Math.max(...buckets, 1)
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>{title}</div>
+      <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: 55 }}>
+        {buckets.map((v, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: '100%', height: `${v/maxB * 48 + 2}px`,
+              background: `linear-gradient(180deg, ${color}, ${color}66)`, borderRadius: '2px 2px 0 0',
+              transition: 'height 0.3s' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#555', marginTop: 2 }}>
+        <span>{min}</span><span>{Math.round((min+max)/2)}</span><span>{max}</span>
+      </div>
+    </div>
+  )
+}
+
+function WinrateTimeline({ snapshots }) {
+  if (snapshots.length < 2) return null
+  const h = 60, w = '100%'
+  const points = snapshots.map((s, i) => {
+    const x = i / (snapshots.length - 1) * 100
+    const y = (1 - (s.p1Wr - 40) / 20) * h  // 40-60% range
+    return `${x},${Math.max(0, Math.min(h, y))}`
+  }).join(' ')
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>Винрейт P1 в реальном времени</div>
+      <div style={{ position: 'relative', height: h + 10 }}>
+        <svg width="100%" height={h + 10} viewBox={`0 0 100 ${h + 10}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+          <line x1="0" y1={h/2} x2="100" y2={h/2} stroke="#333" strokeWidth="0.3" strokeDasharray="2,2" />
+          <polyline points={points} fill="none" stroke="#4a9eff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <div style={{ position: 'absolute', left: 0, top: h/2 - 6, fontSize: 9, color: '#555' }}>50%</div>
+        <div style={{ position: 'absolute', right: 4, top: 0, fontSize: 9, color: '#4a9eff' }}>
+          {snapshots[snapshots.length - 1]?.p1Wr.toFixed(1)}%
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main ───
 export default function Simulator() {
   const [numStands, setNumStands] = useState(10)
   const [maxChips, setMaxChips] = useState(11)
   const [numGames, setNumGames] = useState(1000)
   const [running, setRunning] = useState(false)
-  const [progress, setProgress] = useState(null)
-  const [results, setResults] = useState(null)
+  const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
+  const [snapshots, setSnapshots] = useState([])
+  const [speed, setSpeed] = useState(0)
   const abortRef = useRef(false)
+  const startTimeRef = useRef(0)
+  const lastBatchRef = useRef(0)
+
+  const applyPreset = (p) => { setNumStands(p.stands); setMaxChips(p.chips) }
 
   const start = useCallback(() => {
-    setRunning(true)
-    setResults(null)
-    abortRef.current = false
+    setRunning(true); setData(null); setSnapshots([])
+    abortRef.current = false; startTimeRef.current = Date.now(); lastBatchRef.current = 0
+
     runSimulation(
-      { numStands, maxChips, numGames, batchSize: 100 },
-      (batch) => { if (!abortRef.current) setProgress(batch) },
+      { numStands, maxChips, numGames, batchSize: 50 },
+      (batch) => {
+        if (abortRef.current) return
+        setData(batch)
+        const now = Date.now()
+        const elapsed = (now - startTimeRef.current) / 1000
+        setSpeed(elapsed > 0 ? Math.round(batch.played / elapsed) : 0)
+        // Снимок для графика каждые 50 партий
+        if (batch.played - lastBatchRef.current >= 50) {
+          lastBatchRef.current = batch.played
+          const wr = batch.p1Wins / batch.played * 100
+          setSnapshots(prev => [...prev, { played: batch.played, p1Wr: wr }])
+        }
+      },
       (final) => {
         if (abortRef.current) return
-        setResults(final)
-        setRunning(false)
-        const p = final
-        const total = p.p1Wins + p.p2Wins + p.draws
+        setData(final); setRunning(false)
+        const t = final.p1Wins + final.p2Wins + final.draws
+        const elapsed = (Date.now() - startTimeRef.current) / 1000
+        setSpeed(Math.round(t / elapsed))
         setHistory(prev => [{
-          numStands, maxChips, numGames: total,
-          p1Wr: (p.p1Wins / total * 100).toFixed(1),
-          avgTurns: (p.turns.reduce((a, b) => a + b, 0) / p.turns.length).toFixed(0),
-          goldenPct: (p.goldenDecisive / total * 100).toFixed(1),
-          goldenWr: p.goldenOwner[0] + p.goldenOwner[1] > 0
-            ? (p.goldenWins / (p.goldenOwner[0] + p.goldenOwner[1]) * 100).toFixed(0) : '—',
-          swapPct: (p.swapCount / total * 100).toFixed(0),
-          lastCloserWr: (p.lastCloserWins / total * 100).toFixed(0),
-        }, ...prev].slice(0, 10))
+          numStands, maxChips, numGames: t,
+          p1Wr: (final.p1Wins / t * 100).toFixed(1),
+          avgTurns: (final.turns.reduce((a, b) => a + b, 0) / final.turns.length).toFixed(0),
+          goldenPct: t > 0 ? (final.goldenDecisive / t * 100).toFixed(1) : '—',
+          goldenWr: (final.goldenOwner[0] + final.goldenOwner[1]) > 0
+            ? (final.goldenWins / (final.goldenOwner[0] + final.goldenOwner[1]) * 100).toFixed(0) : '—',
+          lastCloserWr: t > 0 ? (final.lastCloserWins / t * 100).toFixed(0) : '—',
+          speed: Math.round(t / elapsed),
+          time: elapsed.toFixed(1),
+        }, ...prev].slice(0, 20))
       }
     )
   }, [numStands, maxChips, numGames])
 
   const stop = () => { abortRef.current = true; setRunning(false) }
 
-  const data = results || progress
   const played = data?.played || 0
-  const p1Wr = played > 0 ? (data.p1Wins / played * 100).toFixed(1) : '—'
-  const p2Wr = played > 0 ? (data.p2Wins / played * 100).toFixed(1) : '—'
+  const p1Wr = played > 0 ? data.p1Wins / played * 100 : 50
+  const p2Wr = played > 0 ? data.p2Wins / played * 100 : 50
   const avgTurns = data?.turns?.length > 0
     ? (data.turns.reduce((a, b) => a + b, 0) / data.turns.length).toFixed(1) : '—'
-  const goldenPct = played > 0 ? (data.goldenDecisive / played * 100).toFixed(1) : '—'
 
-  // Score distribution
   const scoreDist = {}
   if (data?.scores) {
     for (const s of data.scores) {
@@ -112,55 +197,81 @@ export default function Simulator() {
       scoreDist[key] = (scoreDist[key] || 0) + 1
     }
   }
-  const scoreEntries = Object.entries(scoreDist).sort((a, b) => b[1] - a[1]).slice(0, 6)
-
+  const scoreEntries = Object.entries(scoreDist).sort((a, b) => b[1] - a[1]).slice(0, 7)
   const goldenTotal = data ? (data.goldenOwner?.[0] || 0) + (data.goldenOwner?.[1] || 0) : 0
-  const goldenWinPct = goldenTotal > 0 ? ((data.goldenWins / goldenTotal) * 100).toFixed(0) : '—'
+  const goldenWinPct = goldenTotal > 0 ? (data.goldenWins / goldenTotal * 100).toFixed(0) : '—'
   const lastCloserPct = played > 0 ? ((data?.lastCloserWins || 0) / played * 100).toFixed(0) : '—'
-  const avgTransfers = played > 0 ? ((data?.transferCount || 0) / played).toFixed(1) : '—'
-  const firstCloseAvg = data?.firstCloseTurns?.length > 0
-    ? (data.firstCloseTurns.reduce((a, b) => a + b, 0) / data.firstCloseTurns.length).toFixed(0) : '—'
   const closeTr = data?.closeByTransfer || 0
   const closePl = data?.closeByPlacement || 0
-  const closeTotal = closeTr + closePl
 
   return (
     <div>
+      {/* Пресеты */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {PRESETS.map(p => (
+          <button key={p.name} className="btn" onClick={() => applyPreset(p)}
+            style={{ fontSize: 11, padding: '6px 12px', minHeight: 32,
+              borderColor: numStands === p.stands && maxChips === p.chips ? 'var(--accent)' : undefined,
+              color: numStands === p.stands && maxChips === p.chips ? 'var(--accent)' : undefined }}>
+            {p.name}
+          </button>
+        ))}
+      </div>
+
       {/* Параметры */}
       <div className="dash-card" style={{ marginBottom: 16 }}>
-        <h3>Параметры симуляции</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginTop: 12 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#a09cb0' }}>
-            Стоек: <b style={{ color: '#e8e6f0', fontSize: 20 }}>{numStands}</b>
-            <input type="range" min={5} max={16} value={numStands}
-              onChange={e => setNumStands(+e.target.value)} style={{ accentColor: '#f0654a' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 16, alignItems: 'end' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#a09cb0' }}>
+            Стоек
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="range" min={5} max={16} value={numStands} onChange={e => setNumStands(+e.target.value)}
+                style={{ flex: 1, accentColor: '#f0654a' }} />
+              <b style={{ color: '#e8e6f0', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{numStands}</b>
+            </div>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#a09cb0' }}>
-            Высота: <b style={{ color: '#e8e6f0', fontSize: 20 }}>{maxChips}</b>
-            <input type="range" min={5} max={17} value={maxChips}
-              onChange={e => setMaxChips(+e.target.value)} style={{ accentColor: '#f0654a' }} />
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#a09cb0' }}>
+            Высота
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="range" min={5} max={17} value={maxChips} onChange={e => setMaxChips(+e.target.value)}
+                style={{ flex: 1, accentColor: '#f0654a' }} />
+              <b style={{ color: '#e8e6f0', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxChips}</b>
+            </div>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#a09cb0' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#a09cb0' }}>
             Партий
             <select value={numGames} onChange={e => setNumGames(+e.target.value)}
-              style={{ fontSize: 14, padding: '8px 12px', border: '1px solid #36364a', borderRadius: 8, background: '#1e1e28', color: '#e8e6f0' }}>
-              <option value={200}>200</option>
-              <option value={500}>500</option>
-              <option value={1000}>1 000</option>
-              <option value={2000}>2 000</option>
-              <option value={5000}>5 000</option>
+              style={{ fontSize: 13, padding: '8px 10px', border: '1px solid #36364a', borderRadius: 8, background: '#1e1e28', color: '#e8e6f0' }}>
+              {[200, 500, 1000, 2000, 5000, 10000].map(n => (
+                <option key={n} value={n}>{n.toLocaleString()}</option>
+              ))}
             </select>
           </label>
+          <div>
+            {!running
+              ? <button className="btn primary" onClick={start} style={{ padding: '10px 24px' }}>▶ Пуск</button>
+              : <button className="btn" onClick={stop} style={{ padding: '10px 24px', borderColor: '#ff6b6b', color: '#ff6b6b' }}>⏹ Стоп</button>}
+          </div>
         </div>
-        <div style={{ marginTop: 14, display: 'flex', gap: 8, justifyContent: 'center' }}>
-          {!running
-            ? <button className="btn primary" onClick={start}>Запустить</button>
-            : <button className="btn" onClick={stop} style={{ borderColor: '#ff6b6b', color: '#ff6b6b' }}>Стоп</button>}
-        </div>
-        {running && (
-          <div style={{ marginTop: 10 }}>
-            <ProgressBar value={played} max={numGames} />
-            <div style={{ textAlign: 'center', fontSize: 11, color: '#6b6880', marginTop: 4 }}>{played} / {numGames}</div>
+
+        {/* Прогресс */}
+        {(running || data) && played > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ position: 'relative', width: 48, height: 48 }}>
+                <ProgressRing pct={played / numGames} size={48} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: '#e8e6f0' }}>
+                  {Math.round(played / numGames * 100)}%
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <LiveBar p1={data.p1Wins} p2={data.p2Wins} />
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 10, color: '#6b6880', minWidth: 70 }}>
+                <div>{played.toLocaleString()} / {numGames.toLocaleString()}</div>
+                <div style={{ color: '#a09cb0', fontWeight: 600 }}>{speed} партий/с</div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -168,89 +279,123 @@ export default function Simulator() {
       {/* Результаты */}
       {data && played > 0 && (
         <>
-          {/* Главные метрики */}
+          {/* Баланс + вердикт */}
           <div className="dash-card" style={{ marginBottom: 16 }}>
-            <h3>Баланс {results ? '' : '(считается...)'}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-              <StatCard label="Игрок 1" value={`${p1Wr}%`} color="var(--p1)" sub={`${data.p1Wins} побед`} />
-              <StatCard label="Игрок 2" value={`${p2Wr}%`} color="var(--p2)" sub={`${data.p2Wins} побед`} />
-              <StatCard label="Avg ходов" value={avgTurns} sub={`мин ${Math.min(...data.turns)} — макс ${Math.max(...data.turns)}`} />
-              <StatCard label="Золотая 5:5" value={`${goldenPct}%`} color="var(--gold)" sub={`${data.goldenDecisive} партий`} />
+            <div style={{ display: 'flex', justifyContent: 'space-around', padding: '8px 0' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, color: '#6b6880', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Игрок 1</div>
+                <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--p1)' }}>{p1Wr.toFixed(1)}%</div>
+                <div style={{ fontSize: 10, color: '#6b6880' }}>{data.p1Wins} побед</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: 12, color: '#444' }}>VS</div>
+                <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{avgTurns} ходов</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, color: '#6b6880', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Игрок 2</div>
+                <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--p2)' }}>{p2Wr.toFixed(1)}%</div>
+                <div style={{ fontSize: 10, color: '#6b6880' }}>{data.p2Wins} побед</div>
+              </div>
+            </div>
+            <Verdict p1Wr={p1Wr} total={played} />
+          </div>
+
+          {/* Живой график + гистограмма */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div className="dash-card">
+              <WinrateTimeline snapshots={snapshots} />
+            </div>
+            <div className="dash-card">
+              <Histogram data={data.turns} title="Распределение длины партий" color="#9b59b6" />
             </div>
           </div>
 
-          {/* Расширенная статистика */}
+          {/* Ключевые факторы */}
           <div className="dash-card" style={{ marginBottom: 16 }}>
-            <h3>Детальная статистика</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginTop: 8 }}>
-              <StatCard label="Золотая → победа" value={`${goldenWinPct}%`} color="#f0a030" icon="⭐" />
-              <StatCard label="Последний закрыл" value={`${lastCloserPct}%`} color="#e74c3c" icon="🏁" />
-              <StatCard label="Переносов/игру" value={avgTransfers} color="#3498db" icon="↗" />
-              <StatCard label="1-е закрытие" value={`ход ${firstCloseAvg}`} color="#2ecc71" icon="📍" />
-              <StatCard label="Swap принят" value={`${played > 0 ? ((data.swapCount || 0) / played * 100).toFixed(0) : '—'}%`} color="#9b59b6" icon="🔄" />
+            <h3>Ключевые факторы</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginTop: 8 }}>
+              {[
+                { icon: '⭐', label: 'Золотая→Win', value: `${goldenWinPct}%`, color: '#f0a030' },
+                { icon: '🏁', label: 'Последний→Win', value: `${lastCloserPct}%`, color: '#e74c3c' },
+                { icon: '🔄', label: 'Swap принят', value: `${played > 0 ? ((data.swapCount||0)/played*100).toFixed(0) : '—'}%`, color: '#9b59b6' },
+                { icon: '📍', label: '1-е закрытие', value: `ход ${data.firstCloseTurns?.length > 0 ? (data.firstCloseTurns.reduce((a,b)=>a+b,0)/data.firstCloseTurns.length).toFixed(0) : '—'}`, color: '#2ecc71' },
+                { icon: '↗', label: 'Переносов/игру', value: played > 0 ? ((data.transferCount||0)/played).toFixed(1) : '—', color: '#3498db' },
+                { icon: '🔒', label: 'Закр. переносом', value: (closeTr+closePl) > 0 ? `${(closeTr/(closeTr+closePl)*100).toFixed(0)}%` : '—', color: '#e67e22' },
+              ].map(m => (
+                <div key={m.label} style={{ textAlign: 'center', padding: '10px 6px', background: `${m.color}08`, borderRadius: 10, border: `1px solid ${m.color}15` }}>
+                  <div style={{ fontSize: 16 }}>{m.icon}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: m.color, marginTop: 2 }}>{m.value}</div>
+                  <div style={{ fontSize: 9, color: '#6b6880', marginTop: 2 }}>{m.label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Графики */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            {/* Финальные счета */}
+          {/* Счета + стойки */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div className="dash-card">
-              <MiniBarChart
-                data={scoreEntries.map(e => e[1])}
-                labels={scoreEntries.map(e => e[0])}
-                colors={scoreEntries.map(e => e[0].startsWith('5:5') ? '#f0a030' : '#6db4ff')}
-                title="Финальные счета"
-                height={70}
-              />
+              <h3>Финальные счета</h3>
+              <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 65, marginTop: 8 }}>
+                {scoreEntries.map(([k, v], i) => {
+                  const max = Math.max(...scoreEntries.map(e => e[1]), 1)
+                  return (
+                    <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <div style={{ fontSize: 8, color: '#888' }}>{(v/played*100).toFixed(0)}%</div>
+                      <div style={{ width: '100%', height: `${v/max*48+2}px`, borderRadius: '3px 3px 0 0',
+                        background: k.startsWith('5:5') ? 'linear-gradient(180deg, #ffc145, #e6a020)' : 'linear-gradient(180deg, #6db4ff, #4a9eff)',
+                        transition: 'height 0.3s' }} />
+                      <span style={{ fontSize: 9, color: '#6b6880' }}>{k}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-
-            {/* Способ закрытия */}
             <div className="dash-card">
-              <MiniBarChart
-                data={closeTotal > 0 ? [closeTr, closePl] : []}
-                labels={['Перенос', 'Установка']}
-                colors={['#3498db', '#e67e22']}
-                title="Способ закрытия стоек"
-                height={70}
-              />
+              <h3>Частота закрытия стоек</h3>
+              {data.standCloseCount && (
+                <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 65, marginTop: 8 }}>
+                  {data.standCloseCount.map((v, i) => {
+                    const max = Math.max(...data.standCloseCount, 1)
+                    return (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <div style={{ width: '100%', height: `${v/max*48+2}px`, borderRadius: '3px 3px 0 0',
+                          background: i === 0 ? 'linear-gradient(180deg, #ffc145, #e6a020)' : 'linear-gradient(180deg, #6db4ff, #4a9eff)',
+                          transition: 'height 0.3s' }} />
+                        <span style={{ fontSize: 9, color: '#6b6880' }}>{i === 0 ? '★' : i}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Частота закрытия стоек */}
-          {data.standCloseCount && (
-            <div className="dash-card" style={{ marginBottom: 16 }}>
-              <MiniBarChart
-                data={data.standCloseCount}
-                labels={data.standCloseCount.map((_, i) => i === 0 ? '★' : String(i))}
-                colors={data.standCloseCount.map((_, i) => i === 0 ? '#ffc145' : '#6db4ff')}
-                title="Частота закрытия стоек"
-                height={65}
-              />
-            </div>
-          )}
         </>
       )}
 
       {/* История */}
       {history.length > 0 && (
         <div className="dash-card">
-          <h3>История запусков</h3>
+          <h3>История запусков ({history.length})</h3>
           <div style={{ overflowX: 'auto' }}>
-            <table className="dash-table" style={{ marginTop: 8, fontSize: 12 }}>
+            <table className="dash-table" style={{ marginTop: 8, fontSize: 11 }}>
               <thead>
                 <tr>
                   <th>Стоек</th><th>Высота</th><th>Партий</th>
-                  <th>P1 WR</th><th>Ходов</th><th>Золотая</th>
-                  <th>Gold→Win</th><th>Last→Win</th><th>Swap</th>
+                  <th>P1 WR</th><th>Ходов</th><th>Gold</th>
+                  <th>Gold→W</th><th>Last→W</th><th>п/с</th><th>Время</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((h, i) => (
                   <tr key={i}>
                     <td>{h.numStands}</td><td>{h.maxChips}</td><td>{h.numGames}</td>
-                    <td style={{ color: Math.abs(parseFloat(h.p1Wr) - 50) < 3 ? '#2ecc71' : '#e74c3c' }}>{h.p1Wr}%</td>
+                    <td style={{ fontWeight: 600, color: Math.abs(parseFloat(h.p1Wr)-50) < 3 ? '#3dd68c' : Math.abs(parseFloat(h.p1Wr)-50) < 6 ? '#f0a030' : '#ff6066' }}>
+                      {h.p1Wr}%
+                    </td>
                     <td>{h.avgTurns}</td><td>{h.goldenPct}%</td>
-                    <td>{h.goldenWr}%</td><td>{h.lastCloserWr}%</td><td>{h.swapPct}%</td>
+                    <td>{h.goldenWr}%</td><td>{h.lastCloserWr}%</td>
+                    <td style={{ color: '#a09cb0' }}>{h.speed}</td>
+                    <td style={{ color: '#6b6880' }}>{h.time}с</td>
                   </tr>
                 ))}
               </tbody>
