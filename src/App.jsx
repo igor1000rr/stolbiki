@@ -112,7 +112,7 @@ export default function App() {
           {isAdmin && (
             <>
               <span>•</span>
-              <a href="https://github.com/igor1000rr/stolbiki/blob/main/analysis/report.pdf" target="_blank" rel="noopener" style={{ color: '#555', textDecoration: 'none' }}>
+              <a href="/report.pdf" target="_blank" rel="noopener" style={{ color: '#555', textDecoration: 'none' }}>
                 PDF
               </a>
             </>
