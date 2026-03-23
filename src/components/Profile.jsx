@@ -28,6 +28,7 @@ function defaultProfile(name) {
     comebacks: 0,
     achievements: [],
     friends: [],
+    history: [],
     createdAt: Date.now(),
   }
 }
@@ -124,7 +125,8 @@ export default function Profile() {
     window.stolbikiRecordGame = (won, score, vsHardAi, closedGolden, isComeback) => {
       setProfile(prev => {
         if (!prev) return prev
-        const p = { ...prev }
+        const p = { ...prev, history: [...(prev.history || [])] }
+        const oldRating = p.rating
         p.gamesPlayed++
         if (won) {
           p.wins++
@@ -140,11 +142,19 @@ export default function Profile() {
         if (isComeback) p.comebacks++
         if (vsHardAi && won) p.beatHardAi = true
         if (score === '6:0') p.perfectWins = (p.perfectWins || 0) + 1
-        // Проверяем ачивки
+
+        // История
+        p.history.unshift({
+          won, score, date: Date.now(),
+          ratingDelta: p.rating - oldRating,
+          ratingAfter: p.rating,
+          vsHardAi, closedGolden,
+        })
+        if (p.history.length > 50) p.history = p.history.slice(0, 50)
+
         const newAchIds = ALL_ACHIEVEMENTS.filter(a => a.check(p)).map(a => a.id)
         const brandNew = newAchIds.filter(id => !p.achievements.includes(id))
         p.achievements = newAchIds
-        // Уведомляем о новой ачивке
         if (brandNew.length > 0 && typeof window.stolbikiOnAchievement === 'function') {
           const ach = ALL_ACHIEVEMENTS.find(a => a.id === brandNew[0])
           if (ach) setTimeout(() => window.stolbikiOnAchievement(ach), 1500)
@@ -189,6 +199,7 @@ export default function Profile() {
 
   const tabs = [
     { id: 'profile', label: '👤 Профиль' },
+    { id: 'history', label: `📜 История (${(profile.history || []).length})` },
     { id: 'achievements', label: `🏆 Ачивки (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
     { id: 'leaderboard', label: '📊 Рейтинг' },
     { id: 'friends', label: '👥 Друзья' },
@@ -258,6 +269,74 @@ export default function Profile() {
             Выйти из профиля
           </button>
         </>
+      )}
+
+      {/* ─── История ─── */}
+      {tab === 'history' && (
+        <div>
+          {(profile.history || []).length === 0 ? (
+            <div className="dash-card" style={{ textAlign: 'center', padding: 32 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📜</div>
+              <div style={{ fontSize: 14, color: '#6b6880' }}>Пока нет партий. Сыграйте свою первую!</div>
+            </div>
+          ) : (
+            <div className="dash-card">
+              <h3>Последние партии</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                {(profile.history || []).map((h, i) => {
+                  const dt = new Date(h.date)
+                  const timeStr = dt.toLocaleDateString('ru', { day: 'numeric', month: 'short' }) + ' ' + dt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                      background: h.won ? 'rgba(61,214,140,0.04)' : 'rgba(255,96,102,0.04)',
+                      borderRadius: 8, border: `1px solid ${h.won ? 'rgba(61,214,140,0.12)' : 'rgba(255,96,102,0.12)'}`,
+                    }}>
+                      <div style={{ fontSize: 18, width: 28, textAlign: 'center' }}>
+                        {h.won ? '✅' : '❌'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: h.won ? '#3dd68c' : '#ff6066' }}>
+                          {h.won ? 'Победа' : 'Поражение'} · {h.score}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>
+                          {timeStr}
+                          {h.vsHardAi && ' · Сложная'}
+                          {h.closedGolden && ' · ⭐ Золотая'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: h.ratingDelta > 0 ? '#3dd68c' : '#ff6066' }}>
+                          {h.ratingDelta > 0 ? '+' : ''}{h.ratingDelta}
+                        </div>
+                        <div style={{ fontSize: 9, color: '#555' }}>{h.ratingAfter}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Мини-график рейтинга */}
+              {(profile.history || []).length >= 3 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>Динамика рейтинга</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 50 }}>
+                    {[...(profile.history || [])].reverse().slice(-30).map((h, i) => {
+                      const min = 900, max = 1500
+                      const pct = Math.max(0, Math.min(1, (h.ratingAfter - min) / (max - min)))
+                      return (
+                        <div key={i} style={{
+                          flex: 1, height: `${pct * 48 + 2}px`,
+                          background: h.won ? '#3dd68c' : '#ff6066',
+                          borderRadius: '2px 2px 0 0', opacity: 0.7,
+                        }} title={`${h.ratingAfter}`} />
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ─── Ачивки ─── */}

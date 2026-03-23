@@ -172,6 +172,18 @@ export default function Game() {
 
   useEffect(() => { newGame(0, 50) }, []) // eslint-disable-line
 
+  // Горячие клавиши
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return
+      if (e.key === 'Enter' && canConfirm && isMyTurn && phase === 'place') { e.preventDefault(); confirmTurn() }
+      if (e.key === 'Escape' && inTransferMode) cancelTransfer()
+      if (e.key === 'n' && (gs.gameOver || result !== null)) newGame()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  })
+
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
   function onStandClick(i) {
     const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
@@ -454,6 +466,12 @@ export default function Game() {
         <button className="btn" onClick={() => newGame()}>Новая игра</button>
       </div>
 
+      {isMyTurn && !gs.gameOver && (
+        <div style={{ textAlign: 'center', fontSize: 9, color: '#444', marginTop: 4 }}>
+          Enter — подтвердить · Esc — отмена переноса · N — новая игра
+        </div>
+      )}
+
       {hint && hintMode && (
         <div className="hint-panel">
           <div className="hint-title">💡 Подсказка</div>
@@ -461,14 +479,37 @@ export default function Game() {
         </div>
       )}
 
-      {result !== null && (
-        <div className="game-result" style={{ borderLeft: `3px solid ${mode === 'pvp' ? (result === 0 ? 'var(--p1)' : 'var(--p2)') : (result === humanPlayer ? '#3dd68c' : '#ff6066')}` }}>
-          <span>{mode === 'pvp'
-            ? `${result === 0 ? 'Синие' : 'Красные'} победили! • ${gs.countClosed(0)}:${gs.countClosed(1)}`
-            : (result === humanPlayer ? '🎉 Победа!' : `AI побеждает • ${gs.countClosed(0)}:${gs.countClosed(1)}`)
-          }</span>
-        </div>
-      )}
+      {result !== null && (() => {
+        const won = mode === 'pvp' ? true : result === humanPlayer
+        const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
+        const goldenOwned = (0 in gs.closed)
+        const shareText = `Стойки: ${won ? 'Победа' : 'Поражение'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — igor1000rr.github.io/stolbiki`
+        return (
+          <div className="game-result" style={{ borderLeft: `3px solid ${won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '🎉' : '😔'}</div>
+            <span style={{ fontSize: 20 }}>{mode === 'pvp'
+              ? `${result === 0 ? 'Синие' : 'Красные'} победили!`
+              : (won ? 'Победа!' : 'AI побеждает')
+            }</span>
+            <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: '#e8e6f0' }}>{s0} : {s1}</div>
+            <div style={{ fontSize: 11, color: '#6b6880', display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <span>Ходов: {gs.turn}</span>
+              {goldenOwned && <span>⭐ Золотая: П{gs.closed[0] + 1}</span>}
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button className="btn primary" onClick={() => newGame()} style={{ fontSize: 12, padding: '8px 16px' }}>
+                Ещё партию
+              </button>
+              <button className="btn" onClick={() => {
+                if (navigator.share) navigator.share({ text: shareText }).catch(() => {})
+                else { navigator.clipboard?.writeText(shareText); }
+              }} style={{ fontSize: 12, padding: '8px 12px' }}>
+                📤
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="game-log" ref={logRef}>
         {log.map((e, i) => (
