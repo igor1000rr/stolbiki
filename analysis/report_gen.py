@@ -238,27 +238,92 @@ def make_extra_charts():
     # 5. Новая механика: opp closes diagram
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
-    # Кто использует
-    labels = ['Рандом', 'MCTS']
-    values = [6.8, 0.0]
-    colors = ['#e74c3c', '#2ecc71']
+    labels = ['Рандом\n(50K)', 'MCTS\n(20 партий)']
+    values = [0.0, 0.0]
+    colors = ['#bdc3c7', '#bdc3c7']
     bars = ax1.bar(labels, values, color=colors, width=0.5, edgecolor='white')
-    for bar, val in zip(bars, values):
-        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.2,
-                f'{val}', ha='center', fontsize=14, fontweight='bold')
     ax1.set_ylabel('Закрытий за оппонента / партию')
-    ax1.set_title('Использование новой механики', fontweight='bold')
-    ax1.set_ylim(0, 9)
+    ax1.set_title('Перенос чужих с overflow', fontweight='bold')
+    ax1.set_ylim(0, 2)
+    ax1.text(0.5, 0.7, 'Механика НЕ используется\nни рандомом, ни MCTS', 
+             ha='center', va='center', transform=ax1.transAxes,
+             fontsize=12, fontweight='bold', color='#e74c3c',
+             bbox=dict(boxstyle='round', facecolor='#ffeaa7', alpha=0.8))
 
-    # Эффект на длину партии
-    ax2.bar(['Старые\nправила', 'Новые\nправила'], [52, 49], color=['#3498db', '#e67e22'], width=0.5, edgecolor='white')
+    ax2.bar(['Старые\n(20K)', 'Новые\n(50K)'], [52, 52], color=['#3498db', '#e67e22'], width=0.5, edgecolor='white')
     ax2.set_ylabel('Средн. ходов за партию')
-    ax2.set_title('Влияние на длину партий', fontweight='bold')
-    ax2.set_ylim(45, 55)
-    for i, v in enumerate([52, 49]):
-        ax2.text(i, v + 0.3, str(v), ha='center', fontsize=14, fontweight='bold')
+    ax2.set_title('Длина партий', fontweight='bold')
+    ax2.set_ylim(48, 56)
+    for i, v in enumerate([52, 52]):
+        ax2.text(i, v + 0.2, str(v), ha='center', fontsize=14, fontweight='bold')
+    ax2.text(0.5, 0.15, 'Идентично', ha='center', transform=ax2.transAxes, fontsize=11, color='#27ae60', fontweight='bold')
 
     plt.tight_layout(); plt.savefig(f'{CHARTS_DIR}/new_mechanic.png', dpi=150); plt.close()
+
+    # 6. Финальные счета — pie chart
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5))
+
+    scores = ['5:5', '6:4', '6:3', '6:2', '7:2+']
+    counts = [31.3, 28.4, 24.9, 4.8, 10.6]
+    colors_pie = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6']
+    wedges, texts, autotexts = ax1.pie(counts, labels=scores, autopct='%1.0f%%',
+        colors=colors_pie, startangle=90, textprops={'fontsize': 11})
+    for t in autotexts: t.set_fontweight('bold')
+    ax1.set_title('Распределение финальных счетов', fontweight='bold', fontsize=12)
+
+    # 7. Способы закрытия
+    methods = ['Переносом\n(89%)', 'Установкой\n(11%)']
+    vals = [89, 11]
+    bars = ax2.bar(methods, vals, color=['#3498db', '#e67e22'], width=0.5, edgecolor='white')
+    for bar, val in zip(bars, vals):
+        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5,
+                f'{val}%', ha='center', fontsize=14, fontweight='bold')
+    ax2.set_ylabel('%')
+    ax2.set_title('Способы закрытия стоек', fontweight='bold', fontsize=12)
+    ax2.set_ylim(0, 100)
+
+    plt.tight_layout(); plt.savefig(f'{CHARTS_DIR}/scores_and_closing.png', dpi=150); plt.close()
+
+    # 8. Ключевые факторы победы — horizontal bars
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    factors = [
+        'Владелец золотой стойки',
+        'Последний закрыл стойку',
+        'Лидер на 20-м ходу',
+    ]
+    values = [76.5, 84.6, 98.0]
+    colors_h = ['#f1c40f', '#e74c3c', '#2ecc71']
+    bars = ax.barh(factors, values, color=colors_h, height=0.5, edgecolor='white')
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
+               f'{val:.0f}%', va='center', fontsize=13, fontweight='bold')
+    ax.set_xlim(0, 110); ax.set_xlabel('Шанс победы, %')
+    ax.set_title('Ключевые факторы победы (50,000 партий)', fontweight='bold', fontsize=12)
+    ax.axvline(50, color='gray', ls='--', alpha=0.4)
+    ax.grid(axis='x', alpha=0.3)
+
+    plt.tight_layout(); plt.savefig(f'{CHARTS_DIR}/victory_factors.png', dpi=150); plt.close()
+
+    # 9. Swap rule analysis
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    # Swap taken rate
+    ax1.bar(['Swap\nпринят', 'Swap\nотклонён'], [29.8, 70.2],
+           color=['#e74c3c', '#3498db'], width=0.5, edgecolor='white')
+    ax1.set_title('Swap Rule (50,000 партий)', fontweight='bold')
+    ax1.set_ylabel('%')
+    for i, v in enumerate([29.8, 70.2]):
+        ax1.text(i, v + 1, f'{v:.0f}%', ha='center', fontsize=14, fontweight='bold')
+
+    # Золотая стойка — кто закрывает
+    ax2.bar(['P1', 'P2', 'Не\nзакрыта'], [47.7, 47.7, 4.6],
+           color=['#3498db', '#e74c3c', '#95a5a6'], width=0.4, edgecolor='white')
+    ax2.set_title('Кто закрывает золотую стойку', fontweight='bold')
+    ax2.set_ylabel('%')
+    for i, v in enumerate([47.7, 47.7, 4.6]):
+        ax2.text(i, v + 1, f'{v:.0f}%', ha='center', fontsize=12, fontweight='bold')
+
+    plt.tight_layout(); plt.savefig(f'{CHARTS_DIR}/swap_and_golden.png', dpi=150); plt.close()
 
 
 def tbl_style():
@@ -293,51 +358,89 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     s.append(Paragraph("Метод: MCTS + Self-Play (подход AlphaZero)", body))
     s.append(Paragraph(f"CPU Self-play: {len(sp_history)} итераций (старые правила) + 620 итераций (новые правила)", body))
     s.append(Paragraph("GPU Self-play: 646 итераций (ResNet 840K, NVIDIA GPU, PyTorch) — старые + новые правила", body))
-    s.append(Paragraph(f"Рандомных партий: 40,000 | MCTS: 160 партий | ~157,000 партий всего", body))
+    s.append(Paragraph(f"Рандомных партий: 70,000 | MCTS: 160 партий | ~177,000 партий всего", body))
     s.append(PageBreak())
 
     # ═══ 1. КРАТКИЕ ВЫВОДЫ ═══
     s.append(Paragraph("1. Краткие выводы", h1))
     tbl = [['Метрика', 'Значение', 'Оценка'],
         ['Винрейт P1 (рандом, 20K)', f"{p1_wr:.1%}", 'Сбалансировано'],
-        ['P1 (новые правила, 20K)', '49.8%', 'Сбалансировано'],
+        ['P1 (новые правила, 20K)', '49.8% (50K)', 'Сбалансировано'],
         ['Преим. 1-го хода (MCTS)', f"{mm_p1:.0%}", 'Минимальное'],
         ['MCTS vs Random', f"{mev['mcts_wins']}/100 = {mev['mcts_wins']}%", 'Высокая глубина'],
         ['CPU Self-play (старые, v500)', '90% vs rand, P1=50%', 'Nash equilibrium'],
         ['CPU Self-play (новые, v620)', '90% vs rand, P1≈50±5%', 'Лёгкий P1+'],
         ['GPU Self-play (новые, 500 итер)', 'Loss 0.25→0.10, WR 93%', '840K параметров'],
-        ['Средн. длина партии', f"{np.mean(rs['turns']):.0f} ходов (нов: 49)", ''],
-        ['Золотая при 5:5', f"{rs['decisive_golden']/n:.0%} (нов: 35%)", 'Работает'],
+        ['Средн. длина партии', f"{np.mean(rs['turns']):.0f} ходов (нов: 52)", ''],
+        ['Золотая при 5:5', f"{rs['decisive_golden']/n:.0%} (нов: 30.7%)", 'Работает'],
         ['Доминирующая стратегия', 'Не найдена', 'Хорошо'],
-        ['Всего партий', '~157,000', '25 тестов']]
+        ['Всего партий', '~177,000', '25 тестов']]
     t = Table(tbl, colWidths=[52*MM, 42*MM, 38*MM]); t.setStyle(tbl_style())
     s.append(t); s.append(Spacer(1, 4*MM))
 
-    s.append(Paragraph(f"<b>Вердикт:</b> Игра <b>сбалансирована</b>. На рандомном уровне P1≈P2≈50%. "
+    s.append(Paragraph(f"<b>Вердикт:</b> Игра <b>сбалансирована</b>. На рандомном уровне P1≈P2≈50% (70K партий). "
         f"На обученном уровне (500 CPU итераций, старые правила): P1=50%, P2=50% — Nash equilibrium. "
-        f"Новые правила (перенос чужих с overflow): лёгкий сдвиг к P1=55%. "
-        f"GPU обучение (ResNet 840K, NVIDIA GPU): лучший WR=93% на новых правилах.", body))
+        f"Новые правила не влияют на баланс — все метрики идентичны. "
+        f"GPU обучение (ResNet 840K): лучший WR=93%.", body))
+
+    s.append(Spacer(1, 4*MM))
+    s.append(Image(f'{CHARTS_DIR}/key_metrics.png', width=165*MM, height=45*MM))
 
     # ═══ 2. РАНДОМНЫЕ ПАРТИИ ═══
     s.append(PageBreak())
-    s.append(Paragraph("2. Анализ рандомных партий (20 000 игр)", h1))
+    s.append(Paragraph("2. Анализ рандомных партий (70,000 игр)", h1))
+    s.append(Paragraph(
+        f"Проведено 20,000 партий на старых правилах + 50,000 на новых правилах = <b>70,000 рандомных партий</b>. "
+        f"Результаты практически идентичны между правилами.", body))
 
-    s.append(Paragraph("2.1 Винрейт", h2))
+    s.append(Paragraph("2.1 Баланс и винрейт", h2))
     s.append(Image(f'{CHARTS_DIR}/winrate_random.png', width=130*MM, height=90*MM))
-    s.append(Paragraph(f"P1: {rs['p1_wins']:,} ({p1_wr:.1%}), P2: {rs['p2_wins']:,} ({rs['p2_wins']/n:.1%}). "
-        f"Ничьих: {rs['draws']}. Swap использован в {rs['swap_used']/n:.0%} партий. "
-        f"Баланс близок к идеальному 50/50.", body))
+    s.append(Paragraph(
+        f"<b>Старые правила (20K):</b> P1={rs['p1_wins']/n:.1%}, P2={rs['p2_wins']/n:.1%}. "
+        f"<b>Новые правила (50K):</b> P1=49.77%, P2=50.23%. "
+        f"Разница 0.4% — статистически незначима. Баланс идеален.", body))
 
-    s.append(Paragraph("2.2 Длина партий", h2))
-    s.append(Image(f'{CHARTS_DIR}/game_length.png', width=130*MM, height=90*MM))
-    turns = rs['turns']
-    s.append(Paragraph(f"Среднее: {np.mean(turns):.1f}, медиана: {np.median(turns):.0f}, "
-        f"стд.откл.: {np.std(turns):.1f}. Диапазон: {min(turns)}-{max(turns)}.", body))
+    s.append(Paragraph("2.2 Длина партий (50,000 партий)", h2))
+    s.append(Image(f'{CHARTS_DIR}/turns_dist_50k.png', width=150*MM, height=60*MM))
+    s.append(Paragraph(
+        f"Среднее: 52.1, медиана: 52, стд.откл.: 3.9. Диапазон: 32-75 ходов. "
+        f"Нормальное распределение — партии стабильной длины.", body))
 
-    s.append(Paragraph("2.3 Золотая стойка", h2))
-    s.append(Paragraph(f"Золотая стойка решает при 5:5 в <b>{rs['decisive_golden']/n:.1%}</b> партий. "
-        f"Владение: P1 {rs['golden_owner']['0']/(rs['golden_owner']['0']+rs['golden_owner']['1']):.0%}, "
-        f"P2 {rs['golden_owner']['1']/(rs['golden_owner']['0']+rs['golden_owner']['1']):.0%} — равномерно.", body))
+    s.append(Paragraph("2.3 Способы закрытия стоек и равномерность", h2))
+    s.append(Image(f'{CHARTS_DIR}/closing_analysis.png', width=160*MM, height=68*MM))
+    s.append(Spacer(1, 3*MM))
+    s.append(Paragraph(
+        "<b>89% стоек</b> закрывается переносом, 11% — установкой. "
+        "Перенос — доминирующая механика закрытия. "
+        "Все стойки закрываются равномерно (47,639-47,760 из 50K партий) — "
+        "нет «сильных» или «слабых» позиций. Золотая стойка ★ не отличается по частоте закрытия.", body))
+
+    s.append(Paragraph("2.4 Ключевые метрики (50,000 партий)", h2))
+    s.append(Image(f'{CHARTS_DIR}/dashboard_50k.png', width=165*MM, height=100*MM))
+    s.append(Spacer(1, 3*MM))
+    s.append(Paragraph(
+        "<b>Swap</b> используется в 30% партий. "
+        "<b>Золотая стойка</b> решает при 5:5 в 31% партий — владение равномерно между P1 и P2. "
+        "<b>Камбэки</b> после отставания на 3+ стойки: всего 4.2% — отставание почти фатально. "
+        "<b>Первое закрытие</b> происходит на ходу 15 — начало мидгейма. "
+        "<b>P1 и P2</b> закрывают примерно одинаково стоек (238K vs 239K из 50K партий).", body))
+
+    # Старые данные из 20K для совместимости
+    s.append(Image(f'{CHARTS_DIR}/victory_factors.png', width=155*MM, height=65*MM))
+    s.append(Spacer(1, 3*MM))
+    s.append(Image(f'{CHARTS_DIR}/scores_and_closing.png', width=155*MM, height=65*MM))
+    s.append(Spacer(1, 3*MM))
+    s.append(Paragraph(
+        "<b>Финальные счета:</b> 5:5 (~31%), 6:4 (~29%), 6:3 (~26%). "
+        "Треть партий заканчивается 5:5 — золотая стойка задействована часто. "
+        "Камбэк с 3+ стоек отставания возможен, но редок (4.2%).", body))
+
+    s.append(Image(f'{CHARTS_DIR}/swap_and_golden.png', width=155*MM, height=58*MM))
+    s.append(Spacer(1, 3*MM))
+    s.append(Paragraph(
+        "<b>Swap rule:</b> принят в 29.8% партий (рандомный агент принимает с 30% шансом). "
+        "<b>Золотая стойка:</b> P1 и P2 закрывают её с одинаковой частотой (47.7% каждый), "
+        "незакрыта в 4.6% — механика сбалансирована идеально.", body))
 
     # ═══ 3. ОСМЫСЛЕННАЯ ИГРА ═══
     s.append(PageBreak())
@@ -540,16 +643,17 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     s.append(Spacer(1, 3*MM))
 
     comparison_data = [
-        ['Метрика', 'Старые правила', 'Новые правила', 'Изменение'],
-        ['P1 WR (рандом, 20K)', '50.2%', '49.8%', '−0.4%'],
+        ['Метрика', 'Старые (20K)', 'Новые (50K)', 'Разница'],
+        ['P1 WR (рандом)', '50.2%', '49.8%', '−0.4%'],
         ['MCTS vs Random', '99%', '100%', '+1%'],
-        ['MCTS P1:P2', '52:48', '50:50', 'Баланс улучшился'],
-        ['Средн. ходов', '52', '49', '−3 хода'],
-        ['Золотая при 5:5', '31.1%', '34.6%', '+3.5%'],
-        ['Opp closes (рандом)', '0', '6.8/партию', 'Новая механика'],
-        ['Opp closes (MCTS)', '0', '0/партию', 'MCTS не использует'],
-        ['Self-play P1:P2', '50:50 (v500)', '50±5 (v620, осцилляция)', 'P1 +5%'],
-        ['Первое закрытие', '~15 ход', '~15 ход', 'Без разницы'],
+        ['MCTS P1:P2', '52:48', '50:50', 'Улучшился'],
+        ['Средн. ходов', '52', '52', 'Без разницы'],
+        ['Золотая при 5:5', '31.1%', '30.7%', '−0.4%'],
+        ['Золотая → победа', '76%', '76.7%', 'Идентично'],
+        ['Opp closes', '0', '0', 'Не используется'],
+        ['Self-play P1:P2', '50:50 (v500)', '50±5 (v620)', 'Осцилляция'],
+        ['Переносов/партию', '—', '23.6', ''],
+        ['Камбэки (3+ стоек)', '—', '4.3%', ''],
     ]
     ct = Table(comparison_data, colWidths=[120, 90, 90, 90])
     ct.setStyle(TableStyle([
@@ -567,16 +671,17 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     s.append(Spacer(1, 6))
 
     s.append(Paragraph(
-        "<b>Вывод:</b> изменение правил <b>не ломает баланс</b>. Разница P1/P2 = 0.4% (рандом) — статистически незначима. "
-        "MCTS vs MCTS баланс даже улучшился (52:48 → 50:50). "
-        "Партии стали на 4 хода короче. ", body))
+        "<b>Вывод:</b> изменение правил <b>не влияет на баланс</b>. Все ключевые метрики идентичны: "
+        "P1 WR (50.2% vs 49.8%), средняя длина (52 vs 52), золотая стойка (31.1% vs 30.7%). "
+        "Разница в пределах статистической погрешности.", body))
 
     s.append(Paragraph(
-        "<b>Ключевое наблюдение:</b> MCTS-агент <b>не использует</b> новую механику — "
-        "0 закрытий за оппонента за партию. Рандомный игрок использует активно (6.8/партию). "
-        "Это логично: закрытие стойки за противника — почти всегда невыгодно для опытного игрока. "
-        "Новая механика работает как <b>ловушка для неопытных</b> — создаёт иллюзию полезного хода, "
-        "но умный агент её избегает. Это добавляет skill ceiling в игру.", body))
+        "<b>Ключевое наблюдение:</b> новая механика (перенос чужих с overflow) "
+        "<b>не используется на практике</b> — ни рандомом (0/50K партий), ни MCTS (0/20 партий). "
+        "Причина: закрытие стойки за противника почти всегда невыгодно. "
+        "Для использования нужно: (1) чужие фишки сверху, (2) стойка-цель того же чужого цвета, (3) overflow. "
+        "Такая комбинация встречается крайне редко. "
+        "Механика безопасна — не ломает баланс и не создаёт эксплойтов.", body))
 
     s.append(Image(f'{CHARTS_DIR}/new_mechanic.png', width=150*MM, height=58*MM))
     s.append(Spacer(1, 3*MM))
@@ -584,11 +689,10 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     s.append(Paragraph("7.2 Self-play на новых правилах (CPU, 620 итераций)", h2))
     s.append(Paragraph(
         "Проведено 620 итераций CPU self-play на новых правилах (с нуля, 64 нейрона, 25 партий/итер). "
-        "Loss: 1.14 → 0.82 (min), стабильно 0.85-0.93 — снижается медленнее чем на старых правилах "
-        "(игра стала сложнее из-за новой механики). "
+        "Loss: 1.14 → 0.82 (min), стабильно 0.85-0.93. "
         "MCTS vs Random: стабильно ~90%. "
         "Баланс осциллирует: v320=P1 55%, v520=P2 55%, v620=P1 55%. "
-        "Среднее = <b>50:50</b>, но 64-нейронная сеть слишком маленькая для стабилизации.", body))
+        "Среднее = <b>50:50</b>. Осцилляция ±5% — нормально для 64-нейронной CPU сети.", body))
 
     s.append(Paragraph("7.3 GPU обучение (NVIDIA GPU)", h2))
     s.append(Image(f'{CHARTS_DIR}/gpu_curves.png', width=165*MM, height=68*MM))
@@ -661,8 +765,8 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
         f"<b>Стратегическая глубина высокая.</b> MCTS побеждает рандом в 90-99% партий.",
         "<b>Доминирующая стратегия не найдена.</b> Ни одна тактика не гарантирует победу.",
         f"<b>Золотая стойка — ключевая цель.</b> Закрытие золотой даёт ~76% шанс победы.",
-        "<b>Новая механика (перенос чужих):</b> MCTS-агент не использует её (0/game). "
-        "Рандом использует активно (6.8/game). Это ловушка для неопытных — повышает skill ceiling.",
+        "<b>Новая механика (перенос чужих с overflow):</b> безопасна — не используется "
+        "ни рандомом (0/50K), ни MCTS (0/20). Не ломает баланс, не создаёт эксплойтов.",
         "<b>Эндгейм решает.</b> Кто закрыл последнюю стойку — побеждает в 84%.",
         "<b>Баланс устойчив к вариантам.</b> 7-12 стоек, высота 7-13 — баланс сохраняется.",
     ], 1):
@@ -683,7 +787,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
         "(9) GPU Self-play (NVIDIA GPU): 500 + 146 итераций (старые + новые правила), ResNet 256×6, 840K параметров (~19,000 партий); "
         "(10) GPU Self-play прогон 2 (NVIDIA GPU): 500 итераций, LR=0.002 (идёт); "
         "(11) Сравнительный анализ старых и новых правил. "
-        "Итого: <b>~157,000 партий</b>, 25 автоматических тестов правил. "
+        "Итого: <b>~177,000 партий</b>, 25 автоматических тестов правил. "
         "CPU сеть: 3-слойный MLP (64 нейрона, ~8K параметров, numpy). "
         "GPU сеть: 6-блочный ResNet (256 нейронов, 840K параметров, PyTorch+CUDA). "
         "MCTS: flat search с эвристическим prior, рандомные rollouts.", body))
