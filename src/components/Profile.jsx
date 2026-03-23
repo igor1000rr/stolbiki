@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import * as API from '../engine/api'
 
 // ─── localStorage fallback ───
@@ -327,7 +327,7 @@ export default function Profile() {
   return (
     <div>
       {/* Мини-навигация */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="profile-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
         {tabs.map(t => (
           <button key={t.id} className={`btn ${tab === t.id ? 'primary' : ''}`}
             onClick={() => setTab(t.id)} style={{ fontSize: 12, padding: '6px 12px' }}>{t.label}</button>

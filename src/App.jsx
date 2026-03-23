@@ -87,24 +87,33 @@ export default function App() {
         ))}
       </nav>
 
-      {tab === 'game' && <Game />}
-      {tab === 'profile' && <Profile />}
-      {tab === 'sim' && isAdmin && <Simulator />}
-      {tab === 'dash' && isAdmin && <Dashboard />}
-      {tab === 'replay' && isAdmin && <Replay />}
-      {tab === 'rules' && <Rules />}
+      <div key={tab} className="tab-content">
+        {tab === 'game' && <Game />}
+        {tab === 'profile' && <Profile />}
+        {tab === 'sim' && isAdmin && <Simulator />}
+        {tab === 'dash' && isAdmin && <Dashboard />}
+        {tab === 'replay' && isAdmin && <Replay />}
+        {tab === 'rules' && <Rules />}
+      </div>
 
       <footer style={{ textAlign: 'center', padding: '24px 0 12px', fontSize: 10, color: '#444', marginTop: 24 }}>
-        <div>Стойки v2.0 • Баланс подтверждён на 239K+ партиях</div>
-        <div style={{ marginTop: 4 }}>
+        <div>Стойки v2.1 • Баланс подтверждён на 239K+ партиях</div>
+        <div style={{ marginTop: 4, display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%',
+              background: publicStats ? '#3dd68c' : '#ff6066',
+              boxShadow: publicStats ? '0 0 6px rgba(61,214,140,0.5)' : '0 0 6px rgba(255,96,102,0.3)' }} />
+            {publicStats ? 'Онлайн' : 'Оффлайн'}
+          </span>
+          <span>•</span>
           <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener" style={{ color: '#555', textDecoration: 'none' }}>
             GitHub
           </a>
           {isAdmin && (
             <>
-              {' • '}
+              <span>•</span>
               <a href="https://github.com/igor1000rr/stolbiki/blob/main/analysis/report.pdf" target="_blank" rel="noopener" style={{ color: '#555', textDecoration: 'none' }}>
-                PDF Отчёт
+                PDF
               </a>
             </>
           )}
