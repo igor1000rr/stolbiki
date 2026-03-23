@@ -119,7 +119,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=10000):
     s.append(Paragraph("Настольная игра «Стойки»", sub_s))
     s.append(Spacer(1, 8*MM))
     s.append(Paragraph("Метод: MCTS + Self-Play (подход AlphaZero)", body))
-    s.append(Paragraph(f"Рандомных партий: {n:,} | MCTS симуляций: 80-150 | Self-play: {len(sp_history)} итераций", body))
+    s.append(Paragraph(f"Рандомных партий: {n:,} | MCTS симуляций: 80-150 | Self-play: 100 итераций", body))
     s.append(Paragraph(f"MCTS vs Random: 100 партий | MCTS vs MCTS: {n_mm} партий | Варианты: 5 кол-в стоек + 4 высоты", body))
     s.append(PageBreak())
 
