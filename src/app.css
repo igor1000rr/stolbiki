@@ -678,6 +678,55 @@ body::before {
   30% { opacity: 1; transform: scale(1.1) translateY(-8px); }
   50% { transform: scale(0.93) translateY(3px); }
   70% { transform: scale(1.04) translateY(-1px); }
+
+/* ── Ачивка popup ── */
+.achievement-popup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #1e1e28 0%, #2a2a3a 100%);
+  border: 1px solid rgba(255,193,69,0.3);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+  animation: achSlideIn 0.5s var(--ease-out-back), achFadeOut 0.5s ease-in 3.5s forwards;
+  box-shadow: 0 8px 32px rgba(255,193,69,0.15), 0 0 60px rgba(255,193,69,0.05);
+}
+.achievement-popup .ach-icon { font-size: 32px; }
+.achievement-popup .ach-label { font-size: 10px; color: #ffc145; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+.achievement-popup .ach-name { font-size: 14px; color: #e8e6f0; font-weight: 600; }
+
+@keyframes achSlideIn {
+  0% { opacity: 0; transform: translateX(100px) scale(0.8); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes achFadeOut {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+/* ── Конфетти ── */
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+.confetti {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: -10px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 

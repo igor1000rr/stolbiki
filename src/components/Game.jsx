@@ -5,9 +5,19 @@ import {
 } from '../engine/game'
 import { mctsSearch } from '../engine/ai'
 import { getHint } from '../engine/hints'
+import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as _sw, soundLose as _sl, soundClick as _sk, soundSwap as _ss } from '../engine/sounds'
 import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
+
+// Звук через ref чтобы не пересоздавать
+let _soundOn = true
+const sp = () => _soundOn && _sp()
+const st = () => _soundOn && _st()
+const sc = () => _soundOn && _sc()
+const sw = () => _soundOn && _sw()
+const sl = () => _soundOn && _sl()
+const ss = () => _soundOn && _ss()
 
 function describeAction(a, p) {
   const name = p === 0 ? 'Синие' : 'Красные'
@@ -30,6 +40,8 @@ export default function Game() {
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(50)
   const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
+  const [soundOn, setSoundOn] = useState(true)
+  useEffect(() => { _soundOn = soundOn }, [soundOn])
   const [log, setLog] = useState([])
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
@@ -39,16 +51,39 @@ export default function Game() {
   const [aiThinking, setAiThinking] = useState(false)
   const [scoreBump, setScoreBump] = useState(null)
   const [locked, setLocked] = useState(false)
+  const [confetti, setConfetti] = useState(false)
+  const [newAch, setNewAch] = useState(null)
+  const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0 })
   const aiRunning = useRef(false)
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
 
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = 0 }, [log])
 
+  // Слушаем новые ачивки
+  useEffect(() => {
+    window.stolbikiOnAchievement = (ach) => {
+      setNewAch(ach)
+      setTimeout(() => setNewAch(null), 4000)
+    }
+    return () => { delete window.stolbikiOnAchievement }
+  }, [])
+
+  // Сессионная статистика
+  useEffect(() => {
+    if (result === null) return
+    const won = mode === 'pvp' ? true : result === humanPlayer
+    setSessionStats(prev => ({
+      wins: prev.wins + (won ? 1 : 0),
+      losses: prev.losses + (won ? 0 : 1),
+      streak: won ? prev.streak + 1 : 0,
+    }))
+  }, [result]) // eslint-disable-line
+
   useEffect(() => {
     const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
-    if (s0 > prevScore.current[0]) { setScoreBump(0); setTimeout(() => setScoreBump(null), 700) }
-    if (s1 > prevScore.current[1]) { setScoreBump(1); setTimeout(() => setScoreBump(null), 700) }
+    if (s0 > prevScore.current[0]) { setScoreBump(0); setTimeout(() => setScoreBump(null), 700); sc() }
+    if (s1 > prevScore.current[1]) { setScoreBump(1); setTimeout(() => setScoreBump(null), 700); sc() }
     prevScore.current = [s0, s1]
   }, [gs])
 
@@ -77,8 +112,9 @@ export default function Game() {
           if (ns.gameOver) {
             setTimeout(() => {
               setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+              const won = ns.winner === humanPlayer
+              setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
               if (typeof window.stolbikiRecordGame === 'function') {
-                const won = ns.winner === humanPlayer
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
@@ -152,6 +188,7 @@ export default function Game() {
         setTransfer([selected, i])
         setSelected(null)
         setPhase('place')
+        st()
         addLog(`Перенос: ${SL(selected)} → ${SL(i)}`, humanPlayer)
         setInfo('Перенос выбран. Расставьте фишки')
       } else {
@@ -176,9 +213,9 @@ export default function Game() {
         const spaceLeft = space - current
 
         if (remaining > 0 && spaceLeft > 0) {
-          // Клик добавляет +1
           const newPlacement = { ...placement, [i]: current + 1 }
           setPlacement(newPlacement)
+          sp()
           const newTotal = currentTotal + 1
           setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
         } else {
@@ -198,6 +235,7 @@ export default function Game() {
 
       const newPlacement = { ...placement, [i]: 1 }
       setPlacement(newPlacement)
+      sp()
       const newTotal = currentTotal + 1
       setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
     }
@@ -215,13 +253,18 @@ export default function Game() {
     if (ns.gameOver) {
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
-        // Записываем результат в профиль
+        const won = mode === 'pvp' || ns.winner === humanPlayer
+        setTimeout(() => {
+          if (mode === 'pvp') sw()
+          else ns.winner === humanPlayer ? sw() : sl()
+          if (won || mode === 'pvp') { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
+        }, 300)
         if (typeof window.stolbikiRecordGame === 'function') {
-          const won = ns.winner === humanPlayer
+          const w = ns.winner === humanPlayer
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          window.stolbikiRecordGame(won, score, difficulty >= 100, closedGolden, false)
+          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false)
         }
       }, 800)
       return
@@ -294,7 +337,20 @@ export default function Game() {
             Подсказки
           </label>
         )}
+        <label style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
+          🔊
+        </label>
       </div>
+
+      {/* Сессионная статистика */}
+      {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8, fontSize: 11, color: '#6b6880' }}>
+          <span>Побед: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
+          <span>Поражений: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
+          {sessionStats.streak > 1 && <span>🔥 Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
+        </div>
+      )}
 
       {mode === 'pvp' && !gs.gameOver && (
         <div style={{ textAlign: 'center', padding: '6px 12px', margin: '0 auto 8px', fontSize: 13, fontWeight: 600,
@@ -381,6 +437,34 @@ export default function Game() {
           </div>
         ))}
       </div>
+
+      {/* Конфетти */}
+      {confetti && (
+        <div className="confetti-container">
+          {Array.from({ length: 40 }).map((_, i) => (
+            <div key={i} className="confetti" style={{
+              left: `${Math.random() * 100}%`,
+              background: ['#ffc145', '#6db4ff', '#ff6b6b', '#3dd68c', '#9b59b6', '#f0654a'][i % 6],
+              width: `${6 + Math.random() * 8}px`,
+              height: `${6 + Math.random() * 8}px`,
+              borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+              animationDuration: `${1.5 + Math.random() * 2}s`,
+              animationDelay: `${Math.random() * 0.8}s`,
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Ачивка popup */}
+      {newAch && (
+        <div className="achievement-popup">
+          <div className="ach-icon">{newAch.icon}</div>
+          <div>
+            <div className="ach-label">Ачивка разблокирована!</div>
+            <div className="ach-name">{newAch.name}</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

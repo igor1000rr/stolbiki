@@ -135,7 +135,14 @@ export default function Profile() {
         if (vsHardAi && won) p.beatHardAi = true
         if (score === '6:0') p.perfectWins = (p.perfectWins || 0) + 1
         // Проверяем ачивки
-        p.achievements = ALL_ACHIEVEMENTS.filter(a => a.check(p)).map(a => a.id)
+        const newAchIds = ALL_ACHIEVEMENTS.filter(a => a.check(p)).map(a => a.id)
+        const brandNew = newAchIds.filter(id => !p.achievements.includes(id))
+        p.achievements = newAchIds
+        // Уведомляем о новой ачивке
+        if (brandNew.length > 0 && typeof window.stolbikiOnAchievement === 'function') {
+          const ach = ALL_ACHIEVEMENTS.find(a => a.id === brandNew[0])
+          if (ach) setTimeout(() => window.stolbikiOnAchievement(ach), 1500)
+        }
         return p
       })
     }
