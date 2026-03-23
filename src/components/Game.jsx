@@ -27,7 +27,6 @@ export default function Game() {
   const [selected, setSelected] = useState(null)
   const [transfer, setTransfer] = useState(null)
   const [placement, setPlacement] = useState({})
-  const [placeCount, setPlaceCount] = useState(1)
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(50)
   const [log, setLog] = useState([])
@@ -87,7 +86,7 @@ export default function Game() {
             setPhase('place')
             setTransfer(null)
             setPlacement({})
-            setInfo(ns.isFirstTurn() ? 'Поставьте 1 фишку' : 'Ваш ход — кликните на стойку')
+            setInfo(ns.isFirstTurn() ? 'Поставьте 1 фишку' : 'Кликайте на стойки чтобы ставить фишки (макс 3, на 2 стойки)')
           }, 500)
         }, 300)
       }, remaining)
@@ -99,8 +98,7 @@ export default function Game() {
     const hp = side ?? humanPlayer
     const d = diff ?? difficulty
     const state = new GameState()
-    setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({})
-    setPlaceCount(1); setResult(null); setHint(null); setAiThinking(false)
+    setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d)
     aiRunning.current = false; prevScore.current = [0, 0]
     const c = hp === 0 ? 'синие' : 'красные'
@@ -155,40 +153,36 @@ export default function Game() {
       if (!canClose) space = Math.max(0, space - 1)
       if (space <= 0) { setInfo(`Стойка ${SL(i)} заполнена`); return }
 
-      // Уже есть фишки на этой стойке
       if (i in placement) {
         const current = placement[i]
         const remaining = maxTotal - currentTotal
         const spaceLeft = space - current
 
         if (remaining > 0 && spaceLeft > 0) {
-          // Добавляем ещё
-          const add = Math.min(placeCount, spaceLeft, remaining)
-          const newPlacement = { ...placement, [i]: current + add }
+          // Клик добавляет +1
+          const newPlacement = { ...placement, [i]: current + 1 }
           setPlacement(newPlacement)
-          const newTotal = currentTotal + add
-          setInfo(`+${add}. Итого: ${newTotal}/${maxTotal}${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
+          const newTotal = currentTotal + 1
+          setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
         } else {
-          // Убираем
+          // Достигнут макс — убираем с этой стойки
           const newPlacement = { ...placement }
           delete newPlacement[i]
           setPlacement(newPlacement)
-          setInfo(`Убрано со стойки ${SL(i)}`)
+          const newTotal = currentTotal - current
+          setInfo(`Убрано. ${newTotal}/${maxTotal}`)
         }
         return
       }
 
-      // Новая стойка
+      // Новая стойка — ставим 1
       if (numStands >= MAX_PLACE_STANDS) { setInfo('Макс 2 стойки. Кликните занятую чтобы убрать'); return }
       if (currentTotal >= maxTotal) { setInfo('Все фишки расставлены — подтвердите'); return }
 
-      const add = Math.min(placeCount, space, maxTotal - currentTotal)
-      if (add > 0) {
-        const newPlacement = { ...placement, [i]: add }
-        setPlacement(newPlacement)
-        const newTotal = currentTotal + add
-        setInfo(`+${add} на ${SL(i)}. Итого: ${newTotal}/${maxTotal}${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
-      }
+      const newPlacement = { ...placement, [i]: 1 }
+      setPlacement(newPlacement)
+      const newTotal = currentTotal + 1
+      setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
     }
   }
 
@@ -270,16 +264,9 @@ export default function Game() {
 
       <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} />
 
-      {/* Выбор фишек — НЕ на первом ходу */}
+      {/* Статус фишек */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
-          <span>За клик:</span>
-          {[1, 2, 3].map(n => (
-            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`}
-              onClick={() => setPlaceCount(n)}>
-              {n}
-            </button>
-          ))}
           <span className="place-status">
             {totalPlaced}/{maxTotal} фишек · {Object.keys(placement).length}/{MAX_PLACE_STANDS} стоек
             {transfer && ` · перенос ✓`}
