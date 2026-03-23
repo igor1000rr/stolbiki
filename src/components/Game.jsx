@@ -57,6 +57,7 @@ export default function Game() {
   const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0 })
   const [gameStartTime, setGameStartTime] = useState(Date.now())
   const [elapsed, setElapsed] = useState(0)
+  const [undoStack, setUndoStack] = useState([])
   const aiRunning = useRef(false)
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
@@ -158,6 +159,7 @@ export default function Game() {
     setGameMeta(m, d)
     setGameStartTime(Date.now())
     setElapsed(0)
+    setUndoStack([])
     if (m === 'pvp') {
       setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo('Синие: поставьте 1 фишку')
@@ -183,6 +185,7 @@ export default function Game() {
       if (e.key === 'Enter' && canConfirm && isMyTurn && phase === 'place') { e.preventDefault(); confirmTurn() }
       if (e.key === 'Escape' && inTransferMode) cancelTransfer()
       if (e.key === 'n' && (gs.gameOver || result !== null)) newGame()
+      if (e.key === 'z' && mode === 'pvp' && undoStack.length > 0) undoMove()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -274,6 +277,7 @@ export default function Game() {
   function confirmTurn() {
     const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
     if (!currentIsHuman || gs.gameOver || locked) return
+    if (mode === 'pvp') setUndoStack(prev => [...prev, gs].slice(-10))
     const action = { transfer, placement }
     recordMove(gs, action, gs.currentPlayer)
     addLog(describeAction(action, gs.currentPlayer), gs.currentPlayer)
@@ -319,6 +323,16 @@ export default function Game() {
   function cancelTransfer() {
     setSelected(null); setTransfer(null); setPhase('place')
     setInfo('Перенос отменён')
+  }
+
+  function undoMove() {
+    if (undoStack.length === 0 || mode !== 'pvp') return
+    const prev = undoStack[undoStack.length - 1]
+    setUndoStack(s => s.slice(0, -1))
+    setGs(prev)
+    setPhase('place'); setTransfer(null); setPlacement({}); setSelected(null); setResult(null)
+    setLog(l => [{ text: '↩ Ход отменён', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...l])
+    setInfo(`${prev.currentPlayer === 0 ? 'Синие' : 'Красные'}: ваш ход`)
   }
 
   function requestHint() {
@@ -519,6 +533,9 @@ export default function Game() {
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>Новая игра</button>
+        {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
+          <button className="btn" onClick={undoMove} style={{ fontSize: 11 }}>↩ Отмена</button>
+        )}
       </div>
 
       {isMyTurn && !gs.gameOver && (
@@ -552,10 +569,15 @@ export default function Game() {
               <span>⏱ {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
               {goldenOwned && <span>⭐ Золотая: П{gs.closed[0] + 1}</span>}
             </div>
-            <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn primary" onClick={() => newGame()} style={{ fontSize: 12, padding: '8px 16px' }}>
                 Ещё партию
               </button>
+              {mode === 'ai' && (
+                <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: 12, padding: '8px 14px' }}>
+                  🔄 Сменить сторону
+                </button>
+              )}
               <button className="btn" onClick={() => {
                 if (navigator.share) navigator.share({ text: shareText }).catch(() => {})
                 else { navigator.clipboard?.writeText(shareText); }
@@ -563,6 +585,11 @@ export default function Game() {
                 📤
               </button>
             </div>
+            {sessionStats.streak > 1 && won && (
+              <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>
+                🔥 Серия побед: {sessionStats.streak}
+              </div>
+            )}
           </div>
         )
       })()}
