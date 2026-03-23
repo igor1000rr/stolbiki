@@ -20,7 +20,7 @@ export function sampleRandomAction(state) {
   const closing = [], normal = []
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
-    if (state.stands[dst].length + gs >= MAX_CHIPS && gc === player) closing.push([src, dst])
+    if (state.stands[dst].length + gs >= MAX_CHIPS) closing.push([src, dst])
     else normal.push([src, dst])
   }
 
@@ -96,7 +96,7 @@ export function mctsSearch(state, numSimulations = 50) {
   // Закрывающие переносы
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
-    if (state.stands[dst].length + gs >= MAX_CHIPS && gc === player) {
+    if (state.stands[dst].length + gs >= MAX_CHIPS) {
       actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
       actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
     }

@@ -75,7 +75,7 @@ function fastRandomAction(state) {
         if (dstChips.length > 0 && dt !== gc) continue
         const newTotal = dstChips.length + gs
         if (newTotal >= state.maxChips) {
-          if (gc === player) closing.push([src, dst])
+          closing.push([src, dst])
           continue
         }
         normal.push([src, dst])
@@ -144,11 +144,9 @@ function applyCustomAction(state, action) {
     ns.stands[src] = ns.stands[src].slice(0, -grpSize)
     ns.stands[dst] = ns.stands[dst].concat(Array(grpSize).fill(grpColor))
     const total = ns.stands[dst].length
-    if (total >= ns.maxChips && grpColor === ns.currentPlayer) {
+    if (total >= ns.maxChips) {
       if (total > ns.maxChips) ns.stands[dst] = ns.stands[dst].slice(total - ns.maxChips)
-      ns.closed[dst] = ns.currentPlayer
-    } else if (total > ns.maxChips) {
-      ns.stands[dst] = ns.stands[dst].slice(total - ns.maxChips)
+      ns.closed[dst] = grpColor
     }
   }
 

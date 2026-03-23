@@ -132,10 +132,7 @@ def get_valid_transfers(state: GameState) -> list:
 
             new_total = len(dst_chips) + grp_size
 
-            # Закрыть можно только своим цветом
-            if new_total >= MAX_CHIPS and grp_color != player:
-                continue
-
+            # Перенос разрешён даже при overflow — стойка закрывается
             transfers.append((src, dst))
 
     return transfers
@@ -220,14 +217,11 @@ def _apply_transfer(state, src, dst):
 
     total = len(state.stands[dst])
     if total >= MAX_CHIPS:
-        if grp_color == state.current_player:
-            if total > MAX_CHIPS:
-                state.stands[dst] = state.stands[dst][total - MAX_CHIPS:]
-            state.closed[dst] = state.current_player
-            return True
-        else:
-            if total > MAX_CHIPS:
-                state.stands[dst] = state.stands[dst][total - MAX_CHIPS:]
+        # Стойка закрывается цветом верхней группы, лишние снизу в сброс
+        if total > MAX_CHIPS:
+            state.stands[dst] = state.stands[dst][total - MAX_CHIPS:]
+        state.closed[dst] = grp_color
+        return True
     return False
 
 
@@ -448,9 +442,8 @@ def sample_random_action_fast(state: GameState) -> Action:
                     continue
                 new_total = len(dst_chips) + grp_size
                 if new_total >= MAX_CHIPS:
-                    if grp_color == player:
-                        closing_transfers.append((src, dst))
-                    continue  # Чужим цветом нельзя закрывать
+                    closing_transfers.append((src, dst))
+                    continue
                 normal_transfers.append((src, dst))
 
     # 70% шанс закрыть если можно, иначе 40% шанс обычный перенос
@@ -471,7 +464,7 @@ def sample_random_action_fast(state: GameState) -> Action:
         src, dst = transfer
         grp_color, grp_size = state.top_group(src)
         new_total = len(state.stands[dst]) + grp_size
-        if new_total >= MAX_CHIPS and grp_color == player:
+        if new_total >= MAX_CHIPS:
             closed_by_transfer.add(dst)
 
     effective_open = [i for i in opens if i not in closed_by_transfer]

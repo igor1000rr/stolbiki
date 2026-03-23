@@ -51,7 +51,7 @@ function analyzePosition(state) {
   // Какие стойки можно закрыть
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
-    if (state.stands[dst].length + gs >= MAX_CHIPS && gc === player) {
+    if (state.stands[dst].length + gs >= MAX_CHIPS) {
       info.closingMoves.push({ src, dst, label: `${standLabel(src)}→${standLabel(dst)}` })
     }
   }
@@ -107,14 +107,17 @@ function explainAction(state, action, analysis) {
     const [gc, gs] = state.topGroup(src)
     const newTotal = state.stands[dst].length + gs
 
-    if (newTotal >= MAX_CHIPS && gc === player) {
+    if (newTotal >= MAX_CHIPS) {
       // Закрывающий перенос
+      const owner = gc === player ? 'вашу' : 'вражескую'
       const isGolden = dst === GOLDEN_STAND
-      parts.push(`Рекомендация: закрыть стойку ${standLabel(dst)} переносом с ${standLabel(src)}.`)
+      parts.push(`Рекомендация: закрыть ${owner} стойку ${standLabel(dst)} переносом с ${standLabel(src)}.`)
       if (isGolden) {
         parts.push('Это золотая стойка — её контроль критически важен при равном счёте!')
       }
-      parts.push(`После закрытия счёт станет ${analysis.myScore + 1}:${analysis.oppScore}.`)
+      const newMyScore = gc === player ? analysis.myScore + 1 : analysis.myScore
+      const newOppScore = gc !== player ? analysis.oppScore + 1 : analysis.oppScore
+      parts.push(`После закрытия счёт станет ${newMyScore}:${newOppScore}.`)
     } else {
       // Стратегический перенос
       if (gc === player) {

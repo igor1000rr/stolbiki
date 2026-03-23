@@ -70,7 +70,7 @@ export function getValidTransfers(state) {
       const dstChips = state.stands[dst]
       const [dstTop] = state.topGroup(dst)
       if (dstChips.length > 0 && dstTop !== grpColor) continue
-      if (dstChips.length + grpSize >= MAX_CHIPS && grpColor !== player) continue
+      // Перенос разрешён даже при overflow — стойка закрывается
       transfers.push([src, dst])
     }
   }
@@ -116,12 +116,12 @@ function applyTransfer(state, src, dst) {
   state.stands[src] = state.stands[src].slice(0, -grpSize)
   state.stands[dst] = state.stands[dst].concat(Array(grpSize).fill(grpColor))
   const total = state.stands[dst].length
-  if (total >= MAX_CHIPS && grpColor === state.currentPlayer) {
+  if (total >= MAX_CHIPS) {
+    // Стойка закрывается цветом верхней группы, лишние снизу в сброс
     if (total > MAX_CHIPS) state.stands[dst] = state.stands[dst].slice(total - MAX_CHIPS)
-    state.closed[dst] = state.currentPlayer
+    state.closed[dst] = grpColor
     return true
   }
-  if (total > MAX_CHIPS) state.stands[dst] = state.stands[dst].slice(total - MAX_CHIPS)
   return false
 }
 
