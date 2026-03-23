@@ -27,6 +27,7 @@ export default function Replay() {
   const [gi, setGi] = useState(0)
   const [si, setSi] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(700)
   const timerRef = useRef(null)
 
   const game = replaysData[gi]
@@ -45,12 +46,25 @@ export default function Replay() {
           if (prev >= totalStates - 1) { setPlaying(false); return prev }
           return prev + 1
         })
-      }, 700)
+      }, speed)
     }
     return () => clearInterval(timerRef.current)
-  }, [playing, totalStates])
+  }, [playing, totalStates, speed])
 
   const goTo = val => setSi(Math.max(0, Math.min(totalStates - 1, val)))
+
+  // Клавиатура
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === 'ArrowLeft') goTo(si - 1)
+      if (e.key === 'ArrowRight') goTo(si + 1)
+      if (e.key === ' ') { e.preventDefault(); setPlaying(p => !p) }
+      if (e.key === 'Home') goTo(0)
+      if (e.key === 'End') goTo(totalStates - 1)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  })
 
   const move = si > 0 && si <= game.moves.length ? game.moves[si - 1] : null
   const sc = state.sc || [0, 0]
@@ -95,6 +109,16 @@ export default function Replay() {
         <button className="transport-btn" onClick={() => goTo(totalStates - 1)}>⏭</button>
       </div>
 
+      {/* Скорость */}
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', margin: '6px 0' }}>
+        {[{ v: 1200, l: '0.5×' }, { v: 700, l: '1×' }, { v: 400, l: '2×' }, { v: 200, l: '4×' }].map(s => (
+          <button key={s.v} className="btn" onClick={() => setSpeed(s.v)}
+            style={{ padding: '3px 10px', fontSize: 10, opacity: speed === s.v ? 1 : 0.4, borderColor: speed === s.v ? 'var(--accent)' : undefined }}>
+            {s.l}
+          </button>
+        ))}
+      </div>
+
       <input
         type="range" className="progress-slider"
         min={0} max={totalStates - 1} value={si}
@@ -121,6 +145,11 @@ export default function Replay() {
         ) : (
           <em>Начальная позиция</em>
         )}
+      </div>
+
+      {/* Подсказки */}
+      <div style={{ textAlign: 'center', fontSize: 9, color: '#444', marginTop: 8 }}>
+        ← → навигация · Пробел — пуск/пауза · Home/End — начало/конец
       </div>
     </div>
   )

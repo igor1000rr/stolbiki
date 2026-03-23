@@ -82,9 +82,24 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
         if (isFlashing) cls += ' stand-flash'
 
         return (
-          <div key={i} className={cls} onClick={() => onStandClick?.(i)}>
+          <div key={i} className={cls} onClick={() => onStandClick?.(i)}
+            title={isClosed ? `Закрыта: П${state.closed[i]+1}` : `${chips.length}/11 фишек, свободно: ${11 - chips.length}`}>
             <span className="stand-label">{isGolden ? '★' : i}</span>
             {isClosed && <span className="stand-owner">П{state.closed[i] + 1}</span>}
+
+            {/* Индикатор заполненности */}
+            {!isClosed && chips.length > 0 && (
+              <div style={{
+                position: 'absolute', bottom: 2, left: '10%', right: '10%', height: 2,
+                background: '#2a2a38', borderRadius: 1, overflow: 'hidden', opacity: 0.6,
+              }}>
+                <div style={{
+                  width: `${chips.length / 11 * 100}%`, height: '100%',
+                  background: chips.length >= 9 ? '#ff6b6b' : chips.length >= 7 ? '#ffc145' : '#4a9eff',
+                  borderRadius: 1, transition: 'width 0.3s',
+                }} />
+              </div>
+            )}
 
             {chips.map((c, j) => {
               const isNew = newInfo && j >= newInfo.from

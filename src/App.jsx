@@ -74,6 +74,23 @@ export default function App() {
       {tab === 'dash' && isAdmin && <Dashboard />}
       {tab === 'replay' && isAdmin && <Replay />}
       {tab === 'rules' && <Rules />}
+
+      <footer style={{ textAlign: 'center', padding: '24px 0 12px', fontSize: 10, color: '#444', marginTop: 24 }}>
+        <div>Стойки v2.0 • Баланс подтверждён на 229K+ партиях</div>
+        <div style={{ marginTop: 4 }}>
+          <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener" style={{ color: '#555', textDecoration: 'none' }}>
+            GitHub
+          </a>
+          {isAdmin && (
+            <>
+              {' • '}
+              <a href="https://github.com/igor1000rr/stolbiki/blob/main/analysis/report.pdf" target="_blank" rel="noopener" style={{ color: '#555', textDecoration: 'none' }}>
+                PDF Отчёт
+              </a>
+            </>
+          )}
+        </div>
+      </footer>
     </div>
   )
 }
