@@ -1,8 +1,10 @@
 """
-Стойки — GPU Self-Play тренер v2
-Self-play: быстрый MCTS на CPU (rollouts)
-Обучение: ResNet на GPU батчами
-Запуск: py -3.12 gpu_trainer.py
+Стойки — GPU Self-Play v5
+Нейросеть участвует в КАЖДОМ ходе через batch-prediction на GPU.
+Ход = генерируем N рандомных кандидатов → батч-оценка на GPU → лучший.
+Это аналог AlphaZero без дерева: neural policy через sampling.
+
+py -3.12 gpu_trainer.py
 """
 
 import torch
@@ -16,7 +18,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'analysis'))
-from game import GameState, get_legal_actions, apply_action, get_valid_transfers
+from game import GameState, apply_action
 from train import sample_random_action_fast
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,10 +41,7 @@ def encode_state(state):
         op = sum(1 for c in chips if c == opp)
         tc, ts = state.top_group(i)
         f.extend([
-            total / 11.0,
-            my / 11.0,
-            op / 11.0,
-            ts / 11.0,
+            total / 11.0, my / 11.0, op / 11.0, ts / 11.0,
             1.0 if tc == player else 0.0,
             1.0 if tc == opp else 0.0,
             1.0 if i in state.closed else 0.0,
@@ -57,7 +56,7 @@ def encode_state(state):
               1.0 if state.can_close_by_placement() else 0.0])
     return np.array(f, dtype=np.float32)
 
-INPUT_SIZE = 107  # 10*10 + 7
+INPUT_SIZE = 107
 
 
 # ═══ Нейросеть ═══
@@ -66,14 +65,12 @@ class ResBlock(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.fc1 = nn.Linear(dim, dim)
-        self.ln1 = nn.LayerNorm(dim)  # LayerNorm вместо BatchNorm — работает с batch=1
+        self.ln1 = nn.LayerNorm(dim)
         self.fc2 = nn.Linear(dim, dim)
         self.ln2 = nn.LayerNorm(dim)
 
     def forward(self, x):
-        out = F.relu(self.ln1(self.fc1(x)))
-        out = self.ln2(self.fc2(out))
-        return F.relu(out + x)
+        return F.relu(self.ln2(self.fc2(F.relu(self.ln1(self.fc1(x))))) + x)
 
 
 class StoykaNet(nn.Module):
@@ -89,25 +86,54 @@ class StoykaNet(nn.Module):
             h = b(h)
         return self.value(h)
 
-    def predict_batch(self, states_np):
-        """Батч-предсказание на GPU"""
-        self.eval()
-        with torch.no_grad():
-            x = torch.tensor(states_np, dtype=torch.float32).to(DEVICE)
-            return self.forward(x).cpu().numpy().flatten()
+
+# ═══ Нейро-ход: GPU batch-prediction ═══
+
+def neural_choose_action(state, net, num_candidates=12, temperature=0.1):
+    """Генерируем N рандомных ходов → batch-оценка на GPU → лучший"""
+    candidates = []
+    features = []
+
+    for _ in range(num_candidates):
+        a = sample_random_action_fast(state)
+        ns = apply_action(state, a)
+        candidates.append(a)
+        features.append(encode_state(ns))
+
+    # Batch prediction на GPU
+    with torch.no_grad():
+        x = torch.tensor(np.array(features), dtype=torch.float32).to(DEVICE)
+        vals = net(x).cpu().numpy().flatten()
+
+    # Минус — оценка с точки зрения СЛЕДУЮЩЕГО игрока
+    scores = -vals
+
+    if temperature <= 0:
+        best = np.argmax(scores)
+    else:
+        # Softmax selection для exploration
+        exp = np.exp((scores - scores.max()) / temperature)
+        probs = exp / exp.sum()
+        best = np.random.choice(len(candidates), p=probs)
+
+    return candidates[best]
 
 
-# ═══ Быстрый Self-Play (рандомные партии) ═══
+# ═══ Self-Play: нейросеть играет обе стороны ═══
 
-def play_one_game_fast():
-    """Рандомная партия → список (encoded_state, value)"""
+def play_one_game_neural(net, num_candidates=12, explore_turns=20, temperature=0.3):
+    """Партия где нейросеть выбирает ходы → (features, values)"""
     trajectory = []
     state = GameState()
 
     while not state.game_over:
         features = encode_state(state)
         player = state.current_player
-        action = sample_random_action_fast(state)
+
+        # Exploration в начале, exploitation потом
+        temp = temperature if state.turn < explore_turns else 0.05
+        action = neural_choose_action(state, net, num_candidates, temp)
+
         trajectory.append((features, player))
         state = apply_action(state, action)
         if state.turn > 200:
@@ -127,52 +153,56 @@ def play_one_game_fast():
     return samples
 
 
-def play_games_batch(num_games):
-    """Быстрый прогон N рандомных партий"""
+def play_batch_neural(net, num_games, num_candidates=12):
+    """N партий с нейросетью"""
+    net.eval()
     all_samples = []
-    for g in range(num_games):
-        all_samples.extend(play_one_game_fast())
+    for _ in range(num_games):
+        all_samples.extend(play_one_game_neural(net, num_candidates))
     return all_samples
 
 
-# ═══ Быстрая оценка: нейросеть выбирает лучший ход из рандомных ═══
+# Рандомные партии для начального заполнения буфера
+def play_batch_random(num_games):
+    all_samples = []
+    for _ in range(num_games):
+        trajectory = []
+        state = GameState()
+        while not state.game_over:
+            features = encode_state(state)
+            player = state.current_player
+            action = sample_random_action_fast(state)
+            trajectory.append((features, player))
+            state = apply_action(state, action)
+            if state.turn > 200:
+                state.game_over = True
+                state.winner = -1
+                break
+        for features, player in trajectory:
+            v = 1.0 if state.winner == player else (-1.0 if state.winner == 1 - player else 0.0)
+            all_samples.append((features, v))
+    return all_samples
 
-def evaluate_net(net, num_games=100, **kwargs):
-    """Нейросеть выбирает лучший из 8 рандомных ходов vs чистый рандом"""
+
+# ═══ Оценка ═══
+
+def evaluate_net(net, num_games=100):
+    """Нейросеть (12 кандидатов) vs рандом"""
     net.eval()
     wins = 0
-
     for g in range(num_games):
         state = GameState()
         net_player = g % 2
-
         while not state.game_over:
             if state.current_player == net_player:
-                # Генерируем 8 рандомных ходов, выбираем лучший по нейросети
-                candidates = []
-                for _ in range(8):
-                    a = sample_random_action_fast(state)
-                    ns = apply_action(state, a)
-                    candidates.append((a, ns))
-
-                # Батч-оценка
-                features = np.array([encode_state(ns) for _, ns in candidates])
-                with torch.no_grad():
-                    vals = net(torch.tensor(features, dtype=torch.float32).to(DEVICE)).cpu().numpy().flatten()
-
-                # Минус — оценка с точки зрения следующего игрока
-                best_idx = np.argmin(vals)
-                action = candidates[best_idx][0]
+                action = neural_choose_action(state, net, num_candidates=12, temperature=0.0)
             else:
                 action = sample_random_action_fast(state)
-
             state = apply_action(state, action)
             if state.turn > 200:
                 break
-
         if state.winner == net_player:
             wins += 1
-
     return wins / num_games
 
 
@@ -185,14 +215,13 @@ class GPUTrainer:
         self.num_blocks = c.get('num_blocks', 6)
         self.lr = c.get('lr', 0.001)
         self.batch_size = c.get('batch_size', 512)
-        self.epochs = c.get('epochs', 30)
-        self.games_per_iter = c.get('games_per_iter', 60)
-        self.mcts_sims = c.get('mcts_sims', 80)
-        self.eval_games = c.get('eval_games', 20)
-        self.eval_sims = c.get('eval_sims', 100)
-        self.num_iterations = c.get('num_iterations', 100)
-        self.buffer_size = c.get('buffer_size', 100000)
-        self.max_children = c.get('max_children', 14)
+        self.epochs = c.get('epochs', 20)
+        self.games_per_iter = c.get('games_per_iter', 40)
+        self.num_candidates = c.get('num_candidates', 12)
+        self.eval_games = c.get('eval_games', 60)
+        self.num_iterations = c.get('num_iterations', 500)
+        self.buffer_size = c.get('buffer_size', 200000)
+        self.warmup_games = c.get('warmup_games', 500)
         self.ckpt_dir = c.get('checkpoint_dir', 'gpu_checkpoint')
 
         self.net = StoykaNet(self.hidden, self.num_blocks).to(DEVICE)
@@ -206,87 +235,93 @@ class GPUTrainer:
 
         os.makedirs(self.ckpt_dir, exist_ok=True)
         total_params = sum(p.numel() for p in self.net.parameters())
-        print(f'Сеть: {self.hidden} hidden, {self.num_blocks} блоков, {total_params:,} параметров')
+        print(f'Сеть: {self.hidden}×{self.num_blocks} блоков, {total_params:,} параметров')
 
     def train_on_buffer(self):
-        """GPU обучение — быстрые батчи на подвыборке"""
         n = len(self.buffer_x)
         if n < self.batch_size:
             return 0.0
-
         self.net.train()
-
-        # Берём максимум 10K свежих сэмплов для обучения
-        train_size = min(n, 10000)
-        indices = np.random.choice(n, train_size, replace=False)
-        X = torch.tensor(np.array([self.buffer_x[i] for i in indices]), dtype=torch.float32).to(DEVICE)
-        Y = torch.tensor(np.array([self.buffer_y[i] for i in indices]), dtype=torch.float32).unsqueeze(1).to(DEVICE)
-
+        size = min(n, self.buffer_size)
+        X = torch.tensor(np.array(self.buffer_x[-size:]), dtype=torch.float32).to(DEVICE)
+        Y = torch.tensor(np.array(self.buffer_y[-size:]), dtype=torch.float32).unsqueeze(1).to(DEVICE)
         total_loss = 0.0
-        num_batches = 0
-
-        for epoch in range(self.epochs):
+        num_b = 0
+        for _ in range(self.epochs):
             perm = torch.randperm(len(X))
             for start in range(0, len(X), self.batch_size):
                 idx = perm[start:start + self.batch_size]
-                pred = self.net(X[idx])
-                loss = F.mse_loss(pred, Y[idx])
+                loss = F.mse_loss(self.net(X[idx]), Y[idx])
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 1.0)
                 self.optimizer.step()
                 total_loss += loss.item()
-                num_batches += 1
-
+                num_b += 1
         self.scheduler.step()
-        return total_loss / max(num_batches, 1)
+        return total_loss / max(num_b, 1)
 
     def run(self):
         print(f'\n{"═"*60}')
-        print(f'Self-Play: {self.num_iterations} итер × {self.games_per_iter} партий (рандом)')
-        print(f'Обучение: GPU {DEVICE}, batch={self.batch_size}, epochs={self.epochs}')
-        print(f'{"═"*60}\n')
+        print(f'Self-Play: {self.num_iterations} итер × {self.games_per_iter} нейро-партий')
+        print(f'Нейро-ход: {self.num_candidates} кандидатов → GPU batch → лучший')
+        print(f'GPU: {DEVICE}, batch={self.batch_size}, epochs={self.epochs}')
+        print(f'{"═"*60}')
+
+        # Warmup: рандомные партии для начального обучения
+        if self.version == 0 and len(self.buffer_x) < 5000:
+            print(f'\nWarmup: {self.warmup_games} рандомных партий...')
+            t0 = time.time()
+            samples = play_batch_random(self.warmup_games)
+            for f, v in samples:
+                self.buffer_x.append(f)
+                self.buffer_y.append(v)
+            loss = self.train_on_buffer()
+            print(f'  {len(samples)} сэмплов, loss={loss:.4f}, {time.time()-t0:.0f}с')
+            wr = evaluate_net(self.net, 60)
+            print(f'  vs random: {wr:.0%}')
+
+        print()
 
         for it in range(1, self.num_iterations + 1):
             self.version += 1
             t0 = time.time()
 
-            # Self-play (CPU)
-            samples = play_games_batch(self.games_per_iter)
-
-            for feat, val in samples:
-                self.buffer_x.append(feat)
-                self.buffer_y.append(val)
+            # Neural self-play
+            samples = play_batch_neural(self.net, self.games_per_iter, self.num_candidates)
+            for f, v in samples:
+                self.buffer_x.append(f)
+                self.buffer_y.append(v)
 
             if len(self.buffer_x) > self.buffer_size:
                 self.buffer_x = self.buffer_x[-self.buffer_size:]
                 self.buffer_y = self.buffer_y[-self.buffer_size:]
 
-            # Обучение (GPU)
+            # GPU обучение
             loss = self.train_on_buffer()
-
-            # Оценка каждые 25 итераций
-            wr = -1
-            if it == 1 or it % 25 == 0:
-                wr = evaluate_net(self.net, self.eval_games)
-
             elapsed = time.time() - t0
             lr = self.scheduler.get_last_lr()[0]
-            buf_size = len(self.buffer_x)
 
-            wr_str = f'{wr:.0%}' if wr >= 0 else '—'
-            print(f'  v{self.version:3d} | loss={loss:.4f} | vs_rand={wr_str} | buf={buf_size:,} | lr={lr:.6f} | {elapsed:.0f}с')
+            # Eval каждые 25 итераций
+            wr_str = '—'
+            if it == 1 or it % 25 == 0:
+                wr = evaluate_net(self.net, self.eval_games)
+                wr_str = f'{wr:.0%}'
+                self.history.append({
+                    'version': self.version, 'loss': round(loss, 5),
+                    'vs_random': round(wr, 3), 'buffer': len(self.buffer_x),
+                    'time': round(elapsed, 1),
+                })
+            else:
+                self.history.append({
+                    'version': self.version, 'loss': round(loss, 5),
+                    'vs_random': None, 'buffer': len(self.buffer_x),
+                    'time': round(elapsed, 1),
+                })
 
-            self.history.append({
-                'version': self.version,
-                'loss': round(loss, 5),
-                'vs_random': round(wr, 3) if wr >= 0 else None,
-                'buffer': buf_size,
-                'time': round(elapsed, 1),
-            })
+            print(f'  v{self.version:3d} | loss={loss:.4f} | wr={wr_str:>4s} | buf={len(self.buffer_x):,} | lr={lr:.6f} | {elapsed:.0f}с')
 
-            # Чекпоинт
-            if it % 10 == 0:
+            if it % 50 == 0:
                 self.save()
                 print(f'  → Чекпоинт v{self.version}')
 
@@ -321,18 +356,18 @@ if __name__ == '__main__':
         'num_blocks': 6,
         'lr': 0.001,
         'batch_size': 512,
-        'epochs': 5,               # 20 → 5
-        'games_per_iter': 50,      # 200 → 50
-        'eval_games': 100,
-        'num_iterations': 1000,    # 500 → 1000
-        'buffer_size': 30000,      # 200K → 30K (тренируем на свежих данных)
-        'max_children': 14,
+        'epochs': 20,
+        'games_per_iter': 40,       # Нейро-партий за итерацию
+        'num_candidates': 12,       # Кандидатов на ход (GPU batch)
+        'eval_games': 60,
+        'num_iterations': 500,
+        'buffer_size': 200000,
+        'warmup_games': 500,        # Рандом для начала
         'checkpoint_dir': 'gpu_checkpoint',
     }
 
     trainer = GPUTrainer(config)
 
-    # Автозагрузка последнего чекпоинта
     ckpts = sorted([f for f in os.listdir(config['checkpoint_dir']) if f.endswith('.pt')]) if os.path.exists(config['checkpoint_dir']) else []
     if ckpts:
         trainer.load(os.path.join(config['checkpoint_dir'], ckpts[-1]))
@@ -347,5 +382,5 @@ if __name__ == '__main__':
         wrs = [h['vs_random'] for h in history if h['vs_random'] is not None]
         print(f'Loss: {losses[0]:.4f} → {losses[-1]:.4f}')
         if wrs:
-            print(f'vs Random (последние 5): {[f"{w:.0%}" for w in wrs[-5:]]}')
+            print(f'vs Random: {[f"{w:.0%}" for w in wrs[-5:]]}')
     print(f'{"═"*60}')
