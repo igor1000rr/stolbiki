@@ -200,6 +200,15 @@ export function runSimulation(params, onBatch, onComplete) {
     turns: [],
     goldenDecisive: 0,
     standCloseCount: Array(numStands).fill(0),
+    swapCount: 0,
+    transferCount: 0,
+    firstCloseTurns: [],
+    scores: [],           // [{p1, p2}]
+    goldenOwner: [0, 0],  // [p1_owns, p2_owns]
+    goldenWins: 0,        // владелец золотой побеждает
+    lastCloserWins: 0,    // кто закрыл последнюю → побеждает
+    closeByTransfer: 0,
+    closeByPlacement: 0,
   }
 
   function runBatch() {
@@ -208,24 +217,50 @@ export function runSimulation(params, onBatch, onComplete) {
     for (let g = played; g < batchEnd; g++) {
       let state = new CustomGameState(numStands, maxChips)
       let t = 0
+      let firstClose = null
+      let lastCloser = -1
+      let transfers = 0
 
       while (!state.gameOver && t < 300) {
-        state = applyCustomAction(state, fastRandomAction(state))
+        const oldClosed = Object.keys(state.closed).length
+        const action = fastRandomAction(state)
+        if (action.swap) results.swapCount++
+        if (action.transfer) transfers++
+
+        const player = state.currentPlayer
+        state = applyCustomAction(state, action)
+
+        const newClosed = Object.keys(state.closed).length
+        if (newClosed > oldClosed) {
+          lastCloser = player
+          if (firstClose === null) firstClose = state.turn
+          if (action.transfer) results.closeByTransfer++
+          else results.closeByPlacement++
+        }
         t++
       }
 
       results.turns.push(state.turn)
+      results.transferCount += transfers
 
       if (state.winner === 0) results.p1Wins++
       else if (state.winner === 1) results.p2Wins++
       else results.draws++
 
-      // Золотая при ничьей по стойкам
+      if (firstClose !== null) results.firstCloseTurns.push(firstClose)
+      if (lastCloser === state.winner) results.lastCloserWins++
+
       const c0 = state.countClosed(0), c1 = state.countClosed(1)
+      results.scores.push({ p1: c0, p2: c1 })
+
       const half = Math.floor(numStands / 2)
       if (c0 === half && c1 === half && numStands % 2 === 0) results.goldenDecisive++
 
-      // Какие стойки закрывались
+      if (0 in state.closed) {
+        results.goldenOwner[state.closed[0]]++
+        if (state.closed[0] === state.winner) results.goldenWins++
+      }
+
       for (const idx of Object.keys(state.closed)) {
         results.standCloseCount[+idx]++
       }
@@ -235,7 +270,7 @@ export function runSimulation(params, onBatch, onComplete) {
     onBatch({ ...results, played, total: numGames })
 
     if (played < numGames) {
-      setTimeout(runBatch, 0) // Не блокируем UI
+      setTimeout(runBatch, 0)
     } else {
       onComplete(results)
     }
