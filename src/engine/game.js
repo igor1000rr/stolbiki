@@ -65,14 +65,14 @@ export function getValidTransfers(state) {
   for (const src of opens) {
     const [grpColor, grpSize] = state.topGroup(src)
     if (grpSize === 0) continue
-    // Игрок может переносить только группы своего цвета
-    if (grpColor !== player) continue
     for (const dst of opens) {
       if (dst === src) continue
       const dstChips = state.stands[dst]
       const [dstTop] = state.topGroup(dst)
       if (dstChips.length > 0 && dstTop !== grpColor) continue
-      // Перенос разрешён даже при overflow — стойка закрывается
+      // Закрыть переносом можно только своим цветом
+      const newTotal = dstChips.length + grpSize
+      if (newTotal >= MAX_CHIPS && grpColor !== player) continue
       transfers.push([src, dst])
     }
   }
