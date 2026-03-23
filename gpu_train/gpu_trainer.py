@@ -356,13 +356,13 @@ if __name__ == '__main__':
         'num_blocks': 6,
         'lr': 0.001,
         'batch_size': 512,
-        'epochs': 20,
-        'games_per_iter': 40,       # Нейро-партий за итерацию
-        'num_candidates': 12,       # Кандидатов на ход (GPU batch)
-        'eval_games': 60,
+        'epochs': 25,               # Больше GPU-обучения
+        'games_per_iter': 20,       # 40→20 (меньше Python)
+        'num_candidates': 6,        # 12→6 (быстрее ходы)
+        'eval_games': 40,           # 60→40
         'num_iterations': 500,
         'buffer_size': 200000,
-        'warmup_games': 500,        # Рандом для начала
+        'warmup_games': 300,        # 500→300
         'checkpoint_dir': 'gpu_checkpoint',
     }
 

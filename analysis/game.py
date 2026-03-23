@@ -242,6 +242,8 @@ def _apply_placement(state, placement):
             if total > MAX_CHIPS:
                 state.stands[idx] = state.stands[idx][total - MAX_CHIPS:]
             state.closed[idx] = player
+        elif total > MAX_CHIPS:
+            state.stands[idx] = state.stands[idx][total - MAX_CHIPS:]
 
 
 def _apply_swap(state):
@@ -514,6 +516,11 @@ def sample_random_action_fast(state: GameState) -> Action:
         if available:
             idx, _ = _random.choice(available)
             placement[idx] = 1
+
+    # Форсируем закрытие при ≤2 открытых стойках
+    if can_close_eff and not placement and available:
+        idx, cap = available[0]
+        placement[idx] = cap
 
     return Action(transfer=transfer, placement=placement)
 
