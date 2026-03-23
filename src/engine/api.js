@@ -3,7 +3,7 @@
  * Автоматически переключается между сервером и localStorage fallback
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://178.212.12.71/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 const TOKEN_KEY = 'stolbiki_token'
 
 let _token = localStorage.getItem(TOKEN_KEY)

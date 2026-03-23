@@ -4,12 +4,28 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import cors from 'cors'
 import helmet from 'helmet'
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync, existsSync, mkdirSync } from 'fs'
+import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+// ═══ Загрузка .env ═══
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const envPath = resolve(__dirname, '.env')
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+    const [k, ...v] = line.split('=')
+    if (k && !k.startsWith('#')) process.env[k.trim()] = v.join('=').trim()
+  }
+}
 
 // ═══ Конфиг ═══
 const PORT = process.env.PORT || 3001
-const JWT_SECRET = process.env.JWT_SECRET || 'stolbiki_secret_' + Date.now()
+const JWT_SECRET = process.env.JWT_SECRET || 'stolbiki_dev_secret'
 const DB_PATH = process.env.DB_PATH || './data/stolbiki.db'
+
+// Создаём директорию для БД
+const dbDir = dirname(resolve(DB_PATH))
+if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
 
 // ═══ База данных ═══
 const db = new Database(DB_PATH)
