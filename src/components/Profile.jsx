@@ -98,12 +98,18 @@ export default function Profile() {
   const [regName, setRegName] = useState('')
   const [friendSearch, setFriendSearch] = useState('')
 
-  useEffect(() => { if (profile) saveProfile(profile) }, [profile])
+  useEffect(() => {
+    if (profile) saveProfile(profile)
+    if (typeof window.stolbikiCheckAdmin === 'function') window.stolbikiCheckAdmin()
+  }, [profile])
 
-  // Регистрация (локальная)
   function register() {
     if (!regName.trim()) return
-    const p = defaultProfile(regName.trim())
+    const name = regName.trim()
+    const p = defaultProfile(name)
+    // Админ-ники получают isAdmin автоматически
+    const adminNames = ['admin', 'Admin', 'igor', 'Igor', 'Александр']
+    if (adminNames.includes(name)) p.isAdmin = true
     setProfile(p)
   }
 
