@@ -1,19 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import * as API from '../engine/api'
 
-// ─── Заглушка: localStorage пока нет сервера ───
+// ─── localStorage fallback ───
 const STORAGE_KEY = 'stolbiki_profile'
-
-function loadProfile() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return null
-}
-
-function saveProfile(p) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(p))
-}
+function loadLocal() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null } }
+function saveLocal(p) { if (p) localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); else localStorage.removeItem(STORAGE_KEY) }
 
 function defaultProfile(name) {
   return {
@@ -93,28 +84,61 @@ function AchievementCard({ ach, unlocked }) {
   )
 }
 
+const loadProfile = loadLocal
+const saveProfile = saveLocal
+
 export default function Profile() {
-  const [profile, setProfile] = useState(loadProfile)
+  const [profile, setProfile] = useState(loadLocal)
   const [tab, setTab] = useState('profile')
   const [regName, setRegName] = useState('')
+  const [regPass, setRegPass] = useState('')
+  const [loginMode, setLoginMode] = useState(false)
   const [friendSearch, setFriendSearch] = useState('')
+  const [error, setError] = useState('')
+  const [serverOnline, setServerOnline] = useState(false)
+  const [searchResults, setSearchResults] = useState([])
+
+  // Проверяем сервер при старте
+  useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
 
   useEffect(() => {
     if (profile) saveProfile(profile)
     if (typeof window.stolbikiCheckAdmin === 'function') window.stolbikiCheckAdmin()
   }, [profile])
 
-  function register() {
+  async function register() {
     if (!regName.trim()) return
+    setError('')
     const name = regName.trim()
+
+    // Если сервер доступен и есть пароль — регистрируем на сервере
+    if (serverOnline && regPass.length >= 4) {
+      try {
+        const user = await API.register(name, regPass)
+        const p = { ...defaultProfile(name), ...user, name: user.username || name, isAdmin: user.isAdmin }
+        setProfile(p); setRegPass(''); return
+      } catch (e) { setError(e.message); return }
+    }
+
+    // Fallback — localStorage
     const p = defaultProfile(name)
-    // Админ-ники получают isAdmin автоматически
     const adminNames = ['admin', 'Admin', 'igor', 'Igor', 'Александр']
     if (adminNames.includes(name)) p.isAdmin = true
     setProfile(p)
   }
 
+  async function doLogin() {
+    if (!regName.trim() || !regPass) return
+    setError('')
+    try {
+      const user = await API.login(regName.trim(), regPass)
+      const p = { ...defaultProfile(user.username), ...user, name: user.username, isAdmin: user.isAdmin }
+      setProfile(p); setRegPass('')
+    } catch (e) { setError(e.message) }
+  }
+
   function logout() {
+    API.logout()
     localStorage.removeItem(STORAGE_KEY)
     setProfile(null)
   }
@@ -161,31 +185,49 @@ export default function Profile() {
         }
         return p
       })
+      // Отправляем на сервер (fire and forget)
+      if (serverOnline && API.isLoggedIn()) {
+        API.recordGame({ won, score, difficulty: vsHardAi ? 100 : 50, closedGolden, isComeback }).catch(() => {})
+      }
     }
     return () => { delete window.stolbikiRecordGame }
-  }, [])
+  }, [serverOnline])
 
   // Не залогинен
   if (!profile) {
+    const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
+      background: '#1e1e28', color: '#e8e6f0', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
     return (
       <div>
         <div className="dash-card" style={{ maxWidth: 400, margin: '40px auto', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🎮</div>
-          <h3>Добро пожаловать в Стойки</h3>
-          <p style={{ color: '#a09cb0', fontSize: 13, marginBottom: 16 }}>
-            Создайте профиль чтобы отслеживать статистику, получать ачивки и соревноваться с друзьями
-          </p>
-          <input
-            type="text" placeholder="Ваш никнейм" value={regName}
-            onChange={e => setRegName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && register()}
-            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
-              background: '#1e1e28', color: '#e8e6f0', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-          />
-          <button className="btn primary" onClick={register} style={{ width: '100%' }}>Создать профиль</button>
-          <p style={{ color: '#6b6880', fontSize: 10, marginTop: 12 }}>
-            Данные сохраняются локально. Серверная версия — скоро.
-          </p>
+          <h3>{loginMode ? 'Вход' : 'Регистрация'}</h3>
+          {serverOnline && (
+            <div style={{ fontSize: 10, color: '#3dd68c', marginBottom: 10 }}>● Сервер онлайн</div>
+          )}
+          {error && <div style={{ fontSize: 12, color: '#ff6066', marginBottom: 10 }}>{error}</div>}
+          <input type="text" placeholder="Никнейм" value={regName}
+            onChange={e => setRegName(e.target.value)} style={inputStyle}
+            onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
+          {serverOnline && (
+            <input type="password" placeholder="Пароль (мин 4 символа)" value={regPass}
+              onChange={e => setRegPass(e.target.value)} style={inputStyle}
+              onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
+          )}
+          <button className="btn primary" onClick={loginMode ? doLogin : register} style={{ width: '100%' }}>
+            {loginMode ? 'Войти' : 'Создать профиль'}
+          </button>
+          {serverOnline && (
+            <button className="btn" onClick={() => { setLoginMode(!loginMode); setError('') }}
+              style={{ width: '100%', marginTop: 8, fontSize: 12 }}>
+              {loginMode ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти'}
+            </button>
+          )}
+          {!serverOnline && (
+            <p style={{ color: '#6b6880', fontSize: 10, marginTop: 12 }}>
+              Оффлайн-режим: данные сохраняются локально
+            </p>
+          )}
         </div>
       </div>
     )
