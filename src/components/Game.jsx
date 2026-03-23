@@ -78,7 +78,7 @@ export default function Game() {
     setTimeout(() => {
       const action = mctsSearch(state, difficulty)
       const elapsed = Date.now() - startTime
-      const minDelay = 1800
+      const minDelay = 1000
       const remaining = Math.max(0, minDelay - elapsed)
 
       setTimeout(() => {
@@ -97,12 +97,12 @@ export default function Game() {
               setResult(ns.winner)
               setInfo('Партия окончена')
               setLocked(false)
-            }, 1200)
+            }, 800)
             return
           }
 
           if (ns.currentPlayer !== humanPlayer) {
-            setTimeout(() => runAi(ns), 1000)
+            setTimeout(() => runAi(ns), 600)
             return
           }
 
@@ -116,8 +116,8 @@ export default function Game() {
               setPhase('transfer')
               setInfo('Ваш ход. Выберите стойку для переноса или пропустите.')
             }
-          }, 900)
-        }, 400) // пауза между логом и применением хода
+          }, 500)
+        }, 200) // пауза между логом и применением хода
       }, remaining)
     }, 100)
   }, [difficulty, humanPlayer, addLog])
@@ -148,7 +148,7 @@ export default function Game() {
     if (state.currentPlayer !== hp) {
       setInfo('AI делает первый ход')
       setLocked(true)
-      setTimeout(() => runAi(state), 800)
+      setTimeout(() => runAi(state), 500)
     } else {
       setInfo('Первый ход: поставьте 1 фишку на любую стойку.')
     }
@@ -224,13 +224,13 @@ export default function Game() {
         setResult(ns.winner)
         setInfo('Партия окончена')
         setLocked(false)
-      }, 1200)
+      }, 800)
       return
     }
 
     // Пауза чтобы игрок увидел свой ход на доске, потом AI
     setPhase('ai')
-    setTimeout(() => runAi(ns), 800)
+    setTimeout(() => runAi(ns), 500)
   }, [gs, transfer, placement, humanPlayer, addLog, runAi, locked])
 
   const skipTransfer = useCallback(() => {
