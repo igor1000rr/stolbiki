@@ -66,18 +66,41 @@ function RatingBadge({ rating }) {
   )
 }
 
-function AchievementCard({ ach, unlocked }) {
+function achProgress(id, p) {
+  const map = {
+    first_win: [p.wins, 1], streak_3: [p.bestStreak, 3], streak_5: [p.bestStreak, 5],
+    streak_10: [p.bestStreak, 10], golden_1: [p.goldenClosed, 1], golden_10: [p.goldenClosed, 10],
+    comeback: [p.comebacks, 1], games_10: [p.gamesPlayed, 10], games_50: [p.gamesPlayed, 50],
+    games_100: [p.gamesPlayed, 100], rating_1200: [p.rating, 1200], rating_1500: [p.rating, 1500],
+    beat_hard: [p.beatHardAi ? 1 : 0, 1], perfect: [p.perfectWins || 0, 1],
+  }
+  return map[id] || [0, 1]
+}
+
+function AchievementCard({ ach, unlocked, profile }) {
+  const [cur, target] = profile ? achProgress(ach.id, profile) : [0, 1]
+  const pct = Math.min(cur / target, 1)
   return (
     <div style={{
       padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
       background: unlocked ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
       border: `1px solid ${unlocked ? 'rgba(61,214,140,0.2)' : '#2a2a38'}`,
-      opacity: unlocked ? 1 : 0.5,
+      opacity: unlocked ? 1 : 0.6,
     }}>
       <div style={{ fontSize: 24, filter: unlocked ? 'none' : 'grayscale(1)' }}>{ach.icon}</div>
-      <div>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? '#e8e6f0' : '#6b6880' }}>{ach.name}</div>
         <div style={{ fontSize: 10, color: '#6b6880' }}>{ach.desc}</div>
+        {!unlocked && (
+          <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#2a2a38', overflow: 'hidden' }}>
+              <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2,
+                background: pct > 0.7 ? 'linear-gradient(90deg, #3dd68c, #2ecc71)' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
+                transition: 'width 0.3s' }} />
+            </div>
+            <span style={{ fontSize: 9, color: '#555', minWidth: 30 }}>{Math.min(cur, target)}/{target}</span>
+          </div>
+        )}
       </div>
       {unlocked && <div style={{ marginLeft: 'auto', color: '#3dd68c', fontSize: 14 }}>✓</div>}
     </div>
@@ -97,9 +120,61 @@ export default function Profile() {
   const [error, setError] = useState('')
   const [serverOnline, setServerOnline] = useState(false)
   const [searchResults, setSearchResults] = useState([])
+  const [friendsList, setFriendsList] = useState([])
+  const [pendingFriends, setPendingFriends] = useState([])
+  const [serverLeaderboard, setServerLeaderboard] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
+
+  // Загружаем данные с сервера
+  useEffect(() => {
+    if (!serverOnline || !API.isLoggedIn()) return
+    // Профиль
+    API.getProfile().then(p => {
+      const merged = { ...profile, ...p, name: p.username || profile?.name }
+      setProfile(merged)
+      saveLocal(merged)
+    }).catch(() => {})
+    // Друзья
+    loadFriends()
+    // Лидерборд
+    API.getLeaderboard(30).then(setServerLeaderboard).catch(() => {})
+  }, [serverOnline]) // eslint-disable-line
+
+  async function loadFriends() {
+    if (!serverOnline || !API.isLoggedIn()) return
+    try {
+      const data = await API.getFriends()
+      setFriendsList(data.friends || [])
+      setPendingFriends(data.pending || [])
+    } catch {}
+  }
+
+  async function doSearchFriends() {
+    if (!friendSearch.trim() || friendSearch.length < 2) return
+    if (!serverOnline) return
+    try {
+      setSearchResults(await API.searchUsers(friendSearch))
+    } catch { setSearchResults([]) }
+  }
+
+  async function doAddFriend(username) {
+    if (!serverOnline) return
+    try {
+      await API.sendFriendRequest(username)
+      setSearchResults(prev => prev.filter(u => u.username !== username))
+    } catch (e) { setError(e.message) }
+  }
+
+  async function doAcceptFriend(userId) {
+    if (!serverOnline) return
+    try {
+      await API.acceptFriend(userId)
+      loadFriends()
+    } catch {}
+  }
 
   useEffect(() => {
     if (profile) saveProfile(profile)
@@ -236,8 +311,10 @@ export default function Profile() {
   const winRate = profile.gamesPlayed > 0 ? (profile.wins / profile.gamesPlayed * 100).toFixed(1) : '—'
   const unlockedAch = ALL_ACHIEVEMENTS.filter(a => profile.achievements.includes(a.id))
   const lockedAch = ALL_ACHIEVEMENTS.filter(a => !profile.achievements.includes(a.id))
-  const leaderboard = [...FAKE_LEADERBOARD, { name: profile.name, rating: profile.rating, wins: profile.wins, games: profile.gamesPlayed, isMe: true }]
-    .sort((a, b) => b.rating - a.rating)
+  const leaderboard = serverLeaderboard
+    ? serverLeaderboard.map(u => ({ ...u, name: u.username, games: u.games, isMe: u.username === profile.name }))
+    : [...FAKE_LEADERBOARD, { name: profile.name, rating: profile.rating, wins: profile.wins, games: profile.gamesPlayed, isMe: true }]
+        .sort((a, b) => b.rating - a.rating)
 
   const tabs = [
     { id: 'profile', label: '👤 Профиль' },
@@ -397,7 +474,7 @@ export default function Profile() {
             <div className="dash-card" style={{ marginBottom: 16 }}>
               <h3 style={{ color: '#3dd68c' }}>Разблокированные</h3>
               <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-                {unlockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked />)}
+                {unlockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked profile={profile} />)}
               </div>
             </div>
           )}
@@ -405,7 +482,7 @@ export default function Profile() {
           <div className="dash-card">
             <h3>Заблокированные</h3>
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-              {lockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked={false} />)}
+              {lockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked={false} profile={profile} />)}
             </div>
           </div>
         </div>
@@ -426,7 +503,7 @@ export default function Profile() {
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                   </td>
                   <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? '#6db4ff' : '#e8e6f0' }}>
-                    {p.name} {p.isMe && <span style={{ fontSize: 9, color: '#6b6880' }}>(вы)</span>}
+                    {p.name || p.username} {p.isMe && <span style={{ fontSize: 9, color: '#6b6880' }}>(вы)</span>}
                   </td>
                   <td style={{ fontWeight: 600 }}>{p.rating}</td>
                   <td>{p.wins}</td>
@@ -437,7 +514,7 @@ export default function Profile() {
             </tbody>
           </table>
           <p style={{ fontSize: 10, color: '#6b6880', marginTop: 8, textAlign: 'center' }}>
-            Серверный лидерборд — скоро. Пока демо-данные.
+            {serverOnline ? `${leaderboard.length} игроков` : 'Оффлайн — демо-данные'}
           </p>
         </div>
       )}
@@ -450,30 +527,72 @@ export default function Profile() {
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <input type="text" placeholder="Введите никнейм..." value={friendSearch}
                 onChange={e => setFriendSearch(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && doSearchFriends()}
                 style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #36364a',
                   background: '#1e1e28', color: '#e8e6f0', fontSize: 13 }} />
-              <button className="btn primary" style={{ padding: '8px 16px' }}>Найти</button>
+              <button className="btn primary" style={{ padding: '8px 16px' }} onClick={doSearchFriends}>Найти</button>
             </div>
-            <p style={{ fontSize: 10, color: '#6b6880', marginTop: 8 }}>
-              Поиск друзей будет доступен после подключения сервера.
-            </p>
+            {!serverOnline && <p style={{ fontSize: 10, color: '#6b6880', marginTop: 8 }}>Поиск доступен при подключённом сервере</p>}
+            {searchResults.length > 0 && (
+              <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
+                {searchResults.map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #6db4ff, #9b59b6)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                      {u.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: '#e8e6f0', fontWeight: 500 }}>{u.username}</div>
+                      <div style={{ fontSize: 10, color: '#6b6880' }}>Рейтинг: {u.rating}</div>
+                    </div>
+                    <button className="btn" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
+                      onClick={() => doAddFriend(u.username)}>+ Добавить</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Входящие запросы */}
+          {pendingFriends.length > 0 && (
+            <div className="dash-card" style={{ marginBottom: 16 }}>
+              <h3>Запросы в друзья ({pendingFriends.length})</h3>
+              <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+                {pendingFriends.map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    background: 'rgba(61,214,140,0.04)', borderRadius: 8, border: '1px solid rgba(61,214,140,0.1)' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#2a2a38',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                      {u.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ flex: 1, fontSize: 13, color: '#e8e6f0' }}>{u.username}</span>
+                    <button className="btn primary" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
+                      onClick={() => doAcceptFriend(u.id)}>Принять</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="dash-card">
-            <h3>Мои друзья ({profile.friends.length})</h3>
-            {profile.friends.length === 0 ? (
+            <h3>Мои друзья ({friendsList.length})</h3>
+            {friendsList.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 24, color: '#6b6880' }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
                 <div style={{ fontSize: 13 }}>Пока нет друзей. Найдите игроков по нику!</div>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-                {profile.friends.map((f, i) => (
+                {friendsList.map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#2a2a38', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-                      {f.charAt(0).toUpperCase()}
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #6db4ff, #9b59b6)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                      {f.username.charAt(0).toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 13, color: '#e8e6f0' }}>{f}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: '#e8e6f0' }}>{f.username}</div>
+                      <div style={{ fontSize: 10, color: '#6b6880' }}>⭐ {f.rating}</div>
+                    </div>
                   </div>
                 ))}
               </div>

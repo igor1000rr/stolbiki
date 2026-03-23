@@ -92,17 +92,14 @@ export function cancelRecording() {
 // ─── Хранение ───
 
 function saveGame(game) {
+  // localStorage
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const games = raw ? JSON.parse(raw) : []
     games.push(game)
-    
-    // Обрезаем до MAX_GAMES (старые удаляются)
     while (games.length > MAX_GAMES) games.shift()
-    
     localStorage.setItem(STORAGE_KEY, JSON.stringify(games))
   } catch (e) {
-    // localStorage полный — удаляем половину
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       const games = raw ? JSON.parse(raw) : []
@@ -111,6 +108,27 @@ function saveGame(game) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
     } catch {}
   }
+
+  // Сервер (fire and forget)
+  syncToServer(game)
+}
+
+async function syncToServer(game) {
+  try {
+    const token = localStorage.getItem('stolbiki_token')
+    if (!token) return
+    await fetch(('/api/training'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        gameData: { moves: game.moves, finalScore: game.finalScore },
+        winner: game.winner,
+        totalMoves: game.totalMoves,
+        mode: game.mode,
+        difficulty: game.difficulty,
+      }),
+    })
+  } catch {}
 }
 
 /**

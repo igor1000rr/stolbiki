@@ -11,14 +11,17 @@ import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
 
+// Haptic feedback
+const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms) } catch {} }
+
 // Звук через ref чтобы не пересоздавать
 let _soundOn = true
-const sp = () => _soundOn && _sp()
-const st = () => _soundOn && _st()
-const sc = () => _soundOn && _sc()
-const sw = () => _soundOn && _sw()
-const sl = () => _soundOn && _sl()
-const ss = () => _soundOn && _ss()
+const sp = () => { _soundOn && _sp(); haptic(5) }
+const st = () => { _soundOn && _st(); haptic(8) }
+const sc = () => { _soundOn && _sc(); haptic([15, 30, 15]) }
+const sw = () => { _soundOn && _sw(); haptic([10, 20, 10, 20, 30]) }
+const sl = () => { _soundOn && _sl(); haptic(20) }
+const ss = () => { _soundOn && _ss(); haptic(12) }
 
 function describeAction(a, p) {
   const name = p === 0 ? 'Синие' : 'Красные'

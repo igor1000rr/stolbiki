@@ -87,6 +87,17 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             <span className="stand-label">{isGolden ? '★' : i}</span>
             {isClosed && <span className="stand-owner">П{state.closed[i] + 1}</span>}
 
+            {/* Счётчик фишек */}
+            {!isClosed && chips.length > 0 && (
+              <div style={{
+                position: 'absolute', bottom: -18, fontSize: 9, fontWeight: 600,
+                color: chips.length >= 9 ? '#ff6b6b' : chips.length >= 7 ? '#ffc145' : '#555',
+                opacity: chips.length >= 7 ? 1 : 0.5,
+              }}>
+                {chips.length}/{state.maxChips || 11}
+              </div>
+            )}
+
             {/* Индикатор заполненности */}
             {!isClosed && chips.length > 0 && (
               <div style={{
@@ -94,7 +105,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
                 background: '#2a2a38', borderRadius: 1, overflow: 'hidden', opacity: 0.6,
               }}>
                 <div style={{
-                  width: `${chips.length / 11 * 100}%`, height: '100%',
+                  width: `${chips.length / (state.maxChips || 11) * 100}%`, height: '100%',
                   background: chips.length >= 9 ? '#ff6b6b' : chips.length >= 7 ? '#ffc145' : '#4a9eff',
                   borderRadius: 1, transition: 'width 0.3s',
                 }} />

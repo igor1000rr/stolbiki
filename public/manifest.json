@@ -1,0 +1,13 @@
+{
+  "name": "Стойки",
+  "short_name": "Стойки",
+  "description": "Стратегическая настольная игра для двух игроков",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0c12",
+  "theme_color": "#0c0c12",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
