@@ -1168,6 +1168,10 @@ body::before {
   .transport { gap: 6px; }
   .transport-btn { width: 40px; height: 40px; font-size: 16px; }
 
+  /* Nav sticky на мобилке */
+  .nav { position: sticky; top: 0; z-index: 100; margin-left: -8px; margin-right: -8px;
+    border-radius: 0 0 12px 12px; padding: 4px; }
+
   /* Profile tabs мобилка */
   .profile-tabs { flex-wrap: wrap !important; }
   .profile-tabs button { flex: 0 0 calc(50% - 3px) !important; font-size: 11px !important; padding: 8px 4px !important; }
