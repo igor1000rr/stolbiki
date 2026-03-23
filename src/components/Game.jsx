@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
@@ -13,13 +13,9 @@ function describeAction(a, p) {
   const name = p === 0 ? 'Синие' : 'Красные'
   if (a.swap) return `${name}: Swap — смена цветов`
   const parts = []
-  if (a.transfer) {
-    const [gc] = [0] // placeholder
-    parts.push(`перенос ${SL(a.transfer[0])} → ${SL(a.transfer[1])}`)
-  }
+  if (a.transfer) parts.push(`перенос ${SL(a.transfer[0])} → ${SL(a.transfer[1])}`)
   if (a.placement && Object.keys(a.placement).length) {
-    const chips = Object.entries(a.placement).map(([k, v]) => `${v} на ${SL(+k)}`).join(', ')
-    parts.push(`установка: ${chips}`)
+    parts.push(`установка: ${Object.entries(a.placement).map(([k, v]) => `${v} на ${SL(+k)}`).join(', ')}`)
   }
   if (!parts.length) parts.push('пас')
   return `${name}: ${parts.join(' + ')}`
@@ -27,13 +23,11 @@ function describeAction(a, p) {
 
 export default function Game() {
   const [gs, setGs] = useState(() => new GameState())
-  // Фазы: 'place' (по умолчанию), 'transfer-select', 'transfer-dst', 'ai', 'done'
   const [phase, setPhase] = useState('place')
   const [selected, setSelected] = useState(null)
   const [transfer, setTransfer] = useState(null)
   const [placement, setPlacement] = useState({})
   const [placeCount, setPlaceCount] = useState(1)
-  const placeCountRef = useRef(1)
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(50)
   const [log, setLog] = useState([])
@@ -58,12 +52,9 @@ export default function Game() {
     prevScore.current = [s0, s1]
   }, [gs])
 
-  const addLog = useCallback((text, player) => {
+  function addLog(text, player) {
     setLog(prev => [{ text, player, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...prev])
-  }, [])
-
-  const myColor = humanPlayer === 0 ? 'синие' : 'красные'
-  const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
+  }
 
   // ─── AI ход ───
   const runAi = useCallback((state) => {
@@ -72,21 +63,17 @@ export default function Game() {
     setAiThinking(true)
     setLocked(true)
     setInfo('AI думает')
-
     const startTime = Date.now()
     setTimeout(() => {
       const action = mctsSearch(state, difficulty)
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
-
       setTimeout(() => {
         setAiThinking(false)
         addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
-
         setTimeout(() => {
           const ns = applyAction(state, action)
           setGs(ns)
           aiRunning.current = false
-
           if (ns.gameOver) {
             setTimeout(() => { setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false) }, 800)
             return
@@ -100,15 +87,15 @@ export default function Game() {
             setPhase('place')
             setTransfer(null)
             setPlacement({})
-            setInfo(ns.isFirstTurn() ? 'Поставьте 1 фишку на любую стойку' : 'Ваш ход — расставьте фишки')
+            setInfo(ns.isFirstTurn() ? 'Поставьте 1 фишку' : 'Ваш ход — кликните на стойку')
           }, 500)
         }, 300)
       }, remaining)
     }, 50)
-  }, [difficulty, humanPlayer, addLog])
+  }, [difficulty, humanPlayer])
 
   // ─── Новая игра ───
-  const newGame = useCallback((side, diff) => {
+  function newGame(side, diff) {
     const hp = side ?? humanPlayer
     const d = diff ?? difficulty
     const state = new GameState()
@@ -125,27 +112,25 @@ export default function Game() {
     } else {
       setInfo('Первый ход — поставьте 1 фишку на любую стойку')
     }
-  }, [humanPlayer, difficulty, runAi])
+  }
 
   useEffect(() => { newGame(0, 50) }, []) // eslint-disable-line
 
-  // ─── Клик по стойке ───
-  const onStandClick = useCallback((i) => {
+  // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
+  function onStandClick(i) {
     if (gs.gameOver || gs.currentPlayer !== humanPlayer || aiRunning.current || locked) return
     if (i in gs.closed) return
 
-    // Фаза переноса: выбор источника
     if (phase === 'transfer-select') {
       const [, ts] = gs.topGroup(i)
       if (ts > 0) {
         setSelected(i)
         setPhase('transfer-dst')
-        setInfo(`Выберите куда перенести фишки со стойки ${SL(i)}`)
+        setInfo(`Куда перенести фишки со стойки ${SL(i)}?`)
       }
       return
     }
 
-    // Фаза переноса: выбор цели
     if (phase === 'transfer-dst') {
       if (i === selected) { setSelected(null); setPhase('transfer-select'); setInfo('Выберите стойку для переноса'); return }
       if (getValidTransfers(gs).some(([s, d]) => s === selected && d === i)) {
@@ -153,57 +138,62 @@ export default function Game() {
         setSelected(null)
         setPhase('place')
         addLog(`Перенос: ${SL(selected)} → ${SL(i)}`, humanPlayer)
-        setInfo('Перенос выбран. Теперь расставьте фишки')
+        setInfo('Перенос выбран. Расставьте фишки')
       } else {
-        setInfo(`Нельзя перенести на стойку ${SL(i)}`)
+        setInfo(`Нельзя перенести сюда`)
       }
       return
     }
 
-    // Фаза установки
     if (phase === 'place') {
       const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
       const currentTotal = Object.values(placement).reduce((a, b) => a + b, 0)
       const numStands = Object.keys(placement).length
-      const pc = placeCountRef.current  // Всегда актуальный
+      const canClose = gs.canCloseByPlacement()
 
       let space = gs.standSpace(i)
-      if (!gs.canCloseByPlacement()) space = Math.max(0, space - 1)
-
+      if (!canClose) space = Math.max(0, space - 1)
       if (space <= 0) { setInfo(`Стойка ${SL(i)} заполнена`); return }
 
+      // Уже есть фишки на этой стойке
       if (i in placement) {
         const current = placement[i]
-        const canAddMore = currentTotal < maxTotal && current < space
-        if (canAddMore) {
-          const add = Math.min(pc, space - current, maxTotal - currentTotal)
-          if (add > 0) {
-            const newVal = current + add
-            const newTotal = currentTotal + add
-            setPlacement(prev => ({ ...prev, [i]: newVal }))
-            setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
-            return
-          }
-        }
-        // Не можем добавить — убираем
-        setPlacement(prev => { const c = { ...prev }; delete c[i]; return c })
-        const newTotal = currentTotal - placement[i]
-        setInfo(`Убрано. ${newTotal}/${maxTotal} фишек`)
-      } else {
-        if (numStands >= MAX_PLACE_STANDS) { setInfo('Макс 2 стойки. Кликните занятую чтобы убрать'); return }
-        if (currentTotal >= maxTotal) { setInfo('Все фишки расставлены — подтвердите'); return }
-        const add = Math.min(pc, space, maxTotal - currentTotal)
-        if (add > 0) {
-          setPlacement(prev => ({ ...prev, [i]: add }))
+        const remaining = maxTotal - currentTotal
+        const spaceLeft = space - current
+
+        if (remaining > 0 && spaceLeft > 0) {
+          // Добавляем ещё
+          const add = Math.min(placeCount, spaceLeft, remaining)
+          const newPlacement = { ...placement, [i]: current + add }
+          setPlacement(newPlacement)
           const newTotal = currentTotal + add
-          setInfo(`+${add} на ${SL(i)}. ${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
+          setInfo(`+${add}. Итого: ${newTotal}/${maxTotal}${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
+        } else {
+          // Убираем
+          const newPlacement = { ...placement }
+          delete newPlacement[i]
+          setPlacement(newPlacement)
+          setInfo(`Убрано со стойки ${SL(i)}`)
         }
+        return
+      }
+
+      // Новая стойка
+      if (numStands >= MAX_PLACE_STANDS) { setInfo('Макс 2 стойки. Кликните занятую чтобы убрать'); return }
+      if (currentTotal >= maxTotal) { setInfo('Все фишки расставлены — подтвердите'); return }
+
+      const add = Math.min(placeCount, space, maxTotal - currentTotal)
+      if (add > 0) {
+        const newPlacement = { ...placement, [i]: add }
+        setPlacement(newPlacement)
+        const newTotal = currentTotal + add
+        setInfo(`+${add} на ${SL(i)}. Итого: ${newTotal}/${maxTotal}${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
       }
     }
-  }, [gs, phase, selected, placement, humanPlayer, locked, addLog])
+  }
 
   // ─── Подтверждение ───
-  const confirmTurn = useCallback(() => {
+  function confirmTurn() {
     if (gs.currentPlayer !== humanPlayer || gs.gameOver || locked) return
     const action = { transfer, placement }
     addLog(describeAction(action, humanPlayer), humanPlayer)
@@ -216,29 +206,30 @@ export default function Game() {
     }
     setPhase('ai')
     setTimeout(() => runAi(ns), 500)
-  }, [gs, transfer, placement, humanPlayer, addLog, runAi, locked])
+  }
 
-  // ─── Перенос ───
-  const startTransfer = useCallback(() => {
+  function startTransfer() {
     setPhase('transfer-select')
     setInfo('Выберите стойку откуда перенести')
-  }, [])
+  }
 
-  const cancelTransfer = useCallback(() => {
+  function cancelTransfer() {
     setSelected(null); setTransfer(null); setPhase('place')
-    setInfo('Перенос отменён. Расставьте фишки')
-  }, [])
+    setInfo('Перенос отменён')
+  }
 
-  const requestHint = useCallback(() => {
+  function requestHint() {
     if (gs.currentPlayer !== humanPlayer || gs.gameOver || locked) return
     setHintLoading(true)
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
-  }, [gs, humanPlayer, locked])
+  }
 
+  // ─── Computed ───
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
   const isMyTurn = gs.currentPlayer === humanPlayer && !gs.gameOver && !aiRunning.current && !locked
+  const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
   return (
@@ -279,12 +270,15 @@ export default function Game() {
 
       <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} />
 
-      {/* Кнопки выбора количества фишек */}
+      {/* Выбор фишек — НЕ на первом ходу */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
           <span>За клик:</span>
           {[1, 2, 3].map(n => (
-            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`} onClick={() => { setPlaceCount(n); placeCountRef.current = n; setInfo(`Выбрано: ${n} фишек за клик`) }}>{n}</button>
+            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`}
+              onClick={() => setPlaceCount(n)}>
+              {n}
+            </button>
           ))}
           <span className="place-status">
             {totalPlaced}/{maxTotal} фишек · {Object.keys(placement).length}/{MAX_PLACE_STANDS} стоек
@@ -293,9 +287,7 @@ export default function Game() {
         </div>
       )}
 
-      {/* Кнопки действий */}
       <div className="actions">
-        {/* Перенос — только если есть куда и мы в фазе place */}
         {isMyTurn && phase === 'place' && hasTransfers && !transfer && (
           <button className="btn" onClick={startTransfer}>↗ Сделать перенос</button>
         )}
@@ -303,30 +295,24 @@ export default function Game() {
           <button className="btn" onClick={cancelTransfer}>✕ Отменить перенос</button>
         )}
         {isMyTurn && transfer && phase === 'place' && (
-          <span style={{ fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-            ✓ Перенос: {SL(transfer[0])} → {SL(transfer[1])}
+          <span style={{ fontSize: 12, color: '#3dd68c', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+            ✓ {SL(transfer[0])} → {SL(transfer[1])}
           </span>
         )}
-
-        {/* Сброс и подтверждение */}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
           <button className="btn" onClick={() => setPlacement({})}>Сброс</button>
         )}
         {isMyTurn && phase === 'place' && (
-          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn}>Подтвердить ход</button>
+          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn}>Подтвердить</button>
         )}
-
-        {/* Подсказка */}
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: '#ffbe30', color: '#ffbe30' }}>
             {hintLoading ? '...' : '💡'}
           </button>
         )}
-
         <button className="btn" onClick={() => newGame()}>Новая игра</button>
       </div>
 
-      {/* Подсказка */}
       {hint && hintMode && (
         <div className="hint-panel">
           <div className="hint-title">💡 Подсказка</div>
@@ -334,18 +320,16 @@ export default function Game() {
         </div>
       )}
 
-      {/* Результат */}
       {result !== null && (
         <div className="game-result" style={{ borderLeft: `3px solid ${result === humanPlayer ? '#3dd68c' : '#ff6066'}` }}>
           <span>{result === humanPlayer ? '🎉 Победа!' : `AI побеждает • ${gs.countClosed(0)}:${gs.countClosed(1)}`}</span>
         </div>
       )}
 
-      {/* Лог */}
       <div className="game-log" ref={logRef}>
         {log.map((e, i) => (
           <div key={i}>
-            <span style={{ color: 'var(--ink3)', fontSize: 10, marginRight: 6 }}>{e.time}</span>
+            <span style={{ color: '#6e6a82', fontSize: 10, marginRight: 6 }}>{e.time}</span>
             <span className={e.player >= 0 ? `log-p${e.player}` : ''}>{e.text}</span>
           </div>
         ))}

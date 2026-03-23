@@ -135,6 +135,9 @@ function applyPlacement(state, placement) {
     if (total >= MAX_CHIPS && canClose) {
       if (total > MAX_CHIPS) state.stands[i] = state.stands[i].slice(total - MAX_CHIPS)
       state.closed[i] = player
+    } else if (total > MAX_CHIPS) {
+      // Обрезаем до MAX_CHIPS даже без закрытия (предотвращает overflow)
+      state.stands[i] = state.stands[i].slice(total - MAX_CHIPS)
     }
   }
 }
@@ -182,6 +185,18 @@ export function applyAction(state, action) {
   }
   if (action.transfer) applyTransfer(ns, action.transfer[0], action.transfer[1])
   if (action.placement) applyPlacement(ns, action.placement)
+
+  // Авто-закрытие: если стойка ≥11 фишек и canClose — закрываем
+  if (ns.canCloseByPlacement()) {
+    for (const i of ns.openStands()) {
+      if (ns.stands[i].length >= MAX_CHIPS) {
+        if (ns.stands[i].length > MAX_CHIPS) ns.stands[i] = ns.stands[i].slice(ns.stands[i].length - MAX_CHIPS)
+        const [topColor] = ns.topGroup(i)
+        ns.closed[i] = topColor >= 0 ? topColor : ns.currentPlayer
+      }
+    }
+  }
+
   if (ns.turn >= 1) ns.swapAvailable = false
   ns.currentPlayer = 1 - ns.currentPlayer
   ns.turn++

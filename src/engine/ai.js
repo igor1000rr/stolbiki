@@ -60,6 +60,11 @@ export function sampleRandomAction(state) {
     if (available.length) placement[available[0][0]] = 1
   }
 
+  // Форсируем закрытие если ≤2 стойки и есть куда ставить
+  if (canClose && !Object.keys(placement).length && available.length) {
+    placement[available[0][0]] = available[0][1]
+  }
+
   return { transfer, placement }
 }
 

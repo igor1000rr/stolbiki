@@ -117,6 +117,10 @@ function fastRandomAction(state) {
     if (available.length) placement[available[0][0]] = 1
   }
 
+  if (canClose && !Object.keys(placement).length && available.length) {
+    placement[available[0][0]] = available[0][1]
+  }
+
   return { transfer, placement }
 }
 
@@ -158,6 +162,8 @@ function applyCustomAction(state, action) {
       if (total >= ns.maxChips && canClose) {
         if (total > ns.maxChips) ns.stands[i] = ns.stands[i].slice(total - ns.maxChips)
         ns.closed[i] = player
+      } else if (total > ns.maxChips) {
+        ns.stands[i] = ns.stands[i].slice(total - ns.maxChips)
       }
     }
   }
