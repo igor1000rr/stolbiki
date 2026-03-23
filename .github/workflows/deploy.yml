@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
 
+# Отменяем предыдущие билды — собирается только последний
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,14 +19,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # Без cache — всегда чистый билд
 
       - name: Build Frontend
         run: |
-          npm install
+          npm ci
           VITE_API_URL=/api npm run build
 
-      - name: Upload Frontend to VPS
+      - name: Upload Frontend
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -30,8 +35,9 @@ jobs:
           source: "dist/*"
           target: /opt/stolbiki-web
           strip_components: 1
+          rm: true
 
-      - name: Upload Server to VPS
+      - name: Upload Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -41,7 +47,7 @@ jobs:
           target: /opt/stolbiki-api
           strip_components: 1
 
-      - name: Restart Services
+      - name: Install & Restart
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -50,9 +56,9 @@ jobs:
           script: |
             set -e
             cd /opt/stolbiki-api
-            npm install --production
+            npm install --omit=dev
             pm2 restart ecosystem.config.cjs 2>/dev/null || \
               pm2 start ecosystem.config.cjs
             pm2 save
             nginx -t && systemctl reload nginx
-            echo "✅ $(date): фронт + бэк задеплоены"
+            echo "✅ $(date): deploy done"
