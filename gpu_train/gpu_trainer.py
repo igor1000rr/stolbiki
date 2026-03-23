@@ -121,22 +121,19 @@ def neural_choose_action(state, net, num_candidates=12, temperature=0.1):
 
 # ═══ Self-Play: нейросеть играет обе стороны ═══
 
-def play_one_game_neural(net, num_candidates=12, explore_turns=20, temperature=0.3):
-    """Партия где нейросеть выбирает ходы → (features, values)"""
+def play_one_game_neural(net, num_candidates=6, explore_turns=20, temperature=0.3):
+    """Партия где нейросеть выбирает ходы"""
     trajectory = []
     state = GameState()
 
     while not state.game_over:
         features = encode_state(state)
         player = state.current_player
-
-        # Exploration в начале, exploitation потом
         temp = temperature if state.turn < explore_turns else 0.05
         action = neural_choose_action(state, net, num_candidates, temp)
-
         trajectory.append((features, player))
         state = apply_action(state, action)
-        if state.turn > 200:
+        if state.turn > 100:
             state.game_over = True
             state.winner = -1
             break
@@ -153,12 +150,13 @@ def play_one_game_neural(net, num_candidates=12, explore_turns=20, temperature=0
     return samples
 
 
-def play_batch_neural(net, num_games, num_candidates=12):
-    """N партий с нейросетью"""
+def play_batch_neural(net, num_games, num_candidates=6):
     net.eval()
     all_samples = []
-    for _ in range(num_games):
+    for g in range(num_games):
         all_samples.extend(play_one_game_neural(net, num_candidates))
+        if (g + 1) % 5 == 0:
+            print(f'    {g+1}/{num_games}', end='\r')
     return all_samples
 
 
