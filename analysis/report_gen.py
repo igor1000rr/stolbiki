@@ -42,7 +42,7 @@ body = ParagraphStyle('B', fontName='DejaVu', fontSize=10, leading=15, alignment
 note_s = ParagraphStyle('N', fontName='DejaVu-Oblique', fontSize=9, leading=13, textColor=GRAY, spaceAfter=2*MM)
 
 
-def make_base_charts(rs, mm, sp_history, n=10000):
+def make_base_charts(rs, mm, sp_history, n=20000):
     """Базовые графики из данных."""
     # Винрейт
     fig, ax = plt.subplots(figsize=(5, 3.5))
@@ -102,7 +102,7 @@ def tbl_style():
         ('TOPPADDING',(0,0),(-1,-1),4), ('BOTTOMPADDING',(0,0),(-1,-1),4)])
 
 
-def build_pdf(rs, mev, mm, sp, vr, st, n=10000):
+def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     output = 'report.pdf'
     doc = SimpleDocTemplate(output, pagesize=A4, leftMargin=2*cm_unit, rightMargin=2*cm_unit, topMargin=2*cm_unit, bottomMargin=2*cm_unit)
     s = []
@@ -353,7 +353,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=10000):
     s.append(Paragraph("8. Методология", h1))
     s.append(Paragraph(
         "Анализ проведён в 7 этапов: "
-        "(1) 10 000 рандомных партий; "
+        "(1) 20 000 рандомных партий; "
         "(2) MCTS (100 сим) vs рандом, 60 партий; "
         "(3) MCTS (120 сим) vs MCTS, 60 партий; "
         "(4) Heatmap и стратегии (5000 рандом + 40 MCTS); "
@@ -361,7 +361,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=10000):
         "(6) Варианты правил (5 кол-в × 5000 + 4 высоты × 5000); "
         "(7) Self-play 65 итераций × 20-35 партий × 70-100 сим; "
         "(8) Энтропия ходов (20 MCTS), value-кривые (60 партий). "
-        "Итого: <b>~120 000 партий</b>. "
+        "Итого: <b>~95 000 партий</b>. "
         "MCTS: flat search с эвристическим prior, рандомные rollouts. "
         "Нейросеть: 3-слойный MLP (64 нейрона), value head. "
         "Все правила верифицированы 19 автоматическими тестами.", body))
