@@ -127,8 +127,8 @@ def play_one_game_fast():
     return samples
 
 
-def play_games_batch(num_games, mcts_sims=60, max_children=14):
-    """Быстрый прогон N партий"""
+def play_games_batch(num_games):
+    """Быстрый прогон N рандомных партий"""
     all_samples = []
     for g in range(num_games):
         all_samples.extend(play_one_game_fast())
@@ -209,14 +209,18 @@ class GPUTrainer:
         print(f'Сеть: {self.hidden} hidden, {self.num_blocks} блоков, {total_params:,} параметров')
 
     def train_on_buffer(self):
-        """GPU обучение на буфере"""
+        """GPU обучение — быстрые батчи на подвыборке"""
         n = len(self.buffer_x)
         if n < self.batch_size:
             return 0.0
 
         self.net.train()
-        X = torch.tensor(np.array(self.buffer_x[-min(n, self.buffer_size):]), dtype=torch.float32).to(DEVICE)
-        Y = torch.tensor(np.array(self.buffer_y[-min(n, self.buffer_size):]), dtype=torch.float32).unsqueeze(1).to(DEVICE)
+
+        # Берём максимум 10K свежих сэмплов для обучения
+        train_size = min(n, 10000)
+        indices = np.random.choice(n, train_size, replace=False)
+        X = torch.tensor(np.array([self.buffer_x[i] for i in indices]), dtype=torch.float32).to(DEVICE)
+        Y = torch.tensor(np.array([self.buffer_y[i] for i in indices]), dtype=torch.float32).unsqueeze(1).to(DEVICE)
 
         total_loss = 0.0
         num_batches = 0
@@ -239,7 +243,7 @@ class GPUTrainer:
 
     def run(self):
         print(f'\n{"═"*60}')
-        print(f'Self-Play: {self.num_iterations} итер × {self.games_per_iter} партий × {self.mcts_sims} сим')
+        print(f'Self-Play: {self.num_iterations} итер × {self.games_per_iter} партий (рандом)')
         print(f'Обучение: GPU {DEVICE}, batch={self.batch_size}, epochs={self.epochs}')
         print(f'{"═"*60}\n')
 
@@ -248,7 +252,7 @@ class GPUTrainer:
             t0 = time.time()
 
             # Self-play (CPU)
-            samples = play_games_batch(self.games_per_iter, self.mcts_sims, self.max_children)
+            samples = play_games_batch(self.games_per_iter)
 
             for feat, val in samples:
                 self.buffer_x.append(feat)
@@ -317,13 +321,11 @@ if __name__ == '__main__':
         'num_blocks': 6,
         'lr': 0.001,
         'batch_size': 512,
-        'epochs': 20,
-        'games_per_iter': 200,     # Рандом = мгновенно
-        'mcts_sims': 60,
-        'eval_games': 100,         # Быстрый eval — рандом
-        'eval_sims': 60,
-        'num_iterations': 500,
-        'buffer_size': 200000,
+        'epochs': 5,               # 20 → 5
+        'games_per_iter': 50,      # 200 → 50
+        'eval_games': 100,
+        'num_iterations': 1000,    # 500 → 1000
+        'buffer_size': 30000,      # 200K → 30K (тренируем на свежих данных)
         'max_children': 14,
         'checkpoint_dir': 'gpu_checkpoint',
     }
