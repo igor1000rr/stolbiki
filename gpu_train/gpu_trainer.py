@@ -18,7 +18,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'analysis'))
 from game import GameState, get_legal_actions, apply_action, get_valid_transfers
 from train import sample_random_action_fast
-from mcts import MCTSAgent
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Устройство: {DEVICE}')
@@ -136,29 +135,42 @@ def play_games_batch(num_games, mcts_sims=60, max_children=14):
     return all_samples
 
 
-# ═══ Оценка vs Random ═══
+# ═══ Быстрая оценка: нейросеть выбирает лучший ход из рандомных ═══
 
-def evaluate_net(net, num_games=20, mcts_sims=100, max_children=14):
-    """Оценка: MCTS + нейросеть vs рандом"""
+def evaluate_net(net, num_games=100, **kwargs):
+    """Нейросеть выбирает лучший из 8 рандомных ходов vs чистый рандом"""
     net.eval()
     wins = 0
 
     for g in range(num_games):
         state = GameState()
-        mcts_player = g % 2
-        agent = MCTSAgent(num_simulations=mcts_sims, temperature=0.05, max_children=max_children)
+        net_player = g % 2
 
         while not state.game_over:
-            if state.current_player == mcts_player:
-                # MCTS ход — используем нейросеть для оценки leaf
-                action, _ = agent.choose_action(state)
+            if state.current_player == net_player:
+                # Генерируем 8 рандомных ходов, выбираем лучший по нейросети
+                candidates = []
+                for _ in range(8):
+                    a = sample_random_action_fast(state)
+                    ns = apply_action(state, a)
+                    candidates.append((a, ns))
+
+                # Батч-оценка
+                features = np.array([encode_state(ns) for _, ns in candidates])
+                with torch.no_grad():
+                    vals = net(torch.tensor(features, dtype=torch.float32).to(DEVICE)).cpu().numpy().flatten()
+
+                # Минус — оценка с точки зрения следующего игрока
+                best_idx = np.argmin(vals)
+                action = candidates[best_idx][0]
             else:
                 action = sample_random_action_fast(state)
+
             state = apply_action(state, action)
             if state.turn > 200:
                 break
 
-        if state.winner == mcts_player:
+        if state.winner == net_player:
             wins += 1
 
     return wins / num_games
@@ -308,7 +320,7 @@ if __name__ == '__main__':
         'epochs': 20,
         'games_per_iter': 200,     # Рандом = мгновенно
         'mcts_sims': 60,
-        'eval_games': 14,
+        'eval_games': 100,         # Быстрый eval — рандом
         'eval_sims': 60,
         'num_iterations': 500,
         'buffer_size': 200000,
