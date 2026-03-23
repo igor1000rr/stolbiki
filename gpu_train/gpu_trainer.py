@@ -453,18 +453,18 @@ class GPUTrainer:
 
 if __name__ == '__main__':
     config = {
-        'hidden': 256,           # 64 → 256 (4x больше)
-        'num_blocks': 6,         # 3 → 6 residual блоков
+        'hidden': 256,           # Большая сеть (vs 64 на CPU)
+        'num_blocks': 4,         # 4 блока (6 было overkill)
         'lr': 0.001,
         'batch_size': 256,
-        'epochs': 25,
-        'games_per_iter': 50,    # 30 → 50 партий
-        'mcts_sims': 150,        # 100 → 150 симуляций
-        'eval_games': 20,        # 14 → 20 оценочных
-        'eval_sims': 150,
-        'num_iterations': 100,   # Первый прогон
-        'buffer_size': 50000,    # 25K → 50K
-        'max_children': 16,
+        'epochs': 15,
+        'games_per_iter': 25,    # 25 партий — быстро
+        'mcts_sims': 80,         # 80 сим — как на CPU
+        'eval_games': 14,
+        'eval_sims': 80,
+        'num_iterations': 300,   # 300 итераций!
+        'buffer_size': 40000,
+        'max_children': 14,
         'checkpoint_dir': 'gpu_checkpoint',
     }
 
