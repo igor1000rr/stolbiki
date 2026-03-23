@@ -35,12 +35,29 @@ export default function Game() {
   const [hint, setHint] = useState(null)
   const [hintLoading, setHintLoading] = useState(false)
   const [hintMode, setHintMode] = useState(false)
+  const [aiThinking, setAiThinking] = useState(false)
+  const [scoreBump, setScoreBump] = useState(null) // 0 or 1
   const aiRunning = useRef(false)
+  const prevScore = useRef([0, 0])
   const logRef = useRef(null)
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = 0
   }, [log])
+
+  // Score change → bump animation
+  useEffect(() => {
+    const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
+    if (s0 > prevScore.current[0]) {
+      setScoreBump(0)
+      setTimeout(() => setScoreBump(null), 600)
+    }
+    if (s1 > prevScore.current[1]) {
+      setScoreBump(1)
+      setTimeout(() => setScoreBump(null), 600)
+    }
+    prevScore.current = [s0, s1]
+  }, [gs])
 
   const addLog = useCallback((text, player) => {
     setLog(prev => [{ text, player }, ...prev])
@@ -49,13 +66,15 @@ export default function Game() {
   const runAi = useCallback((state) => {
     if (aiRunning.current || state.gameOver) return
     aiRunning.current = true
-    setInfo('AI думает...')
+    setAiThinking(true)
+    setInfo('AI думает')
 
     setTimeout(() => {
       const action = mctsSearch(state, difficulty)
       addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
       const ns = applyAction(state, action)
       aiRunning.current = false
+      setAiThinking(false)
 
       if (ns.gameOver) {
         setGs(ns)
@@ -93,9 +112,13 @@ export default function Game() {
     setPlacement({})
     setPlaceCount(1)
     setResult(null)
+    setHint(null)
+    setAiThinking(false)
+    setScoreBump(null)
     setHumanPlayer(hp)
     setDifficulty(d)
     aiRunning.current = false
+    prevScore.current = [0, 0]
 
     const pName = hp === 0 ? 'Игрок 1 (синие)' : 'Игрок 2 (красные)'
     setLog([{ text: `Новая партия. Вы — ${pName}`, player: -1 }])
@@ -183,6 +206,7 @@ export default function Game() {
 
     setGs(ns)
     setPhase('ai')
+    setAiThinking(true)
     runAi(ns)
   }, [gs, transfer, placement, humanPlayer, addLog, runAi])
 
@@ -237,16 +261,16 @@ export default function Game() {
       <div className="scoreboard">
         <div className="score-player">
           <div className="score-label">Игрок 1</div>
-          <div className="score-num p0">{gs.countClosed(0)}</div>
+          <div className={`score-num p0 ${scoreBump === 0 ? 'score-bump' : ''}`}>{gs.countClosed(0)}</div>
         </div>
         <div className="score-sep">:</div>
         <div className="score-player">
           <div className="score-label">Игрок 2</div>
-          <div className="score-num p1">{gs.countClosed(1)}</div>
+          <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
         </div>
       </div>
 
-      <div className="game-info">{info}</div>
+      <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`}>{info}</div>
 
       <Board
         state={gs}
@@ -255,6 +279,7 @@ export default function Game() {
         phase={phase}
         humanPlayer={humanPlayer}
         onStandClick={onStandClick}
+        aiThinking={aiThinking}
       />
 
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
@@ -315,8 +340,8 @@ export default function Game() {
       )}
 
       {result !== null && (
-        <div className="game-result" style={{ borderLeft: `3px solid ${result === humanPlayer ? '#4ecb71' : '#ff6b6b'}` }}>
-          {result === humanPlayer ? 'Вы победили!' : `AI побеждает. Счёт: ${gs.countClosed(0)}:${gs.countClosed(1)}`}
+        <div className="game-result" style={{ borderLeft: `3px solid ${result === humanPlayer ? '#3dd68c' : '#ff6066'}` }}>
+          <span>{result === humanPlayer ? '🎉 Вы победили!' : `AI побеждает • ${gs.countClosed(0)}:${gs.countClosed(1)}`}</span>
         </div>
       )}
 
