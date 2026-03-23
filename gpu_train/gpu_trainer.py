@@ -98,36 +98,24 @@ class StoykaNet(nn.Module):
             return self.forward(x).cpu().numpy().flatten()
 
 
-# ═══ Быстрый Self-Play (CPU, без нейросети) ═══
+# ═══ Быстрый Self-Play (рандомные партии) ═══
 
-def play_one_game(mcts_sims=80, max_children=14):
-    """Одна партия self-play → список (encoded_state, player, winner)"""
-    agent = MCTSAgent(num_simulations=mcts_sims, temperature=0.3, max_children=max_children)
+def play_one_game_fast():
+    """Рандомная партия → список (encoded_state, value)"""
     trajectory = []
     state = GameState()
 
     while not state.game_over:
         features = encode_state(state)
         player = state.current_player
-
-        # Используем temperature > 0 для exploration
-        if state.turn < 20:
-            action, _ = agent.choose_action(state)
-        else:
-            # Поздняя игра — меньше exploration
-            agent.temperature = 0.1
-            action, _ = agent.choose_action(state)
-            agent.temperature = 0.3
-
+        action = sample_random_action_fast(state)
         trajectory.append((features, player))
         state = apply_action(state, action)
-
         if state.turn > 200:
             state.game_over = True
             state.winner = -1
             break
 
-    # Rewards
     samples = []
     for features, player in trajectory:
         if state.winner == player:
@@ -137,16 +125,14 @@ def play_one_game(mcts_sims=80, max_children=14):
         else:
             v = 0.0
         samples.append((features, v))
-
     return samples
 
 
-def play_games_batch(num_games, mcts_sims=80, max_children=14):
-    """Прогон N партий, возвращает все сэмплы"""
+def play_games_batch(num_games, mcts_sims=60, max_children=14):
+    """Быстрый прогон N партий"""
     all_samples = []
     for g in range(num_games):
-        samples = play_one_game(mcts_sims, max_children)
-        all_samples.extend(samples)
+        all_samples.extend(play_one_game_fast())
     return all_samples
 
 
@@ -263,9 +249,9 @@ class GPUTrainer:
             # Обучение (GPU)
             loss = self.train_on_buffer()
 
-            # Оценка каждые 10 итераций
+            # Оценка каждые 25 итераций
             wr = -1
-            if it <= 2 or it % 10 == 0:
+            if it == 1 or it % 25 == 0:
                 wr = evaluate_net(self.net, self.eval_games, self.eval_sims, self.max_children)
 
             elapsed = time.time() - t0
@@ -320,12 +306,12 @@ if __name__ == '__main__':
         'lr': 0.001,
         'batch_size': 512,
         'epochs': 20,
-        'games_per_iter': 25,      # 60 → 25 (быстрее итерации)
-        'mcts_sims': 60,           # 80 → 60 (быстрее self-play)
+        'games_per_iter': 200,     # Рандом = мгновенно
+        'mcts_sims': 60,
         'eval_games': 14,
-        'eval_sims': 80,
-        'num_iterations': 500,     # 100 → 500
-        'buffer_size': 100000,
+        'eval_sims': 60,
+        'num_iterations': 500,
+        'buffer_size': 200000,
         'max_children': 14,
         'checkpoint_dir': 'gpu_checkpoint',
     }
