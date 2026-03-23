@@ -24,11 +24,13 @@ from train import sample_random_action_fast
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_CPU = max(1, mp.cpu_count() - 1)
-print(f'Устройство: {DEVICE}')
-if DEVICE.type == 'cuda':
-    print(f'GPU: {torch.cuda.get_device_name(0)}')
-    print(f'VRAM: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB')
-print(f'CPU ядер: {NUM_CPU}')
+
+def print_gpu_info():
+    print(f'Устройство: {DEVICE}')
+    if DEVICE.type == 'cuda':
+        print(f'GPU: {torch.cuda.get_device_name(0)}')
+        print(f'VRAM: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB')
+    print(f'CPU ядер: {NUM_CPU}')
 
 
 # ═══ Encoding ═══
@@ -351,6 +353,7 @@ class GPUTrainer:
 
 if __name__ == '__main__':
     mp.set_start_method('spawn', force=True)
+    print_gpu_info()
 
     config = {
         'hidden': 256,
