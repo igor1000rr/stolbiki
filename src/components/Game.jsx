@@ -6,6 +6,7 @@ import {
 import { mctsSearch } from '../engine/ai'
 import { getHint } from '../engine/hints'
 import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as _sw, soundLose as _sl, soundClick as _sk, soundSwap as _ss } from '../engine/sounds'
+import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
 import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -106,12 +107,14 @@ export default function Game() {
         setAiThinking(false)
         addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
         setTimeout(() => {
+          recordMove(state, action, state.currentPlayer)
           const ns = applyAction(state, action)
           setGs(ns)
           aiRunning.current = false
           if (ns.gameOver) {
             setTimeout(() => {
               setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+              finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
               const won = ns.winner === humanPlayer
               setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
               if (typeof window.stolbikiRecordGame === 'function') {
@@ -141,6 +144,7 @@ export default function Game() {
 
   // ─── Новая игра ───
   function newGame(side, diff, gameMode) {
+    cancelRecording() // Отменяем предыдущую
     const hp = side ?? humanPlayer
     const d = diff ?? difficulty
     const m = gameMode ?? mode
@@ -148,6 +152,8 @@ export default function Game() {
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); setMode(m)
     aiRunning.current = false; prevScore.current = [0, 0]
+    startRecording()
+    setGameMeta(m, d)
     if (m === 'pvp') {
       setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo('Синие: поставьте 1 фишку')
@@ -246,6 +252,7 @@ export default function Game() {
     const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
     if (!currentIsHuman || gs.gameOver || locked) return
     const action = { transfer, placement }
+    recordMove(gs, action, gs.currentPlayer)
     addLog(describeAction(action, gs.currentPlayer), gs.currentPlayer)
     const ns = applyAction(gs, action)
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
@@ -253,6 +260,7 @@ export default function Game() {
     if (ns.gameOver) {
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+        finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
         const won = mode === 'pvp' || ns.winner === humanPlayer
         setTimeout(() => {
           if (mode === 'pvp') sw()
