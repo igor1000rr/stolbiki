@@ -72,53 +72,54 @@ export default function Game() {
     setLocked(true)
     setInfo('AI думает')
 
-    // Минимум 1.2с "думания" чтобы человек увидел
+    // Минимум 1.8с "думания"
     const startTime = Date.now()
 
     setTimeout(() => {
       const action = mctsSearch(state, difficulty)
       const elapsed = Date.now() - startTime
-      const minDelay = 1200
+      const minDelay = 1800
       const remaining = Math.max(0, minDelay - elapsed)
 
-      // Ждём минимальный delay
       setTimeout(() => {
         setAiThinking(false)
+
+        // Сначала показываем лог — пауза — потом применяем ход
         addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
-        const ns = applyAction(state, action)
 
-        setGs(ns)
-        aiRunning.current = false
-
-        if (ns.gameOver) {
-          // Пауза перед показом результата
-          setTimeout(() => {
-            setResult(ns.winner)
-            setInfo('Партия окончена')
-            setLocked(false)
-          }, 800)
-          return
-        }
-
-        // AI ходит подряд (после swap)
-        if (ns.currentPlayer !== humanPlayer) {
-          setTimeout(() => runAi(ns), 600)
-          return
-        }
-
-        // Пауза после хода AI чтобы увидеть изменения
         setTimeout(() => {
-          setLocked(false)
-          if (ns.isFirstTurn()) {
-            setPhase('place')
-            setInfo('Ваш ход. Поставьте 1 фишку.')
-          } else {
-            setPhase('transfer')
-            setInfo('Ваш ход. Выберите стойку для переноса или пропустите.')
+          const ns = applyAction(state, action)
+          setGs(ns)
+          aiRunning.current = false
+
+          if (ns.gameOver) {
+            setTimeout(() => {
+              setResult(ns.winner)
+              setInfo('Партия окончена')
+              setLocked(false)
+            }, 1200)
+            return
           }
-        }, 600)
+
+          if (ns.currentPlayer !== humanPlayer) {
+            setTimeout(() => runAi(ns), 1000)
+            return
+          }
+
+          // Пауза после хода AI — игрок видит результат
+          setTimeout(() => {
+            setLocked(false)
+            if (ns.isFirstTurn()) {
+              setPhase('place')
+              setInfo('Ваш ход. Поставьте 1 фишку.')
+            } else {
+              setPhase('transfer')
+              setInfo('Ваш ход. Выберите стойку для переноса или пропустите.')
+            }
+          }, 900)
+        }, 400) // пауза между логом и применением хода
       }, remaining)
-    }, 100) // Начинаем вычисление чуть позже чтобы UI обновился
+    }, 100)
   }, [difficulty, humanPlayer, addLog])
 
   const newGame = useCallback((side, diff) => {
@@ -147,7 +148,7 @@ export default function Game() {
     if (state.currentPlayer !== hp) {
       setInfo('AI делает первый ход')
       setLocked(true)
-      setTimeout(() => runAi(state), 600)
+      setTimeout(() => runAi(state), 800)
     } else {
       setInfo('Первый ход: поставьте 1 фишку на любую стойку.')
     }
@@ -223,13 +224,13 @@ export default function Game() {
         setResult(ns.winner)
         setInfo('Партия окончена')
         setLocked(false)
-      }, 800)
+      }, 1200)
       return
     }
 
-    // Пауза чтобы игрок увидел свой ход, потом AI
+    // Пауза чтобы игрок увидел свой ход на доске, потом AI
     setPhase('ai')
-    setTimeout(() => runAi(ns), 500)
+    setTimeout(() => runAi(ns), 800)
   }, [gs, transfer, placement, humanPlayer, addLog, runAi, locked])
 
   const skipTransfer = useCallback(() => {

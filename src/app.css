@@ -142,12 +142,12 @@ body::before {
     0 2px 8px rgba(0,0,0,0.3),
     inset 0 1px 0 rgba(255,255,255,0.04);
   position: relative;
-  transition: opacity 0.3s;
+  transition: opacity 0.6s ease, filter 0.6s ease;
 }
 
-/* AI думает — доска затемняется и медленно пульсирует */
+/* AI думает */
 .board-thinking {
-  animation: boardThink 2s ease-in-out infinite;
+  animation: boardThink 2.5s ease-in-out infinite;
 }
 
 .board-thinking::after {
@@ -155,15 +155,15 @@ body::before {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(240,96,64,0.04), transparent, rgba(74,158,255,0.04));
+  background: linear-gradient(135deg, rgba(240,96,64,0.05), transparent, rgba(74,158,255,0.05));
   background-size: 200% 200%;
-  animation: thinkShimmer 2.5s ease-in-out infinite;
+  animation: thinkShimmer 3s ease-in-out infinite;
   pointer-events: none;
 }
 
 @keyframes boardThink {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.75; }
+  0%, 100% { opacity: 0.5; filter: brightness(0.85); }
+  50% { opacity: 0.7; filter: brightness(0.95); }
 }
 
 @keyframes thinkShimmer {
@@ -188,7 +188,13 @@ body::before {
   border: 1.5px solid var(--surface2);
   border-top: none;
   cursor: pointer;
-  transition: all 0.3s var(--ease-smooth);
+  transition:
+    transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    border-color 0.4s ease,
+    box-shadow 0.5s ease,
+    opacity 0.5s ease,
+    filter 0.5s ease,
+    background 0.4s ease;
   overflow: hidden;
 }
 
@@ -196,6 +202,7 @@ body::before {
   transform: translateY(-4px);
   border-color: var(--surface3);
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  transition-duration: 0.25s;
 }
 
 .stand:active { transform: translateY(-1px); }
@@ -212,9 +219,10 @@ body::before {
 
 /* Closed */
 .stand.closed {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
-  filter: saturate(0.4) brightness(0.8);
+  filter: saturate(0.3) brightness(0.7);
+  /* transition наследуется от .stand — opacity 0.5s */
 }
 .stand.closed:hover { transform: none; box-shadow: none; }
 
@@ -312,25 +320,28 @@ body::before {
 /* Скрыта до stagger-timeout */
 .chip-hidden {
   opacity: 0;
-  transform: translateY(-16px) scaleX(0.6);
+  transform: translateY(-20px) scaleX(0.5);
 }
 
-/* Появляется с bounce */
+/* Появляется с bounce — замедленно */
 .chip-drop {
-  animation: chipDropIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: chipDropIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes chipDropIn {
   0% {
     opacity: 0;
-    transform: translateY(-16px) scaleX(0.6) scaleY(1.4);
+    transform: translateY(-20px) scaleX(0.5) scaleY(1.5);
   }
-  40% {
+  35% {
     opacity: 1;
-    transform: translateY(3px) scaleX(1.15) scaleY(0.85);
+    transform: translateY(4px) scaleX(1.2) scaleY(0.8);
   }
-  70% {
-    transform: translateY(-2px) scaleX(0.95) scaleY(1.05);
+  55% {
+    transform: translateY(-3px) scaleX(0.92) scaleY(1.08);
+  }
+  75% {
+    transform: translateY(1px) scaleX(1.03) scaleY(0.97);
   }
   100% {
     opacity: 1;
@@ -338,18 +349,18 @@ body::before {
   }
 }
 
-/* Pending — пульс */
+/* Pending — медленное дыхание */
 .chip-pending {
-  opacity: 0.4;
+  opacity: 0.35;
   border: 1.5px dashed;
-  animation: pendingBreathe 2s ease-in-out infinite;
+  animation: pendingBreathe 2.5s ease-in-out infinite;
 }
 .chip-pending.p0 { border-color: var(--p1); }
 .chip-pending.p1 { border-color: var(--p2); }
 
 @keyframes pendingBreathe {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.06); }
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.08); }
 }
 
 /* ═══════════════════════════════════════════
@@ -377,22 +388,22 @@ body::before {
   font-size: 48px;
   font-weight: 400;
   line-height: 1;
-  transition: transform 0.4s var(--ease-out-back), text-shadow 0.4s;
+  transition: transform 0.5s var(--ease-out-back), text-shadow 0.5s ease, color 0.5s ease;
 }
 
 .score-num.p0 { color: var(--p1); text-shadow: 0 0 40px var(--p1-glow); }
 .score-num.p1 { color: var(--p2); text-shadow: 0 0 40px var(--p2-glow); }
 
-/* Триггерится через JS класс */
 .score-num.score-bump {
-  animation: scoreBump 0.5s var(--ease-out-back);
+  animation: scoreBump 0.7s var(--ease-out-back);
 }
 
 @keyframes scoreBump {
   0% { transform: scale(1); filter: brightness(1); }
-  25% { transform: scale(1.4); filter: brightness(1.3); }
-  50% { transform: scale(0.85); }
-  70% { transform: scale(1.1); }
+  20% { transform: scale(1.45); filter: brightness(1.4); }
+  45% { transform: scale(0.85); }
+  65% { transform: scale(1.12); }
+  85% { transform: scale(0.97); }
   100% { transform: scale(1); filter: brightness(1); }
 }
 
@@ -415,6 +426,7 @@ body::before {
   min-height: 20px;
   font-weight: 400;
   letter-spacing: 0.3px;
+  transition: opacity 0.4s ease;
 }
 
 .thinking-dots {
@@ -626,7 +638,7 @@ body::before {
   font-size: 22px;
   margin-bottom: 16px;
   border: 1px solid var(--surface2);
-  animation: resultReveal 0.6s var(--ease-out-back);
+  animation: resultReveal 0.8s var(--ease-out-back);
   position: relative;
   overflow: hidden;
 }
@@ -645,9 +657,10 @@ body::before {
 }
 
 @keyframes resultReveal {
-  0% { opacity: 0; transform: scale(0.7) translateY(30px); }
-  40% { opacity: 1; transform: scale(1.08) translateY(-6px); }
-  65% { transform: scale(0.96) translateY(2px); }
+  0% { opacity: 0; transform: scale(0.6) translateY(30px); }
+  30% { opacity: 1; transform: scale(1.1) translateY(-8px); }
+  50% { transform: scale(0.93) translateY(3px); }
+  70% { transform: scale(1.04) translateY(-1px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 

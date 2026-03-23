@@ -53,7 +53,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
     if (Object.keys(nc).length > 0) {
       setNewChipMap(nc)
       // Держим "new" статус на время анимации (stagger * count + duration)
-      const maxDelay = Math.max(...Object.values(nc).map(v => v.count * 120 + 500))
+      const maxDelay = Math.max(...Object.values(nc).map(v => v.count * 150 + 700))
       setTimeout(() => setNewChipMap({}), maxDelay)
     }
 
@@ -94,7 +94,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
                   key={`${i}-${j}`}
                   color={c}
                   isNew={isNew}
-                  delay={staggerIdx * 120}
+                  delay={staggerIdx * 150}
                   isPending={false}
                 />
               )
