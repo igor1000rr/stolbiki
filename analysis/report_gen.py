@@ -122,7 +122,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     s.append(Spacer(1, 5*MM))
     s.append(Paragraph("Метод: MCTS + Self-Play (подход AlphaZero)", body))
     s.append(Paragraph(f"CPU Self-play: {len(sp_history)} итераций (старые правила) + 320 итераций (новые правила)", body))
-    s.append(Paragraph("GPU Self-play: 146 итераций (ResNet 840K, GTX 1080, PyTorch)", body))
+    s.append(Paragraph("GPU Self-play: 146 итераций (ResNet 840K, NVIDIA GPU, PyTorch)", body))
     s.append(Paragraph(f"Рандомных партий: 40,000 | MCTS: 160 партий | ~126,000 партий всего", body))
     s.append(PageBreak())
 
@@ -146,7 +146,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
     s.append(Paragraph(f"<b>Вердикт:</b> Игра <b>сбалансирована</b>. На рандомном уровне P1≈P2≈50%. "
         f"На обученном уровне (500 CPU итераций, старые правила): P1=50%, P2=50% — Nash equilibrium. "
         f"Новые правила (перенос чужих с overflow): лёгкий сдвиг к P1=55%. "
-        f"GPU обучение (ResNet 840K, GTX 1080) подтверждает обучаемость.", body))
+        f"GPU обучение (ResNet 840K, NVIDIA GPU) подтверждает обучаемость.", body))
 
     # ═══ 2. РАНДОМНЫЕ ПАРТИИ ═══
     s.append(PageBreak())
@@ -404,9 +404,9 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
         "v320 vs v320: <b>P1=55%, P2=45%</b> — лёгкое преимущество P1. "
         "Новая механика ослабляет swap: P1 может закрывать стойки агрессивнее, не дожидаясь swap.", body))
 
-    s.append(Paragraph("7.3 GPU обучение (GTX 1080)", h2))
+    s.append(Paragraph("7.3 GPU обучение (NVIDIA GPU)", h2))
     s.append(Paragraph(
-        "Проведено обучение на GPU (NVIDIA GTX 1080, 8GB VRAM, PyTorch+CUDA).", body))
+        "Проведено обучение на GPU (NVIDIA GPU, PyTorch+CUDA).", body))
 
     s.append(Paragraph("<b>Старые правила (146 итераций):</b>", body))
     s.append(Paragraph(
@@ -448,7 +448,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
         f"Swap rule идеально компенсирует преимущество первого хода.",
         f"<b>Self-play CPU (новые правила, 320 итераций):</b> P1 = 55%, P2 = 45%. "
         f"Новая механика (перенос чужих) чуть ослабляет swap — P1 может действовать агрессивнее.",
-        f"<b>GPU обучение (146 итераций, GTX 1080):</b> ResNet 840K параметров, loss 0.21→0.10. "
+        f"<b>GPU обучение (146 итераций, NVIDIA GPU):</b> ResNet 840K параметров, loss 0.21→0.10. "
         f"Сеть учится в 5 раз быстрее CPU, но нуждается в более сильном exploration.",
         f"<b>Стратегическая глубина высокая.</b> MCTS побеждает рандом в 90-99% партий.",
         "<b>Доминирующая стратегия не найдена.</b> Ни одна тактика не гарантирует победу.",
@@ -472,7 +472,7 @@ def build_pdf(rs, mev, mm, sp, vr, st, n=20000):
         "(6) Варианты правил (5 кол-в × 5,000 + 4 высоты × 5,000); "
         "(7) CPU Self-play старые правила: 500 итераций × 25-30 партий (~15,000 партий); "
         "(8) CPU Self-play новые правила: 320 итераций × 25 партий (~8,000 партий); "
-        "(9) GPU Self-play (GTX 1080): 146 итераций, ResNet 256×6, 840K параметров; "
+        "(9) GPU Self-play (NVIDIA GPU): 146 итераций, ResNet 256×6, 840K параметров; "
         "(10) Сравнительный анализ старых и новых правил. "
         "Итого: <b>~126,000 партий</b>, 25 автоматических тестов правил. "
         "CPU сеть: 3-слойный MLP (64 нейрона, ~8K параметров, numpy). "
