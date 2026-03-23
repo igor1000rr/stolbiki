@@ -1,0 +1,1 @@
+{"run": 3, "rules": "new", "iterations": 500, "lr_init": 0.002, "lr_min": 0.0001, "T_max": 300, "loss_min": 0.127, "loss_final": 0.239, "best_wr": 0.97, "gpu": "GTX 1080", "vram": 8}
