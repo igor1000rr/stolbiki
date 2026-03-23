@@ -29,6 +29,7 @@ export default function Game() {
   const [placement, setPlacement] = useState({})
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(50)
+  const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
   const [log, setLog] = useState([])
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
@@ -94,21 +95,27 @@ export default function Game() {
   }, [difficulty, humanPlayer])
 
   // ─── Новая игра ───
-  function newGame(side, diff) {
+  function newGame(side, diff, gameMode) {
     const hp = side ?? humanPlayer
     const d = diff ?? difficulty
+    const m = gameMode ?? mode
     const state = new GameState()
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
-    setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d)
+    setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); setMode(m)
     aiRunning.current = false; prevScore.current = [0, 0]
-    const c = hp === 0 ? 'синие' : 'красные'
-    setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-    if (state.currentPlayer !== hp) {
-      setInfo('AI делает первый ход')
-      setLocked(true)
-      setTimeout(() => runAi(state), 500)
+    if (m === 'pvp') {
+      setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setInfo('Синие: поставьте 1 фишку')
     } else {
-      setInfo('Первый ход — поставьте 1 фишку на любую стойку')
+      const c = hp === 0 ? 'синие' : 'красные'
+      setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      if (state.currentPlayer !== hp) {
+        setInfo('AI делает первый ход')
+        setLocked(true)
+        setTimeout(() => runAi(state), 500)
+      } else {
+        setInfo('Первый ход — поставьте 1 фишку на любую стойку')
+      }
     }
   }
 
@@ -116,7 +123,8 @@ export default function Game() {
 
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
   function onStandClick(i) {
-    if (gs.gameOver || gs.currentPlayer !== humanPlayer || aiRunning.current || locked) return
+    const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
+    if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
     if (i in gs.closed) return
 
     if (phase === 'transfer-select') {
@@ -188,18 +196,26 @@ export default function Game() {
 
   // ─── Подтверждение ───
   function confirmTurn() {
-    if (gs.currentPlayer !== humanPlayer || gs.gameOver || locked) return
+    const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
+    if (!currentIsHuman || gs.gameOver || locked) return
     const action = { transfer, placement }
-    addLog(describeAction(action, humanPlayer), humanPlayer)
+    addLog(describeAction(action, gs.currentPlayer), gs.currentPlayer)
     const ns = applyAction(gs, action)
-    setTransfer(null); setPlacement({}); setSelected(null); setHint(null); setLocked(true)
+    setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
     if (ns.gameOver) {
       setTimeout(() => { setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false) }, 800)
       return
     }
-    setPhase('ai')
-    setTimeout(() => runAi(ns), 500)
+    if (mode === 'pvp') {
+      setPhase('place')
+      const name = ns.currentPlayer === 0 ? 'Синие' : 'Красные'
+      setInfo(ns.isFirstTurn() ? `${name}: поставьте 1 фишку` : `${name}: расставьте фишки`)
+    } else {
+      setLocked(true)
+      setPhase('ai')
+      setTimeout(() => runAi(ns), 500)
+    }
   }
 
   function startTransfer() {
@@ -213,7 +229,8 @@ export default function Game() {
   }
 
   function requestHint() {
-    if (gs.currentPlayer !== humanPlayer || gs.gameOver || locked) return
+    const currentIsHuman = mode === 'pvp' || gs.currentPlayer === humanPlayer
+    if (!currentIsHuman || gs.gameOver || locked) return
     setHintLoading(true)
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
   }
@@ -222,31 +239,52 @@ export default function Game() {
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
-  const isMyTurn = gs.currentPlayer === humanPlayer && !gs.gameOver && !aiRunning.current && !locked
+  const isMyTurn = (mode === 'pvp' || gs.currentPlayer === humanPlayer) && !gs.gameOver && !aiRunning.current && !locked
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
   return (
     <div>
       <div className="game-settings">
-        <label>Сторона:
-          <select value={humanPlayer} onChange={e => newGame(+e.target.value, difficulty)}>
-            <option value={0}>Синие (первый ход)</option>
-            <option value={1}>Красные (swap)</option>
+        <label>Режим:
+          <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
+            <option value="ai">Против AI</option>
+            <option value="pvp">Вдвоём</option>
           </select>
         </label>
-        <label>Сложность:
-          <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value)}>
-            <option value={20}>Лёгкая</option>
-            <option value={50}>Средняя</option>
-            <option value={100}>Сложная</option>
-          </select>
-        </label>
-        <label style={{ cursor: 'pointer' }}>
-          <input type="checkbox" checked={hintMode} onChange={e => { setHintMode(e.target.checked); setHint(null) }} style={{ marginRight: 4 }} />
-          Подсказки
-        </label>
+        {mode === 'ai' && (
+          <label>Сторона:
+            <select value={humanPlayer} onChange={e => newGame(+e.target.value, difficulty, mode)}>
+              <option value={0}>Синие (первый ход)</option>
+              <option value={1}>Красные (swap)</option>
+            </select>
+          </label>
+        )}
+        {mode === 'ai' && (
+          <label>Сложность:
+            <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value, mode)}>
+              <option value={20}>Лёгкая</option>
+              <option value={50}>Средняя</option>
+              <option value={100}>Сложная</option>
+            </select>
+          </label>
+        )}
+        {mode === 'ai' && (
+          <label style={{ cursor: 'pointer' }}>
+            <input type="checkbox" checked={hintMode} onChange={e => { setHintMode(e.target.checked); setHint(null) }} style={{ marginRight: 4 }} />
+            Подсказки
+          </label>
+        )}
       </div>
+
+      {mode === 'pvp' && !gs.gameOver && (
+        <div style={{ textAlign: 'center', padding: '6px 12px', margin: '0 auto 8px', fontSize: 13, fontWeight: 600,
+          color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
+          background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
+          borderRadius: 8, display: 'inline-block' }}>
+          Ходят {gs.currentPlayer === 0 ? 'Синие' : 'Красные'}
+        </div>
+      )}
 
       <div className="scoreboard">
         <div className="score-player">
@@ -262,7 +300,7 @@ export default function Game() {
 
       <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`}>{info}</div>
 
-      <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} />
+      <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} />
 
       {/* Статус фишек */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
@@ -308,8 +346,11 @@ export default function Game() {
       )}
 
       {result !== null && (
-        <div className="game-result" style={{ borderLeft: `3px solid ${result === humanPlayer ? '#3dd68c' : '#ff6066'}` }}>
-          <span>{result === humanPlayer ? '🎉 Победа!' : `AI побеждает • ${gs.countClosed(0)}:${gs.countClosed(1)}`}</span>
+        <div className="game-result" style={{ borderLeft: `3px solid ${mode === 'pvp' ? (result === 0 ? 'var(--p1)' : 'var(--p2)') : (result === humanPlayer ? '#3dd68c' : '#ff6066')}` }}>
+          <span>{mode === 'pvp'
+            ? `${result === 0 ? 'Синие' : 'Красные'} победили! • ${gs.countClosed(0)}:${gs.countClosed(1)}`
+            : (result === humanPlayer ? '🎉 Победа!' : `AI побеждает • ${gs.countClosed(0)}:${gs.countClosed(1)}`)
+          }</span>
         </div>
       )}
 
