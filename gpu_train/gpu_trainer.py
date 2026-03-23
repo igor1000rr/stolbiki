@@ -264,7 +264,7 @@ class GPUTrainer:
             # Оценка каждые 25 итераций
             wr = -1
             if it == 1 or it % 25 == 0:
-                wr = evaluate_net(self.net, self.eval_games, self.eval_sims, self.max_children)
+                wr = evaluate_net(self.net, self.eval_games)
 
             elapsed = time.time() - t0
             lr = self.scheduler.get_last_lr()[0]
