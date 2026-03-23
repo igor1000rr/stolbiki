@@ -59,6 +59,7 @@ export default function Game() {
   const [elapsed, setElapsed] = useState(0)
   const [undoStack, setUndoStack] = useState([])
   const aiRunning = useRef(false)
+  const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
 
@@ -118,7 +119,7 @@ export default function Game() {
             setTimeout(() => {
               setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
               finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
-              const won = ns.winner === humanPlayer
+              const won = modeRef.current === 'spectate' ? true : ns.winner === humanPlayer
               setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
               if (typeof window.stolbikiRecordGame === 'function') {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
@@ -129,8 +130,8 @@ export default function Game() {
             }, 800)
             return
           }
-          if (ns.currentPlayer !== humanPlayer) {
-            setTimeout(() => runAi(ns), 600)
+          if (ns.currentPlayer !== humanPlayer || modeRef.current === 'spectate') {
+            setTimeout(() => runAi(ns), modeRef.current === 'spectate' ? 1200 : 600)
             return
           }
           setTimeout(() => {
@@ -154,7 +155,7 @@ export default function Game() {
     const state = new GameState()
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); setMode(m)
-    aiRunning.current = false; prevScore.current = [0, 0]
+    aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording()
     setGameMeta(m, d)
     setGameStartTime(Date.now())
@@ -163,6 +164,11 @@ export default function Game() {
     if (m === 'pvp') {
       setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo('Синие: поставьте 1 фишку')
+    } else if (m === 'spectate') {
+      setLog([{ text: 'AI vs AI — наблюдение', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setInfo('AI vs AI')
+      setLocked(true)
+      setTimeout(() => runAi(state), 800)
     } else {
       const c = hp === 0 ? 'синие' : 'красные'
       setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
@@ -390,6 +396,7 @@ export default function Game() {
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
             <option value="ai">Против AI</option>
             <option value="pvp">Вдвоём</option>
+            <option value="spectate">AI vs AI</option>
           </select>
         </label>
         {mode === 'ai' && (
@@ -430,12 +437,12 @@ export default function Game() {
         </div>
       )}
 
-      {mode === 'pvp' && !gs.gameOver && (
+      {(mode === 'pvp' || mode === 'spectate') && !gs.gameOver && (
         <div style={{ textAlign: 'center', padding: '6px 12px', margin: '0 auto 8px', fontSize: 13, fontWeight: 600,
           color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
-          Ходят {gs.currentPlayer === 0 ? 'Синие' : 'Красные'}
+          {mode === 'spectate' ? `AI думает (${gs.currentPlayer === 0 ? 'Синие' : 'Красные'})` : `Ходят ${gs.currentPlayer === 0 ? 'Синие' : 'Красные'}`}
         </div>
       )}
 
