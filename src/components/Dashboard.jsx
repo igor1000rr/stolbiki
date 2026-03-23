@@ -150,7 +150,7 @@ export default function Dashboard() {
       {/* Hero */}
       <div className="dash-card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
-          <HeroMetric value="229K+" label="партий" color="#e8e6f0" sub="проанализировано" />
+          <HeroMetric value="239K+" label="партий" color="#e8e6f0" sub="проанализировано" />
           <HeroMetric value={`${(d.random.p1_wr*100).toFixed(1)}%`} label="P1 баланс" color="#3dd68c" sub="70K рандом" />
           <HeroMetric value="97%" label="лучший WR" color="#9b59b6" sub="GPU ResNet 840K" />
           <HeroMetric value={`${(d.random.decisive_golden*100).toFixed(0)}%`} label="золотая 5:5" color="#ffc145" />
@@ -188,7 +188,7 @@ export default function Dashboard() {
               <div style={{ fontSize: 12, color: '#9b59b6', fontWeight: 600, marginBottom: 8 }}>GPU (PyTorch ResNet)</div>
               <div style={{ fontSize: 12, color: '#a09cb0', lineHeight: 1.8 }}>
                 Параметров: <b style={{ color: '#e8e6f0' }}>840K</b><br/>
-                Итераций: <b style={{ color: '#e8e6f0' }}>146 (стар) + 500×2 (нов)</b><br/>
+                Итераций: <b style={{ color: '#e8e6f0' }}>1,146 (146 стар + 500×2 нов)</b><br/>
                 Loss min: <b style={{ color: '#e8e6f0' }}>0.098 / 0.128</b><br/>
                 WR best: <b style={{ color: '#e8e6f0' }}>97%</b><br/>
                 GPU: <b style={{ color: '#e8e6f0' }}>GTX 1080, 8GB</b>
