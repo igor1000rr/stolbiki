@@ -147,9 +147,6 @@ def play_games_batch(num_games, mcts_sims=80, max_children=14):
     for g in range(num_games):
         samples = play_one_game(mcts_sims, max_children)
         all_samples.extend(samples)
-        if (g + 1) % 10 == 0:
-            print(f'    Партия {g+1}/{num_games} ({len(all_samples)} сэмплов)', end='\r')
-    print(f'    {num_games} партий → {len(all_samples)} сэмплов              ')
     return all_samples
 
 
@@ -252,25 +249,23 @@ class GPUTrainer:
             self.version += 1
             t0 = time.time()
 
-            # Self-play (CPU — быстро)
-            print(f'  [{self.version}] Self-play...')
+            # Self-play (CPU)
             samples = play_games_batch(self.games_per_iter, self.mcts_sims, self.max_children)
 
             for feat, val in samples:
                 self.buffer_x.append(feat)
                 self.buffer_y.append(val)
 
-            # Обрезаем буфер
             if len(self.buffer_x) > self.buffer_size:
                 self.buffer_x = self.buffer_x[-self.buffer_size:]
                 self.buffer_y = self.buffer_y[-self.buffer_size:]
 
-            # Обучение (GPU — быстро)
+            # Обучение (GPU)
             loss = self.train_on_buffer()
 
-            # Оценка (каждые 5 итераций или первые 3)
+            # Оценка каждые 10 итераций
             wr = -1
-            if it <= 3 or it % 5 == 0:
+            if it <= 2 or it % 10 == 0:
                 wr = evaluate_net(self.net, self.eval_games, self.eval_sims, self.max_children)
 
             elapsed = time.time() - t0
@@ -324,12 +319,12 @@ if __name__ == '__main__':
         'num_blocks': 6,
         'lr': 0.001,
         'batch_size': 512,
-        'epochs': 30,
-        'games_per_iter': 60,
-        'mcts_sims': 80,
-        'eval_games': 20,
-        'eval_sims': 100,
-        'num_iterations': 100,
+        'epochs': 20,
+        'games_per_iter': 25,      # 60 → 25 (быстрее итерации)
+        'mcts_sims': 60,           # 80 → 60 (быстрее self-play)
+        'eval_games': 14,
+        'eval_sims': 80,
+        'num_iterations': 500,     # 100 → 500
         'buffer_size': 100000,
         'max_children': 14,
         'checkpoint_dir': 'gpu_checkpoint',
