@@ -349,18 +349,27 @@ body::before {
   }
 }
 
-/* Pending — медленное дыхание */
+/* Pending — яркие, заметные */
 .chip-pending {
-  opacity: 0.35;
-  border: 1.5px dashed;
-  animation: pendingBreathe 2.5s ease-in-out infinite;
+  opacity: 0.7;
+  border: 2px dashed;
+  animation: pendingBreathe 1.5s ease-in-out infinite;
+  position: relative;
 }
-.chip-pending.p0 { border-color: var(--p1); }
-.chip-pending.p1 { border-color: var(--p2); }
+.chip-pending.p0 {
+  border-color: var(--p1-light);
+  background: linear-gradient(180deg, rgba(114,184,255,0.4), rgba(74,158,255,0.4));
+  box-shadow: 0 0 8px var(--p1-glow);
+}
+.chip-pending.p1 {
+  border-color: var(--p2-light);
+  background: linear-gradient(180deg, rgba(255,138,142,0.4), rgba(255,96,102,0.4));
+  box-shadow: 0 0 8px var(--p2-glow);
+}
 
 @keyframes pendingBreathe {
-  0%, 100% { opacity: 0.25; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(1.08); }
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.06); }
 }
 
 /* ═══════════════════════════════════════════
@@ -581,12 +590,20 @@ body::before {
 .chip-btn:hover { border-color: var(--ink3); color: var(--ink); transform: scale(1.08); }
 .chip-btn.active {
   border-color: var(--accent);
-  color: var(--accent);
+  color: #fff;
+  background: var(--accent);
   box-shadow: 0 0 14px var(--accent-glow);
   transform: scale(1.1);
 }
 
-.place-status { font-size: 11px; color: var(--ink3); font-weight: 300; }
+.place-status {
+  font-size: 12px;
+  color: var(--ink2);
+  font-weight: 500;
+  background: var(--surface);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
 
 /* ═══════════════════════════════════════════
    GAME LOG

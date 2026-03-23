@@ -171,21 +171,31 @@ export default function Game() {
       if (space <= 0) { setInfo(`Стойка ${SL(i)} заполнена`); return }
 
       if (i in placement) {
-        // Повторный клик — убираем
+        // Повторный клик на стойку с фишками:
+        // Если можно добавить ещё — добавляем placeCount
+        // Если нельзя — убираем все с этой стойки
+        const current = placement[i]
+        const canAddMore = currentTotal < maxTotal && current < space
+        if (canAddMore) {
+          const add = Math.min(placeCount, space - current, maxTotal - currentTotal)
+          if (add > 0) {
+            setPlacement(prev => ({ ...prev, [i]: current + add }))
+            const newTotal = currentTotal + add
+            setInfo(`${newTotal}/${maxTotal} фишек на ${Object.keys(placement).length} стойках`)
+            return
+          }
+        }
+        // Убираем
         setPlacement(prev => { const c = { ...prev }; delete c[i]; return c })
-        setInfo('Фишки убраны. Кликните на стойку чтобы поставить')
+        setInfo(`Фишки убраны со стойки ${SL(i)}`)
       } else {
-        if (numStands >= MAX_PLACE_STANDS) { setInfo('Максимум 2 стойки за ход'); return }
-        if (currentTotal >= maxTotal) { setInfo(`Все ${maxTotal} фишки расставлены. Подтвердите или сбросьте`); return }
+        if (numStands >= MAX_PLACE_STANDS) { setInfo('Максимум 2 стойки за ход. Кликните на стойку с фишками чтобы убрать'); return }
+        if (currentTotal >= maxTotal) { setInfo(`Все ${maxTotal} фишки расставлены`); return }
         const add = Math.min(placeCount, space, maxTotal - currentTotal)
         if (add > 0) {
           setPlacement(prev => ({ ...prev, [i]: add }))
           const newTotal = currentTotal + add
-          if (newTotal >= maxTotal) {
-            setInfo(`${newTotal}/${maxTotal} фишек. Подтвердите ход`)
-          } else {
-            setInfo(`${newTotal}/${maxTotal} фишек. Кликните ещё стойку или подтвердите`)
-          }
+          setInfo(`${newTotal}/${maxTotal} фишек. ${newTotal >= maxTotal ? 'Подтвердите ход' : 'Кликните ещё стойку'}`)
         }
       }
     }
@@ -271,11 +281,14 @@ export default function Game() {
       {/* Кнопки выбора количества фишек */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
-          <span>Фишек за клик:</span>
+          <span>За клик:</span>
           {[1, 2, 3].map(n => (
-            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`} onClick={() => setPlaceCount(n)}>{n}</button>
+            <button key={n} className={`chip-btn ${placeCount === n ? 'active' : ''}`} onClick={() => { setPlaceCount(n); setInfo(`Клик = ${n} фишек. Кликните на стойку`) }}>{n}</button>
           ))}
-          <span className="place-status">{totalPlaced}/{maxTotal} фишек</span>
+          <span className="place-status">
+            {totalPlaced}/{maxTotal} фишек · {Object.keys(placement).length}/{MAX_PLACE_STANDS} стоек
+            {transfer && ` · перенос ✓`}
+          </span>
         </div>
       )}
 
