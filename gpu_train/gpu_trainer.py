@@ -23,7 +23,7 @@ from game import GameState, apply_action
 from train import sample_random_action_fast
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-NUM_CPU = max(1, mp.cpu_count() - 1)
+NUM_CPU = max(1, min(4, mp.cpu_count() // 2))  # Макс 4 воркера
 
 def print_gpu_info():
     print(f'Устройство: {DEVICE}')
@@ -361,13 +361,13 @@ if __name__ == '__main__':
         'lr': 0.001,
         'batch_size': 1024,          # Большие батчи — GPU загружен
         'epochs': 25,
-        'parallel': 30,              # 30 партий параллельно
-        'rounds_per_iter': 3,        # 3 раунда = 90 партий/итерацию
-        'num_candidates': 6,
-        'eval_games': 40,
+        'parallel': 15,              # 30→15 партий параллельно
+        'rounds_per_iter': 2,        # 3→2 раунда = 30 партий/итерацию
+        'num_candidates': 4,         # 6→4
+        'eval_games': 30,            # 40→30
         'num_iterations': 500,
-        'buffer_size': 300000,
-        'warmup_games': 1000,        # Warmup на всех CPU
+        'buffer_size': 200000,
+        'warmup_games': 400,         # 1000→400
         'checkpoint_dir': 'gpu_checkpoint',
     }
 
