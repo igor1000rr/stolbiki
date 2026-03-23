@@ -291,7 +291,7 @@ export default function Game() {
         <button className="btn" onClick={() => newGame()}>Новая партия</button>
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading}
-            style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}>
+            style={{ borderColor: '#ffc145', color: '#ffc145' }}>
             {hintLoading ? 'Анализ...' : '💡 Подсказка'}
           </button>
         )}
@@ -299,22 +299,23 @@ export default function Game() {
 
       {hint && hintMode && (
         <div style={{
-          maxWidth: 520, margin: '0 auto 16px', padding: '14px 18px',
-          background: 'var(--gold-bg)', border: '1px solid var(--gold)',
-          borderLeft: '4px solid var(--gold)', borderRadius: '0 6px 6px 0',
-          fontSize: 13, lineHeight: 1.65, color: 'var(--ink)',
+          maxWidth: 520, margin: '0 auto 16px', padding: '16px 20px',
+          background: 'rgba(255, 193, 69, 0.06)', border: '1px solid rgba(255, 193, 69, 0.15)',
+          borderLeft: '3px solid #ffc145', borderRadius: '0 10px 10px 0',
+          fontSize: 13, lineHeight: 1.7, color: '#e8e6f0',
+          animation: 'fadeSlideUp 0.3s ease-out',
         }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--gold)' }}>
-            💡 Подсказка AI
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 15, marginBottom: 10, color: '#ffc145', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>💡</span> Подсказка
           </div>
           {hint.explanation.map((line, i) => (
-            <p key={i} style={{ marginBottom: 4 }}>{line}</p>
+            <p key={i} style={{ marginBottom: 5, color: '#a09cb0' }}>{line}</p>
           ))}
         </div>
       )}
 
       {result !== null && (
-        <div className="game-result" style={{ borderLeft: `4px solid var(--${result === humanPlayer ? 'green' : 'p2'})` }}>
+        <div className="game-result" style={{ borderLeft: `3px solid ${result === humanPlayer ? '#4ecb71' : '#ff6b6b'}` }}>
           {result === humanPlayer ? 'Вы победили!' : `AI побеждает. Счёт: ${gs.countClosed(0)}:${gs.countClosed(1)}`}
         </div>
       )}

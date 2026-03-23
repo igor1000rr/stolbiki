@@ -4,8 +4,8 @@ import { runSimulation } from '../engine/simulator'
 function ProgressBar({ value, max }) {
   const pct = max > 0 ? (value / max * 100) : 0
   return (
-    <div style={{ width: '100%', height: 8, background: 'var(--surface2)', borderRadius: 4, overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', borderRadius: 4, transition: 'width 0.2s' }} />
+    <div style={{ width: '100%', height: 6, background: '#2a2a38', borderRadius: 3, overflow: 'hidden' }}>
+      <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #f0654a, #ff8a6b)', borderRadius: 3, transition: 'width 0.3s', boxShadow: '0 0 8px rgba(240,101,74,0.3)' }} />
     </div>
   )
 }
@@ -13,9 +13,9 @@ function ProgressBar({ value, max }) {
 function ResultCard({ label, value, sub, color }) {
   return (
     <div style={{ textAlign: 'center', padding: '12px 8px' }}>
-      <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: color || 'var(--ink)', lineHeight: 1.2 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 10, color: '#6b6880', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 32, fontWeight: 400, color: color || '#e8e6f0', lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: '#6b6880', marginTop: 2 }}>{sub}</div>}
     </div>
   )
 }
@@ -72,27 +72,27 @@ export default function Simulator() {
       <div className="dash-card" style={{ marginBottom: 20 }}>
         <h3>Параметры симуляции</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 12 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: 'var(--ink2)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#a09cb0' }}>
             Количество стоек
             <input type="range" min={5} max={16} value={numStands}
               onChange={e => setNumStands(+e.target.value)}
-              style={{ accentColor: 'var(--accent)' }} />
-            <span style={{ textAlign: 'center', fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700 }}>{numStands}</span>
+              style={{ accentColor: '#f0654a' }} />
+            <span style={{ textAlign: 'center', fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: '#e8e6f0' }}>{numStands}</span>
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: 'var(--ink2)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#a09cb0' }}>
             Высота стойки (макс. фишек)
             <input type="range" min={5} max={17} value={maxChips}
               onChange={e => setMaxChips(+e.target.value)}
-              style={{ accentColor: 'var(--accent)' }} />
-            <span style={{ textAlign: 'center', fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700 }}>{maxChips}</span>
+              style={{ accentColor: '#f0654a' }} />
+            <span style={{ textAlign: 'center', fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: '#e8e6f0' }}>{maxChips}</span>
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: 'var(--ink2)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: '#a09cb0' }}>
             Количество партий
             <select value={numGames}
               onChange={e => setNumGames(+e.target.value)}
-              style={{ fontFamily: 'inherit', fontSize: 14, padding: '6px 10px', border: '1px solid var(--surface2)', borderRadius: 4, background: 'var(--bg)' }}>
+              style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, padding: '8px 12px', border: '1px solid #36364a', borderRadius: 8, background: '#1e1e28', color: '#e8e6f0' }}>
               <option value={200}>200 (быстро)</option>
               <option value={500}>500</option>
               <option value={1000}>1 000</option>
@@ -106,14 +106,14 @@ export default function Simulator() {
           {!running ? (
             <button className="btn primary" onClick={start}>Запустить симуляцию</button>
           ) : (
-            <button className="btn" onClick={stop} style={{ borderColor: 'var(--p2)', color: 'var(--p2)' }}>Остановить</button>
+            <button className="btn" onClick={stop} style={{ borderColor: '#ff6b6b', color: '#ff6b6b' }}>Остановить</button>
           )}
         </div>
 
         {running && (
           <div style={{ marginTop: 12 }}>
             <ProgressBar value={played} max={total} />
-            <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#6b6880', marginTop: 6 }}>
               {played} / {total} партий
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function Simulator() {
 
           {data.standCloseCount && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 6 }}>Частота закрытия стоек:</div>
+              <div style={{ fontSize: 12, color: '#a09cb0', marginBottom: 8, fontWeight: 500 }}>Частота закрытия стоек:</div>
               <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 60 }}>
                 {data.standCloseCount.map((count, i) => {
                   const max = Math.max(...data.standCloseCount, 1)
@@ -141,10 +141,13 @@ export default function Simulator() {
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                       <div style={{
                         width: '100%', height: `${pct * 50}px`, minHeight: 2,
-                        background: i === 0 ? 'var(--gold)' : 'var(--p1)',
-                        borderRadius: '2px 2px 0 0', transition: 'height 0.3s',
+                        background: i === 0
+                          ? 'linear-gradient(180deg, #ffc145, #e6a020)'
+                          : 'linear-gradient(180deg, #6db4ff, #4a9eff)',
+                        borderRadius: '3px 3px 0 0', transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: i === 0 ? '0 0 8px rgba(255,193,69,0.3)' : '0 0 6px rgba(74,158,255,0.2)',
                       }} />
-                      <span style={{ fontSize: 9, color: 'var(--ink3)' }}>{i === 0 ? '★' : i}</span>
+                      <span style={{ fontSize: 9, color: '#6b6880' }}>{i === 0 ? '★' : i}</span>
                     </div>
                   )
                 })}

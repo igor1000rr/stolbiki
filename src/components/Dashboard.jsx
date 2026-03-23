@@ -4,6 +4,11 @@ import dashData from '../data/dashboard.json'
 
 Chart.register(...registerables)
 
+// Тёмная тема для Chart.js
+Chart.defaults.color = '#6b6880'
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)'
+Chart.defaults.font.family = "'Outfit', sans-serif"
+
 function MetricCard({ title, value, sub, className }) {
   return (
     <div className="dash-card">
@@ -28,21 +33,22 @@ function SelfPlayChart() {
         datasets: [
           {
             label: 'Loss', data: dashData.selfplay.losses,
-            borderColor: '#c45a3c', backgroundColor: 'rgba(196,90,60,.1)',
-            fill: true, tension: 0.3, yAxisID: 'y',
+            borderColor: '#f0654a', backgroundColor: 'rgba(240, 101, 74, 0.08)',
+            fill: true, tension: 0.3, yAxisID: 'y', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
           },
           {
             label: 'vs Random %', data: dashData.selfplay.vs_random,
-            borderColor: '#4a8f5e', backgroundColor: 'rgba(74,143,94,.1)',
-            fill: true, tension: 0.3, yAxisID: 'y1',
+            borderColor: '#4ecb71', backgroundColor: 'rgba(78, 203, 113, 0.08)',
+            fill: true, tension: 0.3, yAxisID: 'y1', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
           },
         ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { font: { family: "'Source Serif 4'" } } } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { boxWidth: 12, padding: 16 } } },
         scales: {
-          y: { position: 'left', title: { display: true, text: 'Loss' } },
+          y: { position: 'left', title: { display: true, text: 'Loss' }, grid: { color: 'rgba(255,255,255,0.04)' } },
           y1: { position: 'right', title: { display: true, text: 'Win Rate %' }, min: 0, max: 100, grid: { drawOnChartArea: false } },
         },
       },
@@ -68,14 +74,19 @@ function StrategyChart() {
         datasets: [{
           label: 'Частота переносов %',
           data: [st.transfer_early, st.transfer_mid, st.transfer_late],
-          backgroundColor: ['#2d6a9f', '#4a8f5e', '#c45a3c'],
-          borderRadius: 4,
+          backgroundColor: ['rgba(74, 158, 255, 0.6)', 'rgba(78, 203, 113, 0.6)', 'rgba(240, 101, 74, 0.6)'],
+          borderColor: ['#4a9eff', '#4ecb71', '#f0654a'],
+          borderWidth: 1,
+          borderRadius: 6,
         }],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, max: 70, title: { display: true, text: '%' } } },
+        scales: {
+          y: { beginAtZero: true, max: 70, title: { display: true, text: '%' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          x: { grid: { display: false } },
+        },
       },
     })
     return () => chartRef.current?.destroy()

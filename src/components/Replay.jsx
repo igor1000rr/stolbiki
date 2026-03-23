@@ -107,7 +107,7 @@ export default function Replay() {
         {isEnd && game.w !== undefined && ` · Победитель: Игрок ${game.w + 1}`}
       </div>
 
-      <div className="move-card" style={{ borderLeft: `3px solid var(--${move ? (move.p === 0 ? 'p1' : 'p2') : 'ink3'})` }}>
+      <div className="move-card" style={{ borderLeft: `3px solid ${move ? (move.p === 0 ? '#4a9eff' : '#ff6b6b') : '#36364a'}` }}>
         {move ? (
           <>
             <span className={`log-p${move.p}`}>Игрок {move.p + 1}</span>
