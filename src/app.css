@@ -823,8 +823,6 @@ body::before {
   0% { transform: translateY(0) rotate(0deg); opacity: 1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
 
 @keyframes resultSpin {
   from { transform: rotate(0deg); }
