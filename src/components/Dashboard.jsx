@@ -191,7 +191,7 @@ export default function Dashboard() {
                 Итераций: <b style={{ color: '#e8e6f0' }}>1,146 (146 стар + 500×2 нов)</b><br/>
                 Loss min: <b style={{ color: '#e8e6f0' }}>0.098 / 0.128</b><br/>
                 WR best: <b style={{ color: '#e8e6f0' }}>97%</b><br/>
-                GPU: <b style={{ color: '#e8e6f0' }}>GTX 1080, 8GB</b>
+                GPU: <b style={{ color: '#e8e6f0' }}>NVIDIA GPU</b>
               </div>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function Dashboard() {
 
         {/* GPU Run 3 график */}
         {d.gpu_run3 && (
-          <ChartWrap title={`GPU Self-Play прогон 3 (${d.gpu_run3.iterations} итер, GTX 1080, новые правила)`}>
+          <ChartWrap title={`GPU Self-Play прогон 3 (${d.gpu_run3.iterations} итер, NVIDIA GPU, новые правила)`}>
             <GpuChart />
           </ChartWrap>
         )}
