@@ -223,9 +223,9 @@ class NeuralMCTS:
             actions.append(Action(placement=pl))
 
         # Рандом для разнообразия
-        from train import _sample_random_action_fast
+        from train import sample_random_action_fast
         while len(actions) < self.max_children:
-            actions.append(_sample_random_action_fast(state))
+            actions.append(sample_random_action_fast(state))
 
         return actions[:self.max_children]
 
@@ -361,8 +361,8 @@ class GPUTrainer:
                 if state.current_player == mcts_player:
                     action, _ = agent.choose_action(state)
                 else:
-                    from train import _sample_random_action_fast
-                    action = _sample_random_action_fast(state)
+                    from train import sample_random_action_fast
+                    action = sample_random_action_fast(state)
                 state = apply_action(state, action)
                 if state.turn > 200:
                     break
