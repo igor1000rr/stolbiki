@@ -82,6 +82,32 @@ function BalanceChart() {
   return <div className="chart-wrap"><canvas ref={ref} /></div>
 }
 
+function GpuChart() {
+  const ref = useRef(null), cr = useRef(null)
+  const gpu = dashData.gpu_run3
+  if (!gpu) return null
+  useChart(ref, cr, {
+    type: 'line',
+    data: {
+      labels: gpu.versions,
+      datasets: [
+        { label: 'Loss', data: gpu.losses, borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.08)', fill: true, tension: 0.3, yAxisID: 'y', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
+        { label: 'LR ×1000', data: gpu.lr.map(v => v * 1000), borderColor: '#555', borderDash: [4, 4], tension: 0.3, yAxisID: 'y1', borderWidth: 1, pointRadius: 0 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { boxWidth: 12, padding: 16 } } },
+      scales: {
+        y: { position: 'left', title: { display: true, text: 'Loss' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y1: { position: 'right', title: { display: true, text: 'LR ×1000' }, grid: { drawOnChartArea: false } },
+      },
+    },
+  })
+  return <div className="chart-wrap"><canvas ref={ref} /></div>
+}
+
 function StrategyChart() {
   const ref = useRef(null), cr = useRef(null)
   const st = dashData.strategies
@@ -126,9 +152,9 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
           <HeroMetric value="229K+" label="партий" color="#e8e6f0" sub="проанализировано" />
           <HeroMetric value={`${(d.random.p1_wr*100).toFixed(1)}%`} label="P1 баланс" color="#3dd68c" sub="70K рандом" />
-          <HeroMetric value={`${(d.mcts_vs_rand.wr*100).toFixed(0)}%`} label="MCTS vs рандом" color="#4a9eff" />
+          <HeroMetric value="97%" label="лучший WR" color="#9b59b6" sub="GPU ResNet 840K" />
           <HeroMetric value={`${(d.random.decisive_golden*100).toFixed(0)}%`} label="золотая 5:5" color="#ffc145" />
-          <HeroMetric value={`${totalIter}`} label="self-play итер" color="#f0654a" sub={`WR ${avgWr.toFixed(0)}%`} />
+          <HeroMetric value={`${totalIter + (d.gpu_run3?.iterations || 0)}`} label="self-play итер" color="#f0654a" sub="CPU + GPU" />
         </div>
       </div>
 
@@ -162,14 +188,21 @@ export default function Dashboard() {
               <div style={{ fontSize: 12, color: '#9b59b6', fontWeight: 600, marginBottom: 8 }}>GPU (PyTorch ResNet)</div>
               <div style={{ fontSize: 12, color: '#a09cb0', lineHeight: 1.8 }}>
                 Параметров: <b style={{ color: '#e8e6f0' }}>840K</b><br/>
-                Итераций: <b style={{ color: '#e8e6f0' }}>146 (стар) + 500 (нов)</b><br/>
-                Loss min: <b style={{ color: '#e8e6f0' }}>0.098</b><br/>
-                WR best: <b style={{ color: '#e8e6f0' }}>93%</b><br/>
-                Архитектура: <b style={{ color: '#e8e6f0' }}>256×6, LayerNorm</b>
+                Итераций: <b style={{ color: '#e8e6f0' }}>146 (стар) + 500×2 (нов)</b><br/>
+                Loss min: <b style={{ color: '#e8e6f0' }}>0.098 / 0.128</b><br/>
+                WR best: <b style={{ color: '#e8e6f0' }}>97%</b><br/>
+                GPU: <b style={{ color: '#e8e6f0' }}>GTX 1080, 8GB</b>
               </div>
             </div>
           </div>
         </div>
+
+        {/* GPU Run 3 график */}
+        {d.gpu_run3 && (
+          <ChartWrap title={`GPU Self-Play прогон 3 (${d.gpu_run3.iterations} итер, GTX 1080, новые правила)`}>
+            <GpuChart />
+          </ChartWrap>
+        )}
 
         {/* Trained balance + first move */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, gridColumn: '1/-1', marginBottom: 16 }}>
