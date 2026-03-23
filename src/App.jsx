@@ -7,7 +7,7 @@ import Rules from './components/Rules'
 import Profile from './components/Profile'
 import './app.css'
 
-const ADMIN_NAMES = ['admin', 'Admin', 'igor', 'Igor', 'Александр']
+const ADMIN_NAMES = ['admin']
 
 function getIsAdmin() {
   try {

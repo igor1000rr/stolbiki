@@ -122,7 +122,7 @@ export default function Profile() {
 
     // Fallback — localStorage
     const p = defaultProfile(name)
-    const adminNames = ['admin', 'Admin', 'igor', 'Igor', 'Александр']
+    const adminNames = ['admin']
     if (adminNames.includes(name)) p.isAdmin = true
     setProfile(p)
   }

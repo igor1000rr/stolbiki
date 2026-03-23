@@ -179,7 +179,7 @@ app.post('/api/auth/register', (req, res) => {
   if (existing) return res.status(409).json({ error: 'Ник занят' })
 
   const hash = bcrypt.hashSync(password, 10)
-  const adminNames = ['admin', 'Admin', 'igor', 'Igor', 'Александр']
+  const adminNames = ['admin']
   const isAdmin = adminNames.includes(username) ? 1 : 0
 
   const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)').run(username, email || null, hash, isAdmin)
