@@ -61,12 +61,70 @@ export default function Game() {
   const [gameStartTime, setGameStartTime] = useState(Date.now())
   const [elapsed, setElapsed] = useState(0)
   const [undoStack, setUndoStack] = useState([])
+  // Турнирный режим
+  const [tournament, setTournament] = useState(null) // { total: 3|5, games: [{won, score}], currentGame: 1 }
+  // Daily challenge
+  const [dailyMode, setDailyMode] = useState(false)
+  const [dailySeed, setDailySeed] = useState(null)
+  // Тренер — оценка позиции после каждого хода
+  const [trainerMode, setTrainerMode] = useState(false)
+  const [posEval, setPosEval] = useState(null) // { score: -1..1, label, color }
+  // Онлайн мультиплеер
+  const [onlineRoom, setOnlineRoom] = useState(null)
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
   const logRef = useRef(null)
 
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = 0 }, [log])
+
+  // ─── Тренер: оценка позиции через MCTS ───
+  function evaluatePosition(state) {
+    if (!trainerMode || mode !== 'ai') return
+    setTimeout(() => {
+      try {
+        const result = mctsSearch(state, 30)
+        const score = result.bestValue || 0
+        const ps = state.currentPlayer === humanPlayer ? score : -score
+        let label, color
+        if (ps > 0.3) { label = '↑ Сильная позиция'; color = '#3dd68c' }
+        else if (ps > 0.1) { label = '↗ Небольшое преимущество'; color = '#89d68c' }
+        else if (ps > -0.1) { label = '→ Равная игра'; color = '#a09cb0' }
+        else if (ps > -0.3) { label = '↘ Позиция ослабла'; color = '#ffc145' }
+        else { label = '↓ Слабая позиция'; color = '#ff6066' }
+        setPosEval({ score: ps, label, color })
+      } catch { setPosEval(null) }
+    }, 50)
+  }
+
+  // ─── Daily Challenge ───
+  function getDailySeed() {
+    const d = new Date()
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
+  }
+
+  function startDaily() {
+    setDailySeed(getDailySeed())
+    setDailyMode(true)
+    newGame(0, 100, 'ai')
+    setInfo(`Ежедневный челлендж #${getDailySeed() % 10000} — победите AI!`)
+  }
+
+  // ─── Турнирный режим ───
+  function startTournament(total = 3) {
+    setTournament({ total, games: [], currentGame: 1 })
+    newGame(0, difficulty, 'ai')
+    setInfo(`Турнир: партия 1 из ${total}`)
+  }
+
+  function tournamentNextGame() {
+    if (!tournament) return
+    const next = tournament.currentGame + 1
+    if (next > tournament.total) return
+    setTournament(prev => ({ ...prev, currentGame: next }))
+    newGame(next % 2, difficulty, 'ai')
+    setInfo(`Турнир: партия ${next} из ${tournament.total}`)
+  }
 
   // Слушаем новые ачивки
   useEffect(() => {
@@ -293,6 +351,7 @@ export default function Game() {
     const ns = applyAction(gs, action)
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
+    setPosEval(null) // Сбрасываем оценку
     if (ns.gameOver) {
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
@@ -309,6 +368,15 @@ export default function Game() {
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
           window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false)
+        }
+        // Турнир — запись результата
+        if (tournament) {
+          const w = ns.winner === humanPlayer
+          const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+          setTournament(prev => ({
+            ...prev,
+            games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }],
+          }))
         }
       }, 800)
       return

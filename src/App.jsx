@@ -5,6 +5,7 @@ import Replay from './components/Replay'
 import Simulator from './components/Simulator'
 import Rules from './components/Rules'
 import Profile from './components/Profile'
+import Online from './components/Online'
 import './app.css'
 
 const ADMIN_NAMES = ['admin']
@@ -20,12 +21,14 @@ function getIsAdmin() {
 
 const TABS_PUBLIC = [
   { id: 'game', label: '🎮 Играть' },
+  { id: 'online', label: '🌐 Онлайн' },
   { id: 'profile', label: '👤 Профиль' },
   { id: 'rules', label: '📖 Правила' },
 ]
 
 const TABS_ADMIN = [
   { id: 'game', label: '🎮 Играть' },
+  { id: 'online', label: '🌐 Онлайн' },
   { id: 'profile', label: '👤 Профиль' },
   { id: 'sim', label: '🧪 Симулятор' },
   { id: 'dash', label: '📊 Аналитика' },
@@ -34,7 +37,10 @@ const TABS_ADMIN = [
 ]
 
 export default function App() {
-  const [tab, setTab] = useState('game')
+  const [tab, setTab] = useState(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('room') ? 'online' : 'game'
+  })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
 
   // Слушаем изменения профиля
@@ -89,6 +95,7 @@ export default function App() {
 
       <div key={tab} className="tab-content">
         {tab === 'game' && <Game />}
+        {tab === 'online' && <Online />}
         {tab === 'profile' && <Profile />}
         {tab === 'sim' && isAdmin && <Simulator />}
         {tab === 'dash' && isAdmin && <Dashboard />}

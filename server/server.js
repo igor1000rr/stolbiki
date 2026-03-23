@@ -389,12 +389,198 @@ app.get('/api/stats', (req, res) => {
 
 // ═══ Health ═══
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c })
+  res.json({ status: 'ok', uptime: process.uptime(), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c, rooms: rooms.size })
+})
+
+// ═══ DAILY CHALLENGE ═══
+function getDailySeed() {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
+}
+
+function seededRandom(seed) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0
+  return () => { h = (h * 16807 + 0) % 2147483647; return (h & 0x7fffffff) / 0x7fffffff }
+}
+
+app.get('/api/daily', (req, res) => {
+  const seed = getDailySeed()
+  const rng = seededRandom(seed)
+  // Генерируем стартовую позицию: первый ход P1 (1 фишка) + ответ P2 (1-3 фишки)
+  const firstStand = Math.floor(rng() * 10)
+  const p2stands = []
+  const p2count = 1 + Math.floor(rng() * 3)
+  for (let i = 0; i < p2count; i++) {
+    p2stands.push(Math.floor(rng() * 10))
+  }
+  res.json({ seed, date: seed, firstMove: { stand: firstStand }, secondMove: { stands: p2stands }, swapped: rng() > 0.5 })
+})
+
+app.get('/api/daily/leaderboard', (req, res) => {
+  const seed = getDailySeed()
+  const rows = db.prepare(`SELECT username, turns, duration FROM daily_results
+    WHERE seed = ? ORDER BY turns ASC, duration ASC LIMIT 20`).all(seed)
+  res.json({ seed, results: rows })
+})
+
+app.post('/api/daily/submit', auth, (req, res) => {
+  const { turns, duration, won } = req.body
+  const seed = getDailySeed()
+  const existing = db.prepare('SELECT id FROM daily_results WHERE user_id = ? AND seed = ?').get(req.user.id, seed)
+  if (existing) return res.status(409).json({ error: 'Уже отправлено сегодня' })
+  db.prepare('INSERT INTO daily_results (user_id, username, seed, turns, duration, won) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(req.user.id, req.user.username, seed, turns, duration || 0, won ? 1 : 0)
+  res.json({ ok: true })
+})
+
+// Таблица daily
+db.exec(`CREATE TABLE IF NOT EXISTS daily_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER, username TEXT, seed TEXT,
+  turns INTEGER, duration INTEGER, won INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(user_id, seed)
+)`)
+
+// ═══ ROOMS (REST API для создания) ═══
+const rooms = new Map()
+
+function generateRoomId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let id = ''
+  for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)]
+  return id
+}
+
+app.post('/api/rooms', (req, res) => {
+  const { name, mode } = req.body // mode: 'single' | 'tournament3' | 'tournament5'
+  let id = generateRoomId()
+  while (rooms.has(id)) id = generateRoomId()
+  rooms.set(id, {
+    id, created: Date.now(), mode: mode || 'single',
+    totalGames: mode === 'tournament5' ? 5 : mode === 'tournament3' ? 3 : 1,
+    currentGame: 0, scores: [0, 0],
+    players: [], state: 'waiting', game: null,
+  })
+  // Автоудаление через 30 мин
+  setTimeout(() => rooms.delete(id), 30 * 60 * 1000)
+  res.json({ roomId: id })
+})
+
+app.get('/api/rooms/:id', (req, res) => {
+  const room = rooms.get(req.params.id.toUpperCase())
+  if (!room) return res.status(404).json({ error: 'Комната не найдена' })
+  res.json({ id: room.id, mode: room.mode, players: room.players.map(p => p.name), state: room.state, scores: room.scores, totalGames: room.totalGames, currentGame: room.currentGame })
+})
+
+// ═══ WebSocket ═══
+import { WebSocketServer } from 'ws'
+import { createServer } from 'http'
+
+const server = createServer(app)
+const wss = new WebSocketServer({ server, path: '/ws' })
+
+wss.on('connection', (ws) => {
+  let playerRoom = null
+  let playerIdx = -1
+
+  ws.on('message', (raw) => {
+    let msg
+    try { msg = JSON.parse(raw) } catch { return }
+
+    // ─── JOIN ───
+    if (msg.type === 'join') {
+      const roomId = (msg.roomId || '').toUpperCase()
+      const room = rooms.get(roomId)
+      if (!room) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната не найдена' }))
+      if (room.players.length >= 2) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната полна' }))
+
+      playerIdx = room.players.length
+      room.players.push({ ws, name: msg.name || `Игрок ${playerIdx + 1}` })
+      playerRoom = room
+
+      ws.send(JSON.stringify({ type: 'joined', roomId, playerIdx, mode: room.mode, totalGames: room.totalGames }))
+
+      // Второй игрок — стартуем
+      if (room.players.length === 2) {
+        room.state = 'playing'
+        room.currentGame = 1
+        const startMsg = JSON.stringify({
+          type: 'start',
+          players: room.players.map(p => p.name),
+          currentGame: 1, totalGames: room.totalGames, scores: [0, 0],
+          // Первая партия: P1 = игрок 0
+          firstPlayer: 0,
+        })
+        room.players.forEach(p => p.ws.send(startMsg))
+      } else {
+        ws.send(JSON.stringify({ type: 'waiting', players: room.players.map(p => p.name) }))
+      }
+    }
+
+    // ─── MOVE ───
+    if (msg.type === 'move' && playerRoom) {
+      const opponentIdx = 1 - playerIdx
+      const opponent = playerRoom.players[opponentIdx]
+      if (opponent?.ws?.readyState === 1) {
+        opponent.ws.send(JSON.stringify({ type: 'move', action: msg.action, from: playerIdx }))
+      }
+    }
+
+    // ─── GAME OVER ───
+    if (msg.type === 'gameOver' && playerRoom) {
+      const room = playerRoom
+      if (msg.winner === 0) room.scores[0]++
+      else if (msg.winner === 1) room.scores[1]++
+
+      // Турнир — следующая партия?
+      if (room.currentGame < room.totalGames) {
+        room.currentGame++
+        const nextMsg = JSON.stringify({
+          type: 'nextGame',
+          currentGame: room.currentGame, totalGames: room.totalGames,
+          scores: room.scores,
+          // Меняем стороны каждую партию
+          firstPlayer: room.currentGame % 2 === 1 ? 0 : 1,
+        })
+        room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(nextMsg))
+      } else {
+        // Турнир завершён
+        const finalMsg = JSON.stringify({
+          type: 'tournamentOver',
+          scores: room.scores,
+          winner: room.scores[0] > room.scores[1] ? 0 : room.scores[1] > room.scores[0] ? 1 : -1,
+        })
+        room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(finalMsg))
+      }
+    }
+
+    // ─── CHAT ───
+    if (msg.type === 'chat' && playerRoom) {
+      const chatMsg = JSON.stringify({ type: 'chat', from: playerIdx, text: (msg.text || '').slice(0, 200) })
+      playerRoom.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(chatMsg))
+    }
+  })
+
+  ws.on('close', () => {
+    if (playerRoom) {
+      const room = playerRoom
+      const dcMsg = JSON.stringify({ type: 'disconnected', playerIdx })
+      room.players.forEach((p, i) => {
+        if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(dcMsg)
+      })
+      // Удаляем комнату через 60 сек если не переподключился
+      setTimeout(() => {
+        if (room.players.some(p => p.ws?.readyState !== 1)) rooms.delete(room.id)
+      }, 60000)
+    }
+  })
 })
 
 // ═══ Старт ═══
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n✅ Стойки API: http://0.0.0.0:${PORT}`)
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n✅ Стойки API + WS: http://0.0.0.0:${PORT}`)
+  console.log(`   WebSocket: ws://0.0.0.0:${PORT}/ws`)
   console.log(`   Health: http://0.0.0.0:${PORT}/api/health`)
-  console.log(`   JWT_SECRET: ${JWT_SECRET.substring(0, 10)}...`)
 })
