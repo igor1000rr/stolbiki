@@ -1,14 +1,35 @@
 // Генерация звуков через Web Audio API — никаких файлов не нужно
 let ctx = null
+let unlocked = false
 
 function getCtx() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
   return ctx
 }
 
+// Мобильные браузеры блокируют AudioContext до первого тапа
+function unlock() {
+  if (unlocked) return
+  const c = getCtx()
+  if (c.state === 'suspended') c.resume()
+  // Тихий буфер для разблокировки iOS Safari
+  const buf = c.createBuffer(1, 1, 22050)
+  const src = c.createBufferSource()
+  src.buffer = buf
+  src.connect(c.destination)
+  src.start(0)
+  unlocked = true
+}
+
+// Вешаем на все события касания/клика — один раз
+;['touchstart', 'touchend', 'mousedown', 'click'].forEach(evt => {
+  document.addEventListener(evt, unlock, { once: true, passive: true })
+})
+
 function playTone(freq, duration, type = 'sine', volume = 0.15) {
   try {
     const c = getCtx()
+    if (c.state === 'suspended') c.resume()
     const osc = c.createOscillator()
     const gain = c.createGain()
     osc.type = type
