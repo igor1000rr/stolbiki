@@ -65,6 +65,8 @@ export function getValidTransfers(state) {
   for (const src of opens) {
     const [grpColor, grpSize] = state.topGroup(src)
     if (grpSize === 0) continue
+    // Игрок может переносить только группы своего цвета
+    if (grpColor !== player) continue
     for (const dst of opens) {
       if (dst === src) continue
       const dstChips = state.stands[dst]
