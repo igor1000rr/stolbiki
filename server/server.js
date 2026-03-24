@@ -273,9 +273,10 @@ function auth(req, res, next) {
   try {
     req.user = jwt.verify(token, JWT_SECRET)
     // Обновляем last_seen
-    db.prepare('UPDATE users SET last_seen = datetime("now") WHERE id = ?').run(req.user.id)
+    db.prepare(`UPDATE users SET last_seen = datetime('now') WHERE id = ?`).run(req.user.id)
     next()
-  } catch {
+  } catch (authErr) {
+    console.error('AUTH ERROR:', authErr.message)
     res.status(401).json({ error: 'Неверный токен' })
   }
 }
