@@ -1,0 +1,236 @@
+/**
+ * Changelog — история версий
+ * Написано от руки, без AI-генерации
+ */
+import { useI18n } from '../engine/i18n'
+
+const VERSIONS = [
+  {
+    version: '3.2',
+    date: '2026-03-24',
+    title_ru: 'Админ-панель и безопасность',
+    title_en: 'Admin panel & security',
+    changes_ru: [
+      { type: 'new', text: 'Полноценная админ-панель: пользователи, партии, блог, сезоны, сервер' },
+      { type: 'new', text: 'Управление блогом через админку (создание, редактирование, удаление)' },
+      { type: 'new', text: 'Мониторинг комнат и очереди в реальном времени' },
+      { type: 'new', text: 'Статистика ачивок и обучающих данных' },
+      { type: 'fix', text: 'WebSocket аутентификация — токен передаётся при подключении' },
+      { type: 'fix', text: 'Валидация результатов партий на сервере (защита от накрутки)' },
+      { type: 'fix', text: 'Исправлена проверка прав администратора в блоге' },
+      { type: 'fix', text: 'Helmet CSP включён, CORS ограничен' },
+      { type: 'fix', text: 'Исправлен баг с двойной отправкой чат-сообщений в онлайне' },
+      { type: 'perf', text: 'Game и Online загружаются только при первом посещении' },
+      { type: 'perf', text: 'Service Worker обновляется автоматически при каждом деплое' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Full admin panel: users, games, blog, seasons, server monitoring' },
+      { type: 'new', text: 'Blog management through admin (create, edit, delete)' },
+      { type: 'new', text: 'Live room & matchmaking queue monitoring' },
+      { type: 'new', text: 'Achievement and training data stats' },
+      { type: 'fix', text: 'WebSocket authentication — token sent on connection' },
+      { type: 'fix', text: 'Server-side game result validation (anti-cheat)' },
+      { type: 'fix', text: 'Fixed admin permission check in blog endpoints' },
+      { type: 'fix', text: 'Helmet CSP enabled, CORS restricted' },
+      { type: 'fix', text: 'Fixed duplicate chat messages in online mode' },
+      { type: 'perf', text: 'Game and Online lazy-loaded on first visit only' },
+      { type: 'perf', text: 'Service Worker auto-updates on each deploy' },
+    ],
+  },
+  {
+    version: '3.1',
+    date: '2026-03-20',
+    title_ru: 'Интерактивные правила и схемы',
+    title_en: 'Interactive rules & diagrams',
+    changes_ru: [
+      { type: 'new', text: 'Интерактивная схема переноса — 4 шага с анимацией' },
+      { type: 'new', text: 'Интерактивная схема закрытия стойки — 3 шага' },
+      { type: 'new', text: 'Демо Swap Rule с кнопкой смены цветов' },
+      { type: 'new', text: 'Расширенные правила: все нюансы из оригинального ТЗ' },
+      { type: 'fix', text: 'Стили футера (разделители и расположение)' },
+      { type: 'new', text: 'Ссылки в подвале: Changelog, Правила, Print & Play' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Interactive transfer diagram — 4 animated steps' },
+      { type: 'new', text: 'Interactive stand closing diagram — 3 steps' },
+      { type: 'new', text: 'Swap Rule demo with color swap button' },
+      { type: 'new', text: 'Expanded rules: all nuances from original spec' },
+      { type: 'fix', text: 'Footer styles (dividers and layout)' },
+      { type: 'new', text: 'Footer links: Changelog, Rules, Print & Play' },
+    ],
+  },
+  {
+    version: '3.0',
+    date: '2026-03-15',
+    title_ru: 'Масштабное обновление',
+    title_en: 'Major update',
+    changes_ru: [
+      { type: 'new', text: '26 ачивок (было 14) с цветовыми категориями: бронза, серебро, золото, алмаз' },
+      { type: 'new', text: 'Рейтинговые сезоны — каждый месяц новый, свой лидерборд' },
+      { type: 'new', text: '14 настроек: таймер, стиль фишек, плотность доски, дальтоники, крупный текст' },
+      { type: 'new', text: 'Полная мультиязычность RU/EN — весь интерфейс переведён' },
+      { type: 'new', text: 'Resign и предложение ничьей в онлайне' },
+      { type: 'new', text: 'Quick-chat: gg, gl, nice, wp, !' },
+      { type: 'new', text: 'Случайный матчмейкинг — кнопка «Найти соперника»' },
+      { type: 'new', text: 'Авторизация в шапке — аватар с рейтингом' },
+      { type: 'new', text: 'Лендинг с scroll-анимациями (4 итерации дизайна)' },
+      { type: 'perf', text: 'Error Boundary + lazy loading (11 компонентов)' },
+      { type: 'perf', text: 'Hash routing: #game, #blog, #puzzles — back/forward работает' },
+      { type: 'new', text: 'OG-теги, JSON-LD, robots.txt, sitemap' },
+      { type: 'new', text: 'Accessibility: aria-labels, focus-visible, skip-link, keyboard nav' },
+      { type: 'new', text: 'Service Worker: network-first, не кеширует API' },
+    ],
+    changes_en: [
+      { type: 'new', text: '26 achievements (was 14) with color tiers: bronze, silver, gold, diamond' },
+      { type: 'new', text: 'Ranked seasons — monthly, each with its own leaderboard' },
+      { type: 'new', text: '14 settings: timer, chip style, board density, colorblind, large text' },
+      { type: 'new', text: 'Full RU/EN internationalization' },
+      { type: 'new', text: 'Resign and draw offer in online mode' },
+      { type: 'new', text: 'Quick chat: gg, gl, nice, wp, !' },
+      { type: 'new', text: 'Random matchmaking — "Find opponent" button' },
+      { type: 'new', text: 'Auth in header — avatar with rating' },
+      { type: 'new', text: 'Landing page with scroll animations' },
+      { type: 'perf', text: 'Error Boundary + lazy loading (11 components)' },
+      { type: 'perf', text: 'Hash routing with browser back/forward support' },
+      { type: 'new', text: 'OG tags, JSON-LD, robots.txt, sitemap' },
+      { type: 'new', text: 'Accessibility: aria-labels, focus-visible, skip-link' },
+      { type: 'new', text: 'Service Worker: network-first, skips API caching' },
+    ],
+  },
+  {
+    version: '2.0',
+    date: '2026-02-20',
+    title_ru: 'Онлайн мультиплеер и головоломки',
+    title_en: 'Online multiplayer & puzzles',
+    changes_ru: [
+      { type: 'new', text: 'Онлайн мультиплеер по ссылке — WebSocket, QR-код, серии 3/5' },
+      { type: 'new', text: 'Ежедневные и еженедельные головоломки с лидербордами' },
+      { type: 'new', text: 'Банк из 50 головоломок (3 уровня сложности)' },
+      { type: 'new', text: 'Ежедневный челлендж со стартовой позицией' },
+      { type: 'new', text: 'Система друзей — запросы, принятие' },
+      { type: 'new', text: 'История партий (50 последних)' },
+      { type: 'new', text: '4 темы: Dark, Neon, Wood, Light' },
+      { type: 'new', text: '4 звуковых пака: classic, minimal, retro, off' },
+      { type: 'new', text: 'Print & Play PDF: 3 страницы A4' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Online multiplayer via link — WebSocket, QR code, best-of-3/5' },
+      { type: 'new', text: 'Daily and weekly puzzles with leaderboards' },
+      { type: 'new', text: '50 puzzle bank (3 difficulty levels)' },
+      { type: 'new', text: 'Daily challenge with starting position' },
+      { type: 'new', text: 'Friends system — requests, acceptance' },
+      { type: 'new', text: 'Game history (last 50)' },
+      { type: 'new', text: '4 themes: Dark, Neon, Wood, Light' },
+      { type: 'new', text: '4 sound packs: classic, minimal, retro, off' },
+      { type: 'new', text: 'Print & Play PDF: 3 A4 pages' },
+    ],
+  },
+  {
+    version: '1.0',
+    date: '2026-01-15',
+    title_ru: 'Первый релиз',
+    title_en: 'First release',
+    changes_ru: [
+      { type: 'new', text: 'Полная реализация правил: 10 стоек, 11 фишек, золотая стойка' },
+      { type: 'new', text: 'AI на AlphaZero: MCTS + нейросеть, 3 уровня сложности' },
+      { type: 'new', text: 'GPU-обучение: 1146 итераций, loss 0.098, win rate 97%' },
+      { type: 'new', text: 'Баланс P1/P2: 52:48 на 239K партий' },
+      { type: 'new', text: 'Swap rule для компенсации преимущества первого хода' },
+      { type: 'new', text: 'Режимы: vs AI, PvP локально, AI vs AI (наблюдение)' },
+      { type: 'new', text: 'ELO рейтинг и профиль игрока' },
+      { type: 'new', text: '12 аватаров на выбор' },
+      { type: 'new', text: 'Блог с новостями разработки' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Full game rules: 10 stands, 11 chips, golden stand' },
+      { type: 'new', text: 'AlphaZero AI: MCTS + neural network, 3 difficulty levels' },
+      { type: 'new', text: 'GPU training: 1146 iterations, loss 0.098, win rate 97%' },
+      { type: 'new', text: 'P1/P2 balance: 52:48 across 239K games' },
+      { type: 'new', text: 'Swap rule to compensate first-move advantage' },
+      { type: 'new', text: 'Modes: vs AI, local PvP, AI vs AI (spectate)' },
+      { type: 'new', text: 'ELO rating and player profile' },
+      { type: 'new', text: '12 avatars to choose from' },
+      { type: 'new', text: 'Dev blog' },
+    ],
+  },
+]
+
+const TYPE_STYLE = {
+  new: { label: 'NEW', color: '#3dd68c', bg: 'rgba(61,214,140,0.1)' },
+  fix: { label: 'FIX', color: '#f0654a', bg: 'rgba(240,101,74,0.1)' },
+  perf: { label: 'PERF', color: '#4a9eff', bg: 'rgba(74,158,255,0.1)' },
+}
+
+function formatDate(dateStr, lang) {
+  const d = new Date(dateStr)
+  if (lang === 'en') return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  return d.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+export default function Changelog() {
+  const { lang } = useI18n()
+  const en = lang === 'en'
+
+  return (
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Changelog</h2>
+        <p style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
+          {en ? 'What changed and when. Every update in one place.' : 'Что менялось и когда. Все обновления в одном месте.'}
+        </p>
+      </div>
+
+      <div style={{ position: 'relative', paddingLeft: 28 }}>
+        {/* Вертикальная линия */}
+        <div style={{
+          position: 'absolute', left: 8, top: 8, bottom: 0, width: 2,
+          background: 'linear-gradient(to bottom, var(--accent), var(--surface3))',
+          borderRadius: 1,
+        }} />
+
+        {VERSIONS.map((v, vi) => {
+          const changes = en ? v.changes_en : v.changes_ru
+          const title = en ? v.title_en : v.title_ru
+
+          return (
+            <div key={v.version} style={{ marginBottom: vi < VERSIONS.length - 1 ? 36 : 0, position: 'relative' }}>
+              {/* Точка на линии */}
+              <div style={{
+                position: 'absolute', left: -24, top: 6, width: 14, height: 14,
+                borderRadius: '50%', background: vi === 0 ? 'var(--accent)' : 'var(--surface3)',
+                border: `2px solid ${vi === 0 ? 'var(--accent)' : 'var(--surface3)'}`,
+              }} />
+
+              {/* Заголовок версии */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: 18, fontWeight: 700, color: 'var(--ink)',
+                  fontFamily: "'DM Serif Display', serif",
+                }}>v{v.version}</span>
+                <span style={{ fontSize: 14, color: 'var(--ink2)', fontWeight: 500 }}>{title}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 'auto' }}>{formatDate(v.date, lang)}</span>
+              </div>
+
+              {/* Список изменений */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {changes.map((c, ci) => {
+                  const t = TYPE_STYLE[c.type] || TYPE_STYLE.new
+                  return (
+                    <div key={ci} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+                        background: t.bg, color: t.color, flexShrink: 0, marginTop: 2,
+                        letterSpacing: 0.5, lineHeight: '14px',
+                      }}>{t.label}</span>
+                      <span style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.5 }}>{c.text}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

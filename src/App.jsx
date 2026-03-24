@@ -20,6 +20,7 @@ const Tutorial = lazy(() => import('./components/Tutorial'))
 const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
 const Admin = lazy(() => import('./components/Admin'))
+const Changelog = lazy(() => import('./components/Changelog'))
 
 function LazyFallback() {
   return <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>
@@ -57,7 +58,7 @@ export default function App() {
     if (params.get('room')) return 'online'
     const hash = location.hash.replace('#', '')
     if (hash.startsWith('blog')) return 'blog' // handles #blog and #blog/slug
-    if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay','admin'].includes(hash)) return hash
+    if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay','admin','changelog'].includes(hash)) return hash
     return 'landing'
   })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
@@ -187,6 +188,7 @@ export default function App() {
     { id: 'profile', icon: 'profile', label: en ? 'Profile' : 'Профиль' },
     { id: 'settings', icon: 'theme', label: en ? 'Settings' : 'Настройки' },
     { id: 'rules', icon: 'rules', label: en ? 'Rules' : 'Правила' },
+    { id: 'changelog', icon: 'blog', label: 'Changelog' },
   ]
   if (isAdmin) {
     secondaryNav.push(
@@ -370,6 +372,7 @@ export default function App() {
           {tab === 'dash' && isAdmin && <Dashboard />}
           {tab === 'replay' && isAdmin && <Replay />}
           {tab === 'admin' && isAdmin && <Admin />}
+          {tab === 'changelog' && <Changelog />}
           {tab === 'rules' && <Rules />}
         </Suspense>
       </main>
@@ -390,7 +393,7 @@ export default function App() {
             <span className="status-dot" style={{ background: publicStats ? 'var(--green)' : 'var(--p2)' }} />
             <span>{publicStats ? t('common.online') : t('common.offline')}</span>
             <span className="site-footer-divider" />
-            <a href="#blog/changelog-march" onClick={(e) => { e.preventDefault(); go('blog') }} style={{ cursor: 'pointer' }}>Changelog</a>
+            <a href="#changelog" onClick={(e) => { e.preventDefault(); go('changelog') }} style={{ cursor: 'pointer' }}>Changelog</a>
             <span className="site-footer-divider" />
             <a href="#rules" onClick={(e) => { e.preventDefault(); go('rules') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Rules' : 'Правила'}</a>
             <span className="site-footer-divider" />
