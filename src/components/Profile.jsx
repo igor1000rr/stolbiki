@@ -1,5 +1,33 @@
 import { useState, useEffect } from 'react'
 import * as API from '../engine/api'
+import Icon from './Icon'
+
+// Аватары — SVG символы
+const AVATARS = {
+  default: { label: 'Default', bg: 'linear-gradient(135deg, #6db4ff, #9b59b6)', render: (name) => name.charAt(0).toUpperCase() },
+  cat: { label: 'Cat', bg: 'linear-gradient(135deg, #ff9a56, #ff6b6b)', render: () => '🐱' },
+  dog: { label: 'Dog', bg: 'linear-gradient(135deg, #8B5E3C, #D4A574)', render: () => '🐶' },
+  fox: { label: 'Fox', bg: 'linear-gradient(135deg, #ff6b35, #ffc145)', render: () => '🦊' },
+  bear: { label: 'Bear', bg: 'linear-gradient(135deg, #6B4226, #A0522D)', render: () => '🐻' },
+  owl: { label: 'Owl', bg: 'linear-gradient(135deg, #5c6bc0, #3dd68c)', render: () => '🦉' },
+  robot: { label: 'Robot', bg: 'linear-gradient(135deg, #455a64, #78909c)', render: () => '🤖' },
+  crown: { label: 'Crown', bg: 'linear-gradient(135deg, #ffc145, #ff9800)', render: () => '👑' },
+  fire: { label: 'Fire', bg: 'linear-gradient(135deg, #ff5722, #ff9800)', render: () => '🔥' },
+  star: { label: 'Star', bg: 'linear-gradient(135deg, #ffc145, #fff176)', render: () => '⭐' },
+  diamond: { label: 'Diamond', bg: 'linear-gradient(135deg, #00bcd4, #b9f2ff)', render: () => '💎' },
+  ghost: { label: 'Ghost', bg: 'linear-gradient(135deg, #9e9e9e, #e0e0e0)', render: () => '👻' },
+}
+
+function AvatarCircle({ avatar, name, size = 56 }) {
+  const a = AVATARS[avatar] || AVATARS.default
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: a.bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.45, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+      {a.render(name || '?')}
+    </div>
+  )
+}
 
 // ─── localStorage fallback ───
 const STORAGE_KEY = 'stolbiki_profile'
@@ -230,6 +258,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(false)
   const [ratingHistory, setRatingHistory] = useState([])
   const [seasonData, setSeasonData] = useState(null)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [openingStats, setOpeningStats] = useState(null)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
@@ -249,6 +279,9 @@ export default function Profile() {
       .then(r => r.json()).then(setRatingHistory).catch(() => {})
     // Сезон
     fetch('/api/seasons/current').then(r => r.json()).then(setSeasonData).catch(() => {})
+    // Opening stats
+    fetch('/api/profile/opening-stats', { headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` } })
+      .then(r => r.json()).then(setOpeningStats).catch(() => {})
   }, [serverOnline]) // eslint-disable-line
 
   async function loadFriends() {
@@ -447,9 +480,13 @@ export default function Profile() {
         <>
           <div className="dash-card" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg, #6db4ff, #9b59b6)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#fff' }}>
-                {profile.name.charAt(0).toUpperCase()}
+              <div style={{ width: 56, height: 56, position: 'relative', cursor: 'pointer' }}
+                onClick={() => setShowAvatarPicker(v => !v)}>
+                <AvatarCircle avatar={profile.avatar || 'default'} name={profile.name} size={56} />
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: '50%',
+                  background: 'var(--surface)', border: '2px solid var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="theme" size={10} color="var(--ink3)" />
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>{profile.name}</div>
@@ -461,6 +498,25 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {/* Avatar picker */}
+          {showAvatarPicker && (
+            <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>Choose avatar</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {Object.entries(AVATARS).map(([key, av]) => (
+                  <div key={key} onClick={async () => {
+                    try { await fetch('/api/profile/avatar', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` }, body: JSON.stringify({ avatar: key }) }) } catch {}
+                    setProfile(p => { const np = { ...p, avatar: key }; saveLocal(np); return np })
+                    setShowAvatarPicker(false)
+                  }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5, transition: 'all 0.15s',
+                    transform: profile.avatar === key ? 'scale(1.1)' : 'scale(1)' }}>
+                    <AvatarCircle avatar={key} name={profile.name} size={40} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
@@ -496,6 +552,38 @@ export default function Profile() {
 
           {/* Текущий сезон */}
           {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} />}
+
+          {/* Opening stats — какой первый ход побеждает чаще */}
+          {openingStats && openingStats.total > 5 && (
+            <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+              <h3 style={{ fontSize: 13, margin: '0 0 10px' }}>First move stats</h3>
+              <div style={{ display: 'flex', gap: 2, height: 40, alignItems: 'flex-end' }}>
+                {Array.from({ length: 10 }, (_, i) => {
+                  const count = openingStats.standCounts?.[i] || 0
+                  const wins = openingStats.standWins?.[i] || 0
+                  const maxCount = Math.max(1, ...Object.values(openingStats.standCounts || {}))
+                  const pct = count / maxCount
+                  const wr = count > 0 ? wins / count : 0
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <div style={{ width: '80%', height: `${Math.max(4, pct * 32)}px`, borderRadius: 2,
+                        background: wr > 0.6 ? '#3dd68c' : wr > 0.4 ? '#ffc145' : count > 0 ? '#ff6066' : 'var(--surface2)',
+                        transition: 'height 0.3s' }} />
+                      <span style={{ fontSize: 8, color: 'var(--ink3)' }}>{i === 0 ? '★' : i}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 9, color: 'var(--ink3)' }}>
+                <span>{openingStats.total} games</span>
+                <span style={{ display: 'flex', gap: 8 }}>
+                  <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: '#3dd68c', marginRight: 3 }} />&gt;60% WR</span>
+                  <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: '#ffc145', marginRight: 3 }} />40-60%</span>
+                  <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: '#ff6066', marginRight: 3 }} />&lt;40%</span>
+                </span>
+              </div>
+            </div>
+          )}
 
           {unlockedAch.length > 0 && (
             <div className="dash-card" style={{ marginBottom: 16 }}>

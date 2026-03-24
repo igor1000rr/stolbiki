@@ -249,7 +249,11 @@ export default function App() {
             <div className="header-auth" ref={authRef}>
               {authUser ? (
                 <button className="header-auth-user" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
-                  <div className="header-avatar">{authUser.name.charAt(0).toUpperCase()}</div>
+                  <div className="header-avatar">{
+                    authUser.avatar && authUser.avatar !== 'default'
+                      ? { cat:'🐱',dog:'🐶',fox:'🦊',bear:'🐻',owl:'🦉',robot:'🤖',crown:'👑',fire:'🔥',star:'⭐',diamond:'💎',ghost:'👻' }[authUser.avatar] || authUser.name.charAt(0).toUpperCase()
+                      : authUser.name.charAt(0).toUpperCase()
+                  }</div>
                   <span className="header-username">{authUser.name}</span>
                   {authUser.rating > 0 && <span className="header-rating">{authUser.rating}</span>}
                 </button>
