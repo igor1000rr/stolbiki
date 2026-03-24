@@ -26,6 +26,7 @@ const icons = {
   analytics: <><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></>,
   replay: <><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></>,
   chevron: <><path d="m6 9 6 6 6-6" /></>,
+  shield: <><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></>,
 }
 
 export default function Icon({ name, size = 20, color, style = {}, className = '' }) {

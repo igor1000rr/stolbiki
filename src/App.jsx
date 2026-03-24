@@ -65,6 +65,10 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
 
+  // Ленивый mount для Game/Online — грузятся только при первом посещении таба
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([tab]))
+  useEffect(() => { setVisitedTabs(prev => { if (prev.has(tab)) return prev; const n = new Set(prev); n.add(tab); return n }) }, [tab])
+
   // Auth state — synced with localStorage
   const [authUser, setAuthUser] = useState(() => {
     try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); return p?.name ? p : null } catch { return null }
@@ -186,7 +190,7 @@ export default function App() {
   ]
   if (isAdmin) {
     secondaryNav.push(
-      { id: 'admin', icon: 'settings', label: en ? 'Admin Panel' : 'Админка' },
+      { id: 'admin', icon: 'shield', label: en ? 'Admin Panel' : 'Админка' },
       { id: 'sim', icon: 'sim', label: 'Simulator' },
       { id: 'dash', icon: 'analytics', label: 'Dashboard' },
       { id: 'replay', icon: 'replay', label: 'Replays' },
@@ -353,8 +357,8 @@ export default function App() {
           {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
-          <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
-          <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
+          {visitedTabs.has('game') && <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>}
+          {visitedTabs.has('online') && <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           {tab === 'puzzles' && <Puzzles />}

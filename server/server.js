@@ -256,6 +256,8 @@ function rateLimit(windowMs = 60000, max = 60) {
 setInterval(() => {
   const now = Date.now()
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
+  // Чистка антиспам-лимитов записи партий
+  for (const [k, v] of gameSubmitLimits) { if (now - v > 60000) gameSubmitLimits.delete(k) }
   // Если Map разросся — полная очистка (защита от DDoS)
   if (rateLimits.size > 50000) rateLimits.clear()
 }, 300000)
@@ -342,20 +344,56 @@ function formatUser(u) {
 }
 
 // ═══ GAMES ═══
+// Антиспам: 1 партия / 10 сек на игрока
+const gameSubmitLimits = new Map()
+
 app.post('/api/games', auth, (req, res) => {
   const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline } = req.body
+
+  // ── Валидация формата score ──
+  if (!score || typeof score !== 'string') return res.status(400).json({ error: 'Некорректный счёт' })
+  const scoreParts = score.split(':')
+  if (scoreParts.length !== 2) return res.status(400).json({ error: 'Формат счёта: X:Y' })
+  const [s1, s2] = scoreParts.map(Number)
+  if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0 || s1 > 10 || s2 > 10) {
+    return res.status(400).json({ error: 'Счёт вне диапазона 0-10' })
+  }
+  if (s1 + s2 > 10) return res.status(400).json({ error: 'Сумма счёта > 10' })
+
+  // ── Валидация won vs score ──
+  // Если won=true, игрок должен иметь больше стоек (s1 > s2 для P1)
+  if (won && s1 <= s2 && s1 !== s2) {
+    // Допускаем: золотая стойка могла решить при 5:5
+  }
+  if (!won && s1 > s2) {
+    // Проиграл но счёт в его пользу — подозрительно, но допускаем (resign, таймаут)
+  }
+
+  // ── Валидация turns/duration ──
+  const safeTurns = Math.max(0, Math.min(500, Math.floor(+turns || 0)))
+  const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
+  const safeDifficulty = Math.max(0, Math.min(100, Math.floor(+difficulty || 50)))
+
+  // ── Антиспам: 1 партия / 10 сек ──
+  const now = Date.now()
+  const lastSubmit = gameSubmitLimits.get(req.user.id)
+  if (lastSubmit && now - lastSubmit < 10000) {
+    return res.status(429).json({ error: 'Слишком быстро. Подождите 10 секунд' })
+  }
+  gameSubmitLimits.set(req.user.id, now)
+
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
 
   const ratingBefore = user.rating
   let ratingDelta = won ? 25 : -15
-  if (difficulty >= 100) ratingDelta = won ? 35 : -10
-  else if (difficulty <= 20) ratingDelta = won ? 15 : -20
+  if (safeDifficulty >= 100) ratingDelta = won ? 35 : -10
+  else if (safeDifficulty <= 20) ratingDelta = won ? 15 : -20
 
   const ratingAfter = Math.max(100, Math.min(2500, ratingBefore + ratingDelta))
   const newStreak = won ? user.win_streak + 1 : 0
   const bestStreak = Math.max(user.best_streak, newStreak)
-  const isFastWin = won && turns && turns <= 10
+  const isFastWin = won && safeTurns > 0 && safeTurns <= 10
 
   // Обновляем пользователя
   db.prepare(`UPDATE users SET
@@ -374,7 +412,7 @@ app.post('/api/games', auth, (req, res) => {
     newStreak, bestStreak,
     closedGolden ? 1 : 0, isComeback ? 1 : 0,
     score === '6:0' && won ? 1 : 0,
-    difficulty >= 100 && won ? 1 : 0,
+    safeDifficulty >= 100 && won ? 1 : 0,
     isFastWin ? 1 : 0,
     isOnline && won ? 1 : 0,
     req.user.id
@@ -383,7 +421,7 @@ app.post('/api/games', auth, (req, res) => {
   // Записываем партию
   const gameResult = db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration, is_online)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, difficulty || 50, closedGolden ? 1 : 0, isComeback ? 1 : 0, turns || 0, duration || 0, isOnline ? 1 : 0)
+  ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, safeDifficulty, closedGolden ? 1 : 0, isComeback ? 1 : 0, safeTurns, safeDuration, isOnline ? 1 : 0)
 
   // Записываем историю рейтинга
   db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
@@ -985,32 +1023,51 @@ import { createServer } from 'http'
 const server = createServer(app)
 const wss = new WebSocketServer({ server, path: '/ws' })
 
-wss.on('connection', (ws) => {
+// Верификация WS-клиента по токену
+function wsAuth(token) {
+  if (!token) return null
+  try { return jwt.verify(token, JWT_SECRET) } catch { return null }
+}
+
+wss.on('connection', (ws, req) => {
   let playerRoom = null
   let playerIdx = -1
+  let wsUser = null // { id, username, isAdmin } — null = гость
+
+  // Аутентификация через первое сообщение или query param
+  const url = new URL(req.url, 'http://localhost')
+  const tokenFromUrl = url.searchParams.get('token')
+  if (tokenFromUrl) wsUser = wsAuth(tokenFromUrl)
 
   ws.on('message', (raw) => {
     let msg
     try { msg = JSON.parse(raw) } catch { return }
 
+    // Аутентификация через сообщение (альтернатива query param)
+    if (msg.type === 'auth') {
+      wsUser = wsAuth(msg.token)
+      ws.send(JSON.stringify({ type: 'authResult', ok: !!wsUser, username: wsUser?.username }))
+      return
+    }
+
     // ─── JOIN ───
     // ─── MATCHMAKING ───
     if (msg.type === 'findMatch') {
-      const name = msg.name || 'Player'
+      const name = wsUser?.username || msg.name || 'Player'
       // Remove stale entries
       for (let i = matchQueue.length - 1; i >= 0; i--) {
         if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
       }
       // Check if already in queue
       if (matchQueue.some(q => q.ws === ws)) return
-      matchQueue.push({ ws, name })
+      matchQueue.push({ ws, name, userId: wsUser?.id || null })
 
       if (matchQueue.length >= 2) {
         const p1 = matchQueue.shift()
         const p2 = matchQueue.shift()
         // Create room
         const roomId = Math.random().toString(36).slice(2, 8).toUpperCase()
-        const room = { id: roomId, players: [{ ws: p1.ws, name: p1.name }, { ws: p2.ws, name: p2.name }],
+        const room = { id: roomId, players: [{ ws: p1.ws, name: p1.name, userId: p1.userId }, { ws: p2.ws, name: p2.name, userId: p2.userId }],
           mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0] }
         rooms.set(roomId, room)
         // Notify both
@@ -1039,7 +1096,7 @@ wss.on('connection', (ws) => {
       if (room.players.length >= 2) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната полна' }))
 
       playerIdx = room.players.length
-      room.players.push({ ws, name: msg.name || `Игрок ${playerIdx + 1}` })
+      room.players.push({ ws, name: wsUser?.username || msg.name || `Игрок ${playerIdx + 1}`, userId: wsUser?.id || null })
       playerRoom = room
 
       ws.send(JSON.stringify({ type: 'joined', roomId, playerIdx, mode: room.mode, totalGames: room.totalGames }))

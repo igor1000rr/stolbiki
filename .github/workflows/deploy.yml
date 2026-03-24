@@ -25,6 +25,9 @@ jobs:
         run: |
           npm ci
           VITE_API_URL=/api npm run build
+          # Инъекция build hash в Service Worker
+          BUILD_HASH=$(git rev-parse --short HEAD)-$(date +%s)
+          sed -i "s/__BUILD_HASH__/$BUILD_HASH/g" dist/sw.js
 
       - name: Upload Frontend
         uses: appleboy/scp-action@v0.1.7
@@ -43,7 +46,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "server/package.json,server/server.js,server/ecosystem.config.cjs"
+          source: "server/package.json,server/server.js,server/ecosystem.config.cjs,server/backup.sh"
           target: /opt/stolbiki-api
           strip_components: 1
 

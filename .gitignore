@@ -40,3 +40,8 @@ server/data/
 
 # Бэкапы
 *-backups/
+
+# Отчёты (генерятся, не хранить в git)
+public/report.pdf
+public/stolbiki-report.docx
+stolbiki-report.docx

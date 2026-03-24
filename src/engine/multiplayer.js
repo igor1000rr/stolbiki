@@ -1,9 +1,15 @@
 /**
  * WebSocket клиент для онлайн мультиплеера
+ * Поддержка аутентификации через JWT token в query param
  */
 
-const WS_URL = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws'
+const WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws'
 const API = '/api'
+
+function getWsUrl() {
+  const token = localStorage.getItem('stolbiki_token')
+  return token ? `${WS_BASE}?token=${encodeURIComponent(token)}` : WS_BASE
+}
 
 let ws = null
 let onMessage = null
@@ -13,7 +19,7 @@ export function connect(roomId, name, callback) {
   onMessage = callback
   if (ws) ws.close()
 
-  ws = new WebSocket(WS_URL)
+  ws = new WebSocket(getWsUrl())
 
   ws.onopen = () => {
     ws.send(JSON.stringify({ type: 'join', roomId, name }))
@@ -54,7 +60,7 @@ export function sendChat(text) {
 export function findMatch(name, callback) {
   onMessage = callback
   if (ws) ws.close()
-  ws = new WebSocket(WS_URL)
+  ws = new WebSocket(getWsUrl())
   ws.onopen = () => { ws.send(JSON.stringify({ type: 'findMatch', name })) }
   ws.onmessage = (e) => { try { if (onMessage) onMessage(JSON.parse(e.data)) } catch {} }
   ws.onclose = () => { if (onMessage) onMessage({ type: 'disconnected' }) }

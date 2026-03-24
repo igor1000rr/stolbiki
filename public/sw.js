@@ -1,5 +1,5 @@
-// Service Worker — автоматический version bump через timestamp при каждом деплое
-const CACHE_NAME = 'stolbiki-v' + '20260324'
+// Service Worker — version обновляется автоматически при каждом деплое
+const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
 const STATIC_ASSETS = ['/', '/favicon.svg', '/manifest.json']
 
 self.addEventListener('install', e => {
