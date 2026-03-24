@@ -230,15 +230,24 @@ function OverviewTab() {
 }
 
 function MiniBarChart({ data, color }) {
-  if (!data?.length) return <div style={{ ...S.emptyState, padding: 20 }}>Нет данных</div>
-  const max = Math.max(...data.map(d => d.count), 1)
+  // Всегда показываем 30 дней, заполняя пустые нулями
+  const days = []
+  const dataMap = new Map((data || []).map(d => [d.day, d.count]))
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    days.push({ day: key, count: dataMap.get(key) || 0 })
+  }
+  const max = Math.max(...days.map(d => d.count), 1)
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 64 }}>
-      {data.map((d, i) => (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 64 }}>
+      {days.map((d, i) => (
         <div key={i} title={`${d.day}: ${d.count}`} style={{
-          flex: 1, minWidth: 4, height: `${Math.max(4, (d.count / max) * 100)}%`,
-          background: color, borderRadius: '3px 3px 0 0', opacity: 0.7, transition: 'height 0.3s',
-          cursor: 'default',
+          flex: 1, minWidth: 2, maxWidth: 16,
+          height: d.count > 0 ? `${Math.max(8, (d.count / max) * 100)}%` : '2px',
+          background: d.count > 0 ? color : 'rgba(255,255,255,0.06)',
+          borderRadius: '2px 2px 0 0', opacity: d.count > 0 ? 0.75 : 0.4,
+          transition: 'height 0.3s', cursor: 'default',
         }} />
       ))}
     </div>
