@@ -9,6 +9,7 @@ import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
 import * as MP from '../engine/multiplayer'
 import { isLoggedIn } from '../engine/api'
+import { getSettings } from './Settings'
 import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -16,14 +17,21 @@ const SL = i => i === GOLDEN_STAND ? '★' : String(i)
 // Haptic feedback
 const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms) } catch {} }
 
-// Звук через ref чтобы не пересоздавать
+// Звуковая система с пакетами
+let _soundPack = 'classic'
 let _soundOn = true
-const sp = () => { _soundOn && _sp(); haptic(5) }
-const st = () => { _soundOn && _st(); haptic(8) }
-const sc = () => { _soundOn && _sc(); haptic([15, 30, 15]) }
-const sw = () => { _soundOn && _sw(); haptic([10, 20, 10, 20, 30]) }
-const sl = () => { _soundOn && _sl(); haptic(20) }
-const ss = () => { _soundOn && _ss(); haptic(12) }
+
+function playSound(fn, hap) {
+  if (!_soundOn || _soundPack === 'off') return
+  fn()
+  haptic(hap)
+}
+const sp = () => playSound(_sp, 5)
+const st = () => playSound(_st, 8)
+const sc = () => playSound(_sc, [15, 30, 15])
+const sw = () => playSound(_sw, [10, 20, 10, 20, 30])
+const sl = () => playSound(_sl, 20)
+const ss = () => playSound(_ss, 12)
 
 function describeAction(a, p) {
   const name = p === 0 ? 'Синие' : 'Красные'
@@ -122,6 +130,22 @@ export default function Game() {
   const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
   const [soundOn, setSoundOn] = useState(true)
   useEffect(() => { _soundOn = soundOn }, [soundOn])
+  // Настройки из Settings
+  const [userSettings, setUserSettings] = useState(() => getSettings())
+  useEffect(() => {
+    _soundPack = userSettings.soundPack || 'classic'
+    _soundOn = soundOn && userSettings.soundPack !== 'off'
+  }, [userSettings, soundOn])
+  // Обновляем настройки когда возвращаются на вкладку Game
+  useEffect(() => {
+    const refresh = () => setUserSettings(getSettings())
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
+  }, [])
+  // Таймеры игроков
+  const TIMER_LIMITS = { off: 0, blitz: 180, rapid: 600, classical: 1800 }
+  const timerLimit = TIMER_LIMITS[userSettings.timer] || 0
+  const [playerTime, setPlayerTime] = useState([0, 0]) // секунды оставшиеся [p0, p1]
   const [log, setLog] = useState([])
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
@@ -186,6 +210,7 @@ export default function Game() {
       setGameMeta('online', 0)
       setGameStartTime(Date.now())
       setElapsed(0)
+      if (timerLimit) setPlayerTime([timerLimit, timerLimit])
       setUndoStack([])
       setPosEval(null)
       moveHistoryRef.current = []
@@ -306,6 +331,7 @@ export default function Game() {
       setGameMeta('daily', 100)
       setGameStartTime(Date.now())
       setElapsed(0)
+      if (timerLimit) setPlayerTime([timerLimit, timerLimit])
       setUndoStack([])
       setPosEval(null)
       moveHistoryRef.current = []
@@ -483,6 +509,7 @@ export default function Game() {
     setGameMeta(m, d)
     setGameStartTime(Date.now())
     setElapsed(0)
+      if (timerLimit) setPlayerTime([timerLimit, timerLimit])
     setUndoStack([])
     if (m === 'pvp') {
       setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
@@ -527,7 +554,38 @@ export default function Game() {
     return () => clearInterval(t)
   }, [gameStartTime, gs.gameOver])
 
+  // Таймер игроков (блиц/рапид)
+  useEffect(() => {
+    if (!timerLimit || gs.gameOver || locked || aiRunning.current) return
+    const cp = gs.currentPlayer
+    const t = setInterval(() => {
+      setPlayerTime(prev => {
+        const next = [...prev]
+        next[cp] = Math.max(0, prev[cp] - 1)
+        if (next[cp] <= 0) {
+          // Время кончилось — проигрыш
+          setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? 'Время вышло!' : 'Противник просрочил время!')
+          setLocked(false)
+        }
+        return next
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [timerLimit, gs.gameOver, gs.currentPlayer, locked])
+
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
+  // Автоподтверждение — когда макс фишек расставлены
+  useEffect(() => {
+    if (!userSettings.autoConfirm || phase !== 'place' || gs.gameOver || locked) return
+    const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
+    const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
+    if (totalPlaced >= maxTotal) {
+      // Откладываем на следующий tick чтобы стейт обновился
+      const t = setTimeout(() => confirmTurn(), 200)
+      return () => clearTimeout(t)
+    }
+  }, [placement, userSettings.autoConfirm]) // eslint-disable-line
+
   function onStandClick(i) {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
@@ -880,7 +938,27 @@ export default function Game() {
 
       <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`}>{info}</div>
 
-      <Board state={gs} pending={placement} selected={selected} phase={phase} humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer} onStandClick={onStandClick} aiThinking={aiThinking} onlineMode={mode === 'online'} />
+      <Board state={gs} pending={placement} selected={selected} phase={phase}
+        humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer}
+        onStandClick={onStandClick} aiThinking={aiThinking} onlineMode={mode === 'online'}
+        flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar} />
+
+      {/* Таймер игроков */}
+      {timerLimit > 0 && !gs.gameOver && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 16px 8px', fontSize: 13, fontFamily: 'monospace' }}>
+          <div style={{ color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 0 ? 700 : 400,
+            opacity: playerTime[0] < 30 && gs.currentPlayer === 0 ? (playerTime[0] % 2 ? 1 : 0.5) : 1 }}>
+            {Math.floor(playerTime[0] / 60)}:{String(playerTime[0] % 60).padStart(2, '0')}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--ink3)', alignSelf: 'center' }}>
+            {userSettings.timer === 'blitz' ? '3+0' : userSettings.timer === 'rapid' ? '10+0' : '30+0'}
+          </div>
+          <div style={{ color: gs.currentPlayer === 1 ? 'var(--p2)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 1 ? 700 : 400,
+            opacity: playerTime[1] < 30 && gs.currentPlayer === 1 ? (playerTime[1] % 2 ? 1 : 0.5) : 1 }}>
+            {Math.floor(playerTime[1] / 60)}:{String(playerTime[1] % 60).padStart(2, '0')}
+          </div>
+        </div>
+      )}
 
       {/* Прогресс закрытия стоек */}
       <div style={{ display: 'flex', gap: 2, margin: '8px 0', padding: '0 4px' }}>

@@ -23,7 +23,7 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending }) {
   )
 })
 
-export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking }) {
+export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking, flip = false, showChipCount = true, showFillBar = true }) {
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
   const [newChipMap, setNewChipMap] = useState({}) // { standIdx: { from, count } }
   const [flashSet, setFlashSet] = useState(new Set())
@@ -80,9 +80,12 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
     }
   }, [state])
 
+  const standOrder = flip ? [...Array(state.numStands).keys()].reverse() : [...Array(state.numStands).keys()]
+
   return (
-    <div className={`board ${aiThinking ? 'board-thinking' : ''}`}>
-      {state.stands.map((chips, i) => {
+    <div className={`board ${aiThinking ? 'board-thinking' : ''} ${flip ? 'board-flipped' : ''}`}>
+      {standOrder.map((i) => {
+        const chips = state.stands[i]
         const isClosed = i in state.closed
         const isGolden = i === GOLDEN_STAND
         const isSelected = selected === i
@@ -105,7 +108,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             {isClosed && <span className="stand-owner">П{state.closed[i] + 1}</span>}
 
             {/* Счётчик фишек */}
-            {!isClosed && chips.length > 0 && (
+            {showChipCount && !isClosed && chips.length > 0 && (
               <div style={{
                 position: 'absolute', bottom: -18, fontSize: 9, fontWeight: 600,
                 color: chips.length >= 9 ? '#ff6b6b' : chips.length >= 7 ? '#ffc145' : '#555',
@@ -116,7 +119,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             )}
 
             {/* Индикатор заполненности */}
-            {!isClosed && chips.length > 0 && (
+            {showFillBar && !isClosed && chips.length > 0 && (
               <div style={{
                 position: 'absolute', bottom: 2, left: '10%', right: '10%', height: 2,
                 background: '#2a2a38', borderRadius: 1, overflow: 'hidden', opacity: 0.6,
