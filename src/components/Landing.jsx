@@ -258,6 +258,21 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
+      {/* ═══ ABOUT ═══ */}
+      <section className="l-section" style={{ borderTop: '1px solid var(--surface2)', paddingTop: 48 }}>
+        <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+          <h2 className="l-title">{en ? 'About the project' : 'О проекте'}</h2>
+          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.75, marginBottom: 20 }}>
+            {en
+              ? 'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 52:48 between first and second player, verified by statistical analysis.'
+              : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 52:48 между первым и вторым игроком, подтверждено статистическим анализом.'}
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--ink3)', opacity: 0.6 }}>
+            {en ? 'Made by' : 'Автор'}: <a href="https://t.me/igor1000rr" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'none' }}>@igor1000rr</a>
+          </p>
+        </div>
+      </section>
+
       {/* ═══ CTA — gradient dramatic ═══ */}
       <section className="l-final">
         <div className="l-final-glow" />

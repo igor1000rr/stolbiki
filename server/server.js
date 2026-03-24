@@ -311,7 +311,7 @@ function formatUser(u) {
     goldenClosed: u.golden_closed, comebacks: u.comebacks,
     perfectWins: u.perfect_wins, beatHardAi: !!u.beat_hard_ai,
     fastWins: u.fast_wins || 0, onlineWins: u.online_wins || 0,
-    puzzlesSolved: u.puzzles_solved || 0,
+    puzzlesSolved: u.puzzles_solved || 0, avatar: u.avatar || 'default',
     isAdmin: !!u.is_admin, createdAt: u.created_at, lastSeen: u.last_seen,
   }
 }
@@ -356,9 +356,9 @@ app.post('/api/games', auth, (req, res) => {
   )
 
   // Записываем партию
-  const gameResult = db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, difficulty || 50, closedGolden ? 1 : 0, isComeback ? 1 : 0, turns || 0, duration || 0)
+  const gameResult = db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration, is_online)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, difficulty || 50, closedGolden ? 1 : 0, isComeback ? 1 : 0, turns || 0, duration || 0, isOnline ? 1 : 0)
 
   // Записываем историю рейтинга
   db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
@@ -1126,6 +1126,51 @@ wss.on('connection', (ws) => {
     }
   })
 })
+
+// ═══ AVATARS ═══
+try { db.exec('ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT "default"') } catch {}
+try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
+
+app.put('/api/profile/avatar', auth, (req, res) => {
+  const { avatar } = req.body
+  const valid = ['default','cat','dog','fox','bear','owl','robot','crown','fire','star','diamond','ghost']
+  if (!valid.includes(avatar)) return res.status(400).json({ error: 'Invalid avatar' })
+  db.prepare('UPDATE users SET avatar=? WHERE id=?').run(avatar, req.user.id)
+  res.json({ avatar })
+})
+
+// ═══ OPENING STATS (какой первый ход чаще побеждает) ═══
+app.get('/api/profile/opening-stats', auth, (req, res) => {
+  const games = db.prepare('SELECT game_data FROM training_data WHERE user_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.id)
+  // Простая статистика: сколько раз каждая стойка использовалась первым ходом
+  const standCounts = {}
+  const standWins = {}
+  for (const g of games) {
+    try {
+      const data = JSON.parse(g.game_data)
+      if (data.moves && data.moves[0]) {
+        const firstStand = data.moves[0].stand ?? data.moves[0].placement?.[0]
+        if (firstStand !== undefined) {
+          standCounts[firstStand] = (standCounts[firstStand] || 0) + 1
+          if (data.winner === 0) standWins[firstStand] = (standWins[firstStand] || 0) + 1
+        }
+      }
+    } catch {}
+  }
+  res.json({ total: games.length, standCounts, standWins })
+})
+
+// Changelog blog post
+addPost('changelog-march', 'Changelog: март 2026', 'Changelog: March 2026',
+  'Версия 3.0 — полный список изменений:\n\n' +
+  '• 26 ачивок (было 14) с цветовыми категориями\n• Рейтинговые сезоны (месячные) + график ELO\n• 14 настроек (таймер, фишки, доступность)\n• Полная мультиязычность RU/EN\n' +
+  '• Resign + предложение ничьей в онлайне\n• Quick-chat (gg, gl, nice, wp)\n• Случайный матчмейкинг\n• Авторизация в хедере\n• 3 новых блог-поста\n' +
+  '• Лендинг с scroll-анимациями (4 итерации дизайна)\n• Error Boundary + lazy loading (11 компонентов)\n• Hash routing (#game, #blog, #puzzles)\n• OG-теги, JSON-LD, robots.txt, sitemap\n• Accessibility (aria, landmarks, keyboard)\n• Service Worker: network-first',
+  'Version 3.0 — full changelog:\n\n' +
+  '• 26 achievements (was 14) with color tiers\n• Ranked seasons (monthly) + ELO graph\n• 14 settings (timer, chips, accessibility)\n• Full EN/RU internationalization\n' +
+  '• Resign + draw offer in online\n• Quick chat (gg, gl, nice, wp)\n• Random matchmaking\n• Auth in header\n• 3 new blog posts\n' +
+  '• Landing with scroll animations (4 design iterations)\n• Error Boundary + lazy loading (11 components)\n• Hash routing (#game, #blog, #puzzles)\n• OG tags, JSON-LD, robots.txt, sitemap\n• Accessibility (aria, landmarks, keyboard)\n• Service Worker: network-first',
+  'release')
 
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {

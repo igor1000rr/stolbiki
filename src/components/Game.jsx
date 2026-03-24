@@ -608,19 +608,20 @@ export default function Game() {
   useEffect(() => {
     if (!timerLimit || gs.gameOver || locked || aiRunning.current) return
     const cp = gs.currentPlayer
-    const t = setInterval(() => {
+    const iv = setInterval(() => {
       setPlayerTime(prev => {
         const next = [...prev]
         next[cp] = Math.max(0, prev[cp] - 1)
+        // Тиканье при <10с (только для текущего игрока-человека)
+        if (next[cp] <= 10 && next[cp] > 0 && cp === humanPlayer) sk()
         if (next[cp] <= 0) {
-          // Время кончилось — проигрыш
           setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
           setLocked(false)
         }
         return next
       })
     }, 1000)
-    return () => clearInterval(t)
+    return () => clearInterval(iv)
   }, [timerLimit, gs.gameOver, gs.currentPlayer, locked])
 
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
