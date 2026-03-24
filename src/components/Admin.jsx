@@ -333,7 +333,7 @@ function UsersTab() {
               <tr key={u.id} style={{ background: selected === u.id ? 'rgba(240,96,64,0.04)' : 'transparent' }}>
                 <td style={{ ...S.td, color: 'var(--ink3)', fontSize: 11 }}>{u.id}</td>
                 <td style={{ ...S.td, fontWeight: 600, color: 'var(--ink)' }}>
-                  {u.avatar && u.avatar !== 'default' && <span style={{ marginRight: 4 }}>{u.avatar === 'crown' ? '👑' : ''}</span>}
+                  {u.avatar && u.avatar !== 'default' && <span style={{ marginRight: 4, fontSize: 10, opacity: 0.6 }}>[{u.avatar}]</span>}
                   {u.username}
                   {u.is_admin ? <span style={{ ...S.badge('var(--accent)'), marginLeft: 6 }}>admin</span> : null}
                 </td>
@@ -547,7 +547,7 @@ function BlogTab() {
                 <td style={S.td}><span style={S.badge(p.tag === 'release' ? 'var(--green)' : p.tag === 'ai' ? 'var(--p1)' : 'var(--ink3)')}>{p.tag}</span></td>
                 <td style={S.td}>
                   {p.published ? <span style={S.badge('var(--green)')}>опубликован</span> : <span style={S.badge('var(--ink3)')}>черновик</span>}
-                  {p.pinned ? <span style={{ ...S.badge('var(--gold)'), marginLeft: 4 }}>📌</span> : null}
+                  {p.pinned ? <span style={{ ...S.badge('var(--gold)'), marginLeft: 4 }}>pin</span> : null}
                 </td>
                 <td style={{ ...S.td, fontSize: 11 }}>{ago(p.created_at)}</td>
                 <td style={S.td}>
@@ -751,12 +751,12 @@ function AchievementsTab() {
     beat_hard: 'Победил Hard AI', online_win: 'Онлайн победа', online_10: '10 онлайн', puzzle_10: '10 пазлов',
   }
   const TIERS = {
-    first_win: '🥉', streak_3: '🥉', golden_1: '🥉', comeback: '🥉', games_10: '🥉',
-    perfect: '🥈', streak_5: '🥈', golden_10: '🥈', games_50: '🥈', fast_win: '🥈',
-    rating_1200: '🥈', beat_hard: '🥈', online_win: '🥈',
-    streak_10: '🥇', perfect_3: '🥇', golden_50: '🥇', comeback_5: '🥇', games_100: '🥇',
-    rating_1500: '🥇', fast_win_5: '🥇', online_10: '🥇', puzzle_10: '🥇',
-    streak_20: '💎', games_500: '💎', rating_1800: '💎', rating_2000: '💎',
+    first_win: '#cd7f32', streak_3: '#cd7f32', golden_1: '#cd7f32', comeback: '#cd7f32', games_10: '#cd7f32',
+    perfect: '#c0c0c0', streak_5: '#c0c0c0', golden_10: '#c0c0c0', games_50: '#c0c0c0', fast_win: '#c0c0c0',
+    rating_1200: '#c0c0c0', beat_hard: '#c0c0c0', online_win: '#c0c0c0',
+    streak_10: '#ffc145', perfect_3: '#ffc145', golden_50: '#ffc145', comeback_5: '#ffc145', games_100: '#ffc145',
+    rating_1500: '#ffc145', fast_win_5: '#ffc145', online_10: '#ffc145', puzzle_10: '#ffc145',
+    streak_20: '#b9f2ff', games_500: '#b9f2ff', rating_1800: '#b9f2ff', rating_2000: '#b9f2ff',
   }
 
   return (

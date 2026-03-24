@@ -213,7 +213,7 @@ function CloseDiagram({ lang }) {
       arrow: true,
     },
     {
-      label: en ? 'Stand closes! 🎉' : 'Стойка закрылась! 🎉',
+      label: en ? 'Stand closes!' : 'Стойка закрылась!',
       desc: en ? '11 chips reached. Top color = Blue → Blue owns this stand. Stand is now locked.' : '11 фишек достигнуто. Сверху синие → стойка принадлежит синим. Теперь заблокирована.',
       chips: [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], closed: true, owner: 0,
       srcChips: [], srcLabel: '',
