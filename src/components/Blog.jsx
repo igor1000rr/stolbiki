@@ -80,6 +80,19 @@ export default function Blog() {
   const [activePost, setActivePost] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Read slug from URL hash: #blog/my-post-slug
+  useEffect(() => {
+    const hash = location.hash
+    const match = hash.match(/^#blog\/(.+)$/)
+    if (match) {
+      const slug = match[1]
+      fetch(`/api/blog/${slug}`)
+        .then(r => { if (!r.ok) throw new Error(); return r.json() })
+        .then(post => { setActivePost(post); setLoading(false) })
+        .catch(() => setLoading(false))
+    }
+  }, [])
+
   useEffect(() => {
     fetch('/api/blog')
       .then(r => r.json())
@@ -87,8 +100,20 @@ export default function Blog() {
       .catch(() => setLoading(false))
   }, [])
 
+  function openPost(post) {
+    setActivePost(post)
+    history.replaceState(null, '', `#blog/${post.slug}`)
+    document.title = `${lang === 'en' && post.title_en ? post.title_en : post.title_ru} — Stacks`
+  }
+
+  function goBack() {
+    setActivePost(null)
+    history.replaceState(null, '', '#blog')
+    document.title = 'Stacks — Strategy board game with AI'
+  }
+
   if (activePost) {
-    return <PostView post={activePost} lang={lang} onBack={() => setActivePost(null)} />
+    return <PostView post={activePost} lang={lang} onBack={goBack} />
   }
 
   return (
@@ -113,7 +138,7 @@ export default function Blog() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {posts.map(p => (
-            <PostCard key={p.id} post={p} lang={lang} onOpen={setActivePost} />
+            <PostCard key={p.id} post={p} lang={lang} onOpen={openPost} />
           ))}
         </div>
       )}

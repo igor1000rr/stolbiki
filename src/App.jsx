@@ -55,7 +55,8 @@ export default function App() {
     const params = new URLSearchParams(location.search)
     if (params.get('room')) return 'online'
     const hash = location.hash.replace('#', '')
-    if (hash && ['game','online','puzzles','openings','blog','profile','settings','rules','sim','dash','replay'].includes(hash)) return hash
+    if (hash.startsWith('blog')) return 'blog' // handles #blog and #blog/slug
+    if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay'].includes(hash)) return hash
     return 'landing'
   })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
@@ -123,7 +124,8 @@ export default function App() {
   useEffect(() => {
     const onHash = () => {
       const h = location.hash.replace('#', '')
-      if (h && h !== tab) setTab(h)
+      if (h.startsWith('blog')) { if (tab !== 'blog') setTab('blog') }
+      else if (h && h !== tab) setTab(h)
       else if (!h) setTab('landing')
     }
     window.addEventListener('hashchange', onHash)

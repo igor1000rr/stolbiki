@@ -202,7 +202,7 @@ body::before {
   font-family: 'Outfit', sans-serif; text-align: left; transition: all 0.15s;
 }
 .nav-more-menu button:hover { background: var(--surface2); color: var(--ink); }
-.nav-more-menu button.active { color: var(--accent); font-weight: 600; }
+.nav-more-menu button.active { color: var(--accent); font-weight: 600; background: transparent; box-shadow: none; }
 .nav-more-divider { height: 1px; background: var(--surface2); margin: 4px 8px; }
 .nav-more-row { display: flex; align-items: center; padding: 6px 14px; gap: 4px; }
 .nav-more-theme {

@@ -5,6 +5,13 @@
   <url><loc>http://178.212.12.71/#online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>http://178.212.12.71/#puzzles</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>http://178.212.12.71/#blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>http://178.212.12.71/#blog/launch</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>http://178.212.12.71/#blog/ai-v2</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>http://178.212.12.71/#blog/puzzles-launch</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>http://178.212.12.71/#blog/update-march-2026</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>http://178.212.12.71/#blog/online-v2</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>http://178.212.12.71/#blog/design-v3</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>http://178.212.12.71/#blog/changelog-march</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>http://178.212.12.71/#rules</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>http://178.212.12.71/print-and-play.pdf</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
