@@ -1,17 +1,17 @@
 import { useI18n } from '../engine/i18n'
 import Icon from './Icon'
 
-function FeatureCard({ icon, title, desc }) {
+const FEATURE_COLORS = ['#4a9eff', '#3dd68c', '#ffc145', '#9b59b6', '#f06040', '#00bcd4']
+
+function FeatureCard({ icon, title, desc, idx = 0 }) {
+  const c = FEATURE_COLORS[idx % FEATURE_COLORS.length]
   return (
     <div className="feature-card">
-      <div className="feature-accent" />
-      <div className="feature-body">
-        <div className="feature-head">
-          <Icon name={icon} size={18} color="var(--accent)" />
-          <h3 className="feature-title">{title}</h3>
-        </div>
-        <p className="feature-desc">{desc}</p>
+      <div className="feature-icon-wrap" style={{ background: `${c}12` }}>
+        <Icon name={icon} size={18} color={c} />
       </div>
+      <h3 className="feature-title">{title}</h3>
+      <p className="feature-desc">{desc}</p>
     </div>
   )
 }
@@ -115,12 +115,12 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       <section className="landing-section">
         <h2 className="section-title">{en ? 'Everything you need' : 'Всё для игры'}</h2>
         <div className="features-grid">
-          <FeatureCard icon="ai" title={en ? 'AlphaZero-based AI' : 'AI на базе AlphaZero'} desc={en ? '3 difficulty levels. GPU-trained neural net, 97% win rate against random play.' : '3 уровня сложности. Нейросеть обучена на GPU, 97% винрейт.'} />
-          <FeatureCard icon="online" title={en ? 'Online multiplayer' : 'Онлайн мультиплеер'} desc={en ? 'Send a link — play instantly. Best-of-3 and best-of-5 series. No signup.' : 'Отправьте ссылку — играйте сразу. Серии из 3 и 5 партий. Без регистрации.'} />
-          <FeatureCard icon="puzzle" title={en ? 'Daily puzzles' : 'Ежедневные головоломки'} desc={en ? 'New puzzle every day. Weekly challenge. Bank of 50 puzzles. Leaderboards.' : 'Новая задача каждый день. Еженедельный челлендж. Банк из 50 задач.'} />
-          <FeatureCard icon="trainer" title={en ? 'Trainer mode' : 'Режим «Тренер»'} desc={en ? 'AI evaluates every move in real-time. Shows position strength bar.' : 'AI оценивает каждый ход в реальном времени. Шкала силы позиции.'} />
-          <FeatureCard icon="chart" title={en ? 'Opening book' : 'Книга дебютов'} desc={en ? 'Heatmaps, opening strategies, stand analytics from 239K games.' : 'Тепловые карты, стратегии дебютов, аналитика из 239K партий.'} />
-          <FeatureCard icon="theme" title={en ? 'Themes & PWA' : 'Темы и PWA'} desc={en ? '4 color themes. Works offline on mobile. Add to home screen.' : '4 цветовые темы. Работает оффлайн. Добавьте на главный экран.'} />
+          <FeatureCard idx={0} icon="ai" title={en ? 'AlphaZero-based AI' : 'AI на базе AlphaZero'} desc={en ? '3 difficulty levels. GPU-trained neural net, 97% win rate against random play.' : '3 уровня сложности. Нейросеть обучена на GPU, 97% винрейт.'} />
+          <FeatureCard idx={1} icon="online" title={en ? 'Online multiplayer' : 'Онлайн мультиплеер'} desc={en ? 'Send a link — play instantly. Best-of-3 and best-of-5 series. No signup.' : 'Отправьте ссылку — играйте сразу. Серии из 3 и 5 партий. Без регистрации.'} />
+          <FeatureCard idx={2} icon="puzzle" title={en ? 'Daily puzzles' : 'Ежедневные головоломки'} desc={en ? 'New puzzle every day. Weekly challenge. Bank of 50 puzzles. Leaderboards.' : 'Новая задача каждый день. Еженедельный челлендж. Банк из 50 задач.'} />
+          <FeatureCard idx={3} icon="trainer" title={en ? 'Trainer mode' : 'Режим «Тренер»'} desc={en ? 'AI evaluates every move in real-time. Shows position strength bar.' : 'AI оценивает каждый ход в реальном времени. Шкала силы позиции.'} />
+          <FeatureCard idx={4} icon="chart" title={en ? 'Opening book' : 'Книга дебютов'} desc={en ? 'Heatmaps, opening strategies, stand analytics from 239K games.' : 'Тепловые карты, стратегии дебютов, аналитика из 239K партий.'} />
+          <FeatureCard idx={5} icon="theme" title={en ? 'Themes & PWA' : 'Темы и PWA'} desc={en ? '4 color themes. Works offline on mobile. Add to home screen.' : '4 цветовые темы. Работает оффлайн. Добавьте на главный экран.'} />
         </div>
       </section>
 
@@ -129,12 +129,14 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <h2 className="section-title">{en ? 'Who is it for' : 'Для кого'}</h2>
         <div className="audience-grid">
           {[
-            { icon: 'star', title: en ? 'Families' : 'Семьи', desc: en ? 'Simple rules, deep strategy. Ages 8+.' : 'Простые правила, глубокая стратегия. Возраст 8+.' },
-            { icon: 'trophy', title: en ? 'Board gamers' : 'Настольщики', desc: en ? 'Original mechanics. Balanced 52:48. Verified on 239K games.' : 'Оригинальная механика. Баланс 52:48. Проверено на 239K партиях.' },
-            { icon: 'online', title: en ? 'Online players' : 'Онлайн-игроки', desc: en ? 'No friend nearby? Play via link or train with AI.' : 'Нет друга рядом? Играйте онлайн или тренируйтесь с AI.' },
+            { icon: 'star', title: en ? 'Families' : 'Семьи', desc: en ? 'Simple rules, deep strategy. Ages 8+.' : 'Простые правила, глубокая стратегия. Возраст 8+.', c: '#ffc145' },
+            { icon: 'trophy', title: en ? 'Board gamers' : 'Настольщики', desc: en ? 'Original mechanics. Balanced 52:48. Verified on 239K games.' : 'Оригинальная механика. Баланс 52:48. Проверено на 239K партиях.', c: '#3dd68c' },
+            { icon: 'online', title: en ? 'Online players' : 'Онлайн-игроки', desc: en ? 'No friend nearby? Play via link or train with AI.' : 'Нет друга рядом? Играйте онлайн или тренируйтесь с AI.', c: '#4a9eff' },
           ].map((c, i) => (
             <div key={i} className="audience-card">
-              <Icon name={c.icon} size={20} color="var(--accent)" style={{ marginBottom: 10 }} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c.c}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <Icon name={c.icon} size={18} color={c.c} />
+              </div>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{c.title}</h3>
               <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, margin: 0 }}>{c.desc}</p>
             </div>

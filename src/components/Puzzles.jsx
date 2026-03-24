@@ -208,7 +208,7 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
       {/* Результат */}
       {status && (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>{status === 'solved' ? '🎉' : '😔'}</div>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>{status === 'solved' ? '!' : ''}</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: status === 'solved' ? 'var(--green)' : 'var(--p2)', marginBottom: 12 }}>
             {status === 'solved' ? (lang === 'en' ? 'Solved!' : 'Решено!') : (lang === 'en' ? 'Failed' : 'Не удалось')}
           </div>

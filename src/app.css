@@ -82,7 +82,7 @@ body::before {
    ═══════════════════════════════════════════ */
 .site-header {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(12,12,18,0.85);
+  background: rgba(12,12,18,0.97);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255,255,255,0.04);
   margin: 0 -24px; padding: 0 24px;
@@ -1419,25 +1419,34 @@ body::before {
 /* Features */
 .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .feature-card {
-  display: flex; overflow: hidden;
+  padding: 22px 24px;
   background: var(--surface); border: 1px solid var(--surface2);
-  border-radius: 12px; transition: transform 0.2s, border-color 0.2s;
+  border-radius: 14px; transition: transform 0.2s, border-color 0.3s, box-shadow 0.3s;
+  position: relative; overflow: hidden;
 }
-.feature-card:hover { transform: translateY(-1px); border-color: var(--surface3); }
-.feature-accent { width: 3px; background: var(--accent); flex-shrink: 0; border-radius: 3px 0 0 3px; }
-.feature-body { padding: 18px 20px; }
-.feature-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.feature-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.feature-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.feature-card:hover { transform: translateY(-2px); border-color: var(--surface3); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.feature-card:hover::before { opacity: 1; }
+.feature-icon-wrap {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.feature-title { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
 .feature-desc { font-size: 12px; color: var(--ink3); line-height: 1.6; }
 
 /* Audience */
 .audience-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; max-width: 780px; margin: 0 auto; }
 .audience-card {
-  text-align: left; padding: 22px 20px;
-  background: var(--surface); border-radius: 12px; border: 1px solid var(--surface2);
-  transition: transform 0.2s;
+  text-align: left; padding: 24px 22px;
+  background: var(--surface); border-radius: 14px; border: 1px solid var(--surface2);
+  transition: transform 0.2s, box-shadow 0.3s;
 }
-.audience-card:hover { transform: translateY(-1px); }
+.audience-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
 
 /* Print & Play */
 .printplay-card {

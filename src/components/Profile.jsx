@@ -25,21 +25,43 @@ function defaultProfile(name) {
 }
 
 // ─── Ачивки ───
+const ACH_COLORS = {
+  bronze: '#cd7f32', silver: '#c0c0c0', gold: '#ffc145', diamond: '#b9f2ff', ruby: '#e0115f', emerald: '#50c878',
+}
 const ALL_ACHIEVEMENTS = [
-  { id: 'first_win', icon: '🏆', name: 'Первая победа', desc: 'Победите в первой партии', check: p => p.wins >= 1 },
-  { id: 'streak_3', icon: '🔥', name: 'В ударе', desc: '3 победы подряд', check: p => p.bestStreak >= 3 },
-  { id: 'streak_5', icon: '🔥🔥', name: 'Неудержимый', desc: '5 побед подряд', check: p => p.bestStreak >= 5 },
-  { id: 'streak_10', icon: '💎', name: 'Легенда', desc: '10 побед подряд', check: p => p.bestStreak >= 10 },
-  { id: 'golden_1', icon: '⭐', name: 'Золотой', desc: 'Закройте золотую стойку', check: p => p.goldenClosed >= 1 },
-  { id: 'golden_10', icon: '🌟', name: 'Золотая лихорадка', desc: 'Закройте золотую 10 раз', check: p => p.goldenClosed >= 10 },
-  { id: 'comeback', icon: '💪', name: 'Камбэк', desc: 'Победите при отставании в 3+ стойки', check: p => p.comebacks >= 1 },
-  { id: 'games_10', icon: '🎮', name: 'Новичок', desc: 'Сыграйте 10 партий', check: p => p.gamesPlayed >= 10 },
-  { id: 'games_50', icon: '🎯', name: 'Опытный', desc: 'Сыграйте 50 партий', check: p => p.gamesPlayed >= 50 },
-  { id: 'games_100', icon: '🏅', name: 'Ветеран', desc: 'Сыграйте 100 партий', check: p => p.gamesPlayed >= 100 },
-  { id: 'rating_1200', icon: '📈', name: 'Рост', desc: 'Достигните рейтинга 1200', check: p => p.rating >= 1200 },
-  { id: 'rating_1500', icon: '🚀', name: 'Мастер', desc: 'Достигните рейтинга 1500', check: p => p.rating >= 1500 },
-  { id: 'beat_hard', icon: '🧠', name: 'Стратег', desc: 'Победите AI на сложной', check: p => p.beatHardAi },
-  { id: 'perfect', icon: '💯', name: 'Доминирование', desc: 'Победите 6:0', check: p => p.perfectWins >= 1 },
+  // Победы
+  { id: 'first_win', color: ACH_COLORS.bronze, name: 'Первая победа', nameEn: 'First win', desc: 'Победите в первой партии', check: p => p.wins >= 1 },
+  { id: 'perfect', color: ACH_COLORS.gold, name: 'Доминирование', nameEn: 'Domination', desc: 'Победите 6:0', check: p => p.perfectWins >= 1 },
+  { id: 'perfect_3', color: ACH_COLORS.diamond, name: 'Абсолют', nameEn: 'Absolute', desc: '3 победы 6:0', check: p => p.perfectWins >= 3 },
+  { id: 'fast_win', color: ACH_COLORS.silver, name: 'Блиц', nameEn: 'Blitz', desc: 'Победа за 10 ходов', check: p => (p.fastWins || 0) >= 1 },
+  { id: 'fast_win_5', color: ACH_COLORS.gold, name: 'Молния', nameEn: 'Lightning', desc: '5 быстрых побед', check: p => (p.fastWins || 0) >= 5 },
+  // Серии
+  { id: 'streak_3', color: ACH_COLORS.bronze, name: 'В ударе', nameEn: 'On fire', desc: '3 победы подряд', check: p => p.bestStreak >= 3 },
+  { id: 'streak_5', color: ACH_COLORS.silver, name: 'Неудержимый', nameEn: 'Unstoppable', desc: '5 побед подряд', check: p => p.bestStreak >= 5 },
+  { id: 'streak_10', color: ACH_COLORS.gold, name: 'Легенда', nameEn: 'Legend', desc: '10 побед подряд', check: p => p.bestStreak >= 10 },
+  { id: 'streak_20', color: ACH_COLORS.diamond, name: 'Бессмертный', nameEn: 'Immortal', desc: '20 побед подряд', check: p => p.bestStreak >= 20 },
+  // Золотая стойка
+  { id: 'golden_1', color: ACH_COLORS.bronze, name: 'Золотой', nameEn: 'Golden', desc: 'Закройте золотую стойку', check: p => p.goldenClosed >= 1 },
+  { id: 'golden_10', color: ACH_COLORS.silver, name: 'Золотая лихорадка', nameEn: 'Gold rush', desc: 'Закройте золотую 10 раз', check: p => p.goldenClosed >= 10 },
+  { id: 'golden_50', color: ACH_COLORS.gold, name: 'Золотой магнат', nameEn: 'Gold magnate', desc: 'Закройте золотую 50 раз', check: p => p.goldenClosed >= 50 },
+  // Камбэки
+  { id: 'comeback', color: ACH_COLORS.silver, name: 'Камбэк', nameEn: 'Comeback', desc: 'Победа при отставании 3+', check: p => p.comebacks >= 1 },
+  { id: 'comeback_5', color: ACH_COLORS.gold, name: 'Феникс', nameEn: 'Phoenix', desc: '5 камбэков', check: p => p.comebacks >= 5 },
+  // Партии
+  { id: 'games_10', color: ACH_COLORS.bronze, name: 'Новичок', nameEn: 'Newcomer', desc: '10 партий', check: p => p.gamesPlayed >= 10 },
+  { id: 'games_50', color: ACH_COLORS.silver, name: 'Опытный', nameEn: 'Experienced', desc: '50 партий', check: p => p.gamesPlayed >= 50 },
+  { id: 'games_100', color: ACH_COLORS.gold, name: 'Ветеран', nameEn: 'Veteran', desc: '100 партий', check: p => p.gamesPlayed >= 100 },
+  { id: 'games_500', color: ACH_COLORS.diamond, name: 'Адепт', nameEn: 'Adept', desc: '500 партий', check: p => p.gamesPlayed >= 500 },
+  // Рейтинг
+  { id: 'rating_1200', color: ACH_COLORS.bronze, name: 'Рост', nameEn: 'Rising', desc: 'Рейтинг 1200', check: p => p.rating >= 1200 },
+  { id: 'rating_1500', color: ACH_COLORS.silver, name: 'Мастер', nameEn: 'Master', desc: 'Рейтинг 1500', check: p => p.rating >= 1500 },
+  { id: 'rating_1800', color: ACH_COLORS.gold, name: 'Гроссмейстер', nameEn: 'Grandmaster', desc: 'Рейтинг 1800', check: p => p.rating >= 1800 },
+  { id: 'rating_2000', color: ACH_COLORS.diamond, name: 'Чемпион', nameEn: 'Champion', desc: 'Рейтинг 2000', check: p => p.rating >= 2000 },
+  // Специальные
+  { id: 'beat_hard', color: ACH_COLORS.gold, name: 'Стратег', nameEn: 'Strategist', desc: 'Победите AI на сложной', check: p => p.beatHardAi },
+  { id: 'online_win', color: ACH_COLORS.bronze, name: 'Онлайн', nameEn: 'Online', desc: 'Победа в онлайн-матче', check: p => (p.onlineWins || 0) >= 1 },
+  { id: 'online_10', color: ACH_COLORS.silver, name: 'Боец', nameEn: 'Fighter', desc: '10 онлайн-побед', check: p => (p.onlineWins || 0) >= 10 },
+  { id: 'puzzle_10', color: ACH_COLORS.silver, name: 'Решатель', nameEn: 'Solver', desc: 'Решите 10 головоломок', check: p => (p.puzzlesSolved || 0) >= 10 },
 ]
 
 // ─── Фейковый лидерборд (заменится на серверный) ───
@@ -87,7 +109,11 @@ function AchievementCard({ ach, unlocked, profile }) {
       border: `1px solid ${unlocked ? 'rgba(61,214,140,0.2)' : '#2a2a38'}`,
       opacity: unlocked ? 1 : 0.6,
     }}>
-      <div style={{ fontSize: 24, filter: unlocked ? 'none' : 'grayscale(1)' }}>{ach.icon}</div>
+      <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: unlocked ? `${ach.color}20` : '#1a1a2a', border: `2px solid ${unlocked ? ach.color : '#333'}`,
+        fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : '#444' }}>
+        {ach.name[0]}
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? '#e8e6f0' : '#6b6880' }}>{ach.name}</div>
         <div style={{ fontSize: 10, color: '#6b6880' }}>{ach.desc}</div>
@@ -275,7 +301,7 @@ export default function Profile() {
     return (
       <div>
         <div className="dash-card" style={{ maxWidth: 400, margin: '40px auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🎮</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }}></div>
           <h3>{loginMode ? 'Вход' : 'Регистрация'}</h3>
           {serverOnline && (
             <div style={{ fontSize: 10, color: '#3dd68c', marginBottom: 10 }}>● Сервер онлайн</div>
@@ -319,9 +345,9 @@ export default function Profile() {
   const tabs = [
     { id: 'profile', label: '👤 Профиль' },
     { id: 'history', label: `📜 История (${(profile.history || []).length})` },
-    { id: 'achievements', label: `🏆 Ачивки (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
-    { id: 'leaderboard', label: '📊 Рейтинг' },
-    { id: 'friends', label: '👥 Друзья' },
+    { id: 'achievements', label: `Ачивки (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
+    { id: 'leaderboard', label: 'Рейтинг' },
+    { id: 'friends', label: 'Друзья' },
   ]
 
   return (
@@ -378,7 +404,9 @@ export default function Profile() {
               <h3>Последние ачивки</h3>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 {unlockedAch.slice(-5).map(a => (
-                  <span key={a.id} title={a.name} style={{ fontSize: 28 }}>{a.icon}</span>
+                  <span key={a.id} title={a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
+                    alignItems: 'center', justifyContent: 'center', background: `${a.color}20`, border: `2px solid ${a.color}`,
+                    fontSize: 12, fontWeight: 800, color: a.color }}>{a.name[0]}</span>
                 ))}
               </div>
             </div>
