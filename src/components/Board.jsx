@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, memo } from 'react'
 import { GOLDEN_STAND } from '../engine/game'
 
 // Фишка — memo чтобы не пересоздавалась
-const Chip = memo(function Chip({ color, isNew, delay, isPending }) {
+const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghostIn }) {
   const [visible, setVisible] = useState(!isNew)
 
   useEffect(() => {
@@ -16,6 +16,16 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending }) {
     return <div className={`chip p${color} chip-pending`} />
   }
 
+  // Ghost-out: chip that "left" this stand (striped, fading)
+  if (ghostOut) {
+    return <div className={`chip p${color} chip-ghost-out`} />
+  }
+
+  // Ghost-in: chip that "arrived" at this stand (pulsing, semi-transparent)
+  if (ghostIn) {
+    return <div className={`chip p${color} chip-ghost-in`} />
+  }
+
   return (
     <div
       className={`chip p${color} ${isNew && visible ? 'chip-drop' : ''} ${isNew && !visible ? 'chip-hidden' : ''}`}
@@ -23,7 +33,7 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending }) {
   )
 })
 
-export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking, flip = false, showChipCount = true, showFillBar = true }) {
+export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null }) {
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
   const [newChipMap, setNewChipMap] = useState({}) // { standIdx: { from, count } }
   const [flashSet, setFlashSet] = useState(new Set())
@@ -141,6 +151,8 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             {chips.map((c, j) => {
               const isNew = newInfo && j >= newInfo.from
               const staggerIdx = isNew ? j - newInfo.from : 0
+              // Ghost-out: top chips on source stand that "left" via transfer
+              const isGhostOut = ghostTransfer && ghostTransfer.from === i && j >= chips.length - ghostTransfer.count
               return (
                 <Chip
                   key={`${i}-${j}`}
@@ -148,9 +160,15 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
                   isNew={isNew}
                   delay={staggerIdx * 150}
                   isPending={false}
+                  ghostOut={isGhostOut}
                 />
               )
             })}
+
+            {/* Ghost-in: chips arriving at destination via transfer */}
+            {ghostTransfer && ghostTransfer.to === i && Array.from({ length: ghostTransfer.count }).map((_, j) => (
+              <Chip key={`ghost-${i}-${j}`} color={ghostTransfer.color} isNew={false} delay={0} isPending={false} ghostIn={true} />
+            ))}
 
             {Array.from({ length: pendingCount }).map((_, j) => (
               <Chip key={`pending-${i}-${j}`} color={humanPlayer} isNew={false} delay={0} isPending={true} />

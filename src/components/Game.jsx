@@ -1006,7 +1006,8 @@ export default function Game() {
       <Board state={gs} pending={placement} selected={selected} phase={phase}
         humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer}
         onStandClick={onStandClick} aiThinking={aiThinking} onlineMode={mode === 'online'}
-        flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar} />
+        flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar}
+        ghostTransfer={transfer ? { from: transfer[0], to: transfer[1], color: gs.topGroup(transfer[0])[0], count: gs.topGroup(transfer[0])[1] } : null} />
 
       {/* Таймер игроков */}
       {timerLimit > 0 && !gs.gameOver && (
