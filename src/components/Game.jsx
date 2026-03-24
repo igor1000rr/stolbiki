@@ -999,7 +999,7 @@ export default function Game() {
         </div>
       </div>
 
-      <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`}>{info}</div>
+      <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`} role="status" aria-live="polite">{info}</div>
 
       <Board state={gs} pending={placement} selected={selected} phase={phase}
         humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer}

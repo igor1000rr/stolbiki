@@ -195,7 +195,8 @@ export default function App() {
   return (
     <I18nContext.Provider value={i18n}>
     <div className="app">
-      <header className="site-header">
+      <a href="#main-content" className="skip-link">Skip to content</a>
+      <header className="site-header" role="banner">
         <div className="site-header-inner">
           {/* Лого */}
           <div className="site-logo" onClick={() => go('landing')}>
@@ -209,7 +210,7 @@ export default function App() {
           </div>
 
           {/* 4 основных пункта */}
-          <nav className="site-nav-desktop">
+          <nav className="site-nav-desktop" aria-label="Main navigation">
             {primaryNav.map(n => (
               <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
                 {n.label}
@@ -306,11 +307,12 @@ export default function App() {
             </div>
 
             {LANGS.map(l => (
-              <button key={l.code} onClick={() => setLang(l.code)} className={`lang-btn ${lang === l.code ? 'active' : ''}`}>
+              <button key={l.code} onClick={() => setLang(l.code)} className={`lang-btn ${lang === l.code ? 'active' : ''}`}
+                aria-label={`Switch to ${l.code === 'ru' ? 'Russian' : 'English'}`} aria-pressed={lang === l.code}>
                 {l.label}
               </button>
             ))}
-            <button className="mobile-burger" onClick={() => setMobileMenu(m => !m)}>
+            <button className="mobile-burger" onClick={() => setMobileMenu(m => !m)} aria-label={mobileMenu ? 'Close menu' : 'Open menu'}>
               <Icon name={mobileMenu ? 'close' : 'menu'} size={22} />
             </button>
           </div>
@@ -318,7 +320,7 @@ export default function App() {
 
         {/* Мобильное меню */}
         {mobileMenu && (
-          <nav className="site-nav-mobile">
+          <nav className="site-nav-mobile" aria-label="Mobile navigation">
             {allNav.map(n => (
               <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
                 <Icon name={n.icon} size={16} style={{ marginRight: 10, opacity: 0.5 }} />
@@ -338,7 +340,7 @@ export default function App() {
         )}
       </header>
 
-      <main className="site-content">
+      <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
           {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         </Suspense>
@@ -359,7 +361,7 @@ export default function App() {
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
 
-      <footer className="site-footer">
+      <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
           <div className="site-footer-brand">
             <span style={{ opacity: 0.6 }}>Stacks</span>

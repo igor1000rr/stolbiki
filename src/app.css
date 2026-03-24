@@ -258,6 +258,18 @@ body::before {
   .site-nav-mobile { display: none !important; }
 }
 
+/* Skip to content */
+.skip-link {
+  position: absolute; top: -100px; left: 16px; z-index: 9999;
+  padding: 8px 16px; background: var(--accent); color: #fff; border-radius: 0 0 8px 8px;
+  font-size: 13px; font-weight: 600; text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
+
+/* Board stand focus */
+.stand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
 
