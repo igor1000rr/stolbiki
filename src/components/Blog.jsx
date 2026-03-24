@@ -27,7 +27,7 @@ function PostCard({ post, lang, onOpen }) {
       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
       onMouseLeave={e => e.currentTarget.style.transform = ''}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {post.pinned ? <span style={{ fontSize: 14 }}>📌</span> : null}
+        {post.pinned ? <span style={{ fontSize: 14 }}></span> : null}
         <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: tag.bg, color: tag.color, fontWeight: 600 }}>
           {tag.label[lang] || tag.label.ru}
         </span>
@@ -95,7 +95,7 @@ export default function Blog() {
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 22, color: 'var(--ink)', fontWeight: 700, margin: 0 }}>
-          📰 {lang === 'en' ? 'Blog' : 'Блог'}
+          {lang === 'en' ? 'Blog' : 'Блог'}
         </h2>
         <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
           {lang === 'en' ? 'News, updates, and development log' : 'Новости, обновления и дневник разработки'}

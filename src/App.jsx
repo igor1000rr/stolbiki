@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
+import Icon from './components/Icon'
 import Game from './components/Game'
 import Dashboard from './components/Dashboard'
 import Replay from './components/Replay'
@@ -16,10 +17,10 @@ import './app.css'
 
 const ADMIN_NAMES = ['admin']
 const THEMES = [
-  { id: 'default', label: '🌙 Dark' },
-  { id: 'neon', label: '💜 Neon' },
-  { id: 'wood', label: '🪵 Wood' },
-  { id: 'minimal', label: '⬜ Light' },
+  { id: 'default', label: 'Dark' },
+  { id: 'neon', label: 'Neon' },
+  { id: 'wood', label: 'Wood' },
+  { id: 'minimal', label: 'Light' },
 ]
 
 function getIsAdmin() {
@@ -77,19 +78,19 @@ export default function App() {
   useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
 
   const mainNav = [
-    { id: 'game', label: t('nav.play') },
-    { id: 'online', label: t('nav.online') },
-    { id: 'puzzles', label: t('nav.puzzles') },
-    { id: 'openings', label: '📊' },
-    { id: 'blog', label: lang === 'en' ? '📰 Blog' : '📰 Блог' },
-    { id: 'profile', label: t('nav.profile') },
-    { id: 'rules', label: t('nav.rules') },
+    { id: 'game', icon: 'play', label: lang === 'en' ? 'Play' : 'Играть' },
+    { id: 'online', icon: 'online', label: lang === 'en' ? 'Online' : 'Онлайн' },
+    { id: 'puzzles', icon: 'puzzle', label: lang === 'en' ? 'Puzzles' : 'Задачи' },
+    { id: 'openings', icon: 'chart', label: lang === 'en' ? 'Analytics' : 'Аналитика' },
+    { id: 'blog', icon: 'blog', label: lang === 'en' ? 'Blog' : 'Блог' },
+    { id: 'profile', icon: 'profile', label: lang === 'en' ? 'Profile' : 'Профиль' },
+    { id: 'rules', icon: 'rules', label: lang === 'en' ? 'Rules' : 'Правила' },
   ]
   if (isAdmin) {
     mainNav.push(
-      { id: 'sim', label: '🧪' },
-      { id: 'dash', label: '📈' },
-      { id: 'replay', label: '🎬' },
+      { id: 'sim', icon: 'sim', label: 'Sim' },
+      { id: 'dash', icon: 'analytics', label: 'Dash' },
+      { id: 'replay', icon: 'replay', label: 'Replay' },
     )
   }
 
@@ -99,53 +100,52 @@ export default function App() {
       {/* ═══ ШАПКА ═══ */}
       <header className="site-header">
         <div className="site-header-inner">
-          {/* Лого */}
           <div className="site-logo" onClick={() => go('landing')}>
-            <span className="site-logo-icon">♟</span>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
+              <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
+              <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
+              <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
+            </svg>
             <span className="site-logo-text">{t('header.title')}</span>
             <span className="beta-badge">beta</span>
           </div>
 
-          {/* Десктоп навигация */}
           <nav className="site-nav-desktop">
             {mainNav.map(n => (
               <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+                <Icon name={n.icon} size={15} style={{ marginRight: 5, opacity: 0.7 }} />
                 {n.label}
               </button>
             ))}
           </nav>
 
-          {/* Действия */}
           <div className="site-actions">
             {LANGS.map(l => (
-              <button key={l.code} onClick={() => setLang(l.code)}
-                className={`lang-btn ${lang === l.code ? 'active' : ''}`}>
+              <button key={l.code} onClick={() => setLang(l.code)} className={`lang-btn ${lang === l.code ? 'active' : ''}`}>
                 {l.label}
               </button>
             ))}
             <div className="theme-dropdown">
-              <button className="theme-btn">🎨</button>
+              <button className="theme-btn"><Icon name="theme" size={16} /></button>
               <div className="theme-menu">
                 {THEMES.map(th => (
-                  <button key={th.id} onClick={() => setTheme(th.id)}
-                    className={theme === th.id ? 'active' : ''}>
+                  <button key={th.id} onClick={() => setTheme(th.id)} className={theme === th.id ? 'active' : ''}>
                     {th.label}
                   </button>
                 ))}
               </div>
             </div>
-            {/* Бургер для мобилки */}
             <button className="mobile-burger" onClick={() => setMobileMenu(m => !m)}>
-              {mobileMenu ? '✕' : '☰'}
+              <Icon name={mobileMenu ? 'close' : 'menu'} size={22} />
             </button>
           </div>
         </div>
 
-        {/* Мобильное меню */}
         {mobileMenu && (
           <nav className="site-nav-mobile">
             {mainNav.map(n => (
               <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+                <Icon name={n.icon} size={16} style={{ marginRight: 8, opacity: 0.6 }} />
                 {n.label}
               </button>
             ))}
@@ -153,7 +153,6 @@ export default function App() {
         )}
       </header>
 
-      {/* ═══ КОНТЕНТ ═══ */}
       <main className="site-content">
         {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
@@ -170,21 +169,23 @@ export default function App() {
 
       {showTutorial && <Tutorial onClose={() => { setShowTutorial(false); go('game') }} />}
 
-      {/* ═══ ПОДВАЛ ═══ */}
       <footer className="site-footer">
         <div className="site-footer-inner">
-          <div>
-            <span style={{ opacity: 0.7 }}>Стойки</span>
-            <span className="beta-badge" style={{ marginLeft: 6, marginRight: 6 }}>beta</span>
-            <span style={{ opacity: 0.5 }}>· {lang === 'en' ? 'A research project at the intersection of board games and AI' : 'Исследовательский проект на стыке настольных игр и AI'}</span>
+          <div className="site-footer-brand">
+            <span style={{ opacity: 0.6 }}>Стойки</span>
+            <span className="beta-badge">beta</span>
+            <span className="site-footer-divider" />
+            <span style={{ opacity: 0.4 }}>
+              {lang === 'en' ? 'Board games meet AI research' : 'Настольные игры и AI-исследования'}
+            </span>
           </div>
           <div className="site-footer-links">
             <span className="status-dot" style={{ background: publicStats ? 'var(--green)' : 'var(--p2)' }} />
-            {publicStats ? t('common.online') : t('common.offline')}
-            <span>·</span>
+            <span>{publicStats ? t('common.online') : t('common.offline')}</span>
+            <span className="site-footer-divider" />
             <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener">GitHub</a>
-            <span>·</span>
-            <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print&Play</a>
+            <span className="site-footer-divider" />
+            <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print & Play</a>
           </div>
         </div>
       </footer>

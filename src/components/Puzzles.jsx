@@ -64,7 +64,7 @@ function PuzzleCard({ puzzle, lang, onPlay, userSolved }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}60` }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>{title}</span>
-        {solved && <span style={{ fontSize: 14 }}>✅</span>}
+        {solved && <span style={{ fontSize: 14 }}></span>}
         <span style={{ fontSize: 10, color: 'var(--ink3)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 4 }}>
           {puzzle.maxMoves} {lang === 'en' ? 'moves' : 'ход.'}
         </span>
@@ -299,7 +299,7 @@ export default function Puzzles() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 22, color: 'var(--ink)', fontWeight: 700, margin: 0 }}>
-            🧩 {lang === 'en' ? 'Puzzles' : 'Головоломки'}
+            {lang === 'en' ? 'Puzzles' : 'Головоломки'}
           </h2>
           <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
             {lang === 'en' ? 'Close stands in limited moves' : 'Закрывайте стойки за ограниченное число ходов'}
@@ -314,8 +314,8 @@ export default function Puzzles() {
       {/* Табы */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
         {[
-          ['featured', lang === 'en' ? '⭐ Featured' : '⭐ Избранные'],
-          ['bank', lang === 'en' ? '📦 All puzzles' : '📦 Все головоломки'],
+          ['featured', lang === 'en' ? ' Featured' : ' Избранные'],
+          ['bank', lang === 'en' ? ' All puzzles' : ' Все головоломки'],
         ].map(([id, label]) => (
           <button key={id} className={`btn ${tab === id ? 'primary' : ''}`} onClick={() => setTab(id)}
             style={{ fontSize: 12, padding: '7px 16px' }}>
@@ -330,14 +330,14 @@ export default function Puzzles() {
           {/* Daily */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 28 }}>📅</span>
+              <span style={{ fontSize: 28 }}></span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {lang === 'en' ? 'Daily Puzzle' : 'Головоломка дня'}
                 </div>
                 <Countdown label={lang === 'en' ? 'Next in' : 'Новая через'} targetDate={nextDay.getTime()} />
               </div>
-              {daily && solvedSet.has(`daily:${daily.id}`) && <span style={{ fontSize: 20 }}>✅</span>}
+              {daily && solvedSet.has(`daily:${daily.id}`) && <span style={{ fontSize: 20 }}></span>}
             </div>
             {daily ? (
               <>
@@ -367,14 +367,14 @@ export default function Puzzles() {
           {/* Weekly */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 28 }}>🏆</span>
+              <span style={{ fontSize: 28 }}></span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {lang === 'en' ? 'Weekly Challenge' : 'Задача недели'}
                 </div>
                 <Countdown label={lang === 'en' ? 'Next in' : 'Новая через'} targetDate={nextMonday.getTime()} />
               </div>
-              {weekly && solvedSet.has(`weekly:${weekly.id}`) && <span style={{ fontSize: 20 }}>✅</span>}
+              {weekly && solvedSet.has(`weekly:${weekly.id}`) && <span style={{ fontSize: 20 }}></span>}
             </div>
             {weekly ? (
               <>
@@ -407,9 +407,9 @@ export default function Puzzles() {
           <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
             {[
               [0, lang === 'en' ? 'All' : 'Все'],
-              [1, lang === 'en' ? '🟢 Easy' : '🟢 Лёгкие'],
-              [2, lang === 'en' ? '🟡 Medium' : '🟡 Средние'],
-              [3, lang === 'en' ? '🔴 Hard' : '🔴 Сложные'],
+              [1, lang === 'en' ? 'Easy' : 'Лёгкие'],
+              [2, lang === 'en' ? 'Medium' : 'Средние'],
+              [3, lang === 'en' ? 'Hard' : 'Сложные'],
             ].map(([d, label]) => (
               <button key={d} className={`btn ${bankDiff === d ? 'primary' : ''}`}
                 onClick={() => { setBankDiff(d); setBankPage(1) }}
