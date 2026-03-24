@@ -615,22 +615,39 @@ body::before {
 
 /* Ghost chips — transfer preview */
 .chip-ghost-out {
-  opacity: 0.2;
-  border: 1px dashed rgba(255,255,255,0.3);
+  opacity: 0.15;
+  border: 1.5px dashed rgba(255,255,255,0.4);
   background-image: repeating-linear-gradient(
-    45deg, transparent, transparent 3px, rgba(255,255,255,0.1) 3px, rgba(255,255,255,0.1) 5px
+    45deg, transparent, transparent 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px
   ) !important;
+  animation: ghostFade 1.2s ease-in-out infinite;
 }
+@keyframes ghostFade { 0%,100% { opacity: 0.1; } 50% { opacity: 0.25; } }
+
 .chip-ghost-in {
-  opacity: 0.6;
-  border: 1.5px solid rgba(255,255,255,0.25);
-  animation: ghostPulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(255,255,255,0.1);
+  opacity: 0.65;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  animation: ghostPulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(255,255,255,0.15);
 }
 @keyframes ghostPulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.75; }
+  0%, 100% { opacity: 0.4; transform: scaleY(0.95); }
+  50% { opacity: 0.8; transform: scaleY(1); }
 }
+
+/* Ghost transfer arrow indicator on stand */
+.stand-ghost-from::after {
+  content: '↗'; position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 14px; color: var(--accent); opacity: 0.7; animation: ghostArrow 1s ease infinite;
+}
+.stand-ghost-to::after {
+  content: '↙'; position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 14px; color: var(--green); opacity: 0.7; animation: ghostArrow 1s ease infinite;
+}
+@keyframes ghostArrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+.stand-ghost-from { border-color: var(--accent) !important; border-style: dashed !important; }
+.stand-ghost-to { border-color: var(--green) !important; box-shadow: 0 0 12px var(--green-glow); }
 
 /* ═══════════════════════════════════════════
    SCOREBOARD — с bounce при изменении

@@ -114,6 +114,8 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
         if (isSelected) cls += ' selected'
         if (isTarget) cls += ' target'
         if (isFlashing) cls += ' stand-flash'
+        if (ghostTransfer && ghostTransfer.from === i) cls += ' stand-ghost-from'
+        if (ghostTransfer && ghostTransfer.to === i) cls += ' stand-ghost-to'
 
         return (
           <div key={i} className={cls} onClick={() => onStandClick?.(i)}
