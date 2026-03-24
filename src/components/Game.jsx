@@ -121,7 +121,7 @@ function ReplayViewer({ moves, onClose }) {
 }
 
 export default function Game() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
   const [selected, setSelected] = useState(null)
@@ -218,9 +218,9 @@ export default function Game() {
       moveHistoryRef.current = []
       setShowReplay(false)
 
-      const myName = players[playerIdx] || 'Вы'
-      const oppName = players[1 - playerIdx] || 'Противник'
-      setLog([{ text: `Онлайн: ${myName} vs ${oppName}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      const myName = players[playerIdx] || (lang === 'en' ? 'You' : 'Вы')
+      const oppName = players[1 - playerIdx] || (lang === 'en' ? 'Opponent' : 'Противник')
+      setLog([{ text: `Онлайн: ${myName} vs ${oppName}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
 
       if (state.currentPlayer === myColor) {
         setLocked(false)
@@ -252,7 +252,7 @@ export default function Game() {
         if (onlineRef.current) onlineRef.current.myColor = newColor
         setHumanPlayer(newColor)
         setLocked(true)
-        setInfo('Противник сделал Swap — ждём его ход...')
+        setInfo(t('game.swapOppDone'))
         return
       }
 
@@ -276,7 +276,7 @@ export default function Game() {
             setPhase('place')
             setTransfer(null)
             setPlacement({})
-            setInfo(ns.isFirstTurn() ? 'Ваш ход — поставьте 1 фишку' : 'Ваш ход — расставьте фишки')
+            setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.placeChips'))
           }, 300)
         } else {
           setLocked(true)
@@ -340,7 +340,7 @@ export default function Game() {
       setShowReplay(false)
 
       const seedLabel = (daily.seed || daily.date || '').toString().slice(-4)
-      setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(`Челлендж #${seedLabel} — победите AI за минимум ходов!`)
     }
     window.addEventListener('stolbiki-daily-start', handleDailyStart)
@@ -423,7 +423,7 @@ export default function Game() {
   }, [gs])
 
   function addLog(text, player) {
-    setLog(prev => [{ text, player, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...prev])
+    setLog(prev => [{ text, player, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...prev])
   }
 
   // ─── AI ход ───
@@ -514,16 +514,16 @@ export default function Game() {
     if (timerLimit) setPlayerTime([timerLimit, timerLimit])
     setUndoStack([])
     if (m === 'pvp') {
-      setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-      setInfo('Синие: поставьте 1 фишку')
+      setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setInfo(t('game.place1'))
     } else if (m === 'spectate') {
-      setLog([{ text: 'AI vs AI — наблюдение', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setLog([{ text: 'AI vs AI — наблюдение', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo('AI vs AI')
       setLocked(true)
       setTimeout(() => runAi(state), 800)
     } else {
-      const c = hp === 0 ? 'синие' : 'красные'
-      setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      const c = hp === 0 ? t('game.blue').toLowerCase() : t('game.red').toLowerCase()
+      setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       if (state.currentPlayer !== hp) {
         setInfo(t('game.aiFirst'))
         setLocked(true)
@@ -604,7 +604,7 @@ export default function Game() {
     }
 
     if (phase === 'transfer-dst') {
-      if (i === selected) { setSelected(null); setPhase('transfer-select'); setInfo('Выберите стойку для переноса'); return }
+      if (i === selected) { setSelected(null); setPhase('transfer-select'); setInfo(t('game.selectTransferFrom')); return }
       if (getValidTransfers(gs).some(([s, d]) => s === selected && d === i)) {
         setTransfer([selected, i])
         setSelected(null)
@@ -651,8 +651,8 @@ export default function Game() {
       }
 
       // Новая стойка — ставим 1
-      if (numStands >= MAX_PLACE_STANDS) { setInfo('Макс 2 стойки. Кликните занятую чтобы убрать'); return }
-      if (currentTotal >= maxTotal) { setInfo('Все фишки расставлены — подтвердите'); return }
+      if (numStands >= MAX_PLACE_STANDS) { setInfo(t('game.max2stands')); return }
+      if (currentTotal >= maxTotal) { setInfo(t('game.allPlaced')); return }
 
       const newPlacement = { ...placement, [i]: 1 }
       setPlacement(newPlacement)
@@ -699,7 +699,7 @@ export default function Game() {
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false)
+          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false, mode === 'online')
         }
         // Турнир — запись результата
         if (tournament) {
@@ -729,7 +729,7 @@ export default function Game() {
       setInfo(t('game.opponentTurn'))
     } else if (mode === 'pvp') {
       setPhase('place')
-      const name = ns.currentPlayer === 0 ? 'Синие' : 'Красные'
+      const name = ns.currentPlayer === 0 ? t('game.blue') : t('game.red')
       setInfo(ns.isFirstTurn() ? `${name}: поставьте 1 фишку` : `${name}: расставьте фишки`)
     } else {
       setLocked(true)
@@ -755,8 +755,8 @@ export default function Game() {
     setUndoStack(s => s.slice(0, -1))
     setGs(prev)
     setPhase('place'); setTransfer(null); setPlacement({}); setSelected(null); setResult(null)
-    setLog(l => [{ text: '↩ Ход отменён', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...l])
-    setInfo(`${prev.currentPlayer === 0 ? 'Синие' : 'Красные'}: ваш ход`)
+    setLog(l => [{ text: '↩ Ход отменён', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...l])
+    setInfo(`${prev.currentPlayer === 0 ? t('game.blue') : t('game.red')}: ${t('game.yourTurn')}`)
   }
 
   function requestHint() {
@@ -898,7 +898,7 @@ export default function Game() {
           </div>
           <div style={{ fontSize: 10, color: '#6b6880', marginTop: 4 }}>
             {tournament.games.filter(g => g.won).length} : {tournament.games.filter(g => !g.won).length}
-            {tournament.currentGame > 1 && ` · Сторона: ${humanPlayer === 0 ? 'синие' : 'красные'}`}
+            {tournament.currentGame > 1 && ` · ${humanPlayer === 0 ? t('game.blue') : t('game.red')}`}
           </div>
           <button className="btn" onClick={() => setTournament(null)} style={{ fontSize: 9, padding: '2px 8px', marginTop: 4 }}>
             Отменить турнир
@@ -920,9 +920,9 @@ export default function Game() {
           color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
-          {mode === 'spectate' ? `AI думает (${gs.currentPlayer === 0 ? 'Синие' : 'Красные'})` :
+          {mode === 'spectate' ? `${t('game.aiThinking')} (${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')})` :
            mode === 'online' ? (gs.currentPlayer === humanPlayer ? '🟢 Ваш ход' : '⏳ Ходит противник') :
-           `Ходят ${gs.currentPlayer === 0 ? 'Синие' : 'Красные'}`}
+           `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}`}
         </div>
       )}
 
@@ -1093,15 +1093,15 @@ export default function Game() {
         const won = (mode === 'pvp') ? true : result === humanPlayer
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
-        const shareText = `Стойки${mode === 'online' ? ' Онлайн' : ''}: ${won ? 'Победа' : 'Поражение'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — 178.212.12.71`
+        const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — 178.212.12.71`
         return (
           <div className="game-result" style={{ borderLeft: `3px solid ${won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '🎉' : '😔'}</div>
             <span style={{ fontSize: 20 }}>{mode === 'pvp'
-              ? `${result === 0 ? 'Синие' : 'Красные'} победили!`
+              ? `${result === 0 ? t('game.blueWin') : t('game.redWin')}`
               : mode === 'online'
-              ? (won ? '🏆 Победа!' : 'Противник победил')
-              : (won ? 'Победа!' : 'AI побеждает')
+              ? (won ? t('game.victory') : t('game.defeat'))
+              : (won ? t('game.victory') : t('game.aiWins'))
             }</span>
             <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: '#e8e6f0' }}>{s0} : {s1}</div>
             <div style={{ fontSize: 11, color: '#6b6880', display: 'flex', gap: 12, justifyContent: 'center' }}>
@@ -1157,7 +1157,7 @@ export default function Game() {
                   // Подпись
                   ctx.fillStyle = '#444'
                   ctx.font = '12px sans-serif'
-                  ctx.fillText('Стойки — 178.212.12.71', 300, 300)
+                  ctx.fillText('Stacks — 178.212.12.71', 300, 300)
 
                   const blob = await new Promise(r => c.toBlob(r, 'image/png'))
                   const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })
@@ -1205,7 +1205,7 @@ export default function Game() {
                   <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(255,193,69,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
                     <div style={{ fontSize: 28, marginBottom: 4 }}>{tournamentDraw ? '🤝' : tournamentWon ? '🏆' : '😞'}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0', marginBottom: 4 }}>
-                      {tournamentDraw ? 'Турнир: ничья!' : tournamentWon ? 'Турнир выигран!' : 'Турнир проигран'}
+                      {tournamentDraw ? t('tournament.draw') : tournamentWon ? t('tournament.won') : t('tournament.lost')}
                     </div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: '#e8e6f0' }}>{tWins} : {tLosses}</div>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'center', margin: '8px 0' }}>

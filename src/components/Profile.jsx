@@ -329,7 +329,7 @@ export default function Profile() {
   // Записать результат партии (вызывать из Game)
   // Экспортируется через window для связи с Game
   useEffect(() => {
-    window.stolbikiRecordGame = (won, score, vsHardAi, closedGolden, isComeback) => {
+    window.stolbikiRecordGame = (won, score, vsHardAi, closedGolden, isComeback, isOnline) => {
       setProfile(prev => {
         if (!prev) return prev
         const p = { ...prev, history: [...(prev.history || [])] }
@@ -368,9 +368,9 @@ export default function Profile() {
         }
         return p
       })
-      // Отправляем на сервер (fire and forget)
+      // Отправляем на сервер
       if (serverOnline && API.isLoggedIn()) {
-        API.recordGame({ won, score, difficulty: vsHardAi ? 100 : 50, closedGolden, isComeback }).catch(() => {})
+        API.recordGame({ won, score, difficulty: vsHardAi ? 100 : 50, closedGolden, isComeback, isOnline: !!isOnline }).catch(() => {})
       }
     }
     return () => { delete window.stolbikiRecordGame }
