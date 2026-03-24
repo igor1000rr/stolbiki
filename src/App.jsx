@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import Icon from './components/Icon'
 import Game from './components/Game'
@@ -44,6 +44,8 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef(null)
 
   useEffect(() => {
     if (theme === 'default') document.documentElement.removeAttribute('data-theme')
@@ -68,40 +70,56 @@ export default function App() {
     }
   }, [])
 
+  // Закрытие dropdown при клике вне
+  useEffect(() => {
+    if (!moreOpen) return
+    const close = (e) => { if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false) }
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [moreOpen])
+
   useEffect(() => {
     if (!isAdmin && ['sim', 'dash', 'replay'].includes(tab)) setTab('game')
   }, [isAdmin, tab])
 
-  function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  function go(id) { setTab(id); setMobileMenu(false); setMoreOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   const [publicStats, setPublicStats] = useState(null)
   useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
 
-  const mainNav = [
+  // Основные 4 пункта навигации
+  const primaryNav = [
     { id: 'game', icon: 'play', label: lang === 'en' ? 'Play' : 'Играть' },
     { id: 'online', icon: 'online', label: lang === 'en' ? 'Online' : 'Онлайн' },
     { id: 'puzzles', icon: 'puzzle', label: lang === 'en' ? 'Puzzles' : 'Задачи' },
-    { id: 'openings', icon: 'chart', label: lang === 'en' ? 'Analytics' : 'Аналитика' },
     { id: 'blog', icon: 'blog', label: lang === 'en' ? 'Blog' : 'Блог' },
+  ]
+
+  // Дополнительные — в выпадашке
+  const secondaryNav = [
+    { id: 'openings', icon: 'chart', label: lang === 'en' ? 'Analytics' : 'Аналитика' },
     { id: 'profile', icon: 'profile', label: lang === 'en' ? 'Profile' : 'Профиль' },
     { id: 'rules', icon: 'rules', label: lang === 'en' ? 'Rules' : 'Правила' },
   ]
   if (isAdmin) {
-    mainNav.push(
-      { id: 'sim', icon: 'sim', label: 'Sim' },
-      { id: 'dash', icon: 'analytics', label: 'Dash' },
-      { id: 'replay', icon: 'replay', label: 'Replay' },
+    secondaryNav.push(
+      { id: 'sim', icon: 'sim', label: 'Simulator' },
+      { id: 'dash', icon: 'analytics', label: 'Dashboard' },
+      { id: 'replay', icon: 'replay', label: 'Replays' },
     )
   }
+
+  const allNav = [...primaryNav, ...secondaryNav]
+  const isSecondaryActive = secondaryNav.some(n => n.id === tab)
 
   return (
     <I18nContext.Provider value={i18n}>
     <div className="app">
-      {/* ═══ ШАПКА ═══ */}
       <header className="site-header">
         <div className="site-header-inner">
+          {/* Лого */}
           <div className="site-logo" onClick={() => go('landing')}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ flexShrink: 0 }}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
               <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
               <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
@@ -110,45 +128,73 @@ export default function App() {
             <span className="beta-badge">beta</span>
           </div>
 
+          {/* 4 основных пункта */}
           <nav className="site-nav-desktop">
-            {mainNav.map(n => (
+            {primaryNav.map(n => (
               <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
-                <Icon name={n.icon} size={15} style={{ marginRight: 5, opacity: 0.7 }} />
                 {n.label}
               </button>
             ))}
+            {/* More dropdown */}
+            <div className="nav-more" ref={moreRef}>
+              <button className={isSecondaryActive ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setMoreOpen(v => !v) }}>
+                <Icon name="menu" size={14} style={{ marginRight: 4 }} />
+                {lang === 'en' ? 'More' : 'Ещё'}
+              </button>
+              {moreOpen && (
+                <div className="nav-more-menu">
+                  {secondaryNav.map(n => (
+                    <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+                      <Icon name={n.icon} size={15} style={{ marginRight: 8, opacity: 0.5 }} />
+                      {n.label}
+                    </button>
+                  ))}
+                  <div className="nav-more-divider" />
+                  <div className="nav-more-row">
+                    <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 8 }}>Theme</span>
+                    {THEMES.map(th => (
+                      <button key={th.id} onClick={() => { setTheme(th.id); setMoreOpen(false) }}
+                        className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>
+                        {th.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
+          {/* Lang + burger */}
           <div className="site-actions">
             {LANGS.map(l => (
               <button key={l.code} onClick={() => setLang(l.code)} className={`lang-btn ${lang === l.code ? 'active' : ''}`}>
                 {l.label}
               </button>
             ))}
-            <div className="theme-dropdown">
-              <button className="theme-btn"><Icon name="theme" size={16} /></button>
-              <div className="theme-menu">
-                {THEMES.map(th => (
-                  <button key={th.id} onClick={() => setTheme(th.id)} className={theme === th.id ? 'active' : ''}>
-                    {th.label}
-                  </button>
-                ))}
-              </div>
-            </div>
             <button className="mobile-burger" onClick={() => setMobileMenu(m => !m)}>
               <Icon name={mobileMenu ? 'close' : 'menu'} size={22} />
             </button>
           </div>
         </div>
 
+        {/* Мобильное меню */}
         {mobileMenu && (
           <nav className="site-nav-mobile">
-            {mainNav.map(n => (
+            {allNav.map(n => (
               <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
-                <Icon name={n.icon} size={16} style={{ marginRight: 8, opacity: 0.6 }} />
+                <Icon name={n.icon} size={16} style={{ marginRight: 10, opacity: 0.5 }} />
                 {n.label}
               </button>
             ))}
+            <div className="nav-more-divider" />
+            <div style={{ display: 'flex', gap: 4, padding: '8px 16px' }}>
+              {THEMES.map(th => (
+                <button key={th.id} onClick={() => { setTheme(th.id); setMobileMenu(false) }}
+                  className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>
+                  {th.label}
+                </button>
+              ))}
+            </div>
           </nav>
         )}
       </header>
@@ -172,10 +218,10 @@ export default function App() {
       <footer className="site-footer">
         <div className="site-footer-inner">
           <div className="site-footer-brand">
-            <span style={{ opacity: 0.6 }}>Стойки</span>
+            <span style={{ opacity: 0.6 }}>Stacks</span>
             <span className="beta-badge">beta</span>
             <span className="site-footer-divider" />
-            <span style={{ opacity: 0.4 }}>
+            <span style={{ opacity: 0.4, fontSize: 10 }}>
               {lang === 'en' ? 'Board games meet AI research' : 'Настольные игры и AI-исследования'}
             </span>
           </div>

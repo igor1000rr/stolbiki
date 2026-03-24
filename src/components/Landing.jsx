@@ -81,13 +81,19 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
 
       {/* ═══ СТАТИСТИКА ═══ */}
       <section className="landing-stats">
-        <StatBlock value={publicStats?.totalUsers || '—'} label={en ? 'players' : 'игроков'} />
-        <div className="stat-divider" />
-        <StatBlock value={publicStats?.totalGames || '0'} label={en ? 'games played' : 'партий'} />
-        <div className="stat-divider" />
-        <StatBlock value="239K+" label={en ? 'AI training data' : 'партий для AI'} />
+        <StatBlock value="239K+" label={en ? 'games analyzed' : 'партий проанализировано'} />
         <div className="stat-divider" />
         <StatBlock value="97%" label={en ? 'AI win rate' : 'винрейт AI'} />
+        <div className="stat-divider" />
+        <StatBlock value="52:48" label={en ? 'P1/P2 balance' : 'баланс P1/P2'} />
+        <div className="stat-divider" />
+        <StatBlock value="6" label={en ? 'templates' : 'шаблонов головоломок'} />
+        {publicStats && publicStats.totalGames > 10 && (
+          <>
+            <div className="stat-divider" />
+            <StatBlock value={publicStats.totalGames} label={en ? 'games played' : 'партий сыграно'} />
+          </>
+        )}
       </section>
 
       {/* ═══ КАК ИГРАТЬ ═══ */}
