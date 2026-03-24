@@ -1496,68 +1496,83 @@ body::before {
 .l-extra-sep { width: 1px; height: 14px; background: var(--surface3); flex-shrink: 0; }
 .l-extra span { font-size: 12px; color: var(--ink3); }
 
-/* ═══ AUDIENCE ═══ */
-.l-audience { display: grid; grid-template-columns: 1fr 1.3fr; gap: 40px; align-items: center; }
-.l-audience.in .l-audience-text { opacity: 1; transform: translateX(0); }
-.l-audience.in .l-audience-cards { opacity: 1; transform: translateX(0); }
-.l-audience-text {
-  opacity: 0; transform: translateX(-20px); transition: all 0.6s ease;
+/* ═══ WHO (Audience) ═══ */
+.l-who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.l-who-block {
+  padding: 24px; border-radius: 14px; border: 1px solid;
+  display: flex; gap: 16px; align-items: flex-start;
+  opacity: 0; transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s;
+  transition-delay: calc(var(--i) * 0.1s);
 }
-.l-audience-text h2 { font-size: 26px; font-weight: 700; color: var(--ink); margin: 0 0 14px; text-align: left; line-height: 1.2; }
-.l-audience-text p { font-size: 14px; color: var(--ink3); line-height: 1.75; }
-.l-audience-cards {
-  display: flex; flex-direction: column; gap: 8px;
-  opacity: 0; transform: translateX(20px); transition: all 0.6s ease 0.15s;
-}
-.l-aud-card {
-  display: flex; align-items: center; gap: 14px; padding: 16px 20px;
-  background: var(--surface); border-radius: 12px; border: 1px solid var(--surface2);
-  transition: transform 0.2s, box-shadow 0.3s; cursor: default;
-}
-.l-aud-card:hover { transform: translateX(6px); box-shadow: -4px 0 20px rgba(0,0,0,0.1); }
-.l-aud-marker { width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0; }
-.l-aud-body strong { display: block; font-size: 13px; color: var(--ink); margin-bottom: 2px; }
-.l-aud-body span { font-size: 11px; color: var(--ink3); line-height: 1.5; }
+.l-who.in .l-who-block { opacity: 1; transform: translateY(0); }
+.l-who-block:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.12); transform: translateY(-3px); }
+.l-who-num { font-size: 28px; font-weight: 800; font-family: 'DM Serif Display', serif; line-height: 1; flex-shrink: 0; min-width: 56px; }
+.l-who-content p { font-size: 12px; color: var(--ink3); line-height: 1.6; margin: 6px 0 0; }
+.l-who-head { display: flex; align-items: center; gap: 6px; }
+.l-who-head strong { font-size: 14px; }
 
-/* ═══ PRINT & PLAY ═══ */
-.l-print {
-  display: flex; align-items: center; gap: 16px; padding: 22px 28px;
-  background: var(--surface); border: 1px solid var(--surface2); border-radius: 14px;
-  transition: transform 0.2s, border-color 0.3s, box-shadow 0.3s;
-  cursor: pointer; text-decoration: none; color: inherit;
+/* ═══ PRINT BANNER ═══ */
+.l-print-banner {
+  display: block; text-decoration: none; color: inherit;
+  border-radius: 16px; overflow: hidden; position: relative;
+  background: linear-gradient(135deg, var(--accent), #d44e32);
+  transition: transform 0.2s, box-shadow 0.3s;
 }
-.l-print:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 8px 24px rgba(240,96,64,0.08); }
-.l-print-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(240,96,64,0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.l-print-body { flex: 1; }
-.l-print-body strong { display: block; font-size: 15px; color: var(--ink); margin-bottom: 3px; }
-.l-print-body span { font-size: 12px; color: var(--ink3); }
-.l-print-arrow { flex-shrink: 0; transition: transform 0.2s; }
-.l-print:hover .l-print-arrow { transform: translateX(4px); }
-
-/* ═══ FAQ ═══ */
-.l-faq { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 720px; margin: 0 auto; }
-.l-faq-item {
-  padding: 16px 20px; background: var(--surface); border-radius: 12px; border: 1px solid var(--surface2);
-  transition: transform 0.2s, border-color 0.3s;
-  opacity: 0; transform: translateY(12px);
-  transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.3s;
-  transition-delay: calc(var(--i, 0) * 0.06s);
-}
-.l-faq.in .l-faq-item { opacity: 1; transform: translateY(0); }
-.l-faq-item:hover { border-color: var(--surface3); transform: translateY(-1px); }
-.l-faq-q { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
-.l-faq-a { font-size: 12px; color: var(--ink3); line-height: 1.55; }
-
-/* ═══ CTA ═══ */
-.l-cta { text-align: center; padding: 56px 0 32px; border-top: 1px solid var(--surface2); position: relative; overflow: hidden; }
-.l-cta-glow {
-  position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
-  width: 400px; height: 200px; border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(240,96,64,0.05) 0%, transparent 70%);
+.l-print-banner:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(240,96,64,0.2); }
+.l-print-bg {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(135deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px);
   pointer-events: none;
 }
-.l-cta h2 { font-size: 30px; font-weight: 700; color: var(--ink); margin-bottom: 10px; position: relative; }
-.l-cta p { font-size: 14px; color: var(--ink3); margin-bottom: 28px; position: relative; }
+.l-print-inner { display: flex; align-items: center; gap: 20px; padding: 24px 28px; position: relative; }
+.l-print-icon-wrap {
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+  background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;
+}
+.l-print-text { flex: 1; }
+.l-print-text strong { display: block; font-size: 17px; color: #fff; margin-bottom: 4px; }
+.l-print-text span { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.6; }
+.l-print-cta {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  padding: 10px 20px; border-radius: 8px; background: rgba(255,255,255,0.15);
+  font-size: 13px; font-weight: 600; color: #fff;
+  transition: background 0.2s;
+}
+.l-print-banner:hover .l-print-cta { background: rgba(255,255,255,0.25); }
+
+/* ═══ QA (FAQ) ═══ */
+.l-qa { max-width: 700px; margin: 0 auto; }
+.l-qa-row {
+  display: flex; gap: 16px; padding: 18px 0;
+  border-bottom: 1px solid var(--surface2);
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition-delay: calc(var(--i) * 0.06s);
+}
+.l-qa.in .l-qa-row { opacity: 1; transform: translateY(0); }
+.l-qa-row:last-child { border-bottom: none; }
+.l-qa-num {
+  font-size: 20px; font-weight: 800; color: var(--surface3); font-family: 'DM Serif Display', serif;
+  min-width: 36px; flex-shrink: 0; transition: color 0.2s;
+}
+.l-qa-row:hover .l-qa-num { color: var(--accent); }
+.l-qa-q { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.l-qa-a { font-size: 12px; color: var(--ink3); line-height: 1.6; }
+
+/* ═══ FINAL CTA ═══ */
+.l-final {
+  text-align: center; padding: 64px 0 32px; position: relative; overflow: hidden;
+  border-top: 1px solid var(--surface2);
+}
+.l-final-glow {
+  position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%);
+  width: 500px; height: 250px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(240,96,64,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.l-final h2 { font-size: 32px; font-weight: 700; color: var(--ink); margin-bottom: 10px; position: relative; }
+.l-final p { font-size: 14px; color: var(--ink3); margin-bottom: 28px; position: relative; }
 
 /* ═══ MOBILE ═══ */
 @media (max-width: 680px) {
@@ -1576,13 +1591,12 @@ body::before {
   .l-split-line { width: auto; height: 1px; }
   .l-ai-metrics { flex-wrap: wrap; gap: 12px; }
   .l-ai-metric { padding: 0 16px; }
-  .l-audience { grid-template-columns: 1fr; gap: 24px; }
-  .l-audience-text h2 { text-align: center; }
-  .l-audience-text { text-align: center; }
-  .l-faq { grid-template-columns: 1fr; }
-  .l-print { flex-direction: column; text-align: center; gap: 12px; }
-  .l-print-arrow { display: none; }
-  .l-cta h2 { font-size: 24px; }
+  .l-who { grid-template-columns: 1fr; }
+  .l-who-block { flex-direction: column; gap: 8px; }
+  .l-qa { padding: 0 4px; }
+  .l-print-inner { flex-direction: column; text-align: center; gap: 14px; }
+  .l-print-cta { justify-content: center; }
+  .l-final h2 { font-size: 24px; }
 }
 
 /* ═══ Темы ═══ */

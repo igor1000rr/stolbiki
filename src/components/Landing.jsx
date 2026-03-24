@@ -183,75 +183,88 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ AUDIENCE — side by side with animation ═══ */}
+      {/* ═══ AUDIENCE — big vibrant blocks ═══ */}
       <section className="l-section">
-        <div className={`l-audience ${audVis ? 'in' : ''}`} ref={audRef}>
-          <div className="l-audience-text">
-            <h2>{en ? 'For everyone' : 'Для всех'}</h2>
-            <p>{en
-              ? 'Simple rules make it accessible for families. Deep strategy keeps experts coming back. Works anywhere — desktop, mobile, or printed at the table.'
-              : 'Простые правила — для семей. Глубокая стратегия — для экспертов. Работает везде — компьютер, телефон или распечатка на столе.'}</p>
-            <button className="btn primary" onClick={onPlay} style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="play" size={16} color="#fff" />{en ? 'Try now' : 'Попробовать'}
-            </button>
-          </div>
-          <div className="l-audience-cards">
-            {[
-              { c: '#ffc145', t: en ? 'Families' : 'Семьи', d: en ? 'Ages 8+. Perfect for game nights.' : 'Возраст 8+. Идеально для вечеров.' },
-              { c: '#3dd68c', t: en ? 'Board gamers' : 'Настольщики', d: en ? 'Original mechanics. Balance 52:48.' : 'Оригинальная механика. Баланс 52:48.' },
-              { c: '#4a9eff', t: en ? 'Online players' : 'Онлайн-игроки', d: en ? 'Play via link or train with AI.' : 'Играйте по ссылке или с AI.' },
-            ].map((a, i) => (
-              <div key={i} className="l-aud-card" style={{ '--i': i, '--c': a.c }}>
-                <div className="l-aud-marker" style={{ background: `linear-gradient(135deg, ${a.c}, ${a.c}80)` }} />
-                <div className="l-aud-body">
-                  <strong>{a.t}</strong>
-                  <span>{a.d}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ PRINT & PLAY ═══ */}
-      <section className="l-section">
-        <a href="/print-and-play.pdf" target="_blank" className="l-print">
-          <div className="l-print-icon"><Icon name="download" size={24} color="var(--accent)" /></div>
-          <div className="l-print-body">
-            <strong>Print & Play</strong>
-            <span>{en ? '3-page PDF: board, 110 chips, full rules' : 'PDF на 3 страницы: поле, 110 фишек, правила'}</span>
-          </div>
-          <div className="l-print-arrow"><Icon name="arrow" size={20} color="var(--ink3)" /></div>
-        </a>
-      </section>
-
-      {/* ═══ FAQ ═══ */}
-      <section className="l-section">
-        <h2 className="l-title">{en ? 'FAQ' : 'Частые вопросы'}</h2>
-        <div className={`l-faq ${faqVis ? 'in' : ''}`} ref={faqRef}>
+        <div className={`l-who ${audVis ? 'in' : ''}`} ref={audRef}>
           {[
-            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5–15 minutes depending on skill level.' : '5–15 минут в зависимости от уровня.'],
-            [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Its owner wins.' : 'Решает при счёте 5:5. Владелец побеждает.'],
-            [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes. PWA — add to home screen, play offline.' : 'Да. PWA — добавьте на экран, играйте оффлайн.'],
-            [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1\'s first move, P2 can take their position.' : 'После первого хода П1, П2 может забрать его позицию.'],
-            [en ? 'Is it balanced?' : 'Игра сбалансирована?', en ? '52:48 first-move advantage. Confirmed on 239K games.' : '52:48 в пользу первого хода. Проверено на 239K партиях.'],
-            [en ? 'Is it free?' : 'Это бесплатно?', en ? 'Completely free. No ads. Open source.' : 'Полностью бесплатно. Без рекламы. Open source.'],
-          ].map(([q, a], i) => (
-            <div key={i} className="l-faq-item" style={{ '--i': i }}>
-              <div className="l-faq-q">{q}</div>
-              <div className="l-faq-a">{a}</div>
+            { c: '#ffc145', bg: 'rgba(255,193,69,0.06)', border: 'rgba(255,193,69,0.15)',
+              icon: 'star', num: '8+', t: en ? 'Families' : 'Семьи',
+              d: en ? 'Simple rules, deep strategy. Perfect for game nights with kids.' : 'Простые правила, глубокая стратегия. Идеально для вечеров с детьми.' },
+            { c: '#3dd68c', bg: 'rgba(61,214,140,0.06)', border: 'rgba(61,214,140,0.15)',
+              icon: 'trophy', num: '52:48', t: en ? 'Board gamers' : 'Настольщики',
+              d: en ? 'Original mechanics. Mathematically verified balance on 239K games.' : 'Оригинальная механика. Баланс математически проверен на 239K партиях.' },
+            { c: '#4a9eff', bg: 'rgba(74,158,255,0.06)', border: 'rgba(74,158,255,0.15)',
+              icon: 'online', num: '0s', t: en ? 'Online players' : 'Онлайн',
+              d: en ? 'No signup needed. Share a link and play instantly from any device.' : 'Без регистрации. Отправьте ссылку — играйте с любого устройства.' },
+          ].map((a, i) => (
+            <div key={i} className="l-who-block" style={{ '--i': i, background: a.bg, borderColor: a.border }}>
+              <div className="l-who-num" style={{ color: a.c }}>{a.num}</div>
+              <div className="l-who-content">
+                <div className="l-who-head" style={{ color: a.c }}>
+                  <Icon name={a.icon} size={16} color={a.c} />
+                  <strong>{a.t}</strong>
+                </div>
+                <p>{a.d}</p>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ═══ CTA ═══ */}
-      <section className="l-cta">
-        <div className="l-cta-glow" />
+      {/* ═══ PRINT & PLAY — accent banner ═══ */}
+      <section className="l-section">
+        <a href="/print-and-play.pdf" target="_blank" className="l-print-banner">
+          <div className="l-print-bg" />
+          <div className="l-print-inner">
+            <div className="l-print-left">
+              <div className="l-print-icon-wrap">
+                <Icon name="download" size={28} color="#fff" />
+              </div>
+            </div>
+            <div className="l-print-text">
+              <strong>Print & Play</strong>
+              <span>{en
+                ? 'Download a 3-page PDF with the game board, 110 chips to cut out, and full rules. Everything you need to play at the table.'
+                : 'Скачайте PDF на 3 страницы: игровое поле, 110 фишек для вырезания и полные правила. Всё для игры за столом.'}</span>
+            </div>
+            <div className="l-print-cta">
+              <span>{en ? 'Download' : 'Скачать'}</span>
+              <Icon name="arrow" size={16} color="#fff" />
+            </div>
+          </div>
+        </a>
+      </section>
+
+      {/* ═══ FAQ — numbered, with colors ═══ */}
+      <section className="l-section">
+        <h2 className="l-title">{en ? 'Questions' : 'Вопросы'}</h2>
+        <div className={`l-qa ${faqVis ? 'in' : ''}`} ref={faqRef}>
+          {[
+            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5-15 minutes depending on skill. Blitz mode available.' : '5-15 минут. Есть блиц-режим.'],
+            [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при 5:5. Контроль — ключевая стратегия.'],
+            [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes — PWA. Add to home screen, play offline.' : 'Да — PWA. Добавьте на экран, играйте оффлайн.'],
+            [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first chip, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
+            [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '52:48 first-move edge. Confirmed across 239K games.' : '52:48 в пользу первого хода. Проверено на 239K партиях.'],
+            [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely. No ads, no paywalls. Open source.' : 'Полностью. Без рекламы. Open source.'],
+          ].map(([q, a], i) => (
+            <div key={i} className="l-qa-row" style={{ '--i': i }}>
+              <div className="l-qa-num">{String(i + 1).padStart(2, '0')}</div>
+              <div className="l-qa-body">
+                <div className="l-qa-q">{q}</div>
+                <div className="l-qa-a">{a}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ CTA — gradient dramatic ═══ */}
+      <section className="l-final">
+        <div className="l-final-glow" />
         <h2>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
-        <p>{en ? 'Open beta — new features ship every week. Follow the blog.' : 'Открытая бета — новые фичи каждую неделю. Следите в блоге.'}</p>
+        <p>{en ? 'Open beta — we ship new features every week.' : 'Открытая бета — новые фичи каждую неделю.'}</p>
         <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
-          <Icon name="play" size={18} color="#fff" />{en ? 'Start playing' : 'Начать играть'}
+          <Icon name="play" size={18} color="#fff" />{en ? 'Start now' : 'Начать'}
         </button>
       </section>
     </div>
