@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
+import * as API from './engine/api'
 import Icon from './components/Icon'
 import Game from './components/Game'
 import Online from './components/Online'
@@ -61,6 +62,56 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
+
+  // Auth state — synced with localStorage
+  const [authUser, setAuthUser] = useState(() => {
+    try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); return p?.name ? p : null } catch { return null }
+  })
+  const [authOpen, setAuthOpen] = useState(false)
+  const [authName, setAuthName] = useState('')
+  const [authPass, setAuthPass] = useState('')
+  const [authMode, setAuthMode] = useState('login')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const authRef = useRef(null)
+
+  useEffect(() => {
+    const check = () => { try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); setAuthUser(p?.name ? p : null) } catch { setAuthUser(null) } }
+    const iv = setInterval(check, 2000)
+    return () => clearInterval(iv)
+  }, [])
+
+  useEffect(() => {
+    if (!authOpen) return
+    const close = (e) => { if (authRef.current && !authRef.current.contains(e.target)) setAuthOpen(false) }
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [authOpen])
+
+  async function doAuth() {
+    if (!authName.trim()) return
+    setAuthLoading(true); setAuthError('')
+    try {
+      await (authMode === 'login' ? API.login : API.register)(authName.trim(), authPass)
+      const profile = await API.getProfile()
+      const merged = { ...profile, name: profile.username || authName.trim() }
+      localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
+      setAuthUser(merged); setAuthOpen(false); setAuthName(''); setAuthPass('')
+    } catch (e) {
+      if (!authPass) {
+        const local = { name: authName.trim(), rating: 1000, gamesPlayed: 0, wins: 0, losses: 0, winStreak: 0, bestStreak: 0, goldenClosed: 0, comebacks: 0, perfectWins: 0, achievements: [], history: [] }
+        localStorage.setItem('stolbiki_profile', JSON.stringify(local))
+        setAuthUser(local); setAuthOpen(false)
+      } else { setAuthError(e.message || 'Error') }
+    }
+    setAuthLoading(false)
+  }
+
+  function doLogout() {
+    localStorage.removeItem('stolbiki_profile'); localStorage.removeItem('stolbiki_token')
+    setAuthUser(null); setAuthOpen(false)
+    if (typeof window.stolbikiCheckAdmin === 'function') window.stolbikiCheckAdmin()
+  }
 
   // Sync hash with tab
   useEffect(() => {
@@ -205,8 +256,69 @@ export default function App() {
             </div>
           </nav>
 
-          {/* Lang + burger */}
+          {/* Auth + Lang + burger */}
           <div className="site-actions">
+            {/* Auth indicator */}
+            <div className="header-auth" ref={authRef}>
+              {authUser ? (
+                <button className="header-auth-user" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
+                  <div className="header-avatar">{authUser.name.charAt(0).toUpperCase()}</div>
+                  <span className="header-username">{authUser.name}</span>
+                  {authUser.rating > 0 && <span className="header-rating">{authUser.rating}</span>}
+                </button>
+              ) : (
+                <button className="header-login-btn" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
+                  <Icon name="profile" size={14} />
+                  <span>{en ? 'Login' : 'Войти'}</span>
+                </button>
+              )}
+              {authOpen && (
+                <div className="header-auth-dropdown">
+                  {authUser ? (
+                    <>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--surface2)' }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{authUser.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                          {en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000} · {en ? 'Games' : 'Партий'}: {authUser.gamesPlayed || 0}
+                        </div>
+                      </div>
+                      <button onClick={() => { go('profile'); setAuthOpen(false) }} className="header-auth-item">
+                        <Icon name="profile" size={14} style={{ opacity: 0.5 }} />{en ? 'Profile' : 'Профиль'}
+                      </button>
+                      <button onClick={() => { go('settings'); setAuthOpen(false) }} className="header-auth-item">
+                        <Icon name="theme" size={14} style={{ opacity: 0.5 }} />{en ? 'Settings' : 'Настройки'}
+                      </button>
+                      <div className="nav-more-divider" />
+                      <button onClick={doLogout} className="header-auth-item" style={{ color: '#ff6066' }}>
+                        {en ? 'Logout' : 'Выйти'}
+                      </button>
+                    </>
+                  ) : (
+                    <div style={{ padding: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>
+                        {authMode === 'login' ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}
+                      </div>
+                      {authError && <div style={{ fontSize: 11, color: '#ff6066', marginBottom: 8 }}>{authError}</div>}
+                      <input type="text" placeholder={en ? 'Username' : 'Никнейм'} value={authName}
+                        onChange={e => setAuthName(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
+                        className="header-auth-input" autoFocus />
+                      <input type="password" placeholder={en ? 'Password' : 'Пароль'} value={authPass}
+                        onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
+                        className="header-auth-input" />
+                      <button className="btn primary" onClick={doAuth} disabled={authLoading}
+                        style={{ width: '100%', fontSize: 12, padding: '8px 0' }}>
+                        {authLoading ? '...' : authMode === 'login' ? (en ? 'Login' : 'Войти') : (en ? 'Register' : 'Создать')}
+                      </button>
+                      <button onClick={() => { setAuthMode(m => m === 'login' ? 'register' : 'login'); setAuthError('') }}
+                        style={{ width: '100%', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 11, padding: '8px 0', cursor: 'pointer' }}>
+                        {authMode === 'login' ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация') : (en ? 'Have account? Login' : 'Есть аккаунт? Войти')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {LANGS.map(l => (
               <button key={l.code} onClick={() => setLang(l.code)} className={`lang-btn ${lang === l.code ? 'active' : ''}`}>
                 {l.label}
