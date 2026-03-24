@@ -1485,6 +1485,45 @@ addPost('changelog-march', 'Changelog: март 2026', 'Changelog: March 2026',
   '• Landing with scroll animations (4 design iterations)\n• Error Boundary + lazy loading (11 components)\n• Hash routing (#game, #blog, #puzzles)\n• OG tags, JSON-LD, robots.txt, sitemap\n• Accessibility (aria, landmarks, keyboard)\n• Service Worker: network-first',
   'release')
 
+addPost('admin-panel', 'Админ-панель и безопасность', 'Admin panel & security',
+  'Добавлена полноценная админ-панель с 9 разделами.\n\n' +
+  'Что внутри\n' +
+  'Обзор — живые метрики: пользователи, партии, рейтинг, память сервера. Графики регистраций и партий за 30 дней.\n\n' +
+  'Пользователи — поиск, сортировка, редактирование рейтинга, сброс пароля, удаление.\n\n' +
+  'Партии — фильтрация по режиму (AI, PvP, онлайн), история с дельтой рейтинга.\n\n' +
+  'Блог — создание и редактирование постов прямо из админки. Черновики, теги, закрепление.\n\n' +
+  'Комнаты — мониторинг активных онлайн-комнат и очереди матчмейкинга в реальном времени.\n\n' +
+  'Безопасность\n' +
+  'WebSocket аутентификация, валидация результатов партий на сервере, антиспам при записи партий, CSP заголовки.',
+  'Full admin panel with 9 sections added.\n\n' +
+  'Overview — live metrics: users, games, rating, server memory. Registration and game charts for 30 days.\n\n' +
+  'Users — search, sort, edit rating, reset password, delete.\n\n' +
+  'Games — filter by mode (AI, PvP, online), history with rating delta.\n\n' +
+  'Blog — create and edit posts from admin. Drafts, tags, pinning.\n\n' +
+  'Rooms — live monitoring of online rooms and matchmaking queue.\n\n' +
+  'Security\n' +
+  'WebSocket authentication, server-side game result validation, anti-spam, CSP headers.',
+  'release')
+
+addPost('v3-3-update', 'Адаптивка, тема Wood и интерактивные правила', 'Responsive, Wood theme & interactive rules',
+  'Большое обновление интерфейса.\n\n' +
+  'Адаптивка\n' +
+  'Теперь 8 брейкпоинтов вместо 4. Сайт корректно отображается на экранах от 340px до 1024px. Админка на мобилке показывает горизонтальные табы вместо сайдбара.\n\n' +
+  'Тема Wood\n' +
+  'Полностью переработана. Доска и стойки с текстурой дерева через CSS-паттерны. Фишки стилизованы: светлые как кость, тёмные как эбен. Inner shadow для глубины.\n\n' +
+  'Правила\n' +
+  'Три интерактивные схемы с пошаговой анимацией: перенос фишек (4 шага), закрытие стойки (3 шага), swap rule с кнопкой смены цветов. Обновлён Print & Play PDF.\n\n' +
+  'Также добавлена отдельная страница Changelog с историей всех версий.',
+  'Big interface update.\n\n' +
+  'Responsive\n' +
+  'Now 8 breakpoints instead of 4. Site displays correctly from 340px to 1024px. Admin on mobile shows horizontal tabs instead of sidebar.\n\n' +
+  'Wood theme\n' +
+  'Fully reworked. Board and stands with wood grain texture via CSS patterns. Chips styled: light as ivory, dark as ebony. Inner shadows for depth.\n\n' +
+  'Rules\n' +
+  'Three interactive diagrams with step-by-step animation: chip transfer (4 steps), stand closing (3 steps), swap rule with color swap button. Updated Print & Play PDF.\n\n' +
+  'Also added a dedicated Changelog page with full version history.',
+  'update')
+
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n✅ Стойки API + WS: http://0.0.0.0:${PORT}`)

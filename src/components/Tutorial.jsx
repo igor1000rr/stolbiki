@@ -145,8 +145,8 @@ export default function Tutorial({ onClose }) {
     : current.validClick
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 16px 24px' }}>
-      <div style={{ maxWidth: 480, width: '100%' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, overflow: 'auto', display: 'flex', flexDirection: 'column', padding: '16px' }}>
+      <div style={{ maxWidth: 480, width: '100%', margin: 'auto' }}>
         {/* Прогресс */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {STEPS.map((_, i) => (

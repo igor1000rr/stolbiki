@@ -6,6 +6,36 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '3.3',
+    date: '2026-03-24',
+    title_ru: 'Адаптивка, тема Wood, правила',
+    title_en: 'Responsive, Wood theme, rules',
+    changes_ru: [
+      { type: 'new', text: '8 брейкпоинтов адаптивки (было 4) — от 1024px до 340px' },
+      { type: 'new', text: 'Тема Wood полностью переработана: CSS текстуры дерева, inner shadow, стилизация фишек' },
+      { type: 'new', text: 'Интерактивные схемы в правилах: перенос (4 шага), закрытие (3 шага), swap' },
+      { type: 'new', text: 'Отдельная страница Changelog с историей всех версий' },
+      { type: 'new', text: 'Обновлённый Print & Play PDF v3.2 с полными правилами' },
+      { type: 'fix', text: 'Туториал центрирован по вертикали, текст переноса исправлен' },
+      { type: 'fix', text: 'Футер: стили разделителей, ссылки Changelog/Правила/Print & Play' },
+      { type: 'fix', text: 'Dropdown «Ещё» не пропадает при наведении' },
+      { type: 'fix', text: 'Админка адаптивна: горизонтальные табы на мобилке' },
+      { type: 'fix', text: 'Убран автор из лендинга' },
+    ],
+    changes_en: [
+      { type: 'new', text: '8 responsive breakpoints (was 4) — from 1024px to 340px' },
+      { type: 'new', text: 'Wood theme fully reworked: CSS wood grain textures, inner shadows, styled chips' },
+      { type: 'new', text: 'Interactive rule diagrams: transfer (4 steps), closing (3 steps), swap' },
+      { type: 'new', text: 'Dedicated Changelog page with full version history' },
+      { type: 'new', text: 'Updated Print & Play PDF v3.2 with complete rules' },
+      { type: 'fix', text: 'Tutorial vertically centered, transfer text corrected' },
+      { type: 'fix', text: 'Footer: divider styles, Changelog/Rules/Print & Play links' },
+      { type: 'fix', text: '"More" dropdown no longer disappears on hover' },
+      { type: 'fix', text: 'Admin panel responsive: horizontal tabs on mobile' },
+      { type: 'fix', text: 'Removed author from landing page' },
+    ],
+  },
+  {
     version: '3.2',
     date: '2026-03-24',
     title_ru: 'Админ-панель и безопасность',
