@@ -11,6 +11,7 @@ import Puzzles from './components/Puzzles'
 import Openings from './components/Openings'
 import Landing from './components/Landing'
 import Tutorial from './components/Tutorial'
+import Blog from './components/Blog'
 import './app.css'
 
 const ADMIN_NAMES = ['admin']
@@ -80,6 +81,7 @@ export default function App() {
     { id: 'online', label: t('nav.online') },
     { id: 'puzzles', label: t('nav.puzzles') },
     { id: 'openings', label: '📊' },
+    { id: 'blog', label: lang === 'en' ? '📰 Blog' : '📰 Блог' },
     { id: 'profile', label: t('nav.profile') },
     { id: 'rules', label: t('nav.rules') },
   ]
@@ -101,6 +103,7 @@ export default function App() {
           <div className="site-logo" onClick={() => go('landing')}>
             <span className="site-logo-icon">♟</span>
             <span className="site-logo-text">{t('header.title')}</span>
+            <span className="beta-badge">beta</span>
           </div>
 
           {/* Десктоп навигация */}
@@ -157,6 +160,7 @@ export default function App() {
         <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
         {tab === 'puzzles' && <Puzzles />}
         {tab === 'openings' && <Openings />}
+        {tab === 'blog' && <Blog />}
         {tab === 'profile' && <Profile />}
         {tab === 'sim' && isAdmin && <Simulator />}
         {tab === 'dash' && isAdmin && <Dashboard />}
@@ -169,7 +173,11 @@ export default function App() {
       {/* ═══ ПОДВАЛ ═══ */}
       <footer className="site-footer">
         <div className="site-footer-inner">
-          <div>Стойки v2.2 · {lang === 'en' ? 'Balance: 239K+ games' : 'Баланс: 239K+ партий'}</div>
+          <div>
+            <span style={{ opacity: 0.7 }}>Стойки</span>
+            <span className="beta-badge" style={{ marginLeft: 6, marginRight: 6 }}>beta</span>
+            <span style={{ opacity: 0.5 }}>· {lang === 'en' ? 'A research project at the intersection of board games and AI' : 'Исследовательский проект на стыке настольных игр и AI'}</span>
+          </div>
           <div className="site-footer-links">
             <span className="status-dot" style={{ background: publicStats ? 'var(--green)' : 'var(--p2)' }} />
             {publicStats ? t('common.online') : t('common.offline')}

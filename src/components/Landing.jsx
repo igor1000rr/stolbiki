@@ -34,10 +34,17 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <h1 style={{ fontSize: 40, fontWeight: 800, color: 'var(--ink)', fontFamily: 'DM Serif Display, serif', lineHeight: 1.2, marginBottom: 16, whiteSpace: 'pre-line' }}>
           {lang === 'en' ? 'The strategy board game\nyou can play anywhere' : 'Стратегическая настолка,\nв которую можно играть везде'}
         </h1>
-        <p style={{ fontSize: 17, color: 'var(--ink2)', lineHeight: 1.7, maxWidth: 580, margin: '0 auto 28px' }}>
+        <p style={{ fontSize: 17, color: 'var(--ink2)', lineHeight: 1.7, maxWidth: 580, margin: '0 auto 12px' }}>
           {lang === 'en'
             ? '10 stands, 11 chips each, infinite depth. Play against AI, friends online, or print and play at the table.'
             : '10 стоек, 11 фишек на каждой, бесконечная глубина. Играйте против AI, с друзьями онлайн, или распечатайте и играйте за столом.'
+          }
+        </p>
+        <p style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <span className="beta-badge">beta</span>
+          {lang === 'en'
+            ? 'Research project · AI trained on 239K games · Active development'
+            : 'Исследовательский проект · AI обучен на 239K партиях · Активная разработка'
           }
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -176,6 +183,12 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <button className="btn primary" onClick={onPlay} style={{ fontSize: 16, padding: '14px 40px' }}>
           {lang === 'en' ? '🎮 Start now — it\'s free' : '🎮 Начать — бесплатно'}
         </button>
+        <p style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 20, lineHeight: 1.7, maxWidth: 480, margin: '20px auto 0' }}>
+          {lang === 'en'
+            ? 'Stacks is in open beta. We\'re adding new features every week — ranked seasons, mobile app, and more. Follow our blog for updates.'
+            : 'Стойки в открытой бете. Каждую неделю добавляем новое — рейтинговые сезоны, мобильное приложение и другое. Следите за обновлениями в блоге.'
+          }
+        </p>
       </section>
     </div>
   )

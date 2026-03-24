@@ -103,9 +103,24 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    title_ru TEXT NOT NULL,
+    title_en TEXT,
+    body_ru TEXT NOT NULL,
+    body_en TEXT,
+    tag TEXT DEFAULT 'update',
+    pinned INTEGER DEFAULT 0,
+    published INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_rating ON users(rating DESC);
   CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_id, played_at DESC);
   CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id, status);
+  CREATE INDEX IF NOT EXISTS idx_blog_published ON blog_posts(published, created_at DESC);
 `)
 
 console.log('База данных готова:', DB_PATH)
@@ -666,6 +681,67 @@ app.get('/api/puzzles/user/stats', auth, (req, res) => {
     bank: { attempts: bank?.total || 0, solved: bank?.solved || 0 },
     totalSolved: (daily?.solved || 0) + (weekly?.solved || 0) + (bank?.solved || 0),
   })
+})
+
+// ═══ БЛОГ / НОВОСТИ ═══
+
+// Сид начальных постов (только если пусто)
+const blogCount = db.prepare('SELECT COUNT(*) as c FROM blog_posts').get().c
+if (blogCount === 0) {
+  const seed = db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)')
+  seed.run('launch', 'Запуск открытой беты', 'Open beta launch',
+    'Стойки выходят в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n• Игра против AI (3 уровня сложности)\n• Онлайн мультиплеер по ссылке\n• Ежедневные и еженедельные головоломки\n• Режим «Тренер» с оценкой каждого хода\n• 4 цветовые темы\n• Print & Play PDF\n\nМы активно собираем обратную связь. Нашли баг или есть идея? Пишите в профиле.',
+    'Stacks enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n• Play vs AI (3 difficulty levels)\n• Online multiplayer via link\n• Daily and weekly puzzles\n• Trainer mode with move evaluation\n• 4 color themes\n• Print & Play PDF\n\nWe\'re actively collecting feedback. Found a bug or have an idea? Let us know via your profile.',
+    'release', 1)
+  seed.run('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
+    'Нейросеть AI прошла 3 прогона GPU-обучения. Результаты:\n\n• 1146 итераций self-play\n• Loss снизился до 0.098\n• Винрейт лучшей модели: 97%\n• Баланс P1/P2: 52% / 48%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
+    'The AI neural network completed 3 GPU training runs:\n\n• 1146 self-play iterations\n• Loss dropped to 0.098\n• Best model win rate: 97%\n• P1/P2 balance: 52% / 48%\n\nAI is notably stronger in endgame and better at evaluating the golden stand.',
+    'ai', 0)
+  seed.run('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
+    'Добавлены тактические головоломки!\n\n• Головоломка дня — обновляется каждый день\n• Задача недели — сложнее, обновляется по понедельникам\n• Банк из 50 головоломок с 3 уровнями сложности\n• Лидерборды и статистика решений\n\nЦель — закрыть нужные стойки за ограниченное число ходов. Тренирует тактическое мышление.',
+    'Tactical puzzles are here!\n\n• Daily puzzle — refreshes every day\n• Weekly challenge — harder, refreshes on Mondays\n• Bank of 50 puzzles with 3 difficulty levels\n• Leaderboards and solve stats\n\nGoal: close the required stands in limited moves. Trains tactical thinking.',
+    'feature', 0)
+  seed.run('roadmap', 'Что дальше: планы развития', 'What\'s next: roadmap',
+    'Стойки — исследовательский проект на стыке настольных игр и AI. Вот что в планах:\n\n🔜 Ближайшее:\n• Рейтинговые сезоны\n• Push-уведомления\n• Расширенная книга дебютов\n\n🔮 Будущее:\n• Мобильное приложение (iOS/Android)\n• Турниры с призами\n• Физическое издание игры\n• Открытый API для разработчиков\n\nСледите за обновлениями в этом блоге.',
+    'Stacks is a research project at the intersection of board games and AI. Here\'s what\'s planned:\n\n🔜 Coming soon:\n• Ranked seasons\n• Push notifications\n• Extended opening book\n\n🔮 Future:\n• Mobile app (iOS/Android)\n• Tournaments with prizes\n• Physical game edition\n• Open API for developers\n\nStay tuned via this blog.',
+    'roadmap', 0)
+}
+
+// Получить посты
+app.get('/api/blog', (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const perPage = 10
+  const offset = (page - 1) * perPage
+  const posts = db.prepare('SELECT id, slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at FROM blog_posts WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT ? OFFSET ?').all(perPage, offset)
+  const total = db.prepare('SELECT COUNT(*) as c FROM blog_posts WHERE published=1').get().c
+  res.json({ posts, total, page, pages: Math.ceil(total / perPage) })
+})
+
+// Отдельный пост
+app.get('/api/blog/:slug', (req, res) => {
+  const post = db.prepare('SELECT * FROM blog_posts WHERE slug=? AND published=1').get(req.params.slug)
+  if (!post) return res.status(404).json({ error: 'Пост не найден' })
+  res.json(post)
+})
+
+// Создание поста (только админ)
+app.post('/api/blog', auth, (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ error: 'Только администратор' })
+  const { slug, title_ru, title_en, body_ru, body_en, tag, pinned } = req.body
+  if (!slug || !title_ru || !body_ru) return res.status(400).json({ error: 'slug, title_ru, body_ru обязательны' })
+  try {
+    db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)').run(slug, title_ru, title_en || '', body_ru, body_en || '', tag || 'update', pinned ? 1 : 0)
+    res.json({ ok: true })
+  } catch (e) { res.status(409).json({ error: 'Slug уже существует' }) }
+})
+
+// Обновление поста (только админ)
+app.put('/api/blog/:slug', auth, (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ error: 'Только администратор' })
+  const { title_ru, title_en, body_ru, body_en, tag, pinned, published } = req.body
+  db.prepare('UPDATE blog_posts SET title_ru=COALESCE(?,title_ru), title_en=COALESCE(?,title_en), body_ru=COALESCE(?,body_ru), body_en=COALESCE(?,body_en), tag=COALESCE(?,tag), pinned=COALESCE(?,pinned), published=COALESCE(?,published), updated_at=datetime(\'now\') WHERE slug=?')
+    .run(title_ru, title_en, body_ru, body_en, tag, pinned, published, req.params.slug)
+  res.json({ ok: true })
 })
 
 // ═══ ROOMS (REST API для создания) ═══
