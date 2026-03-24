@@ -1,40 +1,6 @@
 import { useI18n } from '../engine/i18n'
 import Icon from './Icon'
 
-const FEATURE_COLORS = ['#4a9eff', '#3dd68c', '#ffc145', '#9b59b6', '#f06040', '#00bcd4']
-
-function FeatureCard({ icon, title, desc, idx = 0 }) {
-  const c = FEATURE_COLORS[idx % FEATURE_COLORS.length]
-  return (
-    <div className="feature-card">
-      <div className="feature-icon-wrap" style={{ background: `${c}12` }}>
-        <Icon name={icon} size={18} color={c} />
-      </div>
-      <h3 className="feature-title">{title}</h3>
-      <p className="feature-desc">{desc}</p>
-    </div>
-  )
-}
-
-function StepCard({ num, title, desc }) {
-  return (
-    <div className="step-card">
-      <div className="step-num">{num}</div>
-      <h3 className="step-title">{title}</h3>
-      <p className="step-desc">{desc}</p>
-    </div>
-  )
-}
-
-function StatBlock({ value, label }) {
-  return (
-    <div className="stat-block">
-      <div className="stat-value">{value}</div>
-      <div className="stat-label">{label}</div>
-    </div>
-  )
-}
-
 export default function Landing({ onPlay, onTutorial, publicStats }) {
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -43,159 +9,190 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
     <div className="landing">
 
       {/* ═══ HERO ═══ */}
-      <section className="landing-hero">
-        {/* Визуальный элемент — абстрактные стойки */}
-        <div className="hero-visual">
-          <div className="hero-stands">
-            {[7, 11, 9, 11, 6, 8, 10, 11, 5, 7].map((h, i) => (
-              <div key={i} className="hero-stand" style={{ height: `${h * 8}%` }}>
-                <div className="hero-stand-fill" style={{
-                  height: '100%',
-                  background: i === 0 ? 'var(--gold)' : (i % 3 === 0 ? 'var(--p2)' : 'var(--p1)'),
-                  opacity: h === 11 ? 0.9 : 0.3 + (h / 11) * 0.4,
-                }} />
-              </div>
-            ))}
-          </div>
+      <section className="l-hero">
+        <div className="l-hero-visual">
+          {[7, 11, 9, 11, 6, 8, 10, 11, 5, 7].map((h, i) => (
+            <div key={i} className="l-bar" style={{ height: `${h * 8}%`,
+              background: i === 0 ? 'var(--gold)' : i % 3 === 0 ? 'var(--p2)' : 'var(--p1)',
+              opacity: h === 11 ? 0.9 : 0.25 + (h / 11) * 0.45 }} />
+          ))}
         </div>
-
-        <h1 className="hero-title">
+        <h1 className="l-hero-title">
           {en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI'}
         </h1>
-        <p className="hero-subtitle">
+        <p className="l-hero-sub">
           {en
-            ? '10 stands, 11 chips each, infinite depth. Play against a neural network trained on 239K games, challenge friends online, or print and play at the table.'
-            : '10 стоек, 11 фишек на каждой, бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями онлайн или распечатайте и играйте за столом.'
-          }
+            ? '10 stands. 11 chips each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
+            : '10 стоек. 11 фишек на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
         </p>
-        <div className="hero-note">
+        <div className="l-hero-meta">
           <span className="beta-badge">beta</span>
-          <span>{en ? 'Open beta — active development' : 'Открытая бета — активная разработка'}</span>
+          {en ? 'Open beta — active development' : 'Открытая бета — активная разработка'}
         </div>
-        <div className="hero-actions">
-          <button className="btn primary hero-btn" onClick={onPlay}>
-            <Icon name="play" size={18} color="#fff" />
-            {en ? 'Play free' : 'Играть'}
+        <div className="l-hero-btns">
+          <button className="btn primary l-btn-lg" onClick={onPlay}>
+            <Icon name="play" size={18} color="#fff" />{en ? 'Play free' : 'Играть'}
           </button>
-          <button className="btn hero-btn" onClick={onTutorial}>
-            <Icon name="rules" size={16} />
-            {en ? 'Learn in 2 min' : 'Обучение за 2 мин'}
+          <button className="btn l-btn-lg" onClick={onTutorial}>
+            <Icon name="rules" size={16} />{en ? 'Learn in 2 min' : 'Обучение за 2 мин'}
           </button>
         </div>
       </section>
 
-      {/* ═══ СТАТИСТИКА ═══ */}
-      <section className="landing-stats">
-        <StatBlock value="239K+" label={en ? 'games analyzed' : 'партий проанализировано'} />
-        <div className="stat-divider" />
-        <StatBlock value="97%" label={en ? 'AI win rate' : 'винрейт AI'} />
-        <div className="stat-divider" />
-        <StatBlock value="52:48" label={en ? 'P1/P2 balance' : 'баланс P1/P2'} />
-        <div className="stat-divider" />
-        <StatBlock value="6" label={en ? 'templates' : 'шаблонов головоломок'} />
-        {publicStats && publicStats.totalGames > 10 && (
-          <>
-            <div className="stat-divider" />
-            <StatBlock value={publicStats.totalGames} label={en ? 'games played' : 'партий сыграно'} />
-          </>
-        )}
+      {/* ═══ ЧИСЛА — горизонтальная полоса ═══ */}
+      <section className="l-numbers">
+        {[
+          { v: '239K+', l: en ? 'games analyzed' : 'партий' },
+          { v: '97%', l: en ? 'AI win rate' : 'винрейт AI' },
+          { v: '52:48', l: en ? 'P1/P2 balance' : 'баланс' },
+        ].map((s, i) => (
+          <div key={i} className="l-num">
+            <span className="l-num-val">{s.v}</span>
+            <span className="l-num-label">{s.l}</span>
+          </div>
+        ))}
       </section>
 
-      {/* ═══ КАК ИГРАТЬ ═══ */}
-      <section className="landing-section">
-        <h2 className="section-title">{en ? 'Learn in 3 steps' : 'Научитесь за 3 шага'}</h2>
-        <div className="steps-grid">
-          <StepCard num="1" title={en ? 'Place chips' : 'Ставьте фишки'} desc={en ? 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.' : 'До 3 фишек на максимум 2 стойки за ход. Первый ход — всегда 1 фишка.'} />
-          <StepCard num="2" title={en ? 'Transfer' : 'Переносите'} desc={en ? 'Move your top chip group to another stand. The key tactical move.' : 'Переместите верхнюю группу своих фишек. Ключевой тактический приём.'} />
-          <StepCard num="3" title={en ? 'Close stands' : 'Закрывайте'} desc={en ? 'At 11 chips a stand closes. Top color = owner. Close 6 of 10 to win.' : 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10.'} />
-        </div>
-      </section>
-
-      {/* ═══ ФИЧИ ═══ */}
-      <section className="landing-section">
-        <h2 className="section-title">{en ? 'Everything you need' : 'Всё для игры'}</h2>
-        <div className="features-grid">
-          <FeatureCard idx={0} icon="ai" title={en ? 'AlphaZero-based AI' : 'AI на базе AlphaZero'} desc={en ? '3 difficulty levels. GPU-trained neural net, 97% win rate against random play.' : '3 уровня сложности. Нейросеть обучена на GPU, 97% винрейт.'} />
-          <FeatureCard idx={1} icon="online" title={en ? 'Online multiplayer' : 'Онлайн мультиплеер'} desc={en ? 'Send a link — play instantly. Best-of-3 and best-of-5 series. No signup.' : 'Отправьте ссылку — играйте сразу. Серии из 3 и 5 партий. Без регистрации.'} />
-          <FeatureCard idx={2} icon="puzzle" title={en ? 'Daily puzzles' : 'Ежедневные головоломки'} desc={en ? 'New puzzle every day. Weekly challenge. Bank of 50 puzzles. Leaderboards.' : 'Новая задача каждый день. Еженедельный челлендж. Банк из 50 задач.'} />
-          <FeatureCard idx={3} icon="trainer" title={en ? 'Trainer mode' : 'Режим «Тренер»'} desc={en ? 'AI evaluates every move in real-time. Shows position strength bar.' : 'AI оценивает каждый ход в реальном времени. Шкала силы позиции.'} />
-          <FeatureCard idx={4} icon="chart" title={en ? 'Opening book' : 'Книга дебютов'} desc={en ? 'Heatmaps, opening strategies, stand analytics from 239K games.' : 'Тепловые карты, стратегии дебютов, аналитика из 239K партий.'} />
-          <FeatureCard idx={5} icon="theme" title={en ? 'Themes & PWA' : 'Темы и PWA'} desc={en ? '4 color themes. Works offline on mobile. Add to home screen.' : '4 цветовые темы. Работает оффлайн. Добавьте на главный экран.'} />
-        </div>
-      </section>
-
-      {/* ═══ ДЛЯ КОГО ═══ */}
-      <section className="landing-section">
-        <h2 className="section-title">{en ? 'Who is it for' : 'Для кого'}</h2>
-        <div className="audience-grid">
+      {/* ═══ КАК ИГРАТЬ — 3 шага горизонтально с линией ═══ */}
+      <section className="l-section">
+        <h2 className="l-title">{en ? 'Learn in 3 steps' : 'Научитесь за 3 шага'}</h2>
+        <div className="l-steps">
           {[
-            { icon: 'star', title: en ? 'Families' : 'Семьи', desc: en ? 'Simple rules, deep strategy. Ages 8+.' : 'Простые правила, глубокая стратегия. Возраст 8+.', c: '#ffc145' },
-            { icon: 'trophy', title: en ? 'Board gamers' : 'Настольщики', desc: en ? 'Original mechanics. Balanced 52:48. Verified on 239K games.' : 'Оригинальная механика. Баланс 52:48. Проверено на 239K партиях.', c: '#3dd68c' },
-            { icon: 'online', title: en ? 'Online players' : 'Онлайн-игроки', desc: en ? 'No friend nearby? Play via link or train with AI.' : 'Нет друга рядом? Играйте онлайн или тренируйтесь с AI.', c: '#4a9eff' },
-          ].map((c, i) => (
-            <div key={i} className="audience-card">
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c.c}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                <Icon name={c.icon} size={18} color={c.c} />
-              </div>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{c.title}</h3>
-              <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, margin: 0 }}>{c.desc}</p>
+            { n: '01', t: en ? 'Place' : 'Ставьте', d: en ? 'Up to 3 chips on max 2 stands. First move — 1 chip.' : 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.' },
+            { n: '02', t: en ? 'Transfer' : 'Переносите', d: en ? 'Move your top group to another stand. The key tactical move.' : 'Переместите группу фишек. Ключевой тактический приём.' },
+            { n: '03', t: en ? 'Close' : 'Закрывайте', d: en ? '11 chips = closed. Top color owns it. Close 6 of 10 to win!' : '11 фишек = закрыта. Цвет сверху владеет. Закройте 6 из 10!' },
+          ].map((s, i) => (
+            <div key={i} className="l-step">
+              <div className="l-step-n">{s.n}</div>
+              <div className="l-step-t">{s.t}</div>
+              <div className="l-step-d">{s.d}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ═══ PRINT & PLAY ═══ */}
-      <section className="landing-section">
-        <div className="printplay-card">
-          <div className="printplay-content">
-            <Icon name="download" size={32} color="var(--accent)" style={{ marginBottom: 12 }} />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Print & Play</h3>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 16 }}>
-              {en
-                ? 'Download a 3-page PDF: game board, 110 chips, and full rules. Print, cut, play.'
-                : 'Скачайте PDF на 3 страницы: игровое поле, 110 фишек и полные правила. Распечатайте, вырежьте, играйте.'
-              }
-            </p>
-            <a href="/print-and-play.pdf" target="_blank" className="btn primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="download" size={16} color="#fff" /> PDF
-            </a>
+      {/* ═══ ГЛАВНАЯ ФИЧА — большой блок AI + 2 поменьше рядом ═══ */}
+      <section className="l-section">
+        <h2 className="l-title">{en ? 'What\'s inside' : 'Что внутри'}</h2>
+        <div className="l-features">
+          {/* Большая карточка AI */}
+          <div className="l-feat l-feat-big">
+            <div className="l-feat-icon" style={{ background: '#4a9eff18' }}>
+              <Icon name="ai" size={28} color="#4a9eff" />
+            </div>
+            <h3>{en ? 'AlphaZero AI' : 'AI на базе AlphaZero'}</h3>
+            <p>{en
+              ? 'Neural network trained via self-play on GPU. 1146 iterations, loss 0.098. Three difficulty levels — from casual to grandmaster. Win rate 97% vs random.'
+              : 'Нейросеть обучена через self-play на GPU. 1146 итераций, loss 0.098. Три уровня сложности — от казуального до гроссмейстера. Винрейт 97%.'}</p>
+            <div className="l-feat-tags">
+              <span>GPU-trained</span><span>MCTS</span><span>Self-play</span>
+            </div>
+          </div>
+          {/* Две карточки справа */}
+          <div className="l-feat-side">
+            <div className="l-feat l-feat-sm">
+              <div className="l-feat-icon" style={{ background: '#3dd68c18' }}>
+                <Icon name="online" size={20} color="#3dd68c" />
+              </div>
+              <h3>{en ? 'Online multiplayer' : 'Онлайн'}</h3>
+              <p>{en ? 'Share a link — play instantly. Best-of-3 and best-of-5. No signup.' : 'Отправьте ссылку — играйте сразу. Серии 3/5. Без регистрации.'}</p>
+            </div>
+            <div className="l-feat l-feat-sm">
+              <div className="l-feat-icon" style={{ background: '#ffc14518' }}>
+                <Icon name="puzzle" size={20} color="#ffc145" />
+              </div>
+              <h3>{en ? 'Daily puzzles' : 'Головоломки'}</h3>
+              <p>{en ? 'New challenge every day. Weekly hard mode. Bank of 50. Leaderboards.' : 'Новая задача каждый день. Еженедельная сложная. Банк из 50. Лидерборды.'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Вторая строка — 3 компактных ═══ */}
+        <div className="l-feat-row">
+          {[
+            { icon: 'trainer', c: '#9b59b6', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move' : 'AI оценивает каждый ход' },
+            { icon: 'chart', c: '#f06040', t: en ? 'Opening book' : 'Дебюты', d: en ? 'Heatmaps from 239K games' : 'Тепловые карты из 239K партий' },
+            { icon: 'theme', c: '#00bcd4', t: en ? 'Themes & PWA' : 'Темы и PWA', d: en ? '4 themes. Offline mode' : '4 темы. Оффлайн режим' },
+          ].map((f, i) => (
+            <div key={i} className="l-feat l-feat-compact">
+              <Icon name={f.icon} size={18} color={f.c} />
+              <div>
+                <strong>{f.t}</strong>
+                <span>{f.d}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ ДЛЯ КОГО — текст слева, 3 карточки справа ═══ */}
+      <section className="l-section">
+        <div className="l-audience">
+          <div className="l-audience-text">
+            <h2>{en ? 'For everyone' : 'Для всех'}</h2>
+            <p>{en
+              ? 'Simple rules make it accessible. Deep strategy keeps experts engaged. Works on any device.'
+              : 'Простые правила делают игру доступной. Глубокая стратегия увлекает экспертов. Работает на любом устройстве.'}</p>
+            <button className="btn primary" onClick={onPlay} style={{ marginTop: 16 }}>
+              <Icon name="play" size={16} color="#fff" />{en ? 'Try now' : 'Попробовать'}
+            </button>
+          </div>
+          <div className="l-audience-cards">
+            {[
+              { c: '#ffc145', t: en ? 'Families' : 'Семьи', d: en ? 'Ages 8+. Game night favorite.' : 'Возраст 8+. Для семейных вечеров.' },
+              { c: '#3dd68c', t: en ? 'Board gamers' : 'Настольщики', d: en ? 'Balance 52:48. Verified.' : 'Баланс 52:48. Проверено.' },
+              { c: '#4a9eff', t: en ? 'Online' : 'Онлайн', d: en ? 'Play via link or vs AI.' : 'Играйте по ссылке или с AI.' },
+            ].map((a, i) => (
+              <div key={i} className="l-aud-card" style={{ borderColor: `${a.c}30` }}>
+                <div className="l-aud-dot" style={{ background: a.c }} />
+                <strong>{a.t}</strong>
+                <span>{a.d}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ FAQ ═══ */}
-      <section className="landing-section">
-        <h2 className="section-title">{en ? 'FAQ' : 'Частые вопросы'}</h2>
-        <div className="faq-list">
+      {/* ═══ PRINT & PLAY — горизонтальный баннер ═══ */}
+      <section className="l-section">
+        <a href="/print-and-play.pdf" target="_blank" className="l-print" style={{ textDecoration: 'none' }}>
+          <div className="l-print-left">
+            <Icon name="download" size={24} color="var(--accent)" />
+          </div>
+          <div className="l-print-body">
+            <strong>Print & Play</strong>
+            <span>{en ? '3-page PDF: board, 110 chips, rules. Print, cut, play.' : 'PDF 3 страницы: поле, 110 фишек, правила.'}</span>
+          </div>
+          <div className="l-print-btn">PDF</div>
+        </a>
+      </section>
+
+      {/* ═══ FAQ — 2 колонки ═══ */}
+      <section className="l-section">
+        <h2 className="l-title">{en ? 'FAQ' : 'Частые вопросы'}</h2>
+        <div className="l-faq">
           {[
-            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5-15 minutes depending on player level.' : '5-15 минут в зависимости от уровня.'],
-            [en ? 'What is the golden stand?' : 'Что такое золотая стойка?', en ? 'First stand — breaks 5:5 ties. Its owner wins.' : 'Первая стойка — решает при ничьей 5:5. Её владелец побеждает.'],
-            [en ? 'Can I play on mobile?' : 'Можно играть на телефоне?', en ? 'Yes. PWA — add to home screen, play offline.' : 'Да. PWA — добавьте на экран, играйте оффлайн.'],
-            [en ? 'How does Swap work?' : 'Как работает Swap?', en ? 'After Blue\'s first move, Red can take their position by swapping colors.' : 'После первого хода синих красные могут забрать их позицию, поменяв цвета.'],
-            [en ? 'Is the game balanced?' : 'Игра сбалансирована?', en ? '52:48 in favor of first move. Confirmed across 239K games.' : '52:48 в пользу первого хода. Подтверждено на 239K партиях.'],
+            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5–15 minutes.' : '5–15 минут.'],
+            [en ? 'Golden stand?' : 'Золотая стойка?', en ? 'Breaks 5:5 ties.' : 'Решает при 5:5.'],
+            [en ? 'Mobile?' : 'Телефон?', en ? 'PWA. Works offline.' : 'PWA. Работает оффлайн.'],
+            [en ? 'Swap?' : 'Swap?', en ? 'P2 can take P1\'s first move.' : 'П2 может забрать ход П1.'],
+            [en ? 'Balanced?' : 'Баланс?', en ? '52:48. 239K games.' : '52:48. 239K партий.'],
+            [en ? 'Free?' : 'Бесплатно?', en ? 'Yes, completely.' : 'Да, полностью.'],
           ].map(([q, a], i) => (
-            <details key={i} className="faq-item">
-              <summary className="faq-q">{q}<Icon name="arrow" size={16} className="faq-arrow" /></summary>
-              <div className="faq-a">{a}</div>
-            </details>
+            <div key={i} className="l-faq-item">
+              <div className="l-faq-q">{q}</div>
+              <div className="l-faq-a">{a}</div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* ═══ CTA ═══ */}
-      <section className="landing-cta">
-        <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
-          {en ? 'Ready to play?' : 'Готовы играть?'}
-        </h2>
-        <p style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 24, maxWidth: 420, lineHeight: 1.7 }}>
-          {en
-            ? 'Open beta — we ship new features every week. Follow the blog for updates.'
-            : 'Открытая бета — новые фичи каждую неделю. Следите за блогом.'
-          }
-        </p>
-        <button className="btn primary hero-btn" onClick={onPlay}>
-          <Icon name="play" size={18} color="#fff" />
-          {en ? 'Start playing' : 'Начать играть'}
+      <section className="l-cta">
+        <h2>{en ? 'Ready?' : 'Готовы?'}</h2>
+        <p>{en ? 'Open beta. New features every week.' : 'Открытая бета. Новые фичи каждую неделю.'}</p>
+        <button className="btn primary l-btn-lg" onClick={onPlay}>
+          <Icon name="play" size={18} color="#fff" />{en ? 'Start playing' : 'Начать играть'}
         </button>
       </section>
     </div>
