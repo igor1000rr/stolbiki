@@ -275,13 +275,13 @@ export default function Profile() {
     loadFriends()
     API.getLeaderboard(30).then(setServerLeaderboard).catch(() => {})
     // Рейтинг история
-    fetch('/api/profile/rating-history', { headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` } })
-      .then(r => r.json()).then(setRatingHistory).catch(() => {})
+    API.getRatingHistory()
+      .then(setRatingHistory).catch(() => {})
     // Сезон
-    fetch('/api/seasons/current').then(r => r.json()).then(setSeasonData).catch(() => {})
+    API.getCurrentSeason().then(setSeasonData).catch(() => {})
     // Opening stats
-    fetch('/api/profile/opening-stats', { headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` } })
-      .then(r => r.json()).then(setOpeningStats).catch(() => {})
+    API.getOpeningStats()
+      .then(setOpeningStats).catch(() => {})
   }, [serverOnline]) // eslint-disable-line
 
   async function loadFriends() {
@@ -506,7 +506,7 @@ export default function Profile() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {Object.entries(AVATARS).map(([key, av]) => (
                   <div key={key} onClick={async () => {
-                    try { await fetch('/api/profile/avatar', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` }, body: JSON.stringify({ avatar: key }) }) } catch {}
+                    try { await API.updateAvatar(key) } catch {}
                     setProfile(p => { const np = { ...p, avatar: key }; saveLocal(np); return np })
                     setShowAvatarPicker(false)
                   }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5, transition: 'all 0.15s',

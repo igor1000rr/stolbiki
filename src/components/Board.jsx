@@ -63,21 +63,25 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
 
     prevRef.current = { stands: state.stands.map(s => [...s]), closed: { ...state.closed } }
 
+    const timers = []
+
     if (Object.keys(nc).length > 0) {
       setNewChipMap(nc)
       const maxDelay = Math.max(...Object.values(nc).map(v => v.count * 150 + 700))
-      setTimeout(() => setNewChipMap({}), maxDelay)
+      timers.push(setTimeout(() => setNewChipMap({}), maxDelay))
     }
 
     if (fl.size > 0) {
       setFlashSet(fl)
-      setTimeout(() => setFlashSet(new Set()), 1000)
+      timers.push(setTimeout(() => setFlashSet(new Set()), 1000))
     }
 
     if (Object.keys(newParticles).length > 0) {
       setParticles(newParticles)
-      setTimeout(() => setParticles({}), 1200)
+      timers.push(setTimeout(() => setParticles({}), 1200))
     }
+
+    return () => timers.forEach(clearTimeout)
   }, [state])
 
   const standOrder = flip ? [...Array(state.numStands).keys()].reverse() : [...Array(state.numStands).keys()]

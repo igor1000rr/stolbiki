@@ -36,6 +36,7 @@ export default function Icon({ name, size = 20, color, style = {}, className = '
     <svg width={size} height={size} viewBox="0 0 24 24"
       fill="none" stroke={color || 'currentColor'} strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
       style={{ flexShrink: 0, ...style }} className={className}>
       {children}
     </svg>

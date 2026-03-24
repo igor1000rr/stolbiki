@@ -96,13 +96,13 @@ function ReplayViewer({ moves, onClose }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 2000, overflow: 'auto', padding: '12px' }}>
       <div style={{ maxWidth: 500, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0' }}>Повтор партии</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Повтор партии</span>
           <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '4px 12px' }}>✕ Закрыть</button>
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#e8e6f0' }}>{s0} : {s1}</span>
-          <div style={{ fontSize: 11, color: '#6b6880', marginTop: 2 }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)' }}>{s0} : {s1}</span>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
             Ход {step}/{moves.length}
             {currentMove && ` · ${describeAction(currentMove.action, currentMove.player, t)}`}
           </div>
@@ -121,14 +121,14 @@ function ReplayViewer({ moves, onClose }) {
         </div>
 
         {/* Прогресс */}
-        <div style={{ margin: '10px 0', height: 4, borderRadius: 2, background: '#2a2a38', cursor: 'pointer' }}
+        <div style={{ margin: '10px 0', height: 4, borderRadius: 2, background: 'var(--surface2)', cursor: 'pointer' }}
           onClick={e => {
             const rect = e.currentTarget.getBoundingClientRect()
             const pct = (e.clientX - rect.left) / rect.width
             setStep(Math.round(pct * moves.length))
             setPlaying(false)
           }}>
-          <div style={{ width: `${moves.length ? (step / moves.length) * 100 : 0}%`, height: '100%', borderRadius: 2, background: '#4a9eff', transition: 'width 0.3s' }} />
+          <div style={{ width: `${moves.length ? (step / moves.length) * 100 : 0}%`, height: '100%', borderRadius: 2, background: 'var(--p1)', transition: 'width 0.3s' }} />
         </div>
       </div>
     </div>
@@ -850,16 +850,16 @@ export default function Game() {
       {showTutorial && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={dismissTutorial}>
-          <div style={{ maxWidth: 420, background: '#1e1e28', borderRadius: 16, padding: '28px 24px', border: '1px solid #36364a', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+          <div style={{ maxWidth: 420, background: 'var(--surface)', borderRadius: 16, padding: '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}></div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>Как играть в Стойки</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Как играть в Стойки</div>
             </div>
-            <div style={{ fontSize: 13, color: '#a09cb0', lineHeight: 1.9 }}>
-              <p><b style={{ color: '#6db4ff' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
-              <p><b style={{ color: '#6db4ff' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
-              <p><b style={{ color: '#6db4ff' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
+              <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
+              <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
+              <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
               <p><b style={{ color: '#ffc145' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
               <p><b style={{ color: '#3dd68c' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
             </div>
@@ -959,7 +959,7 @@ export default function Game() {
               )
             })}
           </div>
-          <div style={{ fontSize: 10, color: '#6b6880', marginTop: 4 }}>
+          <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>
             {tournament.games.filter(g => g.won).length} : {tournament.games.filter(g => !g.won).length}
             {tournament.currentGame > 1 && ` · ${humanPlayer === 0 ? t('game.blue') : t('game.red')}`}
           </div>
@@ -971,7 +971,7 @@ export default function Game() {
 
       {/* Сессионная статистика */}
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8, fontSize: 11, color: '#6b6880' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8, fontSize: 11, color: 'var(--ink3)' }}>
           <span>Побед: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
           <span>Поражений: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
           {sessionStats.streak > 1 && <span>Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
@@ -1049,11 +1049,11 @@ export default function Game() {
           borderRadius: 8, border: `1px solid ${posEval.color}22` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: posEval.color }}>{posEval.label}</span>
-            <span style={{ fontSize: 10, color: '#6b6880', marginLeft: 'auto' }}>
+            <span style={{ fontSize: 10, color: 'var(--ink3)', marginLeft: 'auto' }}>
               {posEval.score > 0 ? '+' : ''}{(posEval.score * 100).toFixed(0)}%
             </span>
           </div>
-          <div style={{ height: 6, borderRadius: 3, background: '#2a2a38', overflow: 'hidden' }}>
+          <div style={{ height: 6, borderRadius: 3, background: 'var(--surface2)', overflow: 'hidden' }}>
             <div style={{
               width: `${Math.max(5, Math.min(95, (posEval.score + 1) / 2 * 100))}%`,
               height: '100%', borderRadius: 3,
@@ -1077,7 +1077,7 @@ export default function Game() {
       {/* Swap кнопка */}
       {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
         <div style={{ textAlign: 'center', margin: '8px 0' }}>
-          <div style={{ fontSize: 12, color: '#a09cb0', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 6 }}>
             Игрок 1 поставил первую фишку. Хотите поменять цвета?
           </div>
           <button className="btn" onClick={() => {
@@ -1203,8 +1203,8 @@ export default function Game() {
               ? (won ? t('game.victory') : t('game.defeat'))
               : (won ? t('game.victory') : t('game.aiWins'))
             }</span>
-            <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: '#e8e6f0' }}>{s0} : {s1}</div>
-            <div style={{ fontSize: 11, color: '#6b6880', display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: 'var(--ink)' }}>{s0} : {s1}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center' }}>
               <span>Ходов: {gs.turn}</span>
               <span>⏱ {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
               {goldenOwned && <span>⭐ Золотая: П{gs.closed[0] + 1}</span>}
@@ -1304,10 +1304,10 @@ export default function Game() {
                 return (
                   <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(255,193,69,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
                     <div style={{ fontSize: 28, marginBottom: 4 }}>{tournamentDraw ? '=' : tournamentWon ? '+' : '-'}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0', marginBottom: 4 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
                       {tournamentDraw ? t('tournament.draw') : tournamentWon ? t('tournament.won') : t('tournament.lost')}
                     </div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: '#e8e6f0' }}>{tWins} : {tLosses}</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{tWins} : {tLosses}</div>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'center', margin: '8px 0' }}>
                       {tournament.games.map((g, i) => (
                         <div key={i} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4,

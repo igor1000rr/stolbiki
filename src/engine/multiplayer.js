@@ -1,6 +1,6 @@
 /**
  * WebSocket клиент для онлайн мультиплеера
- * Поддержка аутентификации через JWT token в query param
+ * JWT auth через query param, reconnect с лимитом
  */
 
 const WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws'
@@ -14,14 +14,21 @@ function getWsUrl() {
 let ws = null
 let onMessage = null
 let reconnectTimer = null
+let intentionalClose = false
+let reconnectAttempts = 0
+const MAX_RECONNECT = 10
 
 export function connect(roomId, name, callback) {
   onMessage = callback
-  if (ws) ws.close()
+  intentionalClose = false
+  reconnectAttempts = 0
+  if (ws) { intentionalClose = true; ws.close() }
+  intentionalClose = false
 
   ws = new WebSocket(getWsUrl())
 
   ws.onopen = () => {
+    reconnectAttempts = 0
     ws.send(JSON.stringify({ type: 'join', roomId, name }))
   }
 
@@ -33,9 +40,13 @@ export function connect(roomId, name, callback) {
   }
 
   ws.onclose = () => {
+    if (intentionalClose) return
     if (onMessage) onMessage({ type: 'disconnected', playerIdx: -1 })
-    // Реконнект через 3 сек
-    reconnectTimer = setTimeout(() => connect(roomId, name, callback), 3000)
+    if (reconnectAttempts < MAX_RECONNECT) {
+      const delay = Math.min(3000 * (reconnectAttempts + 1), 15000)
+      reconnectAttempts++
+      reconnectTimer = setTimeout(() => connect(roomId, name, callback), delay)
+    }
   }
 
   ws.onerror = () => {}
@@ -59,11 +70,15 @@ export function sendChat(text) {
 
 export function findMatch(name, callback) {
   onMessage = callback
-  if (ws) ws.close()
+  intentionalClose = false
+  reconnectAttempts = 0
+  if (ws) { intentionalClose = true; ws.close() }
+  intentionalClose = false
+
   ws = new WebSocket(getWsUrl())
-  ws.onopen = () => { ws.send(JSON.stringify({ type: 'findMatch', name })) }
+  ws.onopen = () => { reconnectAttempts = 0; ws.send(JSON.stringify({ type: 'findMatch', name })) }
   ws.onmessage = (e) => { try { if (onMessage) onMessage(JSON.parse(e.data)) } catch {} }
-  ws.onclose = () => { if (onMessage) onMessage({ type: 'disconnected' }) }
+  ws.onclose = () => { if (!intentionalClose && onMessage) onMessage({ type: 'disconnected' }) }
   ws.onerror = () => {}
 }
 
@@ -72,8 +87,10 @@ export function cancelMatch() {
 }
 
 export function disconnect() {
+  intentionalClose = true
   clearTimeout(reconnectTimer)
   onMessage = null
+  reconnectAttempts = 0
   if (ws) { ws.close(); ws = null }
 }
 

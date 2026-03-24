@@ -97,6 +97,23 @@ export async function getPublicStats() {
   return await api('/stats')
 }
 
+// ═══ Rating & Seasons ═══
+export async function getRatingHistory() {
+  return await api('/profile/rating-history')
+}
+
+export async function getCurrentSeason() {
+  return await api('/seasons/current')
+}
+
+export async function getOpeningStats() {
+  return await api('/profile/opening-stats')
+}
+
+export async function updateAvatar(avatar) {
+  return await api('/profile/avatar', { method: 'PUT', body: JSON.stringify({ avatar }) })
+}
+
 // ═══ Health check ═══
 export async function checkServer() {
   try {

@@ -1429,8 +1429,9 @@ app.get('/api/admin/training', auth, adminOnly, (req, res) => {
 
 // Обучающие данные — очистка старых
 app.delete('/api/admin/training', auth, adminOnly, (req, res) => {
-  const days = +req.query.olderThan || 90
-  const result = db.prepare(`DELETE FROM training_data WHERE created_at < datetime('now', '-${days} days')`).run()
+  const days = Math.max(1, Math.min(365, Math.floor(+req.query.olderThan || 90)))
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString()
+  const result = db.prepare('DELETE FROM training_data WHERE created_at < ?').run(cutoff)
   res.json({ deleted: result.changes })
 })
 
