@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import * as MP from '../engine/multiplayer'
+import { useI18n } from '../engine/i18n'
+import Icon from './Icon'
 
 // Ежедневный челлендж
 function DailyChallenge() {
@@ -103,6 +105,8 @@ function QRCode({ text, size = 160 }) {
 }
 
 export default function Online() {
+  const { lang } = useI18n()
+  const en = lang === 'en'
   const [screen, setScreen] = useState('lobby') // lobby | waiting | playing | result
   const [roomId, setRoomId] = useState('')
   const [joinCode, setJoinCode] = useState('')
@@ -173,6 +177,15 @@ export default function Online() {
         break
       case 'chat':
         setMessages(prev => [...prev.slice(-50), { from: msg.from, text: msg.text, time: Date.now() }])
+        break
+      case 'resign':
+        window.dispatchEvent(new CustomEvent('stolbiki-online-resign', { detail: { from: msg.from } }))
+        break
+      case 'drawOffer':
+        window.dispatchEvent(new CustomEvent('stolbiki-online-draw-offer', { detail: { from: msg.from } }))
+        break
+      case 'drawResponse':
+        window.dispatchEvent(new CustomEvent('stolbiki-online-draw-response', { detail: { accepted: msg.accepted } }))
         break
       case 'disconnected':
         if (msg.playerIdx !== playerIdxRef.current) setStatus('Противник отключился... ждём реконнект')
@@ -370,11 +383,19 @@ export default function Online() {
           </div>
         )}
 
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          {['gg', 'gl', 'nice', 'wp', '!'].map(q => (
+            <button key={q} className="btn" onClick={() => { MP.sendChat(q); setMessages(p => [...p.slice(-50), { from: playerIdx, text: q, time: Date.now() }]) }}
+              style={{ fontSize: 10, padding: '3px 8px', minHeight: 0, flex: 1, opacity: 0.7 }}>{q}</button>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
           <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendChat()}
-            placeholder="Сообщение..." style={{ ...inputStyle, marginBottom: 0, flex: 1, fontSize: 12, padding: '6px 10px' }} />
-          <button className="btn" onClick={sendChat} style={{ fontSize: 11, padding: '6px 12px', minHeight: 0 }}>↑</button>
+            placeholder={en ? 'Message...' : 'Сообщение...'} style={{ ...inputStyle, marginBottom: 0, flex: 1, fontSize: 12, padding: '6px 10px' }} />
+          <button className="btn" onClick={sendChat} style={{ fontSize: 11, padding: '6px 12px', minHeight: 0 }}>
+            <Icon name="arrow" size={14} />
+          </button>
         </div>
       </div>
     )

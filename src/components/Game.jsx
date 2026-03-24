@@ -192,6 +192,7 @@ export default function Game() {
   const [onlineRoom, setOnlineRoom] = useState(null)
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
   const [onlinePlayers, setOnlinePlayers] = useState([])
+  const [drawOffered, setDrawOffered] = useState(false)
   const onlineRef = useRef(null) // { roomId, playerIdx, myColor }
   const gsRef = useRef(gs) // актуальное состояние для WS обработчиков
   const aiRunning = useRef(false)
@@ -302,9 +303,41 @@ export default function Game() {
 
     window.addEventListener('stolbiki-online-start', handleOnlineStart)
     window.addEventListener('stolbiki-online-move', handleOnlineMove)
+
+    // Opponent resigned
+    function handleOnlineResign() {
+      const myColor = onlineRef.current?.myColor ?? 0
+      setResult(myColor); setPhase('done'); setLocked(false)
+      setInfo(lang === 'en' ? 'Opponent resigned!' : 'Противник сдался!')
+      sw()
+    }
+
+    // Draw offer
+    function handleDrawOffer() {
+      setDrawOffered(true)
+    }
+
+    // Draw response
+    function handleDrawResponse(e) {
+      if (e.detail?.accepted) {
+        setResult(-1); setPhase('done'); setLocked(false)
+        setInfo(lang === 'en' ? 'Draw agreed' : 'Согласована ничья')
+      } else {
+        setInfo(lang === 'en' ? 'Draw declined' : 'Ничья отклонена')
+      }
+      setDrawOffered(false)
+    }
+
+    window.addEventListener('stolbiki-online-resign', handleOnlineResign)
+    window.addEventListener('stolbiki-online-draw-offer', handleDrawOffer)
+    window.addEventListener('stolbiki-online-draw-response', handleDrawResponse)
+
     return () => {
       window.removeEventListener('stolbiki-online-start', handleOnlineStart)
       window.removeEventListener('stolbiki-online-move', handleOnlineMove)
+      window.removeEventListener('stolbiki-online-resign', handleOnlineResign)
+      window.removeEventListener('stolbiki-online-draw-offer', handleDrawOffer)
+      window.removeEventListener('stolbiki-online-draw-response', handleDrawResponse)
     }
   }, []) // eslint-disable-line
 
@@ -1075,6 +1108,30 @@ export default function Game() {
         </div>
       )}
 
+      {/* Draw offer from opponent */}
+      {drawOffered && !gs.gameOver && mode === 'online' && (
+        <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
+          background: 'rgba(155,89,182,0.08)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.2)' }}>
+          <div style={{ fontSize: 12, color: '#c8c4d8', marginBottom: 8 }}>
+            {lang === 'en' ? 'Opponent offers a draw' : 'Противник предлагает ничью'}
+          </div>
+          <button className="btn" onClick={() => {
+            if (onlineRef.current?.ws) onlineRef.current.ws.send(JSON.stringify({ type: 'drawResponse', accepted: true }))
+            setResult(-1); setPhase('done'); setLocked(false)
+            setInfo(lang === 'en' ? 'Draw agreed' : 'Ничья')
+            setDrawOffered(false)
+          }} style={{ borderColor: '#3dd68c', color: '#3dd68c', marginRight: 8 }}>
+            {lang === 'en' ? 'Accept' : 'Принять'}
+          </button>
+          <button className="btn" onClick={() => {
+            if (onlineRef.current?.ws) onlineRef.current.ws.send(JSON.stringify({ type: 'drawResponse', accepted: false }))
+            setDrawOffered(false)
+          }} style={{ fontSize: 12 }}>
+            {lang === 'en' ? 'Decline' : 'Отклонить'}
+          </button>
+        </div>
+      )}
+
       <div className="actions">
         {isMyTurn && phase === 'place' && hasTransfers && !transfer && (
           <button className="btn" onClick={startTransfer}>{t('game.transfer')}</button>
@@ -1102,6 +1159,14 @@ export default function Game() {
         {!gs.gameOver && mode !== 'pvp' && (
           <button className="btn" onClick={resign} style={{ fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
             {lang === 'en' ? 'Resign' : 'Сдаться'}
+          </button>
+        )}
+        {!gs.gameOver && mode === 'online' && (
+          <button className="btn" onClick={() => {
+            if (onlineRef.current?.ws) onlineRef.current.ws.send(JSON.stringify({ type: 'drawOffer' }))
+            setInfo(lang === 'en' ? 'Draw offered...' : 'Ничья предложена...')
+          }} style={{ fontSize: 11, opacity: 0.6 }}>
+            {lang === 'en' ? 'Offer draw' : 'Ничья'}
           </button>
         )}
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
