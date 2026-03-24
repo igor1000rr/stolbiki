@@ -310,6 +310,8 @@ function formatUser(u) {
     winStreak: u.win_streak, bestStreak: u.best_streak,
     goldenClosed: u.golden_closed, comebacks: u.comebacks,
     perfectWins: u.perfect_wins, beatHardAi: !!u.beat_hard_ai,
+    fastWins: u.fast_wins || 0, onlineWins: u.online_wins || 0,
+    puzzlesSolved: u.puzzles_solved || 0,
     isAdmin: !!u.is_admin, createdAt: u.created_at, lastSeen: u.last_seen,
   }
 }

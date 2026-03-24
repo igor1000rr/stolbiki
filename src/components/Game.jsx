@@ -509,7 +509,7 @@ export default function Game() {
     setGameMeta(m, d)
     setGameStartTime(Date.now())
     setElapsed(0)
-      if (timerLimit) setPlayerTime([timerLimit, timerLimit])
+    if (timerLimit) setPlayerTime([timerLimit, timerLimit])
     setUndoStack([])
     if (m === 'pvp') {
       setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
