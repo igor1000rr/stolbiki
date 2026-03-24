@@ -220,7 +220,7 @@ export default function Puzzles() {
   // ─── Список головоломок ───
   if (!selected) {
     return (
-      <div style={{ maxWidth: 500, margin: '0 auto', padding: '12px 0' }}>
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: '12px 0' }}>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>🧩</div>
           <h2 style={{ fontSize: 20, color: 'var(--ink)', fontWeight: 700 }}>{t('puzzle.title')}</h2>
@@ -263,7 +263,7 @@ export default function Puzzles() {
 
   // ─── Активная головоломка ───
   return (
-    <div style={{ maxWidth: 500, margin: '0 auto' }}>
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <button className="btn" onClick={() => setSelected(null)} style={{ fontSize: 11, padding: '4px 10px' }}>
           {t('puzzle.back')}

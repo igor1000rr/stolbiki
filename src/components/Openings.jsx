@@ -90,7 +90,7 @@ export default function Openings() {
   const labels = ['★', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
   return (
-    <div style={{ maxWidth: 520, margin: '0 auto', padding: '12px 0' }}>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: '12px 0' }}>
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 36, marginBottom: 8 }}>📊</div>
         <h2 style={{ fontSize: 20, color: 'var(--ink)', fontWeight: 700 }}>
