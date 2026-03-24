@@ -407,12 +407,20 @@ function seededRandom(seed) {
 app.get('/api/daily', (req, res) => {
   const seed = getDailySeed()
   const rng = seededRandom(seed)
-  // Генерируем стартовую позицию: первый ход P1 (1 фишка) + ответ P2 (1-3 фишки)
+  // Генерируем стартовую позицию: первый ход P1 (1 фишка) + ответ P2 (1-3 фишки на макс 2 стойки)
   const firstStand = Math.floor(rng() * 10)
+  const p2count = 1 + Math.floor(rng() * 3) // 1-3 фишки
+  // Выбираем 1 или 2 стойки
+  const numStands = p2count === 1 ? 1 : (1 + Math.floor(rng() * 2)) // 1-2 стойки
+  const standA = Math.floor(rng() * 10)
+  let standB = standA
+  if (numStands === 2) {
+    standB = Math.floor(rng() * 10)
+    while (standB === standA) standB = Math.floor(rng() * 10)
+  }
   const p2stands = []
-  const p2count = 1 + Math.floor(rng() * 3)
   for (let i = 0; i < p2count; i++) {
-    p2stands.push(Math.floor(rng() * 10))
+    p2stands.push(i === 0 || numStands === 1 ? standA : standB)
   }
   res.json({ seed, date: seed, firstMove: { stand: firstStand }, secondMove: { stands: p2stands }, swapped: rng() > 0.5 })
 })
