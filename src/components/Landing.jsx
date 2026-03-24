@@ -4,9 +4,14 @@ import Icon from './Icon'
 function FeatureCard({ icon, title, desc }) {
   return (
     <div className="feature-card">
-      <div className="feature-icon"><Icon name={icon} size={22} color="var(--accent)" /></div>
-      <h3 className="feature-title">{title}</h3>
-      <p className="feature-desc">{desc}</p>
+      <div className="feature-accent" />
+      <div className="feature-body">
+        <div className="feature-head">
+          <Icon name={icon} size={18} color="var(--accent)" />
+          <h3 className="feature-title">{title}</h3>
+        </div>
+        <p className="feature-desc">{desc}</p>
+      </div>
     </div>
   )
 }
@@ -100,9 +105,9 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       <section className="landing-section">
         <h2 className="section-title">{en ? 'Learn in 3 steps' : 'Научитесь за 3 шага'}</h2>
         <div className="steps-grid">
-          <StepCard num="01" title={en ? 'Place chips' : 'Ставьте фишки'} desc={en ? 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.' : 'До 3 фишек на максимум 2 стойки за ход. Первый ход — всегда 1 фишка.'} />
-          <StepCard num="02" title={en ? 'Transfer' : 'Переносите'} desc={en ? 'Move your top chip group to another stand. The key tactical move.' : 'Переместите верхнюю группу своих фишек. Ключевой тактический приём.'} />
-          <StepCard num="03" title={en ? 'Close stands' : 'Закрывайте'} desc={en ? 'At 11 chips a stand closes. Top color = owner. Close 6 of 10 to win.' : 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10.'} />
+          <StepCard num="1" title={en ? 'Place chips' : 'Ставьте фишки'} desc={en ? 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.' : 'До 3 фишек на максимум 2 стойки за ход. Первый ход — всегда 1 фишка.'} />
+          <StepCard num="2" title={en ? 'Transfer' : 'Переносите'} desc={en ? 'Move your top chip group to another stand. The key tactical move.' : 'Переместите верхнюю группу своих фишек. Ключевой тактический приём.'} />
+          <StepCard num="3" title={en ? 'Close stands' : 'Закрывайте'} desc={en ? 'At 11 chips a stand closes. Top color = owner. Close 6 of 10 to win.' : 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10.'} />
         </div>
       </section>
 
@@ -129,9 +134,9 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             { icon: 'online', title: en ? 'Online players' : 'Онлайн-игроки', desc: en ? 'No friend nearby? Play via link or train with AI.' : 'Нет друга рядом? Играйте онлайн или тренируйтесь с AI.' },
           ].map((c, i) => (
             <div key={i} className="audience-card">
-              <Icon name={c.icon} size={24} color="var(--accent)" style={{ marginBottom: 12 }} />
-              <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{c.title}</h3>
-              <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6 }}>{c.desc}</p>
+              <Icon name={c.icon} size={20} color="var(--accent)" style={{ marginBottom: 10 }} />
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{c.title}</h3>
+              <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, margin: 0 }}>{c.desc}</p>
             </div>
           ))}
         </div>

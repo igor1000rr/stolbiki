@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import Icon from './components/Icon'
 import Game from './components/Game'
@@ -44,8 +44,6 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef(null)
 
   useEffect(() => {
     if (theme === 'default') document.documentElement.removeAttribute('data-theme')
@@ -70,19 +68,11 @@ export default function App() {
     }
   }, [])
 
-  // Закрытие dropdown при клике вне
-  useEffect(() => {
-    if (!moreOpen) return
-    const close = (e) => { if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false) }
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [moreOpen])
-
   useEffect(() => {
     if (!isAdmin && ['sim', 'dash', 'replay'].includes(tab)) setTab('game')
   }, [isAdmin, tab])
 
-  function go(id) { setTab(id); setMobileMenu(false); setMoreOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   const [publicStats, setPublicStats] = useState(null)
   useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
@@ -135,32 +125,30 @@ export default function App() {
                 {n.label}
               </button>
             ))}
-            {/* More dropdown */}
-            <div className="nav-more" ref={moreRef}>
-              <button className={isSecondaryActive ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setMoreOpen(v => !v) }}>
-                <Icon name="menu" size={14} style={{ marginRight: 4 }} />
+            {/* More dropdown — по hover */}
+            <div className="nav-more">
+              <button className={isSecondaryActive ? 'active' : ''}>
                 {lang === 'en' ? 'More' : 'Ещё'}
+                <Icon name="chevron" size={14} style={{ marginLeft: 3 }} />
               </button>
-              {moreOpen && (
-                <div className="nav-more-menu">
-                  {secondaryNav.map(n => (
-                    <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
-                      <Icon name={n.icon} size={15} style={{ marginRight: 8, opacity: 0.5 }} />
-                      {n.label}
+              <div className="nav-more-menu">
+                {secondaryNav.map(n => (
+                  <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+                    <Icon name={n.icon} size={15} style={{ marginRight: 8, opacity: 0.5 }} />
+                    {n.label}
+                  </button>
+                ))}
+                <div className="nav-more-divider" />
+                <div className="nav-more-row">
+                  <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 8 }}>Theme</span>
+                  {THEMES.map(th => (
+                    <button key={th.id} onClick={() => setTheme(th.id)}
+                      className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>
+                      {th.label}
                     </button>
                   ))}
-                  <div className="nav-more-divider" />
-                  <div className="nav-more-row">
-                    <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 8 }}>Theme</span>
-                    {THEMES.map(th => (
-                      <button key={th.id} onClick={() => { setTheme(th.id); setMoreOpen(false) }}
-                        className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>
-                        {th.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </nav>
 
