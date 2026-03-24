@@ -72,99 +72,285 @@ function TransferDemo({ steps: demoSteps, lang }) {
   )
 }
 
-// Схема переноса (SVG)
-function TransferDiagram({ lang }) {
-  const en = lang === 'en'
-  const w = 460, h = 140, standW = 44, chipH = 10, gap = 2
-  const stands = [
-    { x: 40, chips: [0,0,1,1,1], label: en ? 'Source' : 'Откуда' },
-    { x: 260, chips: [0,0], label: en ? 'Target' : 'Куда' },
-  ]
-  const result = [
-    { x: 40, chips: [0,0], label: '' },
-    { x: 260, chips: [0,0,1,1,1], label: '' },
-  ]
+// ═══ Интерактивные схемы правил ═══
 
-  function drawStand(s, y0) {
-    const bx = s.x, by = y0
-    return (
-      <g key={s.x + '-' + y0}>
-        <rect x={bx} y={by} width={standW} height={80} rx={4} fill="#1a1a2a" stroke="#333" strokeWidth={1} />
-        {s.chips.map((c, i) => (
-          <rect key={i} x={bx+6} y={by+80-8-(i+1)*(chipH+gap)} width={standW-12} height={chipH} rx={4}
-            fill={c === 0 ? '#4a9eff' : '#ff6066'} />
-        ))}
-        {s.label && <text x={bx+standW/2} y={by-6} textAnchor="middle" fontSize={10} fill="#a09cb0">{s.label}</text>}
-      </g>
-    )
-  }
-
+// Мини-стойка для диаграмм (анимированные фишки)
+function DiagramStand({ chips = [], golden, closed, owner, label, highlight, w = 40, h = 90 }) {
+  const chipH = 7, gap = 1.5, padBot = 6
   return (
-    <div style={{ padding: '8px 0', overflow: 'auto' }}>
-      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ maxWidth: w }}>
-        {/* До */}
-        <text x={20} y={14} fontSize={10} fill="#6b6880" fontWeight={600}>{en ? 'BEFORE' : 'ДО'}</text>
-        {stands.map(s => drawStand(s, 22))}
-        {/* Стрелка с подписью */}
-        <line x1={100} y1={62} x2={245} y2={62} stroke="#ffc145" strokeWidth={1.5} markerEnd="url(#arrowG)" />
-        <text x={172} y={54} textAnchor="middle" fontSize={9} fill="#ffc145">
-          {en ? '3 red chips' : '3 красных'}
-        </text>
-        {/* Выделяем группу */}
-        <rect x={46} y={28} width={standW-12} height={3*(chipH+gap)-gap+4} rx={3}
-          fill="none" stroke="#ffc145" strokeWidth={1} strokeDasharray="3 2" />
-
-        {/* Стрелка маркер */}
-        <defs>
-          <marker id="arrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M2 1L8 5L2 9" fill="none" stroke="#ffc145" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </marker>
-        </defs>
-      </svg>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <div style={{ fontSize: 9, color: golden ? '#ffc145' : '#6b6880', fontWeight: 600, height: 14 }}>
+        {label || (golden ? '★' : '')}
+      </div>
+      <div style={{
+        width: w, height: h, borderRadius: 6, position: 'relative',
+        background: closed ? 'rgba(61,214,140,0.06)' : '#1a1a2a',
+        border: `1.5px solid ${closed ? '#3dd68c' : highlight ? '#ffc145' : '#333'}`,
+        transition: 'all 0.4s ease', overflow: 'hidden',
+      }}>
+        {chips.map((c, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: 5, right: 5, height: chipH, borderRadius: 4,
+            bottom: padBot + i * (chipH + gap),
+            background: c === 0 ? '#4a9eff' : '#ff6066',
+            opacity: closed ? 0.4 : 0.9,
+            transition: 'all 0.4s ease',
+            boxShadow: c === 0 ? '0 1px 4px rgba(74,158,255,0.3)' : '0 1px 4px rgba(255,96,102,0.3)',
+          }} />
+        ))}
+        {closed && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, color: '#3dd68c', opacity: 0.6,
+          }}>✓</div>
+        )}
+      </div>
+      {owner !== undefined && (
+        <div style={{ fontSize: 8, color: owner === 0 ? '#4a9eff' : '#ff6066', fontWeight: 700 }}>
+          {owner === 0 ? 'BLUE' : 'RED'}
+        </div>
+      )}
     </div>
   )
 }
 
-// Схема закрытия стойки (SVG)
-function CloseDiagram({ lang }) {
+// Интерактивная схема переноса
+function TransferDiagram({ lang }) {
   const en = lang === 'en'
-  const w = 460, h = 110, standW = 44, chipH = 6, gap = 1
+  const [step, setStep] = useState(0)
+
+  const steps = [
+    {
+      label: en ? 'Starting position' : 'Начальная позиция',
+      desc: en ? 'Stand A has blue and red chips. Stand B has blue chips.' : 'На стойке A синие и красные фишки. На стойке B — синие.',
+      a: [0, 0, 0, 1, 1, 1], b: [0, 0], highlightA: false, highlightB: false, arrow: false,
+    },
+    {
+      label: en ? 'Select top group' : 'Выбор верхней группы',
+      desc: en ? 'Top group: 3 red chips (consecutive same color). This group will be transferred.' : 'Верхняя группа: 3 красных фишки (непрерывная группа одного цвета). Она будет перенесена.',
+      a: [0, 0, 0, 1, 1, 1], b: [0, 0], highlightA: true, highlightB: false, arrow: false,
+      bracketFrom: 3, bracketTo: 5,
+    },
+    {
+      label: en ? 'Transfer!' : 'Перенос!',
+      desc: en ? 'Group moves to empty stand or stand with same color on top. Red → can go to empty or red top.' : 'Группа перемещается на пустую или стойку с тем же цветом сверху. Красные → на пустую или к красным.',
+      a: [0, 0, 0], b: [0, 0, 1, 1, 1], highlightA: false, highlightB: true, arrow: true,
+    },
+    {
+      label: en ? 'Done! Now placement phase' : 'Готово! Теперь фаза установки',
+      desc: en ? 'After transfer, place up to 3 of your chips on up to 2 stands.' : 'После переноса установите до 3 своих фишек на 1-2 стойки.',
+      a: [0, 0, 0], b: [0, 0, 1, 1, 1], highlightA: false, highlightB: false, arrow: false,
+    },
+  ]
+
+  const s = steps[step]
 
   return (
-    <div style={{ padding: '8px 0', overflow: 'auto' }}>
-      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ maxWidth: w }}>
-        {/* Стойка с 8 фишками */}
-        <text x={62} y={12} textAnchor="middle" fontSize={9} fill="#a09cb0">{en ? '8 chips' : '8 фишек'}</text>
-        <rect x={40} y={18} width={standW} height={74} rx={4} fill="#1a1a2a" stroke="#333" strokeWidth={1} />
-        {[1,1,0,0,0,0,0,0].map((c, i) => (
-          <rect key={i} x={46} y={18+74-4-(i+1)*(chipH+gap)} width={standW-12} height={chipH} rx={3}
-            fill={c === 0 ? '#4a9eff' : '#ff6066'} />
+    <div style={{
+      padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12,
+      border: '1px solid #2a2a38', marginTop: 8,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: '#ffc145', fontWeight: 600 }}>
+          {en ? 'Transfer demo' : 'Демо переноса'} — {step + 1}/{steps.length}
+        </div>
+        <div style={{ fontSize: 11, color: '#a09cb0', fontWeight: 600 }}>{s.label}</div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 30, marginBottom: 12, position: 'relative' }}>
+        <div style={{ textAlign: 'center' }}>
+          <DiagramStand chips={s.a} label={en ? 'Stand A' : 'Стойка A'} highlight={s.highlightA} />
+        </div>
+
+        <div style={{
+          fontSize: 22, color: s.arrow ? '#ffc145' : '#333', fontWeight: 700,
+          transition: 'all 0.3s', transform: s.arrow ? 'scale(1.2)' : 'scale(1)',
+          alignSelf: 'center',
+        }}>→</div>
+
+        <div style={{ textAlign: 'center' }}>
+          <DiagramStand chips={s.b} label={en ? 'Stand B' : 'Стойка B'} highlight={s.highlightB} />
+        </div>
+      </div>
+
+      <div style={{
+        fontSize: 12, color: '#c8c4d8', textAlign: 'center', lineHeight: 1.6,
+        minHeight: 36, padding: '0 12px',
+      }}>{s.desc}</div>
+
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
+        {steps.map((_, i) => (
+          <button key={i} onClick={() => setStep(i)} style={{
+            width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
+            background: i === step ? 'var(--accent)' : 'var(--surface2)',
+            color: i === step ? '#fff' : 'var(--ink3)',
+            fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+            transition: 'all 0.2s',
+          }}>{i + 1}</button>
         ))}
+      </div>
+    </div>
+  )
+}
 
-        {/* + перенос 3 синих */}
-        <text x={120} y={60} fontSize={18} fill="#ffc145" fontWeight={700}>+</text>
-        <text x={155} y={55} fontSize={9} fill="#a09cb0">{en ? '3 blue' : '3 синих'}</text>
-        <text x={155} y={67} fontSize={9} fill="#a09cb0">{en ? 'transfer' : 'перенос'}</text>
+// Интерактивная схема закрытия
+function CloseDiagram({ lang }) {
+  const en = lang === 'en'
+  const [step, setStep] = useState(0)
 
-        {/* Стрелка */}
-        <text x={225} y={60} fontSize={16} fill="#555">→</text>
+  const steps = [
+    {
+      label: en ? 'Stand has 8 chips' : 'На стойке 8 фишек',
+      desc: en ? 'Stand has 6 blue + 2 red chips (8 total). Blue on top.' : 'На стойке 6 синих + 2 красных (8 всего). Синие сверху.',
+      chips: [1, 1, 0, 0, 0, 0, 0, 0], closed: false,
+      srcChips: [0, 0, 0], srcLabel: en ? 'Source' : 'Откуда',
+    },
+    {
+      label: en ? 'Transfer 3 blue chips' : 'Переносим 3 синих',
+      desc: en ? 'Transferring 3 blue chips from another stand. 8 + 3 = 11 — the limit!' : 'Переносим 3 синих с другой стойки. 8 + 3 = 11 — предел!',
+      chips: [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], closed: false,
+      srcChips: [], srcLabel: '',
+      arrow: true,
+    },
+    {
+      label: en ? 'Stand closes! 🎉' : 'Стойка закрылась! 🎉',
+      desc: en ? '11 chips reached. Top color = Blue → Blue owns this stand. Stand is now locked.' : '11 фишек достигнуто. Сверху синие → стойка принадлежит синим. Теперь заблокирована.',
+      chips: [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], closed: true, owner: 0,
+      srcChips: [], srcLabel: '',
+    },
+  ]
 
-        {/* Стойка с 11 = закрыта */}
-        <text x={302} y={12} textAnchor="middle" fontSize={9} fill="#3dd68c">{en ? '11 = CLOSED' : '11 = ЗАКРЫТА'}</text>
-        <rect x={280} y={18} width={standW} height={74} rx={4} fill="rgba(61,214,140,0.06)" stroke="#3dd68c" strokeWidth={1.5} />
-        {[1,1,0,0,0,0,0,0,0,0,0].slice(0,11).map((c, i) => (
-          <rect key={i} x={286} y={18+74-4-(i+1)*(chipH+gap)} width={standW-12} height={chipH} rx={3}
-            fill={i >= 8 ? '#4a9eff' : (c === 0 ? '#4a9eff' : '#ff6066')} opacity={0.5} />
+  const s = steps[step]
+
+  return (
+    <div style={{
+      padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12,
+      border: '1px solid #2a2a38', marginTop: 8,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>
+          {en ? 'Close demo' : 'Демо закрытия'} — {step + 1}/{steps.length}
+        </div>
+        <div style={{ fontSize: 11, color: '#a09cb0', fontWeight: 600 }}>{s.label}</div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 30, marginBottom: 12 }}>
+        {s.srcChips.length > 0 && (
+          <>
+            <DiagramStand chips={s.srcChips} label={s.srcLabel} highlight />
+            <div style={{
+              fontSize: 22, color: s.arrow ? '#ffc145' : '#333', fontWeight: 700,
+              alignSelf: 'center', transition: 'all 0.3s',
+            }}>→</div>
+          </>
+        )}
+
+        <DiagramStand
+          chips={s.chips} closed={s.closed} owner={s.owner}
+          label={en ? 'Target stand' : 'Целевая стойка'}
+          highlight={s.arrow}
+          h={110}
+        />
+
+        {s.closed && (
+          <div style={{
+            alignSelf: 'center', padding: '10px 14px', borderRadius: 8,
+            background: 'rgba(61,214,140,0.06)', border: '1px solid rgba(61,214,140,0.2)',
+            fontSize: 11, color: '#a09cb0', lineHeight: 1.8,
+          }}>
+            <div style={{ color: '#3dd68c', fontWeight: 700, marginBottom: 4 }}>{en ? 'Locked!' : 'Заблокирована!'}</div>
+            {en ? '• No more placement' : '• Нельзя ставить'}<br/>
+            {en ? '• No transfer from/to' : '• Нельзя переносить'}<br/>
+            {en ? '• Counts for owner' : '• Считается за владельца'}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        fontSize: 12, color: '#c8c4d8', textAlign: 'center', lineHeight: 1.6,
+        minHeight: 36, padding: '0 12px',
+      }}>{s.desc}</div>
+
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
+        {steps.map((_, i) => (
+          <button key={i} onClick={() => setStep(i)} style={{
+            width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
+            background: i === step ? '#3dd68c' : 'var(--surface2)',
+            color: i === step ? '#000' : 'var(--ink3)',
+            fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+            transition: 'all 0.2s',
+          }}>{i + 1}</button>
         ))}
-        <text x={302} y={98} textAnchor="middle" fontSize={9} fill="#3dd68c" fontWeight={600}>
-          {en ? 'Blue owns' : 'Синие ★'}
-        </text>
+      </div>
+    </div>
+  )
+}
 
-        {/* Замок */}
-        <text x={360} y={50} fontSize={10} fill="#555">{en ? 'Locked:' : 'Блокировка:'}</text>
-        <text x={360} y={65} fontSize={9} fill="#6b6880">{en ? '• No placement' : '• Нельзя ставить'}</text>
-        <text x={360} y={78} fontSize={9} fill="#6b6880">{en ? '• No transfer' : '• Нельзя переносить'}</text>
-      </svg>
+// Интерактивная схема Swap Rule
+function SwapDiagram({ lang }) {
+  const en = lang === 'en'
+  const [swapped, setSwapped] = useState(false)
+
+  return (
+    <div style={{
+      padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12,
+      border: '1px solid #2a2a38', marginTop: 8,
+    }}>
+      <div style={{ fontSize: 12, color: '#9b59b6', fontWeight: 600, marginBottom: 12 }}>
+        {en ? 'Swap rule demo' : 'Демо правила Swap'}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: '#a09cb0', marginBottom: 6 }}>{en ? 'Player 1' : 'Игрок 1'}</div>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12,
+            background: swapped ? 'rgba(255,96,102,0.15)' : 'rgba(74,158,255,0.15)',
+            border: `2px solid ${swapped ? '#ff6066' : '#4a9eff'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.5s ease',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 6,
+              background: swapped ? '#ff6066' : '#4a9eff',
+              transition: 'all 0.5s ease',
+            }} />
+          </div>
+        </div>
+
+        <button onClick={() => setSwapped(!swapped)} style={{
+          padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+          background: swapped ? '#9b59b6' : 'var(--surface2)',
+          color: swapped ? '#fff' : 'var(--ink2)',
+          fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+          transition: 'all 0.3s',
+        }}>
+          ⇄ SWAP
+        </button>
+
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: '#a09cb0', marginBottom: 6 }}>{en ? 'Player 2' : 'Игрок 2'}</div>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12,
+            background: swapped ? 'rgba(74,158,255,0.15)' : 'rgba(255,96,102,0.15)',
+            border: `2px solid ${swapped ? '#4a9eff' : '#ff6066'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.5s ease',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 6,
+              background: swapped ? '#4a9eff' : '#ff6066',
+              transition: 'all 0.5s ease',
+            }} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 11, color: '#c8c4d8', textAlign: 'center', lineHeight: 1.6 }}>
+        {swapped
+          ? (en ? 'Colors swapped! Player 2 takes Player 1\'s first move.' : 'Цвета поменялись! Игрок 2 забирает первый ход Игрока 1.')
+          : (en ? 'After P1\'s first move, P2 can swap colors. Click SWAP to try!' : 'После первого хода П1, П2 может поменять цвета. Нажмите SWAP!')}
+      </div>
     </div>
   )
 }
@@ -301,6 +487,7 @@ export default function Rules() {
           {en ? 'After P1\'s first move, Player 2 can swap colors — taking P1\'s move. Compensates first-move advantage. Used in ~30% of games.'
             : 'После первого хода П1, Игрок 2 может поменять цвета — забрать ход П1. Компенсирует преимущество первого хода. Используется в ~30% партий.'}
         </Tip>
+        <SwapDiagram lang={lang} />
       </Section>
 
       <Section title={en ? 'Victory' : 'Победа'}>
