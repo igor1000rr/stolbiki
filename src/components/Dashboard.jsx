@@ -276,7 +276,7 @@ function TrainingPanel() {
 
   return (
     <div className="dash-card dash-full">
-      <h3>🧠 Данные для дообучения AI</h3>
+      <h3>Данные для дообучения AI</h3>
       <div style={{ fontSize: 12, color: '#a09cb0', marginBottom: 12 }}>
         Система собирает все партии реальных игроков. Данные используются для дообучения нейросети.
       </div>
@@ -299,12 +299,12 @@ function TrainingPanel() {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn" onClick={refresh} style={{ fontSize: 11 }}>🔄 Обновить</button>
+        <button className="btn" onClick={refresh} style={{ fontSize: 11 }}>Обновить</button>
         <button className="btn primary" onClick={doExport} style={{ fontSize: 11 }} disabled={stats.games === 0}>
-          📥 Экспорт JSON ({stats.moves} ходов)
+          Экспорт JSON ({stats.moves} ходов)
         </button>
         <button className="btn" onClick={doClear} style={{ fontSize: 11, borderColor: '#ff6b6b33', color: '#ff6b6b' }}>
-          🗑 Очистить
+          Очистить
         </button>
       </div>
       {exported !== null && (

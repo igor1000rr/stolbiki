@@ -860,7 +860,7 @@ export default function Game() {
               <p><b style={{ color: '#6db4ff' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
               <p><b style={{ color: '#6db4ff' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
               <p><b style={{ color: '#ffc145' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
-              <p><b style={{ color: '#3dd68c' }}>🎯</b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
+              <p><b style={{ color: '#3dd68c' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
               Понятно, играем!
@@ -973,7 +973,7 @@ export default function Game() {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8, fontSize: 11, color: '#6b6880' }}>
           <span>Побед: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
           <span>Поражений: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
-          {sessionStats.streak > 1 && <span>🔥 Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
+          {sessionStats.streak > 1 && <span>Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
         </div>
       )}
 
@@ -983,7 +983,7 @@ export default function Game() {
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
           {mode === 'spectate' ? `${t('game.aiThinking')} (${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')})` :
-           mode === 'online' ? (gs.currentPlayer === humanPlayer ? '🟢 Ваш ход' : '⏳ Ходит противник') :
+           mode === 'online' ? (gs.currentPlayer === humanPlayer ? 'Ваш ход' : 'Ходит противник') :
            `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}`}
         </div>
       )}
@@ -1153,7 +1153,7 @@ export default function Game() {
         )}
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: '#ffbe30', color: '#ffbe30' }}>
-            {hintLoading ? '...' : '💡'}
+            {hintLoading ? '...' : '2727'}
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
@@ -1183,7 +1183,7 @@ export default function Game() {
 
       {hint && hintMode && (
         <div className="hint-panel">
-          <div className="hint-title">💡 Подсказка</div>
+          <div className="hint-title">Подсказка</div>
           {hint.explanation.map((l, i) => <p key={i} className="hint-line">{l}</p>)}
         </div>
       )}
@@ -1195,7 +1195,7 @@ export default function Game() {
         const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — 178.212.12.71`
         return (
           <div className="game-result" style={{ borderLeft: `3px solid ${won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '🎉' : '😔'}</div>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '\o/' : '—'}</div>
             <span style={{ fontSize: 20 }}>{mode === 'pvp'
               ? `${result === 0 ? t('game.blueWin') : t('game.redWin')}`
               : mode === 'online'
@@ -1216,7 +1216,7 @@ export default function Game() {
               )}
               {mode === 'ai' && !tournament && (
                 <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: 12, padding: '8px 14px' }}>
-                  🔄 Сменить сторону
+                  Switch side
                 </button>
               )}
               <button className="btn" onClick={async () => {
@@ -1234,7 +1234,7 @@ export default function Game() {
                   ctx.fillStyle = won ? '#3dd68c' : '#ff6066'
                   ctx.font = 'bold 32px sans-serif'
                   ctx.textAlign = 'center'
-                  ctx.fillText(won ? '🎉 Победа!' : '😔 Поражение', 300, 60)
+                  ctx.fillText(won ? 'Victory!' : 'Defeat', 300, 60)
                   // Счёт
                   ctx.fillStyle = '#e8e6f0'
                   ctx.font = 'bold 72px sans-serif'
@@ -1275,17 +1275,17 @@ export default function Game() {
                   navigator.clipboard?.writeText(shareText)
                 }
               }} style={{ fontSize: 12, padding: '8px 12px' }}>
-                📤
+                
               </button>
               {moveHistoryRef.current.length > 0 && (
                 <button className="btn" onClick={() => setShowReplay(true)} style={{ fontSize: 12, padding: '8px 12px' }}>
-                  🎬
+                  
                 </button>
               )}
             </div>
             {sessionStats.streak > 1 && won && (
               <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>
-                🔥 Серия побед: {sessionStats.streak}
+                Серия побед: {sessionStats.streak}
               </div>
             )}
             {/* Турнир — межпартийный / финальный экран */}
@@ -1302,7 +1302,7 @@ export default function Game() {
               if (tournamentDone) {
                 return (
                   <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(255,193,69,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
-                    <div style={{ fontSize: 28, marginBottom: 4 }}>{tournamentDraw ? '🤝' : tournamentWon ? '🏆' : '😞'}</div>
+                    <div style={{ fontSize: 28, marginBottom: 4 }}>{tournamentDraw ? '=' : tournamentWon ? '+' : '-'}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0', marginBottom: 4 }}>
                       {tournamentDraw ? t('tournament.draw') : tournamentWon ? t('tournament.won') : t('tournament.lost')}
                     </div>
@@ -1321,7 +1321,7 @@ export default function Game() {
                         Обычная игра
                       </button>
                       <button className="btn" onClick={() => startTournament(tournament.total)} style={{ fontSize: 12 }}>
-                        🔄 Ещё турнир
+                        New tournament
                       </button>
                     </div>
                   </div>

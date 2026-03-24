@@ -609,7 +609,7 @@ export default function Profile() {
         <div>
           {(profile.history || []).length === 0 ? (
             <div className="dash-card" style={{ textAlign: 'center', padding: 32 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📜</div>
+              
               <div style={{ fontSize: 14, color: '#6b6880' }}>Пока нет партий. Сыграйте свою первую!</div>
             </div>
           ) : (
@@ -792,7 +792,7 @@ export default function Profile() {
             <h3>Мои друзья ({friendsList.length})</h3>
             {friendsList.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 24, color: '#6b6880' }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
+                
                 <div style={{ fontSize: 13 }}>Пока нет друзей. Найдите игроков по нику!</div>
               </div>
             ) : (

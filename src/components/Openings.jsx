@@ -92,7 +92,7 @@ export default function Openings() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '12px 0' }}>
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 36, marginBottom: 8 }}>📊</div>
+        
         <h2 style={{ fontSize: 20, color: 'var(--ink)', fontWeight: 700 }}>
           {lang === 'en' ? 'Opening Book & Heatmap' : 'Книга дебютов и карта стоек'}
         </h2>

@@ -32,7 +32,7 @@ function DailyChallenge() {
   return (
     <div className="dash-card" style={{ maxWidth: 560, margin: '16px auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 32 }}>📅</span>
+        <span style={{ fontSize: 24, opacity: 0.5 }}>Daily</span>
         <div>
           <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
             Ежедневный челлендж
@@ -286,7 +286,7 @@ export default function Online() {
     return (
       <div>
         <div className="dash-card" style={{ maxWidth: 560, margin: '20px auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🌐</div>
+          
           <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>Играй с другом по ссылке — без регистрации</p>
 
@@ -467,7 +467,7 @@ export default function Online() {
     const draw = w === -1
     return (
       <div className="dash-card" style={{ maxWidth: 560, margin: '20px auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>{draw ? '🤝' : won ? '🏆' : '😔'}</div>
+        <div style={{ fontSize: 48, marginBottom: 8 }}>{draw ? '=' : won ? '+' : '-'}</div>
         <h3 style={{ fontSize: 20, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
           {draw ? 'Ничья!' : won ? 'Вы победили в турнире!' : 'Противник победил'}
         </h3>

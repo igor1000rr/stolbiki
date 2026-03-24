@@ -52,7 +52,7 @@ function Verdict({ p1Wr, total }) {
   const z = diff / se
   let verdict, color, icon
   if (diff < 2) { verdict = 'Идеально сбалансировано'; color = '#3dd68c'; icon = '✅' }
-  else if (diff < 4) { verdict = 'Хороший баланс'; color = '#4ecb71'; icon = '👍' }
+  else if (diff < 4) { verdict = 'Хороший баланс'; color = '#4ecb71'; icon = 'OK' }
   else if (diff < 7) { verdict = 'Небольшой перекос'; color = '#f0a030'; icon = '⚠️' }
   else { verdict = 'Существенный дисбаланс'; color = '#ff6066'; icon = '❌' }
 
@@ -316,11 +316,11 @@ export default function Simulator() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginTop: 8 }}>
               {[
                 { icon: '⭐', label: 'Золотая→Win', value: `${goldenWinPct}%`, color: '#f0a030' },
-                { icon: '🏁', label: 'Последний→Win', value: `${lastCloserPct}%`, color: '#e74c3c' },
-                { icon: '🔄', label: 'Swap принят', value: `${played > 0 ? ((data.swapCount||0)/played*100).toFixed(0) : '—'}%`, color: '#9b59b6' },
-                { icon: '📍', label: '1-е закрытие', value: `ход ${data.firstCloseTurns?.length > 0 ? (data.firstCloseTurns.reduce((a,b)=>a+b,0)/data.firstCloseTurns.length).toFixed(0) : '—'}`, color: '#2ecc71' },
+                { icon: 'F', label: 'Последний→Win', value: `${lastCloserPct}%`, color: '#e74c3c' },
+                { icon: 'S', label: 'Swap принят', value: `${played > 0 ? ((data.swapCount||0)/played*100).toFixed(0) : '—'}%`, color: '#9b59b6' },
+                { icon: '1', label: '1-е закрытие', value: `ход ${data.firstCloseTurns?.length > 0 ? (data.firstCloseTurns.reduce((a,b)=>a+b,0)/data.firstCloseTurns.length).toFixed(0) : '—'}`, color: '#2ecc71' },
                 { icon: '↗', label: 'Переносов/игру', value: played > 0 ? ((data.transferCount||0)/played).toFixed(1) : '—', color: '#3498db' },
-                { icon: '🔒', label: 'Закр. переносом', value: (closeTr+closePl) > 0 ? `${(closeTr/(closeTr+closePl)*100).toFixed(0)}%` : '—', color: '#e67e22' },
+                { icon: 'T', label: 'Закр. переносом', value: (closeTr+closePl) > 0 ? `${(closeTr/(closeTr+closePl)*100).toFixed(0)}%` : '—', color: '#e67e22' },
               ].map(m => (
                 <div key={m.label} style={{ textAlign: 'center', padding: '10px 6px', background: `${m.color}08`, borderRadius: 10, border: `1px solid ${m.color}15` }}>
                   <div style={{ fontSize: 16 }}>{m.icon}</div>
