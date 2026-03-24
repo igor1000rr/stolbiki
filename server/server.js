@@ -838,6 +838,51 @@ if (blogCount === 0) {
     'roadmap', 0)
 }
 
+// Новые посты (добавляются если ещё нет)
+const addPost = (slug, tru, ten, bru, ben, tag) => {
+  if (!db.prepare('SELECT id FROM blog_posts WHERE slug=?').get(slug))
+    db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?,?,?,?,?,?,0)').run(slug, tru, ten, bru, ben, tag)
+}
+
+addPost('update-march-2026', 'Март 2026: масштабное обновление', 'March 2026: Major update',
+  '26 ачивок, рейтинговые сезоны, 14 настроек и полная мультиязычность — вот главные изменения за март.\n\n' +
+  'Ачивки\nТеперь их 26 вместо 14. Новые: Бессмертный (20 побед подряд), Гроссмейстер (рейтинг 1800), Молния (5 быстрых побед), Решатель (10 головоломок) и другие. Каждая ачивка теперь с цветовой категорией: бронза, серебро, золото, алмаз.\n\n' +
+  'Рейтинговые сезоны\nКаждый месяц — новый сезон. Отдельный рейтинг, лидерборд топ-20, график истории ELO прямо в профиле.\n\n' +
+  'Настройки\n14 параметров: таймер (блиц/рапид/30м), стиль фишек, плотность доски, скорость анимаций, режим для дальтоников, крупный текст, высокий контраст. Всё сохраняется и применяется мгновенно.\n\n' +
+  'Мультиязычность\nВесь интерфейс полностью переведён на английский. Переключатель RU/EN в шапке.',
+  '26 achievements, ranked seasons, 14 settings, and full English translation — here are the main changes for March.\n\n' +
+  'Achievements\nNow 26 instead of 14. New ones: Immortal (20 wins in a row), Grandmaster (1800 rating), Lightning (5 fast wins), Solver (10 puzzles), and more. Each achievement now has a color tier: bronze, silver, gold, diamond.\n\n' +
+  'Ranked Seasons\nEvery month is a new season with separate rating, top-20 leaderboard, and ELO history chart right in your profile.\n\n' +
+  'Settings\n14 parameters: timer (blitz/rapid/30m), chip style, board density, animation speed, colorblind mode, large text, high contrast. Everything saves and applies instantly.\n\n' +
+  'Multilingual\nThe entire interface is now fully translated to English. RU/EN switch in the header.',
+  'release')
+
+addPost('online-v2', 'Онлайн v2: resign, ничья, чат', 'Online v2: resign, draw, chat',
+  'Онлайн-режим стал полноценным. Что нового:\n\n' +
+  'Сдача партии\nКнопка «Сдаться» — противник мгновенно получает победу. Работает через WebSocket.\n\n' +
+  'Предложение ничьей\nКнопка «Ничья» отправляет предложение противнику. Он видит баннер с кнопками «Принять» и «Отклонить».\n\n' +
+  'Быстрый чат\nПять кнопок быстрых сообщений: gg, gl, nice, wp, ! — плюс ввод произвольного текста.\n\n' +
+  'Уведомления\nКогда противник сделал ход и вкладка в фоне — заголовок мигает красной точкой. Вы не пропустите свой ход.',
+  'Online mode is now fully featured. What\'s new:\n\n' +
+  'Resign\nA "Resign" button — your opponent instantly gets the win. Works via WebSocket.\n\n' +
+  'Draw offer\nA "Draw" button sends an offer. Opponent sees a banner with "Accept" and "Decline".\n\n' +
+  'Quick chat\nFive quick message buttons: gg, gl, nice, wp, ! — plus free text input.\n\n' +
+  'Notifications\nWhen opponent moves and your tab is in the background, the title blinks with a red dot. You won\'t miss your turn.',
+  'feature')
+
+addPost('design-v3', 'Дизайн v3: лендинг, шапка, авторизация', 'Design v3: landing, header, auth',
+  'Полная переработка визуала:\n\n' +
+  'Лендинг\n8 секций, каждая с уникальной архитектурой. Scroll-анимации (IntersectionObserver), animated counters, AI-баннер с метриками, gradient Print&Play баннер, нумерованный FAQ.\n\n' +
+  'Шапка\n4 основных пункта + выпадающее «Ещё». Авторизация вынесена в хедер — аватар с рейтингом или кнопка «Войти» с dropdown формой.\n\n' +
+  'SEO\nOG-теги, twitter:card, JSON-LD structured data, robots.txt, sitemap.xml, PWA-иконки 192+512.\n\n' +
+  'Код\n11 lazy-loaded компонентов (React.lazy + Suspense). Hash-роутинг: #game, #blog, #puzzles — back/forward работает. Error Boundary для безопасности.',
+  'Complete visual overhaul:\n\n' +
+  'Landing\n8 sections, each with unique architecture. Scroll animations (IntersectionObserver), animated counters, AI banner with metrics, gradient Print&Play banner, numbered FAQ.\n\n' +
+  'Header\n4 main items + "More" dropdown. Auth moved to header — avatar with rating or "Login" button with dropdown form.\n\n' +
+  'SEO\nOG tags, twitter:card, JSON-LD structured data, robots.txt, sitemap.xml, PWA icons 192+512.\n\n' +
+  'Code\n11 lazy-loaded components (React.lazy + Suspense). Hash routing: #game, #blog, #puzzles — back/forward works. Error Boundary for safety.',
+  'update')
+
 // Получить посты
 app.get('/api/blog', (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1)
@@ -877,6 +922,7 @@ app.put('/api/blog/:slug', auth, (req, res) => {
 
 // ═══ ROOMS (REST API для создания) ═══
 const rooms = new Map()
+const matchQueue = [] // [{ ws, name }]
 
 function generateRoomId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -922,6 +968,44 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw) } catch { return }
 
     // ─── JOIN ───
+    // ─── MATCHMAKING ───
+    if (msg.type === 'findMatch') {
+      const name = msg.name || 'Player'
+      // Remove stale entries
+      for (let i = matchQueue.length - 1; i >= 0; i--) {
+        if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
+      }
+      // Check if already in queue
+      if (matchQueue.some(q => q.ws === ws)) return
+      matchQueue.push({ ws, name })
+
+      if (matchQueue.length >= 2) {
+        const p1 = matchQueue.shift()
+        const p2 = matchQueue.shift()
+        // Create room
+        const roomId = Math.random().toString(36).slice(2, 8).toUpperCase()
+        const room = { id: roomId, players: [{ ws: p1.ws, name: p1.name }, { ws: p2.ws, name: p2.name }],
+          mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0] }
+        rooms.set(roomId, room)
+        // Notify both
+        p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0 }))
+        p2.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 1 }))
+        // Start game
+        const startMsg = JSON.stringify({ type: 'start', players: [p1.name, p2.name], firstPlayer: 0, scores: [0, 0], currentGame: 1 })
+        p1.ws.send(startMsg); p2.ws.send(startMsg)
+      } else {
+        ws.send(JSON.stringify({ type: 'queued', position: matchQueue.length }))
+      }
+      return
+    }
+
+    if (msg.type === 'cancelMatch') {
+      const idx = matchQueue.findIndex(q => q.ws === ws)
+      if (idx !== -1) matchQueue.splice(idx, 1)
+      ws.send(JSON.stringify({ type: 'matchCancelled' }))
+      return
+    }
+
     if (msg.type === 'join') {
       const roomId = (msg.roomId || '').toUpperCase()
       const room = rooms.get(roomId)

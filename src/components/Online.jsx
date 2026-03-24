@@ -107,7 +107,7 @@ function QRCode({ text, size = 160 }) {
 export default function Online() {
   const { lang } = useI18n()
   const en = lang === 'en'
-  const [screen, setScreen] = useState('lobby') // lobby | waiting | playing | result
+  const [screen, setScreen] = useState('lobby') // lobby | waiting | playing | result | searching
   const [roomId, setRoomId] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [playerName, setPlayerName] = useState(localStorage.getItem('stolbiki_online_name') || '')
@@ -193,11 +193,23 @@ export default function Online() {
       case 'error':
         setError(msg.msg)
         break
+      case 'queued':
+        setScreen('searching')
+        break
+      case 'matchFound':
+        setRoomId(msg.roomId)
+        roomIdRef.current = msg.roomId
+        setPlayerIdx(msg.playerIdx)
+        playerIdxRef.current = msg.playerIdx
+        break
+      case 'matchCancelled':
+        setScreen('lobby')
+        break
     }
   }
 
   async function createRoom() {
-    if (!playerName.trim()) { setError('Введите имя'); return }
+    if (!playerName.trim()) { setError(en ? 'Enter name' : 'Введите имя'); return }
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
     try {
@@ -208,7 +220,7 @@ export default function Online() {
   }
 
   async function joinRoom() {
-    if (!playerName.trim()) { setError('Введите имя'); return }
+    if (!playerName.trim()) { setError(en ? 'Enter name' : 'Введите имя'); return }
     if (!joinCode.trim()) { setError('Введите код комнаты'); return }
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
@@ -219,7 +231,22 @@ export default function Online() {
   function sendChat() {
     if (!chatInput.trim()) return
     MP.sendChat(chatInput.trim())
+    setMessages(p => [...p.slice(-50), { from: playerIdx, text: chatInput.trim(), time: Date.now() }])
     setChatInput('')
+  }
+
+  function findMatch() {
+    if (!playerName.trim()) { setError(en ? 'Enter name' : en ? 'Enter name' : 'Введите имя'); return }
+    setError('')
+    localStorage.setItem('stolbiki_online_name', playerName.trim())
+    setScreen('searching')
+    MP.findMatch(playerName.trim(), handleWS)
+  }
+
+  function cancelSearch() {
+    MP.cancelMatch()
+    MP.disconnect()
+    setScreen('lobby')
   }
 
   function backToLobby() {
@@ -260,12 +287,12 @@ export default function Online() {
       <div>
         <div className="dash-card" style={{ maxWidth: 560, margin: '20px auto', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🌐</div>
-          <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>Онлайн</h3>
+          <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>Играй с другом по ссылке — без регистрации</p>
 
           {error && <div style={{ color: '#ff6066', fontSize: 12, marginBottom: 10 }}>{error}</div>}
 
-          <input type="text" placeholder="Ваше имя" value={playerName}
+          <input type="text" placeholder={en ? 'Your name' : 'Ваше имя'} value={playerName}
             onChange={e => setPlayerName(e.target.value)} style={inputStyle} />
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -278,8 +305,14 @@ export default function Online() {
           </div>
 
           <button className="btn primary" onClick={createRoom}
-            style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 16 }}>
-            Создать комнату
+            style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 10 }}>
+            {en ? 'Create room' : 'Создать комнату'}
+          </button>
+
+          <button className="btn" onClick={findMatch}
+            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16,
+              borderColor: '#3dd68c40', color: '#3dd68c' }}>
+            {en ? 'Find random opponent' : 'Найти случайного соперника'}
           </button>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
@@ -288,7 +321,7 @@ export default function Online() {
               <input type="text" placeholder="КОД" value={joinCode} maxLength={6}
                 onChange={e => setJoinCode(e.target.value.toUpperCase())}
                 style={{ ...inputStyle, marginBottom: 0, textAlign: 'center', letterSpacing: 4, fontWeight: 700, fontSize: 18, flex: 1 }} />
-              <button className="btn" onClick={joinRoom} style={{ whiteSpace: 'nowrap' }}>Войти</button>
+              <button className="btn" onClick={joinRoom} style={{ whiteSpace: 'nowrap' }}>{en ? 'Join' : 'Войти'}</button>
             </div>
           </div>
         </div>
@@ -302,6 +335,32 @@ export default function Online() {
 
         {/* Ежедневный челлендж */}
         <DailyChallenge />
+      </div>
+    )
+  }
+
+  // ─── SEARCHING ───
+  if (screen === 'searching') {
+    return (
+      <div>
+        <div className="dash-card" style={{ maxWidth: 400, margin: '40px auto', textAlign: 'center' }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'inline-flex', gap: 4 }}>
+              {[0, 0.2, 0.4].map((d, i) => (
+                <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#3dd68c', animation: `pulse 1s ease ${d}s infinite` }} />
+              ))}
+            </div>
+          </div>
+          <h3 style={{ fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>
+            {en ? 'Looking for opponent...' : 'Ищем соперника...'}
+          </h3>
+          <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 20 }}>
+            {en ? 'You\'ll be matched with the first available player' : 'Вас соединят с первым доступным игроком'}
+          </p>
+          <button className="btn" onClick={cancelSearch} style={{ fontSize: 12 }}>
+            {en ? 'Cancel' : 'Отмена'}
+          </button>
+        </div>
       </div>
     )
   }

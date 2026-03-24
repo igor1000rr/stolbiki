@@ -51,6 +51,20 @@ export function sendChat(text) {
   send({ type: 'chat', text })
 }
 
+export function findMatch(name, callback) {
+  onMessage = callback
+  if (ws) ws.close()
+  ws = new WebSocket(WS_URL)
+  ws.onopen = () => { ws.send(JSON.stringify({ type: 'findMatch', name })) }
+  ws.onmessage = (e) => { try { if (onMessage) onMessage(JSON.parse(e.data)) } catch {} }
+  ws.onclose = () => { if (onMessage) onMessage({ type: 'disconnected' }) }
+  ws.onerror = () => {}
+}
+
+export function cancelMatch() {
+  send({ type: 'cancelMatch' })
+}
+
 export function disconnect() {
   clearTimeout(reconnectTimer)
   onMessage = null
