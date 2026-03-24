@@ -48,9 +48,9 @@ const sw = () => playSound(_sw, [10, 20, 10, 20, 30])
 const sl = () => playSound(_sl, 20)
 const ss = () => playSound(_ss, 12)
 
-function describeAction(a, p) {
+function describeAction(a, p, t) {
   const name = p === 0 ? t('game.blue') : t('game.red')
-  if (a.swap) return `${name}: Swap — смена цветов`
+  if (a.swap) return `${name}: Swap — ${t('game.swap') || 'смена цветов'}`
   const parts = []
   if (a.transfer) parts.push(`перенос ${SL(a.transfer[0])} → ${SL(a.transfer[1])}`)
   if (a.placement && Object.keys(a.placement).length) {
@@ -62,6 +62,7 @@ function describeAction(a, p) {
 
 // ─── Анимированный повтор партии ───
 function ReplayViewer({ moves, onClose }) {
+  const { t } = useI18n()
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [gs, setGs] = useState(() => new GameState())
@@ -103,7 +104,7 @@ function ReplayViewer({ moves, onClose }) {
           <span style={{ fontSize: 28, fontWeight: 700, color: '#e8e6f0' }}>{s0} : {s1}</span>
           <div style={{ fontSize: 11, color: '#6b6880', marginTop: 2 }}>
             Ход {step}/{moves.length}
-            {currentMove && ` · ${describeAction(currentMove.action, currentMove.player)}`}
+            {currentMove && ` · ${describeAction(currentMove.action, currentMove.player, t)}`}
           </div>
         </div>
 
@@ -257,7 +258,7 @@ export default function Game() {
       setGs(ns)
       gsRef.current = ns
 
-      addLog(describeAction(action, opponentColor), opponentColor)
+      addLog(describeAction(action, opponentColor, t), opponentColor)
       moveHistoryRef.current.push({ action: { ...action }, player: opponentColor })
 
       // Swap — особый случай: противник ещё не закончил ход (ему надо ставить фишки)
@@ -487,7 +488,7 @@ export default function Game() {
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
       setTimeout(() => {
         setAiThinking(false)
-        addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
+        addLog(describeAction(action, state.currentPlayer, t), state.currentPlayer)
         setTimeout(() => {
           recordMove(state, action, state.currentPlayer)
           moveHistoryRef.current.push({ action: { ...action }, player: state.currentPlayer })
@@ -719,7 +720,7 @@ export default function Game() {
     const action = { transfer, placement }
     recordMove(gs, action, gs.currentPlayer)
     moveHistoryRef.current.push({ action: { ...action }, player: gs.currentPlayer })
-    addLog(describeAction(action, gs.currentPlayer), gs.currentPlayer)
+    addLog(describeAction(action, gs.currentPlayer, t), gs.currentPlayer)
 
     // Онлайн — отправляем ход противнику
     if (mode === 'online') {

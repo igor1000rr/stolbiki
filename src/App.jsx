@@ -2,12 +2,12 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import * as API from './engine/api'
 import Icon from './components/Icon'
-import Game from './components/Game'
-import Online from './components/Online'
 import { getSettings, applySettings } from './engine/settings'
 import './app.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
+const Game = lazy(() => import('./components/Game'))
+const Online = lazy(() => import('./components/Online'))
 const Dashboard = lazy(() => import('./components/Dashboard'))
 const Replay = lazy(() => import('./components/Replay'))
 const Simulator = lazy(() => import('./components/Simulator'))
@@ -19,6 +19,7 @@ const Landing = lazy(() => import('./components/Landing'))
 const Tutorial = lazy(() => import('./components/Tutorial'))
 const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
+const Admin = lazy(() => import('./components/Admin'))
 
 function LazyFallback() {
   return <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>
@@ -56,7 +57,7 @@ export default function App() {
     if (params.get('room')) return 'online'
     const hash = location.hash.replace('#', '')
     if (hash.startsWith('blog')) return 'blog' // handles #blog and #blog/slug
-    if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay'].includes(hash)) return hash
+    if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay','admin'].includes(hash)) return hash
     return 'landing'
   })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
@@ -159,7 +160,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!isAdmin && ['sim', 'dash', 'replay'].includes(tab)) setTab('game')
+    if (!isAdmin && ['sim', 'dash', 'replay', 'admin'].includes(tab)) setTab('game')
   }, [isAdmin, tab])
 
   function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
@@ -185,6 +186,7 @@ export default function App() {
   ]
   if (isAdmin) {
     secondaryNav.push(
+      { id: 'admin', icon: 'settings', label: en ? 'Admin Panel' : 'Админка' },
       { id: 'sim', icon: 'sim', label: 'Simulator' },
       { id: 'dash', icon: 'analytics', label: 'Dashboard' },
       { id: 'replay', icon: 'replay', label: 'Replays' },
@@ -350,8 +352,10 @@ export default function App() {
         <Suspense fallback={<LazyFallback />}>
           {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         </Suspense>
-        <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
-        <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
+        <Suspense fallback={<LazyFallback />}>
+          <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
+          <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
+        </Suspense>
         <Suspense fallback={<LazyFallback />}>
           {tab === 'puzzles' && <Puzzles />}
           {tab === 'openings' && <Openings />}
@@ -361,6 +365,7 @@ export default function App() {
           {tab === 'sim' && isAdmin && <Simulator />}
           {tab === 'dash' && isAdmin && <Dashboard />}
           {tab === 'replay' && isAdmin && <Replay />}
+          {tab === 'admin' && isAdmin && <Admin />}
           {tab === 'rules' && <Rules />}
         </Suspense>
       </main>

@@ -23,3 +23,20 @@ dist-ssr
 *.sln
 *.sw?
 __pycache__/
+
+# Большие файлы (модели, чекпоинты)
+gpu_train/gpu_checkpoint/
+*.pt
+*.pth
+
+# Аналитика (отчёты)
+analysis/report.pdf
+
+# Базы данных
+*.db
+*.db-shm
+*.db-wal
+server/data/
+
+# Бэкапы
+*-backups/

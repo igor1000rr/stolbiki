@@ -20,7 +20,13 @@ if (existsSync(envPath)) {
 
 // ═══ Конфиг ═══
 const PORT = process.env.PORT || 3001
-const JWT_SECRET = process.env.JWT_SECRET || 'stolbiki_dev_secret'
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
+    process.exit(1)
+  }
+  return 'stolbiki_dev_secret_' + Math.random().toString(36).slice(2)
+})()
 const DB_PATH = process.env.DB_PATH || './data/stolbiki.db'
 
 // Создаём директорию для БД
@@ -209,8 +215,25 @@ function checkAchievements(userId) {
 
 // ═══ Middleware ═══
 const app = express()
-app.use(helmet({ contentSecurityPolicy: false }))
-app.use(cors({ origin: '*' }))
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://178.212.12.71', 'http://localhost:5173']
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'", 'ws:', 'wss:'],
+    },
+  },
+}))
+app.use(cors({ origin: (origin, cb) => {
+  if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true)
+  else cb(null, true) // Пока разрешаем всё, но логируем
+}}))
 app.use(express.json({ limit: '5mb' }))
 
 // Rate limiting (in-memory, простой)
@@ -229,10 +252,12 @@ function rateLimit(windowMs = 60000, max = 60) {
     next()
   }
 }
-// Чистка каждые 5 минут
+// Чистка каждые 5 минут + лимит размера Map
 setInterval(() => {
   const now = Date.now()
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
+  // Если Map разросся — полная очистка (защита от DDoS)
+  if (rateLimits.size > 50000) rateLimits.clear()
 }, 300000)
 
 app.use('/api/auth', rateLimit(60000, 20))  // 20 auth/мин
@@ -263,7 +288,7 @@ app.post('/api/auth/register', (req, res) => {
   const { username, email, password } = req.body
   if (!username || !password) return res.status(400).json({ error: 'Нужны username и password' })
   if (username.length < 2 || username.length > 20) return res.status(400).json({ error: 'Ник: 2-20 символов' })
-  if (password.length < 4) return res.status(400).json({ error: 'Пароль: мин 4 символа' })
+  if (password.length < 6) return res.status(400).json({ error: 'Пароль: мин 6 символов' })
 
   const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username)
   if (existing) return res.status(409).json({ error: 'Ник занят' })
@@ -498,7 +523,8 @@ app.get('/api/training/export', auth, adminOnly, (req, res) => {
 app.get('/api/users/search', auth, (req, res) => {
   const q = req.query.q
   if (!q || q.length < 2) return res.json([])
-  const users = db.prepare('SELECT id, username, rating FROM users WHERE username LIKE ? AND id != ? LIMIT 10').all(`%${q}%`, req.user.id)
+  const escaped = q.replace(/[%_]/g, '\\$&')
+  const users = db.prepare("SELECT id, username, rating FROM users WHERE username LIKE ? ESCAPE '\\' AND id != ? LIMIT 10").all(`%${escaped}%`, req.user.id)
   res.json(users)
 })
 
@@ -902,7 +928,7 @@ app.get('/api/blog/:slug', (req, res) => {
 
 // Создание поста (только админ)
 app.post('/api/blog', auth, (req, res) => {
-  if (!req.user.is_admin) return res.status(403).json({ error: 'Только администратор' })
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Только администратор' })
   const { slug, title_ru, title_en, body_ru, body_en, tag, pinned } = req.body
   if (!slug || !title_ru || !body_ru) return res.status(400).json({ error: 'slug, title_ru, body_ru обязательны' })
   try {
@@ -913,7 +939,7 @@ app.post('/api/blog', auth, (req, res) => {
 
 // Обновление поста (только админ)
 app.put('/api/blog/:slug', auth, (req, res) => {
-  if (!req.user.is_admin) return res.status(403).json({ error: 'Только администратор' })
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Только администратор' })
   const { title_ru, title_en, body_ru, body_en, tag, pinned, published } = req.body
   db.prepare('UPDATE blog_posts SET title_ru=COALESCE(?,title_ru), title_en=COALESCE(?,title_en), body_ru=COALESCE(?,body_ru), body_en=COALESCE(?,body_en), tag=COALESCE(?,tag), pinned=COALESCE(?,pinned), published=COALESCE(?,published), updated_at=datetime(\'now\') WHERE slug=?')
     .run(title_ru, title_en, body_ru, body_en, tag, pinned, published, req.params.slug)
@@ -1105,11 +1131,7 @@ wss.on('connection', (ws) => {
       }
     }
 
-    // ─── CHAT ───
-    if (msg.type === 'chat' && playerRoom) {
-      const chatMsg = JSON.stringify({ type: 'chat', from: playerIdx, text: (msg.text || '').slice(0, 200) })
-      playerRoom.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(chatMsg))
-    }
+    // (дубликат chat удалён — обрабатывается выше на строке ~1056)
   })
 
   ws.on('close', () => {
@@ -1158,6 +1180,239 @@ app.get('/api/profile/opening-stats', auth, (req, res) => {
     } catch {}
   }
   res.json({ total: games.length, standCounts, standWins })
+})
+
+// ═══ ADMIN API ═══
+
+// Обзор — живые данные из БД
+app.get('/api/admin/overview', auth, adminOnly, (req, res) => {
+  const totalUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c
+  const activeUsers = db.prepare("SELECT COUNT(*) as c FROM users WHERE last_seen > datetime('now', '-7 days')").get().c
+  const todayUsers = db.prepare("SELECT COUNT(*) as c FROM users WHERE last_seen > datetime('now', '-1 day')").get().c
+  const totalGames = db.prepare('SELECT COUNT(*) as c FROM games').get().c
+  const todayGames = db.prepare("SELECT COUNT(*) as c FROM games WHERE played_at > datetime('now', '-1 day')").get().c
+  const weekGames = db.prepare("SELECT COUNT(*) as c FROM games WHERE played_at > datetime('now', '-7 days')").get().c
+  const onlineGames = db.prepare('SELECT COUNT(*) as c FROM games WHERE is_online=1').get().c
+  const avgRating = Math.round(db.prepare('SELECT AVG(rating) as a FROM users WHERE games_played > 0').get().a || 1000)
+  const maxRating = db.prepare('SELECT MAX(rating) as m FROM users').get().m || 1000
+  const totalTraining = db.prepare('SELECT COUNT(*) as c FROM training_data').get().c
+  const totalPuzzles = db.prepare('SELECT COUNT(*) as c FROM puzzle_results').get().c
+  const solvedPuzzles = db.prepare('SELECT COUNT(*) as c FROM puzzle_results WHERE solved=1').get().c
+  const blogPosts = db.prepare('SELECT COUNT(*) as c FROM blog_posts').get().c
+  const totalAchievements = db.prepare('SELECT COUNT(*) as c FROM achievements').get().c
+
+  // Регистрации по дням (30 дней)
+  const regByDay = db.prepare(`
+    SELECT date(created_at) as day, COUNT(*) as count 
+    FROM users WHERE created_at > datetime('now', '-30 days') 
+    GROUP BY day ORDER BY day
+  `).all()
+
+  // Партии по дням (30 дней)
+  const gamesByDay = db.prepare(`
+    SELECT date(played_at) as day, COUNT(*) as count 
+    FROM games WHERE played_at > datetime('now', '-30 days') 
+    GROUP BY day ORDER BY day
+  `).all()
+
+  // Топ-5 рейтинг
+  const topPlayers = db.prepare('SELECT username, rating, games_played, wins FROM users ORDER BY rating DESC LIMIT 5').all()
+
+  res.json({
+    users: { total: totalUsers, active7d: activeUsers, today: todayUsers },
+    games: { total: totalGames, today: todayGames, week: weekGames, online: onlineGames },
+    rating: { avg: avgRating, max: maxRating },
+    training: totalTraining,
+    puzzles: { total: totalPuzzles, solved: solvedPuzzles },
+    blog: blogPosts,
+    achievements: totalAchievements,
+    rooms: rooms.size,
+    matchQueue: matchQueue.length,
+    uptime: process.uptime(),
+    memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    charts: { regByDay, gamesByDay },
+    topPlayers,
+  })
+})
+
+// Пользователи — список с пагинацией и поиском
+app.get('/api/admin/users', auth, adminOnly, (req, res) => {
+  const page = Math.max(1, +req.query.page || 1)
+  const limit = Math.min(+req.query.limit || 30, 100)
+  const offset = (page - 1) * limit
+  const search = req.query.q || ''
+  const sort = ['rating', 'games_played', 'created_at', 'last_seen', 'username'].includes(req.query.sort) ? req.query.sort : 'created_at'
+  const dir = req.query.dir === 'asc' ? 'ASC' : 'DESC'
+
+  let where = '1=1'
+  const params = []
+  if (search) {
+    where = "username LIKE ? ESCAPE '\\'"
+    params.push(`%${search.replace(/[%_]/g, '\\$&')}%`)
+  }
+
+  const total = db.prepare(`SELECT COUNT(*) as c FROM users WHERE ${where}`).get(...params).c
+  const users = db.prepare(`SELECT id, username, email, rating, games_played, wins, losses, 
+    win_streak, best_streak, golden_closed, comebacks, perfect_wins, beat_hard_ai,
+    fast_wins, online_wins, puzzles_solved, avatar, is_admin, created_at, last_seen
+    FROM users WHERE ${where} ORDER BY ${sort} ${dir} LIMIT ? OFFSET ?`).all(...params, limit, offset)
+
+  res.json({ users, total, page, pages: Math.ceil(total / limit) })
+})
+
+// Пользователь — детали
+app.get('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)
+  if (!user) return res.status(404).json({ error: 'Не найден' })
+  const achievements = db.prepare('SELECT achievement_id, unlocked_at FROM achievements WHERE user_id=?').all(user.id)
+  const recentGames = db.prepare('SELECT * FROM games WHERE user_id=? ORDER BY played_at DESC LIMIT 20').all(user.id)
+  const ratingHistory = db.prepare('SELECT rating, delta, created_at FROM rating_history WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(user.id)
+  res.json({ user: formatUser(user), achievements, recentGames, ratingHistory })
+})
+
+// Пользователь — редактирование
+app.put('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+  const { rating, is_admin, username, reset_password } = req.body
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)
+  if (!user) return res.status(404).json({ error: 'Не найден' })
+
+  if (rating !== undefined) db.prepare('UPDATE users SET rating=? WHERE id=?').run(Math.max(100, Math.min(2500, +rating)), user.id)
+  if (is_admin !== undefined) db.prepare('UPDATE users SET is_admin=? WHERE id=?').run(is_admin ? 1 : 0, user.id)
+  if (username) db.prepare('UPDATE users SET username=? WHERE id=?').run(username, user.id)
+  if (reset_password) {
+    const hash = bcrypt.hashSync(reset_password, 10)
+    db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hash, user.id)
+  }
+
+  res.json({ ok: true })
+})
+
+// Пользователь — удаление
+app.delete('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+  const id = +req.params.id
+  if (id === req.user.id) return res.status(400).json({ error: 'Нельзя удалить себя' })
+  db.prepare('DELETE FROM achievements WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM games WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM friends WHERE user_id=? OR friend_id=?').run(id, id)
+  db.prepare('DELETE FROM training_data WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM rating_history WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM season_ratings WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM daily_results WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM puzzle_results WHERE user_id=?').run(id)
+  db.prepare('DELETE FROM users WHERE id=?').run(id)
+  res.json({ ok: true })
+})
+
+// Партии — список
+app.get('/api/admin/games', auth, adminOnly, (req, res) => {
+  const page = Math.max(1, +req.query.page || 1)
+  const limit = Math.min(+req.query.limit || 30, 100)
+  const offset = (page - 1) * limit
+  const mode = req.query.mode || ''
+
+  let where = '1=1'
+  const params = []
+  if (mode) { where += ' AND g.mode=?'; params.push(mode) }
+
+  const total = db.prepare(`SELECT COUNT(*) as c FROM games g WHERE ${where}`).get(...params).c
+  const games = db.prepare(`SELECT g.*, u.username FROM games g JOIN users u ON u.id=g.user_id 
+    WHERE ${where} ORDER BY g.played_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset)
+
+  res.json({ games, total, page, pages: Math.ceil(total / limit) })
+})
+
+// Блог — полный список (включая неопубликованные)
+app.get('/api/admin/blog', auth, adminOnly, (req, res) => {
+  const posts = db.prepare('SELECT * FROM blog_posts ORDER BY created_at DESC').all()
+  res.json(posts)
+})
+
+// Блог — удаление
+app.delete('/api/admin/blog/:slug', auth, adminOnly, (req, res) => {
+  db.prepare('DELETE FROM blog_posts WHERE slug=?').run(req.params.slug)
+  res.json({ ok: true })
+})
+
+// Сезоны — управление
+app.get('/api/admin/seasons', auth, adminOnly, (req, res) => {
+  const seasons = db.prepare('SELECT * FROM seasons ORDER BY start_date DESC').all()
+  res.json(seasons)
+})
+
+app.put('/api/admin/seasons/:id', auth, adminOnly, (req, res) => {
+  const { active, name } = req.body
+  if (active !== undefined) db.prepare('UPDATE seasons SET active=? WHERE id=?').run(active ? 1 : 0, req.params.id)
+  if (name) db.prepare('UPDATE seasons SET name=? WHERE id=?').run(name, req.params.id)
+  res.json({ ok: true })
+})
+
+// Ачивки — статистика
+app.get('/api/admin/achievements', auth, adminOnly, (req, res) => {
+  const stats = db.prepare(`
+    SELECT achievement_id, COUNT(*) as count,
+    MIN(unlocked_at) as first_unlock, MAX(unlocked_at) as last_unlock
+    FROM achievements GROUP BY achievement_id ORDER BY count DESC
+  `).all()
+  res.json(stats)
+})
+
+// Обучающие данные — статистика и управление
+app.get('/api/admin/training', auth, adminOnly, (req, res) => {
+  const total = db.prepare('SELECT COUNT(*) as c FROM training_data').get().c
+  const byMode = db.prepare('SELECT mode, COUNT(*) as count, AVG(total_moves) as avgMoves FROM training_data GROUP BY mode').all()
+  const byDay = db.prepare(`
+    SELECT date(created_at) as day, COUNT(*) as count
+    FROM training_data WHERE created_at > datetime('now', '-30 days')
+    GROUP BY day ORDER BY day
+  `).all()
+  const sizeMB = db.prepare("SELECT SUM(LENGTH(game_data)) as s FROM training_data").get().s
+  res.json({ total, byMode, byDay, sizeMB: Math.round((sizeMB || 0) / 1024 / 1024 * 100) / 100 })
+})
+
+// Обучающие данные — очистка старых
+app.delete('/api/admin/training', auth, adminOnly, (req, res) => {
+  const days = +req.query.olderThan || 90
+  const result = db.prepare(`DELETE FROM training_data WHERE created_at < datetime('now', '-${days} days')`).run()
+  res.json({ deleted: result.changes })
+})
+
+// Активные комнаты и очередь
+app.get('/api/admin/rooms', auth, adminOnly, (req, res) => {
+  const active = []
+  for (const [id, room] of rooms) {
+    active.push({
+      id, mode: room.mode, state: room.state,
+      players: room.players.map(p => p.name),
+      scores: room.scores, currentGame: room.currentGame,
+      totalGames: room.totalGames,
+      ageMin: Math.round((Date.now() - room.created) / 60000),
+    })
+  }
+  res.json({ rooms: active, queueLength: matchQueue.length })
+})
+
+// Серверные логи/инфо
+app.get('/api/admin/server', auth, adminOnly, (req, res) => {
+  const mem = process.memoryUsage()
+  const dbSize = db.prepare("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()").get()
+  res.json({
+    nodeVersion: process.version,
+    platform: process.platform,
+    uptime: process.uptime(),
+    memory: {
+      heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
+      heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
+      rssMB: Math.round(mem.rss / 1024 / 1024),
+    },
+    db: {
+      sizeMB: Math.round((dbSize?.size || 0) / 1024 / 1024 * 100) / 100,
+      walMode: db.pragma('journal_mode')[0]?.journal_mode,
+    },
+    rooms: rooms.size,
+    matchQueue: matchQueue.length,
+    rateLimitEntries: rateLimits.size,
+    pid: process.pid,
+  })
 })
 
 // Changelog blog post
