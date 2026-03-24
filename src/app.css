@@ -190,11 +190,15 @@ body::before {
 .nav-more { position: relative; }
 .nav-more > button { display: inline-flex; align-items: center; }
 .nav-more-menu {
-  display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
-  background: var(--surface); border: 1px solid var(--surface3); border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5); padding: 6px; min-width: 200px; z-index: 200;
+  display: none; position: absolute; top: 100%; right: 0; padding-top: 8px;
+  z-index: 200;
 }
-.nav-more:hover .nav-more-menu { display: block; }
+.nav-more-menu > div {
+  background: var(--surface); border: 1px solid var(--surface3); border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5); padding: 6px; min-width: 200px;
+}
+.nav-more:hover .nav-more-menu,
+.nav-more:focus-within .nav-more-menu { display: block; }
 .nav-more-menu button {
   display: flex; align-items: center; width: 100%; padding: 9px 14px;
   font-size: 13px; border: none; background: transparent;

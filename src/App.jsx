@@ -165,7 +165,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!isAdmin && ['sim', 'dash', 'replay', 'admin'].includes(tab)) setTab('game')
+    // Не редиректим сразу — даём время залогиниться (1.5 сек)
+    if (!isAdmin && ['sim', 'dash', 'replay', 'admin'].includes(tab)) {
+      const timer = setTimeout(() => {
+        if (!getIsAdmin()) setTab('game')
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
   }, [isAdmin, tab])
 
   function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
@@ -233,6 +239,7 @@ export default function App() {
                 <Icon name="chevron" size={14} style={{ marginLeft: 3 }} />
               </button>
               <div className="nav-more-menu">
+                <div>
                 {secondaryNav.map(n => (
                   <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
                     <Icon name={n.icon} size={15} style={{ marginRight: 8, opacity: 0.5 }} />
@@ -248,6 +255,7 @@ export default function App() {
                       {th.label}
                     </button>
                   ))}
+                </div>
                 </div>
               </div>
             </div>
