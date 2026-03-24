@@ -901,6 +901,49 @@ const TABS = [
 
 export default function Admin() {
   const [tab, setTab] = useState('overview')
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  if (isMobile) {
+    return (
+      <div>
+        {/* Горизонтальные табы на мобилке */}
+        <div style={{
+          display: 'flex', gap: 4, overflowX: 'auto', padding: '8px 0 12px',
+          WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+        }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: tab === t.id ? 'var(--accent)' : 'var(--surface2)',
+              color: tab === t.id ? '#fff' : 'var(--ink3)',
+              fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              <span style={{ marginRight: 4 }}>{t.icon}</span>{t.label}
+            </button>
+          ))}
+        </div>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, color: 'var(--ink)' }}>
+          {TABS.find(t => t.id === tab)?.label}
+        </h2>
+        {tab === 'overview' && <OverviewTab />}
+        {tab === 'users' && <UsersTab />}
+        {tab === 'games' && <GamesTab />}
+        {tab === 'blog' && <BlogTab />}
+        {tab === 'rooms' && <RoomsTab />}
+        {tab === 'achievements' && <AchievementsTab />}
+        {tab === 'seasons' && <SeasonsTab />}
+        {tab === 'training' && <TrainingTab />}
+        {tab === 'server' && <ServerTab />}
+      </div>
+    )
+  }
 
   return (
     <div style={S.wrap}>

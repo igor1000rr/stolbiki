@@ -31,8 +31,8 @@ const STEPS = [
   {
     title: { ru: 'Перенос фишек', en: 'Transferring chips' },
     text: {
-      ru: 'Перенос — ключевой элемент! Кликните на стойку 2 (откуда), потом на стойку 1 (куда). Переносить можно только свои фишки.',
-      en: 'Transfer is key! Click stand 2 (from), then stand 1 (to). You can only move your own chips.',
+      ru: 'Перенос — ключевой элемент! Кликните на стойку 2 (откуда), потом на стойку 1 (куда). Переносить можно свои и чужие фишки.',
+      en: 'Transfer is key! Click stand 2 (from), then stand 1 (to). You can move your own and opponent\'s chips.',
     },
     setup: (gs) => {
       gs.stands[1] = [0,0,0,0,0,0,0,0] // 8 наших
@@ -145,8 +145,8 @@ export default function Tutorial({ onClose }) {
     : current.validClick
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, overflow: 'auto', padding: 16 }}>
-      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 16px 24px' }}>
+      <div style={{ maxWidth: 480, width: '100%' }}>
         {/* Прогресс */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {STEPS.map((_, i) => (
