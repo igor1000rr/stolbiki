@@ -1672,6 +1672,7 @@ body::before {
 [data-theme="neon"] .chip.p0 { box-shadow: 0 0 8px var(--p1-glow); }
 [data-theme="neon"] .chip.p1 { box-shadow: 0 0 8px var(--p2-glow); }
 [data-theme="neon"] .site-logo-text { filter: drop-shadow(0 0 20px rgba(255,0,255,0.6)); }
+[data-theme="neon"] body::before { background: radial-gradient(ellipse at 30% 20%, rgba(128,0,255,0.08), transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(255,0,255,0.06), transparent 60%); }
 
 /* Дерево */
 [data-theme="wood"] {
@@ -1687,28 +1688,56 @@ body::before {
 [data-theme="wood"] .board { background: radial-gradient(ellipse at center, #4a3520 0%, #3a2815 100%); border-color: #6a5030; }
 [data-theme="wood"] .chip.p0 { background: linear-gradient(135deg, #f0ece0, #d8d0c0); }
 [data-theme="wood"] .chip.p1 { background: linear-gradient(135deg, #3a2818, #1a1008); }
+[data-theme="wood"] body::before { background: radial-gradient(ellipse at 40% 30%, rgba(212,128,58,0.06), transparent 60%); }
 
-/* Минимализм */
+/* Светлая / Minimal */
 [data-theme="minimal"] {
-  --bg: #fafafa; --bg2: #f0f0f0; --surface: #ffffff; --surface2: #e8e8e8; --surface3: #d0d0d0;
-  --ink: #1a1a1a; --ink2: #666666; --ink3: #999999;
-  --accent: #333333; --accent2: #111111; --accent-glow: rgba(0,0,0,0.08);
-  --p1: #2563eb; --p1-light: #60a5fa; --p1-glow: rgba(37,99,235,0.2);
-  --p2: #dc2626; --p2-light: #f87171; --p2-glow: rgba(220,38,38,0.2);
-  --gold: #d97706; --gold-glow: rgba(217,119,6,0.2);
-  --green: #16a34a; --green-glow: rgba(22,163,74,0.2);
+  --bg: #f5f5f7; --bg2: #eeeef0; --surface: #ffffff; --surface2: #e5e5ea; --surface3: #c7c7cc;
+  --ink: #1d1d1f; --ink2: #515154; --ink3: #86868b;
+  --accent: #0071e3; --accent2: #0060c0; --accent-glow: rgba(0,113,227,0.15);
+  --p1: #007aff; --p1-light: #409cff; --p1-glow: rgba(0,122,255,0.2);
+  --p2: #ff3b30; --p2-light: #ff6961; --p2-glow: rgba(255,59,48,0.2);
+  --gold: #ff9500; --gold-glow: rgba(255,149,0,0.2);
+  --green: #34c759; --green-glow: rgba(52,199,89,0.2);
 }
-[data-theme="minimal"] .stand { border-color: #d0d0d0; background: #f5f5f5; border-radius: 6px; }
-[data-theme="minimal"] .board { background: #ffffff; border-color: #e0e0e0; }
+[data-theme="minimal"] body::before { display: none; }
+[data-theme="minimal"] .site-header { background: rgba(245,245,247,0.85); backdrop-filter: blur(20px); border-bottom-color: var(--surface2); }
+[data-theme="minimal"] .site-footer { border-top-color: var(--surface2); }
+[data-theme="minimal"] .site-nav-desktop button.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px var(--accent-glow); }
+[data-theme="minimal"] .nav-more-menu { background: #fff; border-color: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+[data-theme="minimal"] .nav-more-menu button.active { color: var(--accent); background: transparent; box-shadow: none; }
+[data-theme="minimal"] .header-auth-dropdown { background: #fff; border-color: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+[data-theme="minimal"] .header-auth-input { background: var(--bg); border-color: var(--surface2); }
+[data-theme="minimal"] .stand { border-color: var(--surface2); background: var(--bg); border-radius: 6px; }
+[data-theme="minimal"] .board { background: var(--surface); border-color: var(--surface2); }
 [data-theme="minimal"] .chip { border-radius: 3px; }
-[data-theme="minimal"] .site-header { background: rgba(250,250,250,0.95); border-bottom-color: #e0e0e0; }
-[data-theme="minimal"] .site-nav-desktop button.active { background: #1a1a1a; color: #ffffff; }
-[data-theme="minimal"] .btn { border-color: #d0d0d0; color: #333; }
-[data-theme="minimal"] .btn.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-[data-theme="minimal"] .game-result { background: #f8f8f8; border-color: #e0e0e0; }
-[data-theme="minimal"] .dash-card { background: #ffffff; border-color: #e0e0e0; }
-[data-theme="minimal"] ::selection { background: rgba(37,99,235,0.2); }
+[data-theme="minimal"] .btn { border-color: var(--surface2); color: var(--ink2); background: var(--surface); }
+[data-theme="minimal"] .btn:hover { border-color: var(--surface3); color: var(--ink); }
+[data-theme="minimal"] .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+[data-theme="minimal"] .dash-card { background: var(--surface); border-color: var(--surface2); }
+[data-theme="minimal"] .game-result { background: var(--surface); border-color: var(--surface2); }
+[data-theme="minimal"] .l-ai-banner { border-color: rgba(0,113,227,0.15); background: linear-gradient(135deg, rgba(0,113,227,0.04), transparent); }
+[data-theme="minimal"] .l-split { background: var(--surface); border-color: var(--surface2); }
+[data-theme="minimal"] .l-who-block { background: var(--surface); }
+[data-theme="minimal"] .l-print-banner { background: linear-gradient(135deg, var(--accent), #0060c0); }
+[data-theme="minimal"] .l-card { background: var(--surface); border-color: var(--surface2); }
+[data-theme="minimal"] .l-aud-card { background: var(--surface); border-color: var(--surface2); }
+[data-theme="minimal"] .l-faq-item, [data-theme="minimal"] .l-qa-row { border-color: var(--surface2); }
+[data-theme="minimal"] .l-final { border-top-color: var(--surface2); }
+[data-theme="minimal"] .setting-row { border-color: rgba(0,0,0,0.04); }
+[data-theme="minimal"] .segment-control { background: var(--surface2); }
+[data-theme="minimal"] .segment-control button.active { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+[data-theme="minimal"] .toggle { background: var(--surface3); }
+[data-theme="minimal"] .toggle.on { background: var(--accent); }
+[data-theme="minimal"] ::selection { background: rgba(0,113,227,0.15); }
 [data-theme="minimal"] ::-webkit-scrollbar-thumb { background: #c0c0c0; }
+[data-theme="minimal"] .beta-badge { background: var(--accent); color: #fff; }
+[data-theme="minimal"] .lang-btn { background: var(--surface2); color: var(--ink3); }
+[data-theme="minimal"] .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+[data-theme="minimal"] .header-auth-user { background: var(--surface2); border-color: var(--surface3); }
+[data-theme="minimal"] .l-hero-glow { display: none; }
+[data-theme="minimal"] .l-cta-glow, [data-theme="minimal"] .l-final-glow { display: none; }
+[data-theme="minimal"] .l-print { background: var(--surface); border-color: var(--surface2); }
 
 /* Mobile: hide username text, show only avatar */
 @media (max-width: 480px) {
