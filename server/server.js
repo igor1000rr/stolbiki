@@ -960,6 +960,39 @@ wss.on('connection', (ws) => {
       }
     }
 
+    // ─── RESIGN ───
+    if (msg.type === 'resign' && playerRoom) {
+      const opponent = playerRoom.players[1 - playerIdx]
+      if (opponent?.ws?.readyState === 1) {
+        opponent.ws.send(JSON.stringify({ type: 'resign', from: playerIdx }))
+      }
+    }
+
+    // ─── CHAT (quick messages) ───
+    if (msg.type === 'chat' && playerRoom && msg.text) {
+      const text = String(msg.text).slice(0, 50)
+      playerRoom.players.forEach((p, i) => {
+        if (i !== playerIdx && p.ws?.readyState === 1) {
+          p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))
+        }
+      })
+    }
+
+    // ─── DRAW OFFER ───
+    if (msg.type === 'drawOffer' && playerRoom) {
+      const opponent = playerRoom.players[1 - playerIdx]
+      if (opponent?.ws?.readyState === 1) {
+        opponent.ws.send(JSON.stringify({ type: 'drawOffer', from: playerIdx }))
+      }
+    }
+
+    if (msg.type === 'drawResponse' && playerRoom) {
+      const opponent = playerRoom.players[1 - playerIdx]
+      if (opponent?.ws?.readyState === 1) {
+        opponent.ws.send(JSON.stringify({ type: 'drawResponse', accepted: msg.accepted, from: playerIdx }))
+      }
+    }
+
     // ─── GAME OVER ───
     if (msg.type === 'gameOver' && playerRoom) {
       const room = playerRoom

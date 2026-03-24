@@ -1,20 +1,33 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import Icon from './components/Icon'
 import Game from './components/Game'
-import Dashboard from './components/Dashboard'
-import Replay from './components/Replay'
-import Simulator from './components/Simulator'
-import Rules from './components/Rules'
-import Profile from './components/Profile'
 import Online from './components/Online'
-import Puzzles from './components/Puzzles'
-import Openings from './components/Openings'
-import Landing from './components/Landing'
-import Tutorial from './components/Tutorial'
-import Blog from './components/Blog'
-import Settings, { getSettings } from './components/Settings'
+import { getSettings } from './components/Settings'
 import './app.css'
+
+// Lazy-loaded components (не нужны при первой загрузке)
+const Dashboard = lazy(() => import('./components/Dashboard'))
+const Replay = lazy(() => import('./components/Replay'))
+const Simulator = lazy(() => import('./components/Simulator'))
+const Rules = lazy(() => import('./components/Rules'))
+const Profile = lazy(() => import('./components/Profile'))
+const Puzzles = lazy(() => import('./components/Puzzles'))
+const Openings = lazy(() => import('./components/Openings'))
+const Landing = lazy(() => import('./components/Landing'))
+const Tutorial = lazy(() => import('./components/Tutorial'))
+const Blog = lazy(() => import('./components/Blog'))
+const Settings = lazy(() => import('./components/Settings'))
+
+function LazyFallback() {
+  return <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>
+    <div style={{ display: 'inline-flex', gap: 4 }}>
+      {[0, 0.15, 0.3].map((d, i) => (
+        <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: `pulse 0.8s ease ${d}s infinite` }} />
+      ))}
+    </div>
+  </div>
+}
 
 const ADMIN_NAMES = ['admin']
 const THEMES = [
@@ -39,12 +52,32 @@ export default function App() {
 
   const [tab, setTab] = useState(() => {
     const params = new URLSearchParams(location.search)
-    return params.get('room') ? 'online' : 'landing'
+    if (params.get('room')) return 'online'
+    const hash = location.hash.replace('#', '')
+    if (hash && ['game','online','puzzles','openings','blog','profile','settings','rules','sim','dash','replay'].includes(hash)) return hash
+    return 'landing'
   })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
+
+  // Sync hash with tab
+  useEffect(() => {
+    if (tab === 'landing') history.replaceState(null, '', location.pathname + location.search)
+    else history.replaceState(null, '', '#' + tab)
+  }, [tab])
+
+  // Listen for back/forward
+  useEffect(() => {
+    const onHash = () => {
+      const h = location.hash.replace('#', '')
+      if (h && h !== tab) setTab(h)
+      else if (!h) setTab('landing')
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [tab])
 
   useEffect(() => {
     if (theme === 'default') document.documentElement.removeAttribute('data-theme')
@@ -208,21 +241,25 @@ export default function App() {
       </header>
 
       <main className="site-content">
-        {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
+        <Suspense fallback={<LazyFallback />}>
+          {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
+        </Suspense>
         <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
         <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
-        {tab === 'puzzles' && <Puzzles />}
-        {tab === 'openings' && <Openings />}
-        {tab === 'blog' && <Blog />}
-        {tab === 'settings' && <Settings />}
-        {tab === 'profile' && <Profile />}
-        {tab === 'sim' && isAdmin && <Simulator />}
-        {tab === 'dash' && isAdmin && <Dashboard />}
-        {tab === 'replay' && isAdmin && <Replay />}
-        {tab === 'rules' && <Rules />}
+        <Suspense fallback={<LazyFallback />}>
+          {tab === 'puzzles' && <Puzzles />}
+          {tab === 'openings' && <Openings />}
+          {tab === 'blog' && <Blog />}
+          {tab === 'settings' && <Settings />}
+          {tab === 'profile' && <Profile />}
+          {tab === 'sim' && isAdmin && <Simulator />}
+          {tab === 'dash' && isAdmin && <Dashboard />}
+          {tab === 'replay' && isAdmin && <Replay />}
+          {tab === 'rules' && <Rules />}
+        </Suspense>
       </main>
 
-      {showTutorial && <Tutorial onClose={() => { setShowTutorial(false); go('game') }} />}
+      {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
 
       <footer className="site-footer">
         <div className="site-footer-inner">

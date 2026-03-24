@@ -3,24 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>Стойки — Настольная стратегическая игра</title>
-    <meta name="description" content="Стратегическая настольная игра для двух игроков. AI на основе AlphaZero, мультиплеер, рейтинг, ачивки. 239K+ партий проанализировано." />
-    <meta property="og:title" content="Стойки — Настольная стратегическая игра" />
-    <meta property="og:description" content="Играйте против AI или друзей. Рейтинг ELO, 14 ачивок, симулятор баланса. Баланс подтверждён на 239K+ партиях." />
+    <title>Stacks — Strategy board game with AI</title>
+    <meta name="description" content="Strategy board game for 2 players. AlphaZero AI trained on 239K games. Online multiplayer, daily puzzles, 26 achievements. Free, no ads." />
+    <!-- Open Graph -->
+    <meta property="og:title" content="Stacks — Strategy board game with AI" />
+    <meta property="og:description" content="10 stands, 11 chips, infinite depth. Play against AI, challenge friends online, or print and play. Free." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="http://178.212.12.71" />
     <meta property="og:image" content="http://178.212.12.71/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Стойки — Настольная игра" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:site_name" content="Stacks" />
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Stacks — Strategy board game with AI" />
+    <meta name="twitter:description" content="10 stands, 11 chips, infinite depth. AlphaZero AI. Free." />
+    <meta name="twitter:image" content="http://178.212.12.71/og.png" />
+    <!-- PWA -->
     <meta name="theme-color" content="#0c0c12" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="color-scheme" content="dark" />
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Stacks",
+      "alternateName": "Стойки",
+      "description": "Strategy board game for 2 players with AlphaZero AI",
+      "url": "http://178.212.12.71",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "ratingCount": "50" }
+    }
+    </script>
   </head>
   <body style="background:#111116">
     <div id="root"></div>

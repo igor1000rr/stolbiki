@@ -15,6 +15,20 @@ import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
 
+// Title blink when it's your turn (tab in background)
+let _titleBlinkInterval = null
+function startTitleBlink(msg = 'Your turn!') {
+  if (_titleBlinkInterval) return
+  const original = document.title
+  let on = false
+  _titleBlinkInterval = setInterval(() => {
+    document.title = (on = !on) ? `🔴 ${msg}` : original
+  }, 800)
+  const stop = () => { clearInterval(_titleBlinkInterval); _titleBlinkInterval = null; document.title = original }
+  window.addEventListener('focus', stop, { once: true })
+}
+
+
 // Haptic feedback
 const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms) } catch {} }
 
@@ -277,6 +291,7 @@ export default function Game() {
             setTransfer(null)
             setPlacement({})
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.placeChips'))
+            if (document.hidden) startTitleBlink(lang === 'en' ? 'Your turn!' : 'Ваш ход!')
           }, 300)
         } else {
           setLocked(true)
@@ -755,8 +770,21 @@ export default function Game() {
     setUndoStack(s => s.slice(0, -1))
     setGs(prev)
     setPhase('place'); setTransfer(null); setPlacement({}); setSelected(null); setResult(null)
-    setLog(l => [{ text: '↩ Ход отменён', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...l])
+    setLog(l => [{ text: t('game.undone'), player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...l])
     setInfo(`${prev.currentPlayer === 0 ? t('game.blue') : t('game.red')}: ${t('game.yourTurn')}`)
+  }
+
+  function resign() {
+    if (gs.gameOver) return
+    const winner = mode === 'online' ? (1 - (onlineRef.current?.myColor ?? 0)) : (1 - humanPlayer)
+    setResult(winner); setPhase('done'); setLocked(false)
+    setInfo(lang === 'en' ? 'Resigned' : 'Сдались')
+    finishRecording(winner, [gs.countClosed(0), gs.countClosed(1)])
+    // Notify opponent in online
+    if (mode === 'online' && onlineRef.current?.ws) {
+      onlineRef.current.ws.send(JSON.stringify({ type: 'resign' }))
+    }
+    sl()
   }
 
   function requestHint() {
@@ -1037,10 +1065,10 @@ export default function Game() {
               setInfo(t('game.swapDone'))
             }
           }} style={{ borderColor: '#9b59b6', color: '#9b59b6', marginRight: 8 }}>
-            Swap (забрать ход)
+            Swap
           </button>
           <button className="btn" onClick={() => {
-            setInfo('Swap отклонён. Ставьте фишки')
+            setInfo(lang === 'en' ? 'Swap declined' : 'Swap отклонён')
           }} style={{ fontSize: 12 }}>
             Нет, продолжить
           </button>
@@ -1049,10 +1077,10 @@ export default function Game() {
 
       <div className="actions">
         {isMyTurn && phase === 'place' && hasTransfers && !transfer && (
-          <button className="btn" onClick={startTransfer}>↗ Сделать перенос</button>
+          <button className="btn" onClick={startTransfer}>{t('game.transfer')}</button>
         )}
         {isMyTurn && inTransferMode && (
-          <button className="btn" onClick={cancelTransfer}>✕ Отменить перенос</button>
+          <button className="btn" onClick={cancelTransfer}>{t('game.cancelTransfer')}</button>
         )}
         {isMyTurn && transfer && phase === 'place' && (
           <span style={{ fontSize: 12, color: '#3dd68c', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
@@ -1060,7 +1088,7 @@ export default function Game() {
           </span>
         )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
-          <button className="btn" onClick={() => setPlacement({})}>Сброс</button>
+          <button className="btn" onClick={() => setPlacement({})}>{t('game.reset')}</button>
         )}
         {isMyTurn && phase === 'place' && (
           <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn}>{ t('game.confirm') }</button>
@@ -1070,9 +1098,14 @@ export default function Game() {
             {hintLoading ? '...' : '💡'}
           </button>
         )}
-        <button className="btn" onClick={() => newGame()}>Новая игра</button>
+        <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
+        {!gs.gameOver && mode !== 'pvp' && (
+          <button className="btn" onClick={resign} style={{ fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
+            {lang === 'en' ? 'Resign' : 'Сдаться'}
+          </button>
+        )}
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
-          <button className="btn" onClick={undoMove} style={{ fontSize: 11 }}>↩ Отмена</button>
+          <button className="btn" onClick={undoMove} style={{ fontSize: 11 }}>{lang === 'en' ? 'Undo' : 'Отмена'}</button>
         )}
       </div>
 

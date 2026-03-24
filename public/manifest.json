@@ -1,14 +1,16 @@
 {
-  "name": "Стойки",
-  "short_name": "Стойки",
-  "description": "Стратегическая настольная игра для двух игроков",
+  "name": "Stacks — Strategy Board Game",
+  "short_name": "Stacks",
+  "description": "Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0c12",
   "theme_color": "#0c0c12",
-  "orientation": "portrait",
-  "categories": ["games"],
+  "orientation": "any",
+  "categories": ["games", "entertainment"],
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
   ]
 }
