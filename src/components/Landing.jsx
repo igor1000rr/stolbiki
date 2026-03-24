@@ -115,58 +115,70 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ FEATURES — bento grid, staggered ═══ */}
+      {/* ═══ FEATURES — editorial showcase, NO grid cards ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'What\'s inside' : 'Что внутри'}</h2>
-        <div className={`l-bento ${featVis ? 'in' : ''}`} ref={featRef}>
-          {/* AI — large, spans 2 rows */}
-          <div className="l-card l-card-hero" style={{ '--i': 0 }}>
-            <div className="l-card-glow" style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(74,158,255,0.08) 0%, transparent 70%)' }} />
-            <div className="l-card-icon" style={{ background: '#4a9eff14', color: '#4a9eff' }}><Icon name="ai" size={28} color="#4a9eff" /></div>
-            <h3>{en ? 'AlphaZero AI' : 'AI на базе AlphaZero'}</h3>
-            <p>{en
-              ? 'Neural network trained via self-play on GPU. 1146 iterations, loss 0.098. Three difficulty levels — from casual to grandmaster.'
-              : 'Нейросеть обучена через self-play на GPU. 1146 итераций, loss 0.098. Три уровня сложности.'}</p>
-            <div className="l-card-tags"><span>GPU</span><span>MCTS</span><span>Self-play</span><span>97% WR</span></div>
+
+        <div className={`l-showcase ${featVis ? 'in' : ''}`} ref={featRef}>
+          {/* AI — full-width hero banner */}
+          <div className="l-ai-banner">
+            <div className="l-ai-glow" />
+            <div className="l-ai-top">
+              <Icon name="ai" size={24} color="#4a9eff" />
+              <h3>{en ? 'AlphaZero AI' : 'AI на базе AlphaZero'}</h3>
+            </div>
+            <p className="l-ai-desc">{en
+              ? 'Neural network trained via GPU self-play. Three difficulty levels from casual to grandmaster. The AI learns from every game it plays against itself.'
+              : 'Нейросеть обучена через self-play на GPU. Три уровня сложности. AI учится на каждой партии с самим собой.'}</p>
+            <div className="l-ai-metrics">
+              {[
+                { v: '1146', l: en ? 'iterations' : 'итераций' },
+                { v: '0.098', l: 'loss' },
+                { v: '97%', l: en ? 'win rate' : 'винрейт' },
+                { v: '3', l: en ? 'levels' : 'уровня' },
+              ].map((m, i) => (
+                <div key={i} className="l-ai-metric">
+                  <span className="l-ai-mv">{m.v}</span>
+                  <span className="l-ai-ml">{m.l}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Online */}
-          <div className="l-card" style={{ '--i': 1 }}>
-            <div className="l-card-icon" style={{ background: '#3dd68c14', color: '#3dd68c' }}><Icon name="online" size={22} color="#3dd68c" /></div>
-            <h3>{en ? 'Online' : 'Онлайн'}</h3>
-            <p>{en ? 'Share a link — play instantly. Series of 3 or 5.' : 'Ссылка другу — играйте сразу. Серии 3/5.'}</p>
-          </div>
-
-          {/* Puzzles */}
-          <div className="l-card" style={{ '--i': 2 }}>
-            <div className="l-card-icon" style={{ background: '#ffc14514', color: '#ffc145' }}><Icon name="puzzle" size={22} color="#ffc145" /></div>
-            <h3>{en ? 'Puzzles' : 'Головоломки'}</h3>
-            <p>{en ? 'Daily + weekly + bank of 50. Leaderboards.' : 'Ежедневные + еженедельные + банк 50.'}</p>
-          </div>
-
-          {/* Trainer — wide */}
-          <div className="l-card l-card-wide" style={{ '--i': 3 }}>
-            <div className="l-card-row">
-              <div className="l-card-icon" style={{ background: '#9b59b614', color: '#9b59b6' }}><Icon name="trainer" size={22} color="#9b59b6" /></div>
+          {/* Online + Puzzles — split by vertical divider */}
+          <div className="l-split">
+            <div className="l-split-item">
+              <div className="l-split-bar" style={{ background: '#3dd68c' }} />
               <div>
-                <h3>{en ? 'Trainer mode' : 'Режим «Тренер»'}</h3>
-                <p>{en ? 'AI evaluates every move in real-time and shows position strength.' : 'AI оценивает каждый ход и показывает силу позиции в реальном времени.'}</p>
+                <div className="l-split-head"><Icon name="online" size={18} color="#3dd68c" /><h4>{en ? 'Online multiplayer' : 'Онлайн мультиплеер'}</h4></div>
+                <p>{en ? 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.' : 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.'}</p>
+              </div>
+            </div>
+            <div className="l-split-line" />
+            <div className="l-split-item">
+              <div className="l-split-bar" style={{ background: '#ffc145' }} />
+              <div>
+                <div className="l-split-head"><Icon name="puzzle" size={18} color="#ffc145" /><h4>{en ? 'Daily puzzles' : 'Головоломки'}</h4></div>
+                <p>{en ? 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.' : 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.'}</p>
               </div>
             </div>
           </div>
 
-          {/* Openings */}
-          <div className="l-card" style={{ '--i': 4 }}>
-            <div className="l-card-icon" style={{ background: '#f0604014', color: '#f06040' }}><Icon name="chart" size={22} color="#f06040" /></div>
-            <h3>{en ? 'Analytics' : 'Аналитика'}</h3>
-            <p>{en ? 'Heatmaps and opening strategies from 239K games.' : 'Тепловые карты и стратегии из 239K партий.'}</p>
-          </div>
-
-          {/* PWA */}
-          <div className="l-card" style={{ '--i': 5 }}>
-            <div className="l-card-icon" style={{ background: '#00bcd414', color: '#00bcd4' }}><Icon name="theme" size={22} color="#00bcd4" /></div>
-            <h3>{en ? 'PWA' : 'PWA'}</h3>
-            <p>{en ? '4 themes. Offline. Add to home screen.' : '4 темы. Оффлайн. На главный экран.'}</p>
+          {/* Three extras — plain text rows */}
+          <div className="l-extras">
+            {[
+              { icon: 'trainer', c: '#9b59b6', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move. Position strength bar in real-time.' : 'AI оценивает каждый ход. Шкала силы позиции.' },
+              { icon: 'chart', c: '#f06040', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
+              { icon: 'theme', c: '#00bcd4', t: en ? '4 themes + PWA' : '4 темы + PWA', d: en ? 'Dark, neon, wood, light. Works offline. Home screen.' : 'Тёмная, неон, дерево, светлая. Оффлайн.' },
+            ].map((f, i) => (
+              <div key={i} className="l-extra" style={{ '--i': i }}>
+                <div className="l-extra-dot" style={{ background: f.c, boxShadow: f.c + '40 0 0 6px' }} />
+                <Icon name={f.icon} size={16} color={f.c} />
+                <strong>{f.t}</strong>
+                <span className="l-extra-sep" />
+                <span>{f.d}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
