@@ -1226,3 +1226,58 @@ body::before {
   .nav button { padding: 7px 3px; font-size: 9px; }
   .header h1 { font-size: 20px; }
 }
+
+/* ═══ Темы ═══ */
+
+/* Неон */
+[data-theme="neon"] {
+  --bg: #05050a; --bg2: #0a0a18; --surface: #0f0f22; --surface2: #181835; --surface3: #222250;
+  --ink: #f0e8ff; --ink2: #b8a8e8; --ink3: #7868aa;
+  --accent: #ff00ff; --accent2: #cc00cc; --accent-glow: rgba(255,0,255,0.3);
+  --p1: #00e5ff; --p1-light: #60f0ff; --p1-glow: rgba(0,229,255,0.4);
+  --p2: #ff3090; --p2-light: #ff70b0; --p2-glow: rgba(255,48,144,0.4);
+  --gold: #ffe040; --gold-glow: rgba(255,224,64,0.4);
+  --green: #39ff14; --green-glow: rgba(57,255,20,0.4);
+}
+[data-theme="neon"] .stand { border-color: rgba(128,0,255,0.25); box-shadow: 0 0 12px rgba(128,0,255,0.15); }
+[data-theme="neon"] .chip.p0 { box-shadow: 0 0 8px var(--p1-glow); }
+[data-theme="neon"] .chip.p1 { box-shadow: 0 0 8px var(--p2-glow); }
+[data-theme="neon"] .header h1 { text-shadow: 0 0 20px rgba(255,0,255,0.6), 0 0 40px rgba(255,0,255,0.3); }
+
+/* Дерево */
+[data-theme="wood"] {
+  --bg: #2c1e0f; --bg2: #3a2815; --surface: #4a3520; --surface2: #5d4530; --surface3: #705840;
+  --ink: #f5e8d0; --ink2: #c8b89a; --ink3: #9a876a;
+  --accent: #d4803a; --accent2: #b86a28; --accent-glow: rgba(212,128,58,0.25);
+  --p1: #f0f0e8; --p1-light: #ffffff; --p1-glow: rgba(240,240,232,0.3);
+  --p2: #2a2018; --p2-light: #4a3828; --p2-glow: rgba(42,32,24,0.3);
+  --gold: #daa520; --gold-glow: rgba(218,165,32,0.35);
+  --green: #6ab04c; --green-glow: rgba(106,176,76,0.3);
+}
+[data-theme="wood"] .stand { border-color: rgba(160,120,70,0.3); background: linear-gradient(180deg, #5a4228 0%, #4a3520 100%); }
+[data-theme="wood"] .board { background: radial-gradient(ellipse at center, #4a3520 0%, #3a2815 100%); border-color: #6a5030; }
+[data-theme="wood"] .chip.p0 { background: linear-gradient(135deg, #f0ece0, #d8d0c0); }
+[data-theme="wood"] .chip.p1 { background: linear-gradient(135deg, #3a2818, #1a1008); }
+
+/* Минимализм */
+[data-theme="minimal"] {
+  --bg: #fafafa; --bg2: #f0f0f0; --surface: #ffffff; --surface2: #e8e8e8; --surface3: #d0d0d0;
+  --ink: #1a1a1a; --ink2: #666666; --ink3: #999999;
+  --accent: #333333; --accent2: #111111; --accent-glow: rgba(0,0,0,0.08);
+  --p1: #2563eb; --p1-light: #60a5fa; --p1-glow: rgba(37,99,235,0.2);
+  --p2: #dc2626; --p2-light: #f87171; --p2-glow: rgba(220,38,38,0.2);
+  --gold: #d97706; --gold-glow: rgba(217,119,6,0.2);
+  --green: #16a34a; --green-glow: rgba(22,163,74,0.2);
+}
+[data-theme="minimal"] .stand { border-color: #d0d0d0; background: #f5f5f5; border-radius: 6px; }
+[data-theme="minimal"] .board { background: #ffffff; border-color: #e0e0e0; }
+[data-theme="minimal"] .chip { border-radius: 3px; }
+[data-theme="minimal"] .header { background: #ffffff; }
+[data-theme="minimal"] .nav { background: #f8f8f8; border-color: #e0e0e0; }
+[data-theme="minimal"] .nav button.active { background: #1a1a1a; color: #ffffff; }
+[data-theme="minimal"] .btn { border-color: #d0d0d0; color: #333; }
+[data-theme="minimal"] .btn.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+[data-theme="minimal"] .game-result { background: #f8f8f8; border-color: #e0e0e0; }
+[data-theme="minimal"] .dash-card { background: #ffffff; border-color: #e0e0e0; }
+[data-theme="minimal"] ::selection { background: rgba(37,99,235,0.2); }
+[data-theme="minimal"] ::-webkit-scrollbar-thumb { background: #c0c0c0; }
