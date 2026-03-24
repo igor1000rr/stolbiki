@@ -363,7 +363,7 @@ export default function Game() {
     const next = tournament.currentGame + 1
     if (next > tournament.total) return
     setTournament(prev => ({ ...prev, currentGame: next }))
-    newGame(next % 2, difficulty, 'ai')
+    newGame((next - 1) % 2, difficulty, 'ai')
     setInfo(`Турнир: партия ${next} из ${tournament.total}`)
   }
 

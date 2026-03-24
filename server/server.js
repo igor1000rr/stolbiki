@@ -484,28 +484,28 @@ db.exec(`
 // ═══ Генератор головоломок ═══
 // Шаблоны — описание позиций (stands, closed, goal)
 const PUZZLE_TEMPLATES = [
-  // ─── Лёгкие (1 ход) ───
+  // ─── Лёгкие (1 ход) — перенос закрывает стойку ───
   { difficulty: 1, maxMoves: 1, title_ru: 'Закрой стойку', title_en: 'Close a stand',
     gen: (rng) => {
       const s = Math.floor(rng() * 9) + 1
       const d = (s + 3) % 10 || 1
       const stands = Array.from({length:10}, () => [])
-      const fill = 8 + Math.floor(rng() * 2)
-      for (let i = 0; i < fill; i++) stands[s].push(0)
-      for (let i = 0; i < 2; i++) stands[s].push(1)
-      stands[d] = Array(3).fill(0)
+      // Стойка s: 8 своих наверху → перенос 3 с d закроет (8+3=11)
+      stands[s] = [...Array(2).fill(1), ...Array(6 + Math.floor(rng() * 2)).fill(0)]
+      stands[d] = Array(11 - stands[s].length).fill(0)
       return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 1 },
-        desc_ru: `Закройте стойку ${s} за 1 ход`, desc_en: `Close stand ${s} in 1 move` }
+        desc_ru: `Закройте стойку ${s} переносом`, desc_en: `Close stand ${s} by transfer` }
     }
   },
   { difficulty: 1, maxMoves: 1, title_ru: 'Золотая', title_en: 'Golden',
     gen: (rng) => {
       const stands = Array.from({length:10}, () => [])
-      stands[0] = [...Array(8).fill(0), ...Array(2).fill(1)]
+      // Золотая: 8 своих сверху, перенос с src закроет
+      stands[0] = [...Array(2).fill(1), ...Array(6).fill(0)]
       const src = 1 + Math.floor(rng() * 9)
       stands[src] = Array(3).fill(0)
       return { stands, goal: { closedByPlayer: { 0: 0 }, maxMoves: 1 },
-        desc_ru: 'Закройте золотую стойку ★ за 1 ход', desc_en: 'Close golden stand ★ in 1 move' }
+        desc_ru: 'Закройте золотую стойку ★', desc_en: 'Close golden stand ★' }
     }
   },
   // ─── Средние (2 хода) ───
@@ -513,13 +513,19 @@ const PUZZLE_TEMPLATES = [
     gen: (rng) => {
       const a = 1 + Math.floor(rng() * 4)
       const b = 5 + Math.floor(rng() * 4)
-      const src = (a + b) % 10 || 9
       const stands = Array.from({length:10}, () => [])
-      stands[a] = [...Array(9).fill(0), 1]
-      stands[b] = Array(8 + Math.floor(rng() * 2)).fill(0)
-      stands[src] = Array(3).fill(0)
+      stands[a] = Array(8).fill(0)
+      stands[b] = Array(8).fill(0)
+      // Два источника по 3 — гарантировано не пересекаются
+      const used = new Set([a, b])
+      const srcs = []
+      for (let i = 0; i < 10 && srcs.length < 2; i++) {
+        if (!used.has(i)) { srcs.push(i); used.add(i) }
+      }
+      stands[srcs[0]] = Array(3).fill(0)
+      stands[srcs[1]] = Array(3).fill(0)
       return { stands, goal: { minClosed: 2, maxMoves: 2 },
-        desc_ru: `Закройте 2 стойки за 2 хода`, desc_en: `Close 2 stands in 2 moves` }
+        desc_ru: 'Закройте 2 стойки за 2 хода', desc_en: 'Close 2 stands in 2 moves' }
     }
   },
   { difficulty: 2, maxMoves: 2, title_ru: 'Захват', title_en: 'Capture',
@@ -527,6 +533,7 @@ const PUZZLE_TEMPLATES = [
       const target = 1 + Math.floor(rng() * 9)
       const src = (target + 3) % 10 || 1
       const stands = Array.from({length:10}, () => [])
+      // Стойка с чужими внизу, нашими сверху — перенос закроет за нас
       stands[target] = [...Array(5).fill(1), ...Array(3).fill(0)]
       stands[src] = Array(3 + Math.floor(rng() * 2)).fill(0)
       return { stands, goal: { closedByPlayer: { [target]: 0 }, maxMoves: 2 },
@@ -538,14 +545,21 @@ const PUZZLE_TEMPLATES = [
     gen: (rng) => {
       const s1 = 1 + Math.floor(rng() * 3)
       const s2 = 4 + Math.floor(rng() * 3)
-      const s3 = 7 + Math.floor(rng() * 3)
+      const s3 = 7 + Math.floor(rng() * 2)
       const stands = Array.from({length:10}, () => [])
-      stands[s1] = Array(10).fill(0)
-      stands[s2] = Array(9).fill(0)
+      // Три стойки по 8, три источника по 3 — каждый ход = перенос + закрытие
+      stands[s1] = Array(8).fill(0)
+      stands[s2] = Array(8).fill(0)
       stands[s3] = Array(8).fill(0)
-      stands[(s3+1)%10||1] = Array(3).fill(0)
+      // Три разных источника
+      const used = new Set([s1, s2, s3])
+      const srcs = []
+      for (let i = 0; i < 10 && srcs.length < 3; i++) {
+        if (!used.has(i)) { srcs.push(i); used.add(i) }
+      }
+      srcs.forEach(s => { stands[s] = Array(3).fill(0) })
       return { stands, goal: { minClosed: 3, maxMoves: 3 },
-        desc_ru: `Закройте 3 стойки за 3 хода`, desc_en: `Close 3 stands in 3 moves` }
+        desc_ru: 'Закройте 3 стойки за 3 хода', desc_en: 'Close 3 stands in 3 moves' }
     }
   },
   { difficulty: 3, maxMoves: 3, title_ru: 'Цепная реакция', title_en: 'Chain reaction',
@@ -553,9 +567,11 @@ const PUZZLE_TEMPLATES = [
       const a = Math.floor(rng() * 5)
       const b = 5 + Math.floor(rng() * 5)
       const stands = Array.from({length:10}, () => [])
+      // a: чужие внизу + наши сверху, b: смешанные с нашими сверху
       stands[a] = [...Array(6).fill(1), ...Array(3).fill(0)]
-      stands[b] = [...Array(4).fill(0), ...Array(4).fill(1), ...Array(2).fill(0)]
-      stands[(a+2)%10] = Array(4).fill(0)
+      stands[b] = [...Array(4).fill(1), ...Array(4).fill(0)]
+      const src = (a + 2) % 10 === b ? (a + 3) % 10 : (a + 2) % 10
+      stands[src] = Array(4).fill(0)
       return { stands, goal: { minClosed: 2, maxMoves: 3 },
         desc_ru: 'Разберите позицию и закройте 2 стойки', desc_en: 'Untangle and close 2 stands' }
     }
