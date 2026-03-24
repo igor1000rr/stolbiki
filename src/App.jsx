@@ -15,10 +15,10 @@ import './app.css'
 
 const ADMIN_NAMES = ['admin']
 const THEMES = [
-  { id: 'default', label: '🌙', name: 'Dark' },
-  { id: 'neon', label: '💜', name: 'Neon' },
-  { id: 'wood', label: '🪵', name: 'Wood' },
-  { id: 'minimal', label: '⬜', name: 'Light' },
+  { id: 'default', label: '🌙 Dark' },
+  { id: 'neon', label: '💜 Neon' },
+  { id: 'wood', label: '🪵 Wood' },
+  { id: 'minimal', label: '⬜ Light' },
 ]
 
 function getIsAdmin() {
@@ -41,7 +41,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [mobileMenu, setMobileMenu] = useState(false)
 
   useEffect(() => {
     if (theme === 'default') document.documentElement.removeAttribute('data-theme')
@@ -57,7 +57,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const handler = () => setTab('game')
+    const handler = () => { setTab('game'); setMobileMenu(false) }
     window.addEventListener('stolbiki-online-start', handler)
     window.addEventListener('stolbiki-daily-start', handler)
     return () => {
@@ -70,8 +70,12 @@ export default function App() {
     if (!isAdmin && ['sim', 'dash', 'replay'].includes(tab)) setTab('game')
   }, [isAdmin, tab])
 
-  const TABS_PUBLIC = [
-    { id: 'landing', label: '🏠' },
+  function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+
+  const [publicStats, setPublicStats] = useState(null)
+  useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
+
+  const mainNav = [
     { id: 'game', label: t('nav.play') },
     { id: 'online', label: t('nav.online') },
     { id: 'puzzles', label: t('nav.puzzles') },
@@ -79,86 +83,76 @@ export default function App() {
     { id: 'profile', label: t('nav.profile') },
     { id: 'rules', label: t('nav.rules') },
   ]
-
-  const TABS_ADMIN = [
-    ...TABS_PUBLIC,
-    { id: 'sim', label: t('nav.simulator') },
-    { id: 'dash', label: t('nav.analytics') },
-    { id: 'replay', label: t('nav.replays') },
-  ]
-
-  const tabs = isAdmin ? TABS_ADMIN : TABS_PUBLIC
-
-  const [publicStats, setPublicStats] = useState(null)
-  useEffect(() => {
-    fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {})
-  }, [])
+  if (isAdmin) {
+    mainNav.push(
+      { id: 'sim', label: '🧪' },
+      { id: 'dash', label: '📈' },
+      { id: 'replay', label: '🎬' },
+    )
+  }
 
   return (
     <I18nContext.Provider value={i18n}>
     <div className="app">
-      {/* Компактный хедер */}
-      <header className="header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '14px 0 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => setTab('landing')}>
-          <h1 style={{ fontSize: 24, margin: 0 }}>{t('header.title')}</h1>
-          {publicStats && tab !== 'landing' && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              {[
-                { v: publicStats.totalUsers, l: t('header.players') },
-                { v: publicStats.totalGames, l: t('header.games') },
-              ].map(s => (
-                <span key={s.l} style={{ fontSize: 10, color: 'var(--ink3)' }}>
-                  <b style={{ color: 'var(--accent)', marginRight: 2 }}>{s.v}</b>{s.l}
-                </span>
-              ))}
+      {/* ═══ ШАПКА ═══ */}
+      <header className="site-header">
+        <div className="site-header-inner">
+          {/* Лого */}
+          <div className="site-logo" onClick={() => go('landing')}>
+            <span className="site-logo-icon">♟</span>
+            <span className="site-logo-text">{t('header.title')}</span>
+          </div>
+
+          {/* Десктоп навигация */}
+          <nav className="site-nav-desktop">
+            {mainNav.map(n => (
+              <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+                {n.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Действия */}
+          <div className="site-actions">
+            {LANGS.map(l => (
+              <button key={l.code} onClick={() => setLang(l.code)}
+                className={`lang-btn ${lang === l.code ? 'active' : ''}`}>
+                {l.label}
+              </button>
+            ))}
+            <div className="theme-dropdown">
+              <button className="theme-btn">🎨</button>
+              <div className="theme-menu">
+                {THEMES.map(th => (
+                  <button key={th.id} onClick={() => setTheme(th.id)}
+                    className={theme === th.id ? 'active' : ''}>
+                    {th.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
+            {/* Бургер для мобилки */}
+            <button className="mobile-burger" onClick={() => setMobileMenu(m => !m)}>
+              {mobileMenu ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
 
-        {/* Настройки: язык + тема */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
-          {LANGS.map(l => (
-            <button key={l.code} onClick={() => setLang(l.code)}
-              style={{ padding: '3px 8px', fontSize: 10, borderRadius: 6, cursor: 'pointer',
-                border: lang === l.code ? '1px solid var(--accent)' : '1px solid transparent',
-                background: lang === l.code ? 'var(--accent)' : 'var(--surface2)',
-                color: lang === l.code ? '#fff' : 'var(--ink3)', fontWeight: 600 }}>
-              {l.label}
-            </button>
-          ))}
-          <button onClick={() => setShowSettings(s => !s)}
-            style={{ padding: '3px 8px', fontSize: 14, borderRadius: 6, cursor: 'pointer',
-              border: 'none', background: 'var(--surface2)', color: 'var(--ink2)' }}>
-            🎨
-          </button>
-          {showSettings && (
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, padding: 8,
-              background: 'var(--surface)', border: '1px solid var(--surface3)', borderRadius: 12,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', gap: 4 }}>
-              {THEMES.map(th => (
-                <button key={th.id} onClick={() => { setTheme(th.id); setShowSettings(false) }}
-                  style={{ padding: '6px 10px', fontSize: 11, borderRadius: 8, cursor: 'pointer',
-                    border: theme === th.id ? '1px solid var(--accent)' : '1px solid var(--surface3)',
-                    background: theme === th.id ? 'var(--accent)' : 'var(--surface2)',
-                    color: theme === th.id ? '#fff' : 'var(--ink2)', whiteSpace: 'nowrap' }}>
-                  {th.label} {th.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Мобильное меню */}
+        {mobileMenu && (
+          <nav className="site-nav-mobile">
+            {mainNav.map(n => (
+              <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+                {n.label}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
-      <nav className="nav">
-        {tabs.map(t => (
-          <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => { setTab(t.id); setShowSettings(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
-            {t.label}
-          </button>
-        ))}
-      </nav>
-
-      <div className="tab-content">
-        {tab === 'landing' && <Landing onPlay={() => setTab('game')} onTutorial={() => setShowTutorial(true)} />}
+      {/* ═══ КОНТЕНТ ═══ */}
+      <main className="site-content">
+        {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
         <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
         {tab === 'puzzles' && <Puzzles />}
@@ -168,23 +162,22 @@ export default function App() {
         {tab === 'dash' && isAdmin && <Dashboard />}
         {tab === 'replay' && isAdmin && <Replay />}
         {tab === 'rules' && <Rules />}
-      </div>
+      </main>
 
-      {showTutorial && <Tutorial onClose={() => { setShowTutorial(false); setTab('game') }} />}
+      {showTutorial && <Tutorial onClose={() => { setShowTutorial(false); go('game') }} />}
 
-      <footer style={{ textAlign: 'center', padding: '24px 0 12px', fontSize: 10, color: 'var(--ink3)', marginTop: 24 }}>
-        <div>Стойки v2.2 · {lang === 'en' ? 'Balance confirmed on 239K+ games' : 'Баланс подтверждён на 239K+ партиях'}</div>
-        <div style={{ marginTop: 4, display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%',
-              background: publicStats ? 'var(--green)' : 'var(--p2)',
-              boxShadow: publicStats ? '0 0 6px var(--green-glow)' : '0 0 6px var(--p2-glow)' }} />
+      {/* ═══ ПОДВАЛ ═══ */}
+      <footer className="site-footer">
+        <div className="site-footer-inner">
+          <div>Стойки v2.2 · {lang === 'en' ? 'Balance: 239K+ games' : 'Баланс: 239K+ партий'}</div>
+          <div className="site-footer-links">
+            <span className="status-dot" style={{ background: publicStats ? 'var(--green)' : 'var(--p2)' }} />
             {publicStats ? t('common.online') : t('common.offline')}
-          </span>
-          <span>·</span>
-          <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none' }}>GitHub</a>
-          <span>·</span>
-          <a href="/print-and-play.pdf" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none' }}>Print&Play</a>
+            <span>·</span>
+            <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener">GitHub</a>
+            <span>·</span>
+            <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print&Play</a>
+          </div>
         </div>
       </footer>
     </div>

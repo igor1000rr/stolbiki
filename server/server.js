@@ -451,6 +451,223 @@ db.exec(`CREATE TABLE IF NOT EXISTS daily_results (
   UNIQUE(user_id, seed)
 )`)
 
+// ═══ Таблицы головоломок ═══
+db.exec(`
+  CREATE TABLE IF NOT EXISTS puzzle_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER, username TEXT,
+    puzzle_type TEXT NOT NULL,
+    puzzle_id TEXT NOT NULL,
+    solved INTEGER DEFAULT 0,
+    moves_used INTEGER,
+    duration INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, puzzle_type, puzzle_id)
+  )
+`)
+
+// ═══ Генератор головоломок ═══
+// Шаблоны — описание позиций (stands, closed, goal)
+const PUZZLE_TEMPLATES = [
+  // ─── Лёгкие (1 ход) ───
+  { difficulty: 1, maxMoves: 1, title_ru: 'Закрой стойку', title_en: 'Close a stand',
+    gen: (rng) => {
+      const s = Math.floor(rng() * 9) + 1
+      const d = (s + 3) % 10 || 1
+      const stands = Array.from({length:10}, () => [])
+      const fill = 8 + Math.floor(rng() * 2)
+      for (let i = 0; i < fill; i++) stands[s].push(0)
+      for (let i = 0; i < 2; i++) stands[s].push(1)
+      stands[d] = Array(3).fill(0)
+      return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 1 },
+        desc_ru: `Закройте стойку ${s} за 1 ход`, desc_en: `Close stand ${s} in 1 move` }
+    }
+  },
+  { difficulty: 1, maxMoves: 1, title_ru: 'Золотая', title_en: 'Golden',
+    gen: (rng) => {
+      const stands = Array.from({length:10}, () => [])
+      stands[0] = [...Array(8).fill(0), ...Array(2).fill(1)]
+      const src = 1 + Math.floor(rng() * 9)
+      stands[src] = Array(3).fill(0)
+      return { stands, goal: { closedByPlayer: { 0: 0 }, maxMoves: 1 },
+        desc_ru: 'Закройте золотую стойку ★ за 1 ход', desc_en: 'Close golden stand ★ in 1 move' }
+    }
+  },
+  // ─── Средние (2 хода) ───
+  { difficulty: 2, maxMoves: 2, title_ru: 'Двойное закрытие', title_en: 'Double close',
+    gen: (rng) => {
+      const a = 1 + Math.floor(rng() * 4)
+      const b = 5 + Math.floor(rng() * 4)
+      const src = (a + b) % 10 || 9
+      const stands = Array.from({length:10}, () => [])
+      stands[a] = [...Array(9).fill(0), 1]
+      stands[b] = Array(8 + Math.floor(rng() * 2)).fill(0)
+      stands[src] = Array(3).fill(0)
+      return { stands, goal: { minClosed: 2, maxMoves: 2 },
+        desc_ru: `Закройте 2 стойки за 2 хода`, desc_en: `Close 2 stands in 2 moves` }
+    }
+  },
+  { difficulty: 2, maxMoves: 2, title_ru: 'Захват', title_en: 'Capture',
+    gen: (rng) => {
+      const target = 1 + Math.floor(rng() * 9)
+      const src = (target + 3) % 10 || 1
+      const stands = Array.from({length:10}, () => [])
+      stands[target] = [...Array(5).fill(1), ...Array(3).fill(0)]
+      stands[src] = Array(3 + Math.floor(rng() * 2)).fill(0)
+      return { stands, goal: { closedByPlayer: { [target]: 0 }, maxMoves: 2 },
+        desc_ru: `Перехватите стойку ${target}`, desc_en: `Capture stand ${target}` }
+    }
+  },
+  // ─── Сложные (3 хода) ───
+  { difficulty: 3, maxMoves: 3, title_ru: 'Тройной удар', title_en: 'Triple strike',
+    gen: (rng) => {
+      const s1 = 1 + Math.floor(rng() * 3)
+      const s2 = 4 + Math.floor(rng() * 3)
+      const s3 = 7 + Math.floor(rng() * 3)
+      const stands = Array.from({length:10}, () => [])
+      stands[s1] = Array(10).fill(0)
+      stands[s2] = Array(9).fill(0)
+      stands[s3] = Array(8).fill(0)
+      stands[(s3+1)%10||1] = Array(3).fill(0)
+      return { stands, goal: { minClosed: 3, maxMoves: 3 },
+        desc_ru: `Закройте 3 стойки за 3 хода`, desc_en: `Close 3 stands in 3 moves` }
+    }
+  },
+  { difficulty: 3, maxMoves: 3, title_ru: 'Цепная реакция', title_en: 'Chain reaction',
+    gen: (rng) => {
+      const a = Math.floor(rng() * 5)
+      const b = 5 + Math.floor(rng() * 5)
+      const stands = Array.from({length:10}, () => [])
+      stands[a] = [...Array(6).fill(1), ...Array(3).fill(0)]
+      stands[b] = [...Array(4).fill(0), ...Array(4).fill(1), ...Array(2).fill(0)]
+      stands[(a+2)%10] = Array(4).fill(0)
+      return { stands, goal: { minClosed: 2, maxMoves: 3 },
+        desc_ru: 'Разберите позицию и закройте 2 стойки', desc_en: 'Untangle and close 2 stands' }
+    }
+  },
+]
+
+function puzzleSeededRandom(seed) {
+  let h = 0
+  const s = String(seed)
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
+  return () => { h = (h * 16807 + 0) % 2147483647; return (h & 0x7fffffff) / 0x7fffffff }
+}
+
+function generatePuzzle(seed, difficultyFilter) {
+  const rng = puzzleSeededRandom(seed)
+  const templates = difficultyFilter
+    ? PUZZLE_TEMPLATES.filter(t => t.difficulty === difficultyFilter)
+    : PUZZLE_TEMPLATES
+  const tmpl = templates[Math.floor(rng() * templates.length)]
+  const puzzle = tmpl.gen(rng)
+  return {
+    id: String(seed),
+    difficulty: tmpl.difficulty,
+    maxMoves: tmpl.maxMoves,
+    title_ru: tmpl.title_ru,
+    title_en: tmpl.title_en,
+    ...puzzle,
+    turn: 6 + Math.floor(rng() * 4) * 2, // чётный ход
+  }
+}
+
+// ─── Daily puzzle (новая каждый день) ───
+app.get('/api/puzzles/daily', (req, res) => {
+  const d = new Date()
+  const seed = `daily-${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
+  const puzzle = generatePuzzle(seed, 2)
+  puzzle.type = 'daily'
+  // Сколько решило
+  const stats = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=?').get('daily', seed)
+  puzzle.stats = { attempts: stats?.total || 0, solved: stats?.solved || 0 }
+  // Лидерборд
+  puzzle.leaderboard = db.prepare('SELECT username, moves_used, duration FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=? AND solved=1 ORDER BY moves_used ASC, duration ASC LIMIT 10').all('daily', seed)
+  res.json(puzzle)
+})
+
+// ─── Weekly puzzle (новая каждую неделю, сложнее) ───
+app.get('/api/puzzles/weekly', (req, res) => {
+  const d = new Date()
+  const weekNum = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / 604800000)
+  const seed = `weekly-${d.getFullYear()}-W${weekNum}`
+  const puzzle = generatePuzzle(seed, 3)
+  puzzle.type = 'weekly'
+  const stats = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=?').get('weekly', seed)
+  puzzle.stats = { attempts: stats?.total || 0, solved: stats?.solved || 0 }
+  puzzle.leaderboard = db.prepare('SELECT username, moves_used, duration FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=? AND solved=1 ORDER BY moves_used ASC, duration ASC LIMIT 10').all('weekly', seed)
+  res.json(puzzle)
+})
+
+// ─── Банк головоломок (50 штук, статичные) ───
+app.get('/api/puzzles/bank', (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const perPage = 12
+  const diff = parseInt(req.query.difficulty) || 0
+  
+  const puzzles = []
+  const total = 50
+  const start = (page - 1) * perPage
+  
+  for (let i = start; i < Math.min(start + perPage, total); i++) {
+    const seed = `bank-${i}`
+    const difficulty = i < 15 ? 1 : i < 35 ? 2 : 3
+    if (diff && difficulty !== diff) continue
+    const p = generatePuzzle(seed, difficulty)
+    p.type = 'bank'
+    p.bankIndex = i + 1
+    // Статы решения
+    const stats = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=?').get('bank', seed)
+    p.stats = { attempts: stats?.total || 0, solved: stats?.solved || 0 }
+    puzzles.push(p)
+  }
+  
+  res.json({ puzzles, total, page, perPage, pages: Math.ceil(total / perPage) })
+})
+
+// ─── Отдельная головоломка ───
+app.get('/api/puzzles/:type/:id', (req, res) => {
+  const { type, id } = req.params
+  if (!['daily', 'weekly', 'bank'].includes(type)) return res.status(400).json({ error: 'Invalid type' })
+  const seed = type === 'bank' ? `bank-${id}` : id
+  const difficulty = type === 'weekly' ? 3 : type === 'daily' ? 2 : (parseInt(id) < 15 ? 1 : parseInt(id) < 35 ? 2 : 3)
+  const puzzle = generatePuzzle(seed, difficulty)
+  puzzle.type = type
+  const stats = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=?').get(type, seed)
+  puzzle.stats = { attempts: stats?.total || 0, solved: stats?.solved || 0 }
+  res.json(puzzle)
+})
+
+// ─── Отправка результата ───
+app.post('/api/puzzles/submit', auth, (req, res) => {
+  const { type, puzzleId, solved, movesUsed, duration } = req.body
+  if (!type || !puzzleId) return res.status(400).json({ error: 'Missing fields' })
+  
+  const existing = db.prepare('SELECT id, solved FROM puzzle_results WHERE user_id=? AND puzzle_type=? AND puzzle_id=?').get(req.user.id, type, puzzleId)
+  if (existing) {
+    // Обновляем только если улучшили результат
+    if (solved && (!existing.solved || movesUsed < existing.moves_used)) {
+      db.prepare('UPDATE puzzle_results SET solved=1, moves_used=?, duration=? WHERE id=?').run(movesUsed, duration, existing.id)
+    }
+  } else {
+    db.prepare('INSERT INTO puzzle_results (user_id, username, puzzle_type, puzzle_id, solved, moves_used, duration) VALUES (?, ?, ?, ?, ?, ?, ?)').run(req.user.id, req.user.username, type, puzzleId, solved ? 1 : 0, movesUsed, duration)
+  }
+  res.json({ ok: true })
+})
+
+// ─── Статистика пользователя по головоломкам ───
+app.get('/api/puzzles/user/stats', auth, (req, res) => {
+  const daily = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE user_id=? AND puzzle_type=?').get(req.user.id, 'daily')
+  const weekly = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE user_id=? AND puzzle_type=?').get(req.user.id, 'weekly')
+  const bank = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE user_id=? AND puzzle_type=?').get(req.user.id, 'bank')
+  res.json({
+    daily: { attempts: daily?.total || 0, solved: daily?.solved || 0 },
+    weekly: { attempts: weekly?.total || 0, solved: weekly?.solved || 0 },
+    bank: { attempts: bank?.total || 0, solved: bank?.solved || 0 },
+    totalSolved: (daily?.solved || 0) + (weekly?.solved || 0) + (bank?.solved || 0),
+  })
+})
+
 // ═══ ROOMS (REST API для создания) ═══
 const rooms = new Map()
 
