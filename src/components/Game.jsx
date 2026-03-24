@@ -37,6 +37,80 @@ function describeAction(a, p) {
   return `${name}: ${parts.join(' + ')}`
 }
 
+// ─── Анимированный повтор партии ───
+function ReplayViewer({ moves, onClose }) {
+  const [step, setStep] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const [gs, setGs] = useState(() => new GameState())
+  const timerRef = useRef(null)
+
+  // Пересчитываем состояние на каждом шагу
+  useEffect(() => {
+    let state = new GameState()
+    for (let i = 0; i < step; i++) {
+      if (moves[i]) state = applyAction(state, moves[i].action)
+    }
+    setGs(state)
+  }, [step, moves])
+
+  // Автоплей
+  useEffect(() => {
+    if (!playing) { clearInterval(timerRef.current); return }
+    timerRef.current = setInterval(() => {
+      setStep(prev => {
+        if (prev >= moves.length) { setPlaying(false); return prev }
+        return prev + 1
+      })
+    }, 1200)
+    return () => clearInterval(timerRef.current)
+  }, [playing, moves.length])
+
+  const currentMove = step > 0 && step <= moves.length ? moves[step - 1] : null
+  const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 2000, overflow: 'auto', padding: '12px' }}>
+      <div style={{ maxWidth: 500, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0' }}>🎬 Повтор партии</span>
+          <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '4px 12px' }}>✕ Закрыть</button>
+        </div>
+
+        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#e8e6f0' }}>{s0} : {s1}</span>
+          <div style={{ fontSize: 11, color: '#6b6880', marginTop: 2 }}>
+            Ход {step}/{moves.length}
+            {currentMove && ` · ${describeAction(currentMove.action, currentMove.player)}`}
+          </div>
+        </div>
+
+        <Board state={gs} pending={{}} selected={null} phase="done" humanPlayer={0} onStandClick={() => {}} aiThinking={false} />
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
+          <button className="btn" onClick={() => { setStep(0); setPlaying(false) }} disabled={step === 0} style={{ fontSize: 12, padding: '8px 12px' }}>⏮</button>
+          <button className="btn" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0} style={{ fontSize: 12, padding: '8px 12px' }}>◀</button>
+          <button className="btn primary" onClick={() => setPlaying(p => !p)} style={{ fontSize: 12, padding: '8px 16px' }}>
+            {playing ? '⏸ Пауза' : '▶ Играть'}
+          </button>
+          <button className="btn" onClick={() => setStep(s => Math.min(moves.length, s + 1))} disabled={step >= moves.length} style={{ fontSize: 12, padding: '8px 12px' }}>▶</button>
+          <button className="btn" onClick={() => { setStep(moves.length); setPlaying(false) }} disabled={step >= moves.length} style={{ fontSize: 12, padding: '8px 12px' }}>⏭</button>
+        </div>
+
+        {/* Прогресс */}
+        <div style={{ margin: '10px 0', height: 4, borderRadius: 2, background: '#2a2a38', cursor: 'pointer' }}
+          onClick={e => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const pct = (e.clientX - rect.left) / rect.width
+            setStep(Math.round(pct * moves.length))
+            setPlaying(false)
+          }}>
+          <div style={{ width: `${moves.length ? (step / moves.length) * 100 : 0}%`, height: '100%', borderRadius: 2, background: '#4a9eff', transition: 'width 0.3s' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Game() {
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
@@ -71,6 +145,9 @@ export default function Game() {
   // Тренер — оценка позиции после каждого хода
   const [trainerMode, setTrainerMode] = useState(false)
   const [posEval, setPosEval] = useState(null) // { score: -1..1, label, color }
+  // Replay — история ходов для повтора
+  const moveHistoryRef = useRef([]) // [{ action, player }]
+  const [showReplay, setShowReplay] = useState(false)
   // Онлайн мультиплеер
   const [onlineRoom, setOnlineRoom] = useState(null)
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
@@ -111,6 +188,8 @@ export default function Game() {
       setElapsed(0)
       setUndoStack([])
       setPosEval(null)
+      moveHistoryRef.current = []
+      setShowReplay(false)
 
       const myName = players[playerIdx] || 'Вы'
       const oppName = players[1 - playerIdx] || 'Противник'
@@ -137,6 +216,7 @@ export default function Game() {
       gsRef.current = ns
 
       addLog(describeAction(action, opponentColor), opponentColor)
+      moveHistoryRef.current.push({ action: { ...action }, player: opponentColor })
 
       // Swap — особый случай: противник ещё не закончил ход (ему надо ставить фишки)
       if (action.swap) {
@@ -188,11 +268,52 @@ export default function Game() {
 
   // ─── Daily Challenge: слушаем событие из Online.jsx ───
   useEffect(() => {
-    function handleDailyStart() {
+    function handleDailyStart(e) {
+      const daily = e.detail
+      if (!daily) return
+
       setDailyMode(true)
-      setDailySeed(getDailySeed())
-      newGame(0, 100, 'ai')
-      setInfo(`Ежедневный челлендж #${getDailySeed() % 10000} — победите AI за минимум ходов!`)
+      setDailySeed(daily.seed || daily.date)
+
+      // Строим стартовую позицию из seed
+      cancelRecording()
+      let state = new GameState()
+
+      // Ход 1: P1 ставит 1 фишку
+      if (daily.firstMove) {
+        state = applyAction(state, { placement: { [daily.firstMove.stand]: 1 } })
+      }
+
+      // Ход 2: P2 swap или установка
+      if (daily.swapped) {
+        state = applyAction(state, { swap: true })
+      } else if (daily.secondMove?.stands?.length) {
+        // Считаем фишки на каждую стойку
+        const pl = {}
+        for (const s of daily.secondMove.stands) {
+          pl[s] = (pl[s] || 0) + 1
+        }
+        state = applyAction(state, { placement: pl })
+      }
+
+      // Теперь ход игрока (он всегда играет за текущего)
+      const hp = state.currentPlayer
+      gsRef.current = state
+      setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
+      setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(100); setMode('ai')
+      aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
+      startRecording()
+      setGameMeta('daily', 100)
+      setGameStartTime(Date.now())
+      setElapsed(0)
+      setUndoStack([])
+      setPosEval(null)
+      moveHistoryRef.current = []
+      setShowReplay(false)
+
+      const seedLabel = (daily.seed || daily.date || '').toString().slice(-4)
+      setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setInfo(`Челлендж #${seedLabel} — победите AI за минимум ходов!`)
     }
     window.addEventListener('stolbiki-daily-start', handleDailyStart)
     return () => window.removeEventListener('stolbiki-daily-start', handleDailyStart)
@@ -293,6 +414,7 @@ export default function Game() {
         addLog(describeAction(action, state.currentPlayer), state.currentPlayer)
         setTimeout(() => {
           recordMove(state, action, state.currentPlayer)
+          moveHistoryRef.current.push({ action: { ...action }, player: state.currentPlayer })
           const ns = applyAction(state, action)
           setGs(ns)
           aiRunning.current = false
@@ -307,6 +429,15 @@ export default function Game() {
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
                 window.stolbikiRecordGame(won, score, difficulty >= 100, closedGolden, false)
+              }
+              // Турнир — запись результата (AI gameOver)
+              if (tournament) {
+                const w = ns.winner === humanPlayer
+                const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+                setTournament(prev => ({
+                  ...prev,
+                  games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }],
+                }))
               }
             }, 800)
             return
@@ -341,6 +472,8 @@ export default function Game() {
     setOnlineRoom(null); setOnlinePlayerIdx(-1); setOnlinePlayers([])
     onlineRef.current = null
     setPosEval(null)
+    moveHistoryRef.current = []
+    setShowReplay(false)
     const state = new GameState()
     gsRef.current = state
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
@@ -476,6 +609,7 @@ export default function Game() {
     if (mode === 'pvp') setUndoStack(prev => [...prev, gs].slice(-10))
     const action = { transfer, placement }
     recordMove(gs, action, gs.currentPlayer)
+    moveHistoryRef.current.push({ action: { ...action }, player: gs.currentPlayer })
     addLog(describeAction(action, gs.currentPlayer), gs.currentPlayer)
 
     // Онлайн — отправляем ход противнику
@@ -668,7 +802,48 @@ export default function Game() {
           <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
           🔊
         </label>
+        {mode === 'ai' && !tournament && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>🏆 Серия 3</button>
+            <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>🏆 5</button>
+          </div>
+        )}
       </div>
+      )}
+
+      {/* Турнирный прогресс */}
+      {tournament && (
+        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 10,
+          background: 'rgba(240,160,48,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
+          <div style={{ fontSize: 11, color: '#a8a4b8', marginBottom: 4 }}>
+            🏆 Турнир — партия {tournament.currentGame} из {tournament.total}
+          </div>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+            {Array.from({ length: tournament.total }).map((_, i) => {
+              const game = tournament.games[i]
+              return (
+                <div key={i} style={{
+                  width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700,
+                  background: game ? (game.won ? 'rgba(61,214,140,0.15)' : 'rgba(255,96,102,0.15)') :
+                    (i + 1 === tournament.currentGame ? 'rgba(74,158,255,0.15)' : 'rgba(42,42,56,0.5)'),
+                  border: `1px solid ${game ? (game.won ? '#3dd68c33' : '#ff606633') :
+                    (i + 1 === tournament.currentGame ? '#4a9eff33' : '#2a2a3833')}`,
+                  color: game ? (game.won ? '#3dd68c' : '#ff6066') : (i + 1 === tournament.currentGame ? '#4a9eff' : '#555'),
+                }}>
+                  {game ? (game.won ? '✓' : '✕') : (i + 1)}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: '#6b6880', marginTop: 4 }}>
+            {tournament.games.filter(g => g.won).length} : {tournament.games.filter(g => !g.won).length}
+            {tournament.currentGame > 1 && ` · Сторона: ${humanPlayer === 0 ? 'синие' : 'красные'}`}
+          </div>
+          <button className="btn" onClick={() => setTournament(null)} style={{ fontSize: 9, padding: '2px 8px', marginTop: 4 }}>
+            Отменить турнир
+          </button>
+        </div>
       )}
 
       {/* Сессионная статистика */}
@@ -766,6 +941,7 @@ export default function Game() {
             const action = { swap: true }
             if (mode === 'online') MP.sendMove(action)
             recordMove(gs, action, gs.currentPlayer)
+            moveHistoryRef.current.push({ action, player: gs.currentPlayer })
             addLog('Swap — цвета поменялись!', gs.currentPlayer)
             ss()
             const ns = applyAction(gs, action)
@@ -854,10 +1030,12 @@ export default function Game() {
               {goldenOwned && <span>⭐ Золотая: П{gs.closed[0] + 1}</span>}
             </div>
             <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={() => newGame()} style={{ fontSize: 12, padding: '8px 16px' }}>
-                Ещё партию
-              </button>
-              {mode === 'ai' && (
+              {!tournament && (
+                <button className="btn primary" onClick={() => newGame()} style={{ fontSize: 12, padding: '8px 16px' }}>
+                  Ещё партию
+                </button>
+              )}
+              {mode === 'ai' && !tournament && (
                 <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: 12, padding: '8px 14px' }}>
                   🔄 Сменить сторону
                 </button>
@@ -920,22 +1098,69 @@ export default function Game() {
               }} style={{ fontSize: 12, padding: '8px 12px' }}>
                 📤
               </button>
-              <button className="btn" onClick={() => {
-                const replay = { moves: log.map(e => e.text).reverse(), turns: gs.turn, winner: result,
-                  score: `${s0}:${s1}`, mode, difficulty, elapsed, date: new Date().toISOString() }
-                const blob = new Blob([JSON.stringify(replay, null, 2)], { type: 'application/json' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a'); a.href = url; a.download = `stolbiki_${Date.now()}.json`; a.click()
-                URL.revokeObjectURL(url)
-              }} style={{ fontSize: 12, padding: '8px 12px' }}>
-                💾
-              </button>
+              {moveHistoryRef.current.length > 0 && (
+                <button className="btn" onClick={() => setShowReplay(true)} style={{ fontSize: 12, padding: '8px 12px' }}>
+                  🎬
+                </button>
+              )}
             </div>
             {sessionStats.streak > 1 && won && (
               <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>
                 🔥 Серия побед: {sessionStats.streak}
               </div>
             )}
+            {/* Турнир — межпартийный / финальный экран */}
+            {tournament && (() => {
+              const tWins = tournament.games.filter(g => g.won).length
+              const tLosses = tournament.games.filter(g => !g.won).length
+              const isFinished = tournament.games.length >= tournament.total
+              const majorityNeeded = Math.ceil(tournament.total / 2)
+              const earlyWin = tWins >= majorityNeeded || tLosses >= majorityNeeded
+              const tournamentDone = isFinished || earlyWin
+              const tournamentWon = tWins > tLosses
+              const tournamentDraw = tWins === tLosses
+
+              if (tournamentDone) {
+                return (
+                  <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(255,193,69,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
+                    <div style={{ fontSize: 28, marginBottom: 4 }}>{tournamentDraw ? '🤝' : tournamentWon ? '🏆' : '😞'}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0', marginBottom: 4 }}>
+                      {tournamentDraw ? 'Турнир: ничья!' : tournamentWon ? 'Турнир выигран!' : 'Турнир проигран'}
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: '#e8e6f0' }}>{tWins} : {tLosses}</div>
+                    <div style={{ display: 'flex', gap: 4, justifyContent: 'center', margin: '8px 0' }}>
+                      {tournament.games.map((g, i) => (
+                        <div key={i} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                          background: g.won ? 'rgba(61,214,140,0.15)' : 'rgba(255,96,102,0.15)',
+                          color: g.won ? '#3dd68c' : '#ff6066' }}>
+                          {g.score}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
+                      <button className="btn primary" onClick={() => { setTournament(null); newGame() }} style={{ fontSize: 12 }}>
+                        Обычная игра
+                      </button>
+                      <button className="btn" onClick={() => startTournament(tournament.total)} style={{ fontSize: 12 }}>
+                        🔄 Ещё турнир
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Межпартийный экран
+              return (
+                <div style={{ marginTop: 12, padding: '10px 16px', background: 'rgba(74,158,255,0.06)', borderRadius: 12, border: '1px solid rgba(74,158,255,0.1)' }}>
+                  <div style={{ fontSize: 12, color: '#a8a4b8', marginBottom: 6 }}>
+                    Турнир: {tWins} : {tLosses} · Партия {tournament.games.length} из {tournament.total}
+                  </div>
+                  <button className="btn primary" onClick={tournamentNextGame} style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '10px 0' }}>
+                    ▶ Следующая партия
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         )
       })()}
@@ -975,6 +1200,11 @@ export default function Game() {
             <div className="ach-name">{newAch.name}</div>
           </div>
         </div>
+      )}
+
+      {/* Анимированный повтор */}
+      {showReplay && moveHistoryRef.current.length > 0 && (
+        <ReplayViewer moves={moveHistoryRef.current} onClose={() => setShowReplay(false)} />
       )}
     </div>
   )
