@@ -72,6 +72,103 @@ function TransferDemo({ steps: demoSteps, lang }) {
   )
 }
 
+// Схема переноса (SVG)
+function TransferDiagram({ lang }) {
+  const en = lang === 'en'
+  const w = 460, h = 140, standW = 44, chipH = 10, gap = 2
+  const stands = [
+    { x: 40, chips: [0,0,1,1,1], label: en ? 'Source' : 'Откуда' },
+    { x: 260, chips: [0,0], label: en ? 'Target' : 'Куда' },
+  ]
+  const result = [
+    { x: 40, chips: [0,0], label: '' },
+    { x: 260, chips: [0,0,1,1,1], label: '' },
+  ]
+
+  function drawStand(s, y0) {
+    const bx = s.x, by = y0
+    return (
+      <g key={s.x + '-' + y0}>
+        <rect x={bx} y={by} width={standW} height={80} rx={4} fill="#1a1a2a" stroke="#333" strokeWidth={1} />
+        {s.chips.map((c, i) => (
+          <rect key={i} x={bx+6} y={by+80-8-(i+1)*(chipH+gap)} width={standW-12} height={chipH} rx={4}
+            fill={c === 0 ? '#4a9eff' : '#ff6066'} />
+        ))}
+        {s.label && <text x={bx+standW/2} y={by-6} textAnchor="middle" fontSize={10} fill="#a09cb0">{s.label}</text>}
+      </g>
+    )
+  }
+
+  return (
+    <div style={{ padding: '8px 0', overflow: 'auto' }}>
+      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ maxWidth: w }}>
+        {/* До */}
+        <text x={20} y={14} fontSize={10} fill="#6b6880" fontWeight={600}>{en ? 'BEFORE' : 'ДО'}</text>
+        {stands.map(s => drawStand(s, 22))}
+        {/* Стрелка с подписью */}
+        <line x1={100} y1={62} x2={245} y2={62} stroke="#ffc145" strokeWidth={1.5} markerEnd="url(#arrowG)" />
+        <text x={172} y={54} textAnchor="middle" fontSize={9} fill="#ffc145">
+          {en ? '3 red chips' : '3 красных'}
+        </text>
+        {/* Выделяем группу */}
+        <rect x={46} y={28} width={standW-12} height={3*(chipH+gap)-gap+4} rx={3}
+          fill="none" stroke="#ffc145" strokeWidth={1} strokeDasharray="3 2" />
+
+        {/* Стрелка маркер */}
+        <defs>
+          <marker id="arrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="#ffc145" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  )
+}
+
+// Схема закрытия стойки (SVG)
+function CloseDiagram({ lang }) {
+  const en = lang === 'en'
+  const w = 460, h = 110, standW = 44, chipH = 6, gap = 1
+
+  return (
+    <div style={{ padding: '8px 0', overflow: 'auto' }}>
+      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ maxWidth: w }}>
+        {/* Стойка с 8 фишками */}
+        <text x={62} y={12} textAnchor="middle" fontSize={9} fill="#a09cb0">{en ? '8 chips' : '8 фишек'}</text>
+        <rect x={40} y={18} width={standW} height={74} rx={4} fill="#1a1a2a" stroke="#333" strokeWidth={1} />
+        {[1,1,0,0,0,0,0,0].map((c, i) => (
+          <rect key={i} x={46} y={18+74-4-(i+1)*(chipH+gap)} width={standW-12} height={chipH} rx={3}
+            fill={c === 0 ? '#4a9eff' : '#ff6066'} />
+        ))}
+
+        {/* + перенос 3 синих */}
+        <text x={120} y={60} fontSize={18} fill="#ffc145" fontWeight={700}>+</text>
+        <text x={155} y={55} fontSize={9} fill="#a09cb0">{en ? '3 blue' : '3 синих'}</text>
+        <text x={155} y={67} fontSize={9} fill="#a09cb0">{en ? 'transfer' : 'перенос'}</text>
+
+        {/* Стрелка */}
+        <text x={225} y={60} fontSize={16} fill="#555">→</text>
+
+        {/* Стойка с 11 = закрыта */}
+        <text x={302} y={12} textAnchor="middle" fontSize={9} fill="#3dd68c">{en ? '11 = CLOSED' : '11 = ЗАКРЫТА'}</text>
+        <rect x={280} y={18} width={standW} height={74} rx={4} fill="rgba(61,214,140,0.06)" stroke="#3dd68c" strokeWidth={1.5} />
+        {[1,1,0,0,0,0,0,0,0,0,0].slice(0,11).map((c, i) => (
+          <rect key={i} x={286} y={18+74-4-(i+1)*(chipH+gap)} width={standW-12} height={chipH} rx={3}
+            fill={i >= 8 ? '#4a9eff' : (c === 0 ? '#4a9eff' : '#ff6066')} opacity={0.5} />
+        ))}
+        <text x={302} y={98} textAnchor="middle" fontSize={9} fill="#3dd68c" fontWeight={600}>
+          {en ? 'Blue owns' : 'Синие ★'}
+        </text>
+
+        {/* Замок */}
+        <text x={360} y={50} fontSize={10} fill="#555">{en ? 'Locked:' : 'Блокировка:'}</text>
+        <text x={360} y={65} fontSize={9} fill="#6b6880">{en ? '• No placement' : '• Нельзя ставить'}</text>
+        <text x={360} y={78} fontSize={9} fill="#6b6880">{en ? '• No transfer' : '• Нельзя переносить'}</text>
+      </svg>
+    </div>
+  )
+}
+
 export default function Rules() {
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -112,34 +209,91 @@ export default function Rules() {
       </Section>
 
       <Section title={en ? 'Turn Structure' : 'Ход'}>
-        <div style={{ fontSize: 12, color: '#c8c4d8', lineHeight: 1.8 }}>
-          {en ? 'Each turn has 2 phases:' : 'Каждый ход — 2 фазы:'}
+        <div style={{ fontSize: 12, color: '#c8c4d8', lineHeight: 1.8, marginBottom: 8 }}>
+          {en ? 'Each turn has 2 phases in order:' : 'Каждый ход состоит из двух фаз по порядку:'}
         </div>
+
         <Tip color="#4a9eff">
-          <b style={{ color: '#6db4ff' }}>{en ? 'Phase 1: Transfer' : 'Фаза 1: Перенос'}</b> ({en ? 'optional' : 'опционально'})<br/>
-          {en ? 'Top consecutive group of one color → to a stand with same color on top or empty. If stand reaches 11 — it closes.'
-            : 'Верхняя непрерывная группа одного цвета → на стойку того же цвета сверху или пустую. Если при переносе стойка достигает 11 — закрывается.'}
+          <b style={{ color: '#6db4ff' }}>{en ? 'Phase 1: Transfer' : 'Фаза 1: Перенос'}</b> ({en ? 'optional — can skip' : 'необязательно — можно пропустить'})<br/>
+          {en
+            ? '• Transfer the top consecutive group of one color from one stand to another'
+            : '• Переносится верхняя непрерывная группа фишек одного цвета с одной стойки на другую'}<br/>
+          {en
+            ? '• The group is moved whole — cannot be split'
+            : '• Группа переносится целиком — делить нельзя'}<br/>
+          {en
+            ? '• Can transfer your own chips AND opponent\'s chips'
+            : '• Можно переносить свои фишки и фишки соперника'}<br/>
+          {en
+            ? '• Target: empty stand or stand with same color on top'
+            : '• Куда: на пустую стойку или на фишки такого же цвета сверху'}
         </Tip>
+
+        {/* Схема переноса */}
+        <TransferDiagram lang={lang} />
+
         <Tip color="#f0654a">
           <b style={{ color: '#f0654a' }}>{en ? 'Phase 2: Placement' : 'Фаза 2: Установка'}</b><br/>
-          {en ? 'Up to 3 chips of your color on max 2 stands. First move — only 1 chip.'
-            : 'До 3 фишек своего цвета на максимум 2 стойки. Первый ход — только 1 фишка.'}
+          {en
+            ? '• Place 1 to 3 chips of your color'
+            : '• Поставьте от 1 до 3 фишек своего цвета'}<br/>
+          {en
+            ? '• On max 2 stands per turn'
+            : '• На максимум 2 стойки за ход'}<br/>
+          {en
+            ? '• Max 11 chips on any stand'
+            : '• Максимум 11 фишек на любой стойке'}<br/>
+          {en
+            ? '• First move of the game — only 1 chip'
+            : '• Первый ход игры — только 1 фишка'}
         </Tip>
+
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: '#a09cb0', fontWeight: 600, marginBottom: 6 }}>{en ? 'Example turn:' : 'Пример хода:'}</div>
+          <div style={{ fontSize: 11, color: '#a09cb0', fontWeight: 600, marginBottom: 6 }}>{en ? 'Interactive example:' : 'Интерактивный пример:'}</div>
           <TransferDemo steps={steps} lang={lang} />
         </div>
       </Section>
 
       <Section title={en ? 'Closing Stands' : 'Закрытие стоек'}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <Tip color="#3498db">
-            <b>{en ? 'By transfer' : 'Переносом'}</b> — {en ? 'stand reaches 11 chips. Owner = top group color. Excess removed from bottom.' : 'стойка достигла 11 фишек. Владелец = цвет верхней группы. Лишние снизу → сброс.'}
+            <b>{en ? 'By transfer' : 'Переносом'}</b><br/>
+            {en
+              ? '• Stand reaches 11 chips after transfer → closes'
+              : '• Стойка достигает 11 фишек после переноса → закрывается'}<br/>
+            {en
+              ? '• Owner = color of top group'
+              : '• Владелец = цвет верхней группы'}<br/>
+            {en
+              ? '• Excess chips removed from bottom'
+              : '• Лишние фишки снизу удаляются'}
           </Tip>
           <Tip color="#e67e22">
-            <b>{en ? 'By placement' : 'Установкой'}</b> — {en ? 'only the last 2 open stands can be closed by filling to 11.' : 'только последние 2 стойки можно закрыть заполнив до 11.'}
+            <b>{en ? 'By placement (exception)' : 'Установкой (исключение)'}</b><br/>
+            {en
+              ? '• Only when 2 stands remain open'
+              : '• Только когда осталось 2 открытых стойки'}<br/>
+            {en
+              ? '• Can close by filling to 11'
+              : '• Можно закрыть заполнив до 11'}
           </Tip>
         </div>
+
+        <Tip color="#e74c3c">
+          <b>{en ? 'Important rules:' : 'Важные правила:'}</b><br/>
+          {en
+            ? '• Can only close a stand with YOUR color on top'
+            : '• Закрыть стойку можно только СВОИМ цветом сверху'}<br/>
+          {en
+            ? '• Max 1 stand closed per turn'
+            : '• За ход можно закрыть только одну стойку'}<br/>
+          {en
+            ? '• After closing: stand is locked — no placement, no transfer from/to it'
+            : '• После закрытия: стойка блокируется — нельзя ставить, нельзя переносить'}
+        </Tip>
+
+        {/* Схема закрытия */}
+        <CloseDiagram lang={lang} />
       </Section>
 
       <Section title="Swap Rule">

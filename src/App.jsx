@@ -390,7 +390,9 @@ export default function App() {
             <span className="status-dot" style={{ background: publicStats ? 'var(--green)' : 'var(--p2)' }} />
             <span>{publicStats ? t('common.online') : t('common.offline')}</span>
             <span className="site-footer-divider" />
-            <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener">GitHub</a>
+            <a href="#blog/changelog-march" onClick={(e) => { e.preventDefault(); go('blog') }} style={{ cursor: 'pointer' }}>Changelog</a>
+            <span className="site-footer-divider" />
+            <a href="#rules" onClick={(e) => { e.preventDefault(); go('rules') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Rules' : 'Правила'}</a>
             <span className="site-footer-divider" />
             <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print & Play</a>
           </div>

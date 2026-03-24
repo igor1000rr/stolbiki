@@ -239,6 +239,12 @@ body::before {
   display: flex; justify-content: space-between; align-items: center;
   font-size: 11px; color: var(--ink3);
 }
+.site-footer-brand {
+  display: flex; align-items: center; gap: 8px;
+}
+.site-footer-divider {
+  width: 1px; height: 12px; background: var(--surface3); display: inline-block;
+}
 .site-footer-links {
   display: flex; align-items: center; gap: 8px;
 }
