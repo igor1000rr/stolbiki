@@ -4,7 +4,7 @@ import * as API from './engine/api'
 import Icon from './components/Icon'
 import Game from './components/Game'
 import Online from './components/Online'
-import { getSettings } from './components/Settings'
+import { getSettings, applySettings } from './engine/settings'
 import './app.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
@@ -137,21 +137,7 @@ export default function App() {
   }, [theme])
 
   // Применяем сохранённые настройки кастомизации при загрузке
-  useEffect(() => {
-    const s = getSettings()
-    const root = document.documentElement
-    root.classList.toggle('chip-flat', s.chipStyle === 'flat')
-    root.classList.toggle('chip-rounded', s.chipStyle === 'rounded')
-    root.classList.toggle('board-compact', s.boardDensity === 'compact')
-    root.classList.toggle('board-wide', s.boardDensity === 'wide')
-    root.classList.toggle('anim-slow', s.animSpeed === 'slow')
-    root.classList.toggle('anim-fast', s.animSpeed === 'fast')
-    root.classList.toggle('anim-off', s.animSpeed === 'off')
-    root.classList.toggle('colorblind', s.colorblind)
-    root.classList.toggle('reduced-motion', s.reducedMotion)
-    root.classList.toggle('large-text', s.largeText)
-    root.classList.toggle('high-contrast', s.highContrast)
-  }, [])
+  useEffect(() => { applySettings(getSettings()) }, [])
 
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())

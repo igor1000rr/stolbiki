@@ -1,51 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
 import Icon from './Icon'
+import { DEFAULTS, getSettings, saveSettings, applySettings } from '../engine/settings'
 
-const DEFAULTS = {
-  chipStyle: 'classic',      // classic | flat | rounded
-  boardDensity: 'normal',    // compact | normal | wide
-  animSpeed: 'normal',       // slow | normal | fast | off
-  soundPack: 'classic',      // classic | minimal | retro | off
-  timer: 'off',              // off | blitz | rapid | classical
-  autoConfirm: false,
-  boardFlip: false,
-  colorblind: false,
-  reducedMotion: false,
-  largeText: false,
-  highContrast: false,
-  showCoords: true,
-  showFillBar: true,
-  showChipCount: true,
-  confirmClose: true,
-}
-
-function load() {
-  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('stolbiki_settings') || '{}') } }
-  catch { return { ...DEFAULTS } }
-}
-
-function save(s) { localStorage.setItem('stolbiki_settings', JSON.stringify(s)) }
-
-// Применяем к DOM
-function applySettings(s) {
-  const root = document.documentElement
-  root.classList.toggle('chip-flat', s.chipStyle === 'flat')
-  root.classList.toggle('chip-rounded', s.chipStyle === 'rounded')
-  root.classList.toggle('board-compact', s.boardDensity === 'compact')
-  root.classList.toggle('board-wide', s.boardDensity === 'wide')
-  root.classList.toggle('anim-slow', s.animSpeed === 'slow')
-  root.classList.toggle('anim-fast', s.animSpeed === 'fast')
-  root.classList.toggle('anim-off', s.animSpeed === 'off')
-  root.classList.toggle('colorblind', s.colorblind)
-  root.classList.toggle('reduced-motion', s.reducedMotion)
-  root.classList.toggle('large-text', s.largeText)
-  root.classList.toggle('high-contrast', s.highContrast)
-}
-
-// Экспортируем для использования в других компонентах
-export function getSettings() { return load() }
-export function getSetting(key) { return load()[key] }
+function load() { return getSettings() }
+function save(s) { saveSettings(s) }
 
 function SettingRow({ label, desc, children }) {
   return (

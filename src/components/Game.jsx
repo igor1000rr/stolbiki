@@ -9,7 +9,7 @@ import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
 import * as MP from '../engine/multiplayer'
 import { isLoggedIn } from '../engine/api'
-import { getSettings } from './Settings'
+import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
 
