@@ -267,9 +267,6 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
               ? 'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 52:48 between first and second player, verified by statistical analysis.'
               : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 52:48 между первым и вторым игроком, подтверждено статистическим анализом.'}
           </p>
-          <p style={{ fontSize: 12, color: 'var(--ink3)', opacity: 0.6 }}>
-            {en ? 'Made by' : 'Автор'}: <a href="https://t.me/igor1000rr" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'none' }}>@igor1000rr</a>
-          </p>
         </div>
       </section>
 
