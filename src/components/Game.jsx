@@ -10,6 +10,7 @@ import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecordi
 import * as MP from '../engine/multiplayer'
 import { isLoggedIn } from '../engine/api'
 import { getSettings } from './Settings'
+import { useI18n } from '../engine/i18n'
 import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -34,14 +35,14 @@ const sl = () => playSound(_sl, 20)
 const ss = () => playSound(_ss, 12)
 
 function describeAction(a, p) {
-  const name = p === 0 ? 'Синие' : 'Красные'
+  const name = p === 0 ? t('game.blue') : t('game.red')
   if (a.swap) return `${name}: Swap — смена цветов`
   const parts = []
   if (a.transfer) parts.push(`перенос ${SL(a.transfer[0])} → ${SL(a.transfer[1])}`)
   if (a.placement && Object.keys(a.placement).length) {
     parts.push(`установка: ${Object.entries(a.placement).map(([k, v]) => `${v} на ${SL(+k)}`).join(', ')}`)
   }
-  if (!parts.length) parts.push('пас')
+  if (!parts.length) parts.push(t('game.pass'))
   return `${name}: ${parts.join(' + ')}`
 }
 
@@ -120,6 +121,7 @@ function ReplayViewer({ moves, onClose }) {
 }
 
 export default function Game() {
+  const { t } = useI18n()
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
   const [selected, setSelected] = useState(null)
@@ -222,10 +224,10 @@ export default function Game() {
 
       if (state.currentPlayer === myColor) {
         setLocked(false)
-        setInfo('Ваш ход — поставьте 1 фишку')
+        setInfo(t('game.place1'))
       } else {
         setLocked(true)
-        setInfo('Ходит противник...')
+        setInfo(t('game.opponentTurn'))
       }
     }
 
@@ -260,7 +262,7 @@ export default function Game() {
 
       if (ns.gameOver) {
         setTimeout(() => {
-          setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+          setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
           finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
           const myColor = onlineRef.current?.myColor ?? 0
           const won = ns.winner === myColor
@@ -278,7 +280,7 @@ export default function Game() {
           }, 300)
         } else {
           setLocked(true)
-          setInfo('Ходит противник...')
+          setInfo(t('game.opponentTurn'))
         }
       }
     }
@@ -354,11 +356,11 @@ export default function Game() {
         const score = result.bestValue || 0
         const ps = state.currentPlayer === humanPlayer ? score : -score
         let label, color
-        if (ps > 0.3) { label = '↑ Сильная позиция'; color = '#3dd68c' }
-        else if (ps > 0.1) { label = '↗ Небольшое преимущество'; color = '#89d68c' }
-        else if (ps > -0.1) { label = '→ Равная игра'; color = '#a09cb0' }
-        else if (ps > -0.3) { label = '↘ Позиция ослабла'; color = '#ffc145' }
-        else { label = '↓ Слабая позиция'; color = '#ff6066' }
+        if (ps > 0.3) { label = t('trainer.strong'); color = '#3dd68c' }
+        else if (ps > 0.1) { label = t('trainer.slight'); color = '#89d68c' }
+        else if (ps > -0.1) { label = t('trainer.equal'); color = '#a09cb0' }
+        else if (ps > -0.3) { label = t('trainer.weak'); color = '#ffc145' }
+        else { label = t('trainer.bad'); color = '#ff6066' }
         setPosEval({ score: ps, label, color })
       } catch { setPosEval(null) }
     }, 50)
@@ -430,7 +432,7 @@ export default function Game() {
     aiRunning.current = true
     setAiThinking(true)
     setLocked(true)
-    setInfo('AI думает')
+    setInfo(t('game.aiThinking'))
     const startTime = Date.now()
     setTimeout(() => {
       const action = mctsSearch(state, difficulty)
@@ -446,7 +448,7 @@ export default function Game() {
           aiRunning.current = false
           if (ns.gameOver) {
             setTimeout(() => {
-              setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+              setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
               finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
               const won = modeRef.current === 'spectate' ? true : ns.winner === humanPlayer
               setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
@@ -477,7 +479,7 @@ export default function Game() {
             setPhase('place')
             setTransfer(null)
             setPlacement({})
-            setInfo(ns.isFirstTurn() ? 'Поставьте 1 фишку' : 'Кликайте на стойки чтобы ставить фишки (макс 3, на 2 стойки)')
+            setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.clickStands'))
             evaluatePosition(ns)
           }, 500)
         }, 300)
@@ -523,11 +525,11 @@ export default function Game() {
       const c = hp === 0 ? 'синие' : 'красные'
       setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       if (state.currentPlayer !== hp) {
-        setInfo('AI делает первый ход')
+        setInfo(t('game.aiFirst'))
         setLocked(true)
         setTimeout(() => runAi(state), 500)
       } else {
-        setInfo('Первый ход — поставьте 1 фишку на любую стойку')
+        setInfo(t('game.place1first'))
       }
     }
   }
@@ -564,7 +566,7 @@ export default function Game() {
         next[cp] = Math.max(0, prev[cp] - 1)
         if (next[cp] <= 0) {
           // Время кончилось — проигрыш
-          setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? 'Время вышло!' : 'Противник просрочил время!')
+          setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
           setLocked(false)
         }
         return next
@@ -609,7 +611,7 @@ export default function Game() {
         setPhase('place')
         st()
         addLog(`Перенос: ${SL(selected)} → ${SL(i)}`, humanPlayer)
-        setInfo('Перенос выбран. Расставьте фишки')
+        setInfo(t('game.transferSelected'))
       } else {
         setInfo(`Нельзя перенести сюда`)
       }
@@ -685,7 +687,7 @@ export default function Game() {
         MP.sendGameOver(ns.winner)
       }
       setTimeout(() => {
-        setResult(ns.winner); setPhase('done'); setInfo('Партия завершена'); setLocked(false)
+        setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
         finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
         const won = (mode === 'pvp') ? true : ns.winner === humanPlayer
         setTimeout(() => {
@@ -697,7 +699,7 @@ export default function Game() {
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, mode === 'online')
+          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false)
         }
         // Турнир — запись результата
         if (tournament) {
@@ -724,7 +726,7 @@ export default function Game() {
     if (mode === 'online') {
       setLocked(true)
       setPhase('place')
-      setInfo('Ходит противник...')
+      setInfo(t('game.opponentTurn'))
     } else if (mode === 'pvp') {
       setPhase('place')
       const name = ns.currentPlayer === 0 ? 'Синие' : 'Красные'
@@ -739,12 +741,12 @@ export default function Game() {
 
   function startTransfer() {
     setPhase('transfer-select')
-    setInfo('Выберите стойку откуда перенести')
+    setInfo(t('game.selectTransferFrom'))
   }
 
   function cancelTransfer() {
     setSelected(null); setTransfer(null); setPhase('place')
-    setInfo('Перенос отменён')
+    setInfo(t('game.transferCancelled'))
   }
 
   function undoMove() {
@@ -1030,9 +1032,9 @@ export default function Game() {
               setHumanPlayer(0) // Мы теперь синие
               onlineRef.current && (onlineRef.current.myColor = 0)
               setLocked(false)
-              setInfo('Swap принят! Теперь вы синие — расставьте фишки')
+              setInfo(t('game.swapOnlineDone'))
             } else {
-              setInfo('Swap принят! Теперь вы играете за синих')
+              setInfo(t('game.swapDone'))
             }
           }} style={{ borderColor: '#9b59b6', color: '#9b59b6', marginRight: 8 }}>
             Swap (забрать ход)
@@ -1061,7 +1063,7 @@ export default function Game() {
           <button className="btn" onClick={() => setPlacement({})}>Сброс</button>
         )}
         {isMyTurn && phase === 'place' && (
-          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn}>Подтвердить</button>
+          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn}>{ t('game.confirm') }</button>
         )}
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: '#ffbe30', color: '#ffbe30' }}>
