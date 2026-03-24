@@ -121,12 +121,43 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_id, played_at DESC);
   CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id, status);
   CREATE INDEX IF NOT EXISTS idx_blog_published ON blog_posts(published, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS seasons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    active INTEGER DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS season_ratings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    season_id INTEGER NOT NULL,
+    rating INTEGER DEFAULT 1000,
+    games INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    UNIQUE(user_id, season_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (season_id) REFERENCES seasons(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS rating_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL,
+    delta INTEGER NOT NULL,
+    game_id INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `)
 
 console.log('База данных готова:', DB_PATH)
 
 // ═══ Ачивки ═══
 const ALL_ACHIEVEMENTS = [
+  // Оригинальные 14
   { id: 'first_win', check: u => u.wins >= 1 },
   { id: 'streak_3', check: u => u.best_streak >= 3 },
   { id: 'streak_5', check: u => u.best_streak >= 5 },
@@ -141,7 +172,25 @@ const ALL_ACHIEVEMENTS = [
   { id: 'rating_1500', check: u => u.rating >= 1500 },
   { id: 'beat_hard', check: u => u.beat_hard_ai },
   { id: 'perfect', check: u => u.perfect_wins >= 1 },
+  // Новые 12
+  { id: 'streak_20', check: u => u.best_streak >= 20 },
+  { id: 'games_500', check: u => u.games_played >= 500 },
+  { id: 'golden_50', check: u => u.golden_closed >= 50 },
+  { id: 'comeback_5', check: u => u.comebacks >= 5 },
+  { id: 'perfect_3', check: u => u.perfect_wins >= 3 },
+  { id: 'rating_1800', check: u => u.rating >= 1800 },
+  { id: 'rating_2000', check: u => u.rating >= 2000 },
+  { id: 'fast_win', check: u => (u.fast_wins || 0) >= 1 },
+  { id: 'fast_win_5', check: u => (u.fast_wins || 0) >= 5 },
+  { id: 'online_win', check: u => (u.online_wins || 0) >= 1 },
+  { id: 'online_10', check: u => (u.online_wins || 0) >= 10 },
+  { id: 'puzzle_10', check: u => (u.puzzles_solved || 0) >= 10 },
 ]
+
+// Добавляем новые колонки (безопасно — если уже есть, не упадёт)
+try { db.exec('ALTER TABLE users ADD COLUMN fast_wins INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN online_wins INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN puzzles_solved INTEGER DEFAULT 0') } catch {}
 
 function checkAchievements(userId) {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId)
@@ -267,19 +316,19 @@ function formatUser(u) {
 
 // ═══ GAMES ═══
 app.post('/api/games', auth, (req, res) => {
-  const { won, score, difficulty, closedGolden, isComeback, turns, duration } = req.body
+  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline } = req.body
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
 
   const ratingBefore = user.rating
   let ratingDelta = won ? 25 : -15
-  // Сложность влияет на рейтинг
   if (difficulty >= 100) ratingDelta = won ? 35 : -10
   else if (difficulty <= 20) ratingDelta = won ? 15 : -20
 
   const ratingAfter = Math.max(100, Math.min(2500, ratingBefore + ratingDelta))
   const newStreak = won ? user.win_streak + 1 : 0
   const bestStreak = Math.max(user.best_streak, newStreak)
+  const isFastWin = won && turns && turns <= 10
 
   // Обновляем пользователя
   db.prepare(`UPDATE users SET
@@ -289,7 +338,9 @@ app.post('/api/games', auth, (req, res) => {
     golden_closed = golden_closed + ?,
     comebacks = comebacks + ?,
     perfect_wins = perfect_wins + ?,
-    beat_hard_ai = CASE WHEN ? THEN 1 ELSE beat_hard_ai END
+    beat_hard_ai = CASE WHEN ? THEN 1 ELSE beat_hard_ai END,
+    fast_wins = fast_wins + ?,
+    online_wins = online_wins + ?
     WHERE id = ?`
   ).run(
     ratingAfter, won ? 1 : 0, won ? 0 : 1,
@@ -297,13 +348,30 @@ app.post('/api/games', auth, (req, res) => {
     closedGolden ? 1 : 0, isComeback ? 1 : 0,
     score === '6:0' && won ? 1 : 0,
     difficulty >= 100 && won ? 1 : 0,
+    isFastWin ? 1 : 0,
+    isOnline && won ? 1 : 0,
     req.user.id
   )
 
   // Записываем партию
-  db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration)
+  const gameResult = db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, difficulty || 50, closedGolden ? 1 : 0, isComeback ? 1 : 0, turns || 0, duration || 0)
+
+  // Записываем историю рейтинга
+  db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
+
+  // Обновляем сезонный рейтинг
+  const currentSeason = ensureCurrentSeason()
+  if (currentSeason) {
+    const sr = db.prepare('SELECT * FROM season_ratings WHERE user_id=? AND season_id=?').get(req.user.id, currentSeason.id)
+    if (sr) {
+      const newRating = Math.max(100, Math.min(2500, sr.rating + ratingDelta))
+      db.prepare('UPDATE season_ratings SET rating=?, games=games+1, wins=wins+? WHERE id=?').run(newRating, won ? 1 : 0, sr.id)
+    } else {
+      db.prepare('INSERT INTO season_ratings (user_id, season_id, rating, games, wins) VALUES (?, ?, ?, 1, ?)').run(req.user.id, currentSeason.id, ratingAfter, won ? 1 : 0)
+    }
+  }
 
   // Ачивки
   const newAch = checkAchievements(req.user.id)
@@ -318,6 +386,44 @@ app.get('/api/games', auth, (req, res) => {
 })
 
 // ═══ LEADERBOARD ═══
+
+// Автоматическое создание сезонов (месячные)
+function ensureCurrentSeason() {
+  const now = new Date()
+  const y = now.getFullYear(), m = now.getMonth()
+  const start = new Date(y, m, 1).toISOString().slice(0, 10)
+  const end = new Date(y, m + 1, 0).toISOString().slice(0, 10)
+  const name = `${y}-${String(m + 1).padStart(2, '0')}`
+
+  let season = db.prepare('SELECT * FROM seasons WHERE name=?').get(name)
+  if (!season) {
+    // Деактивируем старые
+    db.prepare('UPDATE seasons SET active=0 WHERE active=1').run()
+    db.prepare('INSERT INTO seasons (name, start_date, end_date, active) VALUES (?, ?, ?, 1)').run(name, start, end)
+    season = db.prepare('SELECT * FROM seasons WHERE name=?').get(name)
+  }
+  return season
+}
+
+app.get('/api/seasons/current', (req, res) => {
+  const season = ensureCurrentSeason()
+  if (!season) return res.json({ season: null })
+  const top = db.prepare(`SELECT sr.rating, sr.games, sr.wins, u.username
+    FROM season_ratings sr JOIN users u ON u.id = sr.user_id
+    WHERE sr.season_id = ? ORDER BY sr.rating DESC LIMIT 20`).all(season.id)
+  res.json({ season, leaderboard: top })
+})
+
+app.get('/api/seasons/history', (req, res) => {
+  const seasons = db.prepare('SELECT * FROM seasons ORDER BY start_date DESC LIMIT 12').all()
+  res.json(seasons)
+})
+
+app.get('/api/profile/rating-history', auth, (req, res) => {
+  const history = db.prepare('SELECT rating, delta, created_at FROM rating_history WHERE user_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.id)
+  res.json(history)
+})
+
 app.get('/api/leaderboard', (req, res) => {
   const limit = Math.min(+req.query.limit || 20, 100)
   const users = db.prepare('SELECT id, username, rating, games_played, wins, losses, best_streak FROM users ORDER BY rating DESC LIMIT ?').all(limit)
@@ -675,13 +781,20 @@ app.post('/api/puzzles/submit', auth, (req, res) => {
   if (!type || !puzzleId) return res.status(400).json({ error: 'Missing fields' })
   
   const existing = db.prepare('SELECT id, solved FROM puzzle_results WHERE user_id=? AND puzzle_type=? AND puzzle_id=?').get(req.user.id, type, puzzleId)
+  let newSolve = false
   if (existing) {
-    // Обновляем только если улучшили результат
     if (solved && (!existing.solved || movesUsed < existing.moves_used)) {
       db.prepare('UPDATE puzzle_results SET solved=1, moves_used=?, duration=? WHERE id=?').run(movesUsed, duration, existing.id)
+      if (!existing.solved) newSolve = true
     }
   } else {
     db.prepare('INSERT INTO puzzle_results (user_id, username, puzzle_type, puzzle_id, solved, moves_used, duration) VALUES (?, ?, ?, ?, ?, ?, ?)').run(req.user.id, req.user.username, type, puzzleId, solved ? 1 : 0, movesUsed, duration)
+    if (solved) newSolve = true
+  }
+  // Инкремент счётчика решённых и проверка ачивок
+  if (newSolve) {
+    db.prepare('UPDATE users SET puzzles_solved = puzzles_solved + 1 WHERE id = ?').run(req.user.id)
+    checkAchievements(req.user.id)
   }
   res.json({ ok: true })
 })
