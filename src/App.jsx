@@ -13,6 +13,7 @@ import Openings from './components/Openings'
 import Landing from './components/Landing'
 import Tutorial from './components/Tutorial'
 import Blog from './components/Blog'
+import Settings, { getSettings } from './components/Settings'
 import './app.css'
 
 const ADMIN_NAMES = ['admin']
@@ -51,6 +52,23 @@ export default function App() {
     localStorage.setItem('stolbiki_theme', theme)
   }, [theme])
 
+  // Применяем сохранённые настройки кастомизации при загрузке
+  useEffect(() => {
+    const s = getSettings()
+    const root = document.documentElement
+    root.classList.toggle('chip-flat', s.chipStyle === 'flat')
+    root.classList.toggle('chip-rounded', s.chipStyle === 'rounded')
+    root.classList.toggle('board-compact', s.boardDensity === 'compact')
+    root.classList.toggle('board-wide', s.boardDensity === 'wide')
+    root.classList.toggle('anim-slow', s.animSpeed === 'slow')
+    root.classList.toggle('anim-fast', s.animSpeed === 'fast')
+    root.classList.toggle('anim-off', s.animSpeed === 'off')
+    root.classList.toggle('colorblind', s.colorblind)
+    root.classList.toggle('reduced-motion', s.reducedMotion)
+    root.classList.toggle('large-text', s.largeText)
+    root.classList.toggle('high-contrast', s.highContrast)
+  }, [])
+
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
     window.stolbikiCheckAdmin = check
@@ -78,18 +96,20 @@ export default function App() {
   useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
 
   // Основные 4 пункта навигации
+  const en = lang === 'en'
   const primaryNav = [
-    { id: 'game', icon: 'play', label: lang === 'en' ? 'Play' : 'Играть' },
-    { id: 'online', icon: 'online', label: lang === 'en' ? 'Online' : 'Онлайн' },
-    { id: 'puzzles', icon: 'puzzle', label: lang === 'en' ? 'Puzzles' : 'Задачи' },
-    { id: 'blog', icon: 'blog', label: lang === 'en' ? 'Blog' : 'Блог' },
+    { id: 'game', icon: 'play', label: en ? 'Play' : 'Играть' },
+    { id: 'online', icon: 'online', label: en ? 'Online' : 'Онлайн' },
+    { id: 'puzzles', icon: 'puzzle', label: en ? 'Puzzles' : 'Задачи' },
+    { id: 'blog', icon: 'blog', label: en ? 'Blog' : 'Блог' },
   ]
 
   // Дополнительные — в выпадашке
   const secondaryNav = [
-    { id: 'openings', icon: 'chart', label: lang === 'en' ? 'Analytics' : 'Аналитика' },
-    { id: 'profile', icon: 'profile', label: lang === 'en' ? 'Profile' : 'Профиль' },
-    { id: 'rules', icon: 'rules', label: lang === 'en' ? 'Rules' : 'Правила' },
+    { id: 'openings', icon: 'chart', label: en ? 'Analytics' : 'Аналитика' },
+    { id: 'profile', icon: 'profile', label: en ? 'Profile' : 'Профиль' },
+    { id: 'settings', icon: 'theme', label: en ? 'Settings' : 'Настройки' },
+    { id: 'rules', icon: 'rules', label: en ? 'Rules' : 'Правила' },
   ]
   if (isAdmin) {
     secondaryNav.push(
@@ -194,6 +214,7 @@ export default function App() {
         {tab === 'puzzles' && <Puzzles />}
         {tab === 'openings' && <Openings />}
         {tab === 'blog' && <Blog />}
+        {tab === 'settings' && <Settings />}
         {tab === 'profile' && <Profile />}
         {tab === 'sim' && isAdmin && <Simulator />}
         {tab === 'dash' && isAdmin && <Dashboard />}

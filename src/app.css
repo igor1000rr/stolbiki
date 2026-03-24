@@ -1256,6 +1256,105 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════
+   SETTINGS PAGE
+   ═══════════════════════════════════════════ */
+.settings-page { max-width: 640px; margin: 0 auto; }
+.settings-title { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 24px; }
+.settings-section { margin-bottom: 28px; }
+.settings-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--ink2);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--surface2); margin-bottom: 4px;
+}
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.02);
+  gap: 16px;
+}
+.setting-info { flex: 1; min-width: 0; }
+.setting-label { font-size: 13px; font-weight: 500; color: var(--ink); }
+.setting-desc { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.setting-control { flex-shrink: 0; }
+
+.segment-control {
+  display: flex; gap: 2px; background: var(--surface2); border-radius: 8px; padding: 2px;
+}
+.segment-control button {
+  font-size: 11px; font-weight: 500; padding: 5px 10px; border: none;
+  background: transparent; color: var(--ink3); cursor: pointer;
+  border-radius: 6px; font-family: 'Outfit', sans-serif;
+  transition: all 0.15s; white-space: nowrap;
+}
+.segment-control button.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.segment-control button:hover:not(.active) { color: var(--ink2); }
+
+.toggle {
+  width: 40px; height: 22px; border-radius: 11px; border: none;
+  background: var(--surface3); cursor: pointer; padding: 2px;
+  transition: background 0.2s; position: relative;
+}
+.toggle.on { background: var(--accent); }
+.toggle-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.toggle.on .toggle-thumb { transform: translateX(18px); }
+
+/* ═══════════════════════════════════════════
+   CUSTOMIZATION CLASSES
+   ═══════════════════════════════════════════ */
+/* Chip styles */
+.chip-flat .chip { border-radius: 2px; box-shadow: none; }
+.chip-rounded .chip { border-radius: 50%; width: 14px; height: 14px; margin: 1px auto; }
+
+/* Board density */
+.board-compact .stand { min-height: 140px; width: 44px; }
+.board-compact .chip { width: 34px; height: 9px; }
+.board-compact .board { gap: 2px; }
+.board-wide .stand { min-height: 200px; width: 62px; }
+.board-wide .chip { width: 48px; height: 14px; }
+.board-wide .board { gap: 5px; }
+
+/* Animation speeds */
+.anim-slow .chip-drop { animation-duration: 0.9s; }
+.anim-slow .stand-flash { animation-duration: 1.2s; }
+.anim-fast .chip-drop { animation-duration: 0.2s; }
+.anim-fast .stand-flash { animation-duration: 0.3s; }
+.anim-off .chip-drop, .anim-off .stand-flash, .anim-off .confetti,
+.anim-off .close-particle, .anim-off .stand-flash-glow { animation: none !important; }
+
+/* Colorblind — паттерны */
+.colorblind .chip.p0 {
+  background: var(--p1) !important;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px) !important;
+}
+.colorblind .chip.p1 {
+  background: var(--p2) !important;
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(0,0,0,0.3) 3px, rgba(0,0,0,0.3) 5px) !important;
+}
+
+/* Reduced motion */
+.reduced-motion *, .reduced-motion *::before, .reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Large text */
+.large-text { font-size: 16px; }
+.large-text .game-info { font-size: 15px; }
+.large-text .stand-label { font-size: 13px; }
+.large-text .btn { font-size: 14px; }
+.large-text .setting-label { font-size: 15px; }
+.large-text .setting-desc { font-size: 13px; }
+
+/* High contrast */
+.high-contrast { --surface: #000; --surface2: #222; --surface3: #444; --ink: #fff; --ink2: #ddd; --ink3: #aaa; }
+.high-contrast .chip.p0 { background: #0066ff; }
+.high-contrast .chip.p1 { background: #ff0000; }
+.high-contrast .stand { border-color: #666; }
+
+/* ═══════════════════════════════════════════
    LANDING PAGE
    ═══════════════════════════════════════════ */
 .landing { max-width: 960px; margin: 0 auto; }
