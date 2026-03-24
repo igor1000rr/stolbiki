@@ -133,6 +133,84 @@ function AchievementCard({ ach, unlocked, profile }) {
   )
 }
 
+// SVG график рейтинга
+function RatingChart({ data }) {
+  if (!data || data.length < 2) return null
+  const pts = [...data].reverse().slice(-50) // последние 50, хронологически
+  const ratings = pts.map(p => p.rating)
+  const min = Math.min(...ratings) - 20
+  const max = Math.max(...ratings) + 20
+  const w = 100, h = 40
+  const points = ratings.map((r, i) => {
+    const x = (i / (ratings.length - 1)) * w
+    const y = h - ((r - min) / (max - min)) * h
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  const lastR = ratings[ratings.length - 1]
+  const firstR = ratings[0]
+  const color = lastR >= firstR ? 'var(--green)' : 'var(--p2)'
+
+  return (
+    <div>
+      <svg viewBox={`-2 -2 ${w + 4} ${h + 4}`} style={{ width: '100%', height: 80 }} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,${h} ${points} ${w},${h}`} fill="url(#rg)" />
+        <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--ink3)' }}>
+        <span>{min + 20}</span>
+        <span>{pts.length} {pts.length === 1 ? 'game' : 'games'}</span>
+        <span>{max - 20}</span>
+      </div>
+    </div>
+  )
+}
+
+// Сезонный лидерборд
+function SeasonSection({ data, myName }) {
+  if (!data?.season) return null
+  const { season, leaderboard } = data
+  return (
+    <div className="dash-card" style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <h3 style={{ margin: 0 }}>Season {season.name}</h3>
+        <span style={{ fontSize: 10, color: 'var(--ink3)' }}>
+          {season.start_date} — {season.end_date}
+        </span>
+      </div>
+      {leaderboard && leaderboard.length > 0 ? (
+        <table className="dash-table" style={{ fontSize: 12 }}>
+          <thead>
+            <tr><th>#</th><th>Player</th><th>Rating</th><th>Games</th><th>Wins</th></tr>
+          </thead>
+          <tbody>
+            {leaderboard.map((p, i) => (
+              <tr key={i} style={p.username === myName ? { background: 'rgba(74,158,255,0.08)' } : {}}>
+                <td style={{ fontWeight: 600, color: i < 3 ? '#ffc145' : 'var(--ink3)' }}>{i + 1}</td>
+                <td style={{ fontWeight: p.username === myName ? 700 : 400, color: p.username === myName ? 'var(--p1)' : 'var(--ink)' }}>
+                  {p.username} {p.username === myName && <span style={{ fontSize: 9, color: 'var(--ink3)' }}>(you)</span>}
+                </td>
+                <td style={{ fontWeight: 600 }}>{p.rating}</td>
+                <td>{p.games}</td>
+                <td>{p.wins}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', padding: 16 }}>
+          No games this season yet
+        </div>
+      )}
+    </div>
+  )
+}
+
 const loadProfile = loadLocal
 const saveProfile = saveLocal
 
@@ -150,6 +228,8 @@ export default function Profile() {
   const [pendingFriends, setPendingFriends] = useState([])
   const [serverLeaderboard, setServerLeaderboard] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [ratingHistory, setRatingHistory] = useState([])
+  const [seasonData, setSeasonData] = useState(null)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
@@ -157,16 +237,18 @@ export default function Profile() {
   // Загружаем данные с сервера
   useEffect(() => {
     if (!serverOnline || !API.isLoggedIn()) return
-    // Профиль
     API.getProfile().then(p => {
       const merged = { ...profile, ...p, name: p.username || profile?.name }
       setProfile(merged)
       saveLocal(merged)
     }).catch(() => {})
-    // Друзья
     loadFriends()
-    // Лидерборд
     API.getLeaderboard(30).then(setServerLeaderboard).catch(() => {})
+    // Рейтинг история
+    fetch('/api/profile/rating-history', { headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` } })
+      .then(r => r.json()).then(setRatingHistory).catch(() => {})
+    // Сезон
+    fetch('/api/seasons/current').then(r => r.json()).then(setSeasonData).catch(() => {})
   }, [serverOnline]) // eslint-disable-line
 
   async function loadFriends() {
@@ -343,8 +425,8 @@ export default function Profile() {
         .sort((a, b) => b.rating - a.rating)
 
   const tabs = [
-    { id: 'profile', label: '👤 Профиль' },
-    { id: 'history', label: `📜 История (${(profile.history || []).length})` },
+    { id: 'profile', label: 'Профиль' },
+    { id: 'history', label: `История (${(profile.history || []).length})` },
     { id: 'achievements', label: `Ачивки (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
     { id: 'leaderboard', label: 'Рейтинг' },
     { id: 'friends', label: 'Друзья' },
@@ -398,6 +480,22 @@ export default function Profile() {
               <div style={{ fontSize: 10, color: '#6b6880' }}>Золотых</div>
             </div>
           </div>
+
+          {/* График рейтинга */}
+          {ratingHistory.length >= 2 && (
+            <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h3 style={{ margin: 0, fontSize: 13 }}>Rating History</h3>
+                <span style={{ fontSize: 11, color: ratingHistory[0]?.delta > 0 ? 'var(--green)' : 'var(--p2)', fontWeight: 600 }}>
+                  {ratingHistory[0]?.delta > 0 ? '+' : ''}{ratingHistory[0]?.delta} last game
+                </span>
+              </div>
+              <RatingChart data={ratingHistory} />
+            </div>
+          )}
+
+          {/* Текущий сезон */}
+          {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} />}
 
           {unlockedAch.length > 0 && (
             <div className="dash-card" style={{ marginBottom: 16 }}>
@@ -528,7 +626,7 @@ export default function Profile() {
               {leaderboard.map((p, i) => (
                 <tr key={i} style={p.isMe ? { background: 'rgba(74,158,255,0.08)' } : {}}>
                   <td style={{ fontWeight: 600, color: i < 3 ? '#ffc145' : '#6b6880' }}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                    {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1}
                   </td>
                   <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? '#6db4ff' : '#e8e6f0' }}>
                     {p.name || p.username} {p.isMe && <span style={{ fontSize: 9, color: '#6b6880' }}>(вы)</span>}
