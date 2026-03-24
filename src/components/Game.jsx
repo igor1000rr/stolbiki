@@ -80,7 +80,7 @@ function ReplayViewer({ moves, onClose }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 2000, overflow: 'auto', padding: '12px' }}>
       <div style={{ maxWidth: 500, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0' }}>🎬 Повтор партии</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#e8e6f0' }}>Повтор партии</span>
           <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '4px 12px' }}>✕ Закрыть</button>
         </div>
 
@@ -788,7 +788,7 @@ export default function Game() {
           <div style={{ maxWidth: 420, background: '#1e1e28', borderRadius: 16, padding: '28px 24px', border: '1px solid #36364a', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>🎮</div>
+              <div style={{ fontSize: 36, marginBottom: 8 }}></div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>Как играть в Стойки</div>
             </div>
             <div style={{ fontSize: 13, color: '#a09cb0', lineHeight: 1.9 }}>
@@ -802,7 +802,7 @@ export default function Game() {
               Понятно, играем!
             </button>
             <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: '#555' }}>
-              Подробные правила — вкладка «📖 Правила»
+              Подробные правила — вкладка «Правила»
             </div>
           </div>
         </div>
@@ -810,10 +810,10 @@ export default function Game() {
       {mode === 'online' && (
         <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
           background: 'rgba(61,214,140,0.08)', borderRadius: 12, border: '1px solid rgba(61,214,140,0.15)' }}>
-          <span style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>🌐 Онлайн — {onlinePlayers.join(' vs ')}</span>
+          <span style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>Онлайн — {onlinePlayers.join(' vs ')}</span>
           <label style={{ cursor: 'pointer', marginLeft: 12 }}>
             <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
-            🔊
+            
           </label>
         </div>
       )}
@@ -858,12 +858,12 @@ export default function Game() {
         )}
         <label style={{ cursor: 'pointer' }}>
           <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
-          🔊
+          
         </label>
         {mode === 'ai' && !tournament && (
           <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>🏆 Серия 3</button>
-            <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>🏆 5</button>
+            <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>Серия 3</button>
+            <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>x5</button>
           </div>
         )}
       </div>
@@ -874,7 +874,7 @@ export default function Game() {
         <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 10,
           background: 'rgba(240,160,48,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
           <div style={{ fontSize: 11, color: '#a8a4b8', marginBottom: 4 }}>
-            🏆 Турнир — партия {tournament.currentGame} из {tournament.total}
+            Турнир — партия {tournament.currentGame} из {tournament.total}
           </div>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
             {Array.from({ length: tournament.total }).map((_, i) => {
@@ -1035,7 +1035,7 @@ export default function Game() {
               setInfo('Swap принят! Теперь вы играете за синих')
             }
           }} style={{ borderColor: '#9b59b6', color: '#9b59b6', marginRight: 8 }}>
-            🔄 Swap (забрать ход)
+            Swap (забрать ход)
           </button>
           <button className="btn" onClick={() => {
             setInfo('Swap отклонён. Ставьте фишки')

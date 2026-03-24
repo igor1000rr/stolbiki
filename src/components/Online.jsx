@@ -45,7 +45,7 @@ function DailyChallenge() {
 
       <button className="btn primary" onClick={startDaily}
         style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 12 }}>
-        🎯 Играть
+        Играть
       </button>
 
       {leaderboard.length > 0 && (
@@ -266,7 +266,7 @@ export default function Online() {
 
           <button className="btn primary" onClick={createRoom}
             style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 16 }}>
-            🎮 Создать комнату
+            Создать комнату
           </button>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
@@ -322,7 +322,7 @@ export default function Online() {
           if (navigator.share) navigator.share({ text: `Играем в Стойки! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
           else navigator.clipboard?.writeText(roomUrl)
         }} style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }}>
-          📤 Поделиться ссылкой
+          Поделиться ссылкой
         </button>
 
         <div className="thinking-dots" style={{ color: '#6e6a82', fontSize: 13 }}>Ждём второго игрока</div>
