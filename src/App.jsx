@@ -67,8 +67,6 @@ export default function App() {
   const [mobileMenu, setMobileMenu] = useState(false)
 
   // Ленивый mount для Game/Online — грузятся только при первом посещении таба
-  const [visitedTabs, setVisitedTabs] = useState(() => new Set([tab]))
-  useEffect(() => { setVisitedTabs(prev => { if (prev.has(tab)) return prev; const n = new Set(prev); n.add(tab); return n }) }, [tab])
 
   // Auth state — synced with localStorage
   const [authUser, setAuthUser] = useState(() => {
@@ -366,8 +364,8 @@ export default function App() {
           {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
-          {visitedTabs.has('game') && <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>}
-          {visitedTabs.has('online') && <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>}
+          <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
+          <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           {tab === 'puzzles' && <Puzzles />}
