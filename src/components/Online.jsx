@@ -262,6 +262,13 @@ export default function Online() {
 
   useEffect(() => () => MP.disconnect(), [])
 
+  // Из Game.jsx: кнопка "В лобби" после завершения онлайн-партии
+  useEffect(() => {
+    const back = () => backToLobby()
+    window.addEventListener('stolbiki-back-to-lobby', back)
+    return () => window.removeEventListener('stolbiki-back-to-lobby', back)
+  }, [])
+
   // Listen for back-to-lobby from Game result screen
   useEffect(() => {
     const handler = () => backToLobby()
