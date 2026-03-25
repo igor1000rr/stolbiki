@@ -192,6 +192,7 @@ export default function App() {
     { id: 'profile', icon: 'profile', label: en ? 'Profile' : 'Профиль' },
     { id: 'openings', icon: 'chart', label: en ? 'Analytics' : 'Аналитика' },
     { id: 'blog', icon: 'blog', label: en ? 'Blog' : 'Блог' },
+    { id: 'changelog', icon: 'star', label: 'Changelog' },
   ]
   if (isAdmin) {
     secondaryNav.push(
