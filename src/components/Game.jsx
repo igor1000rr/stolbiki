@@ -479,6 +479,7 @@ export default function Game() {
   // ─── AI ход ───
   const runAi = useCallback((state) => {
     if (aiRunning.current || state.gameOver) return
+    if (modeRef.current === 'online') return // Никогда не запускаем AI в онлайне
     aiRunning.current = true
     setAiThinking(true)
     setLocked(true)
