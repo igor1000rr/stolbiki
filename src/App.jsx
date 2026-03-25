@@ -182,19 +182,18 @@ export default function App() {
   // Основные 4 пункта навигации
   const en = lang === 'en'
   const primaryNav = [
+    { id: 'rules', icon: 'rules', label: en ? 'Rules' : 'Правила' },
     { id: 'game', icon: 'play', label: en ? 'Play' : 'Играть' },
     { id: 'online', icon: 'online', label: en ? 'Online' : 'Онлайн' },
     { id: 'puzzles', icon: 'puzzle', label: en ? 'Puzzles' : 'Задачи' },
-    { id: 'blog', icon: 'blog', label: en ? 'Blog' : 'Блог' },
   ]
 
   // Дополнительные — в выпадашке
   const secondaryNav = [
-    { id: 'openings', icon: 'chart', label: en ? 'Analytics' : 'Аналитика' },
-    { id: 'profile', icon: 'profile', label: en ? 'Profile' : 'Профиль' },
     { id: 'settings', icon: 'theme', label: en ? 'Settings' : 'Настройки' },
-    { id: 'rules', icon: 'rules', label: en ? 'Rules' : 'Правила' },
-    { id: 'changelog', icon: 'blog', label: 'Changelog' },
+    { id: 'profile', icon: 'profile', label: en ? 'Profile' : 'Профиль' },
+    { id: 'openings', icon: 'chart', label: en ? 'Analytics' : 'Аналитика' },
+    { id: 'blog', icon: 'blog', label: en ? 'Blog' : 'Блог' },
   ]
   if (isAdmin) {
     secondaryNav.push(

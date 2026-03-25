@@ -97,7 +97,7 @@ export default function Openings() {
           {lang === 'en' ? 'Opening Book & Heatmap' : 'Книга дебютов и карта стоек'}
         </h2>
         <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
-          {lang === 'en' ? 'Analysis of 239K+ games' : 'Анализ 239K+ партий'}
+          {lang === 'en' ? 'Based on AI research · 239K+ games analyzed' : 'На основании AI-исследования · 239K+ партий'}
         </p>
       </div>
 

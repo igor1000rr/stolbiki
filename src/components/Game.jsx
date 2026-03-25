@@ -876,10 +876,6 @@ export default function Game() {
         <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
           background: 'rgba(61,214,140,0.08)', borderRadius: 12, border: '1px solid rgba(61,214,140,0.15)' }}>
           <span style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>Онлайн — {onlinePlayers.join(' vs ')}</span>
-          <label style={{ cursor: 'pointer', marginLeft: 12 }}>
-            <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
-            
-          </label>
         </div>
       )}
 
@@ -921,10 +917,6 @@ export default function Game() {
             Тренер
           </label>
         )}
-        <label style={{ cursor: 'pointer' }}>
-          <input type="checkbox" checked={soundOn} onChange={e => setSoundOn(e.target.checked)} style={{ marginRight: 4 }} />
-          
-        </label>
         {mode === 'ai' && !tournament && (
           <div style={{ display: 'flex', gap: 4 }}>
             <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>Серия 3</button>
@@ -1155,7 +1147,7 @@ export default function Game() {
         )}
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: '#ffbe30', color: '#ffbe30' }}>
-            {hintLoading ? '...' : '2727'}
+            {hintLoading ? '...' : (lang === 'en' ? 'Hint' : 'Подсказка')}
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>

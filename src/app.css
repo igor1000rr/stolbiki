@@ -44,6 +44,7 @@ body {
   font-family: 'Outfit', system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
+  font-size: 15px;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
@@ -1504,12 +1505,12 @@ body::before {
 }
 
 /* Large text */
-.large-text { font-size: 16px; }
-.large-text .game-info { font-size: 15px; }
-.large-text .stand-label { font-size: 13px; }
-.large-text .btn { font-size: 14px; }
-.large-text .setting-label { font-size: 15px; }
-.large-text .setting-desc { font-size: 13px; }
+.large-text { font-size: 18px; }
+.large-text .game-info { font-size: 17px; }
+.large-text .stand-label { font-size: 15px; }
+.large-text .btn { font-size: 16px; }
+.large-text .setting-label { font-size: 17px; }
+.large-text .setting-desc { font-size: 15px; }
 
 /* High contrast */
 .high-contrast { --surface: #000; --surface2: #222; --surface3: #444; --ink: #fff; --ink2: #ddd; --ink3: #aaa; }
