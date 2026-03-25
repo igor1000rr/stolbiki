@@ -883,27 +883,27 @@ export default function Game() {
 
       {mode !== 'online' && (
       <div className="game-settings">
-        <label>Режим:
+        <label>{ lang === 'en' ? 'Mode:' : 'Режим:' }
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
-            <option value="ai">Против AI</option>
-            <option value="pvp">Вдвоём</option>
+            <option value="ai">{ lang === 'en' ? 'vs AI' : 'Против AI' }</option>
+            <option value="pvp">{ lang === 'en' ? 'PvP' : 'Вдвоём' }</option>
             <option value="spectate">AI vs AI</option>
           </select>
         </label>
         {mode === 'ai' && (
-          <label>Сторона:
+          <label>{ lang === 'en' ? 'Side:' : 'Сторона:' }
             <select value={humanPlayer} onChange={e => newGame(+e.target.value, difficulty, mode)}>
-              <option value={0}>Синие (первый ход)</option>
-              <option value={1}>Красные (swap)</option>
+              <option value={0}>{ lang === 'en' ? 'Blue (first move)' : 'Синие (первый ход)' }</option>
+              <option value={1}>{ lang === 'en' ? 'Red (swap)' : 'Красные (swap)' }</option>
             </select>
           </label>
         )}
         {mode === 'ai' && (
-          <label>Сложность:
+          <label>{ lang === 'en' ? 'Difficulty:' : 'Сложность:' }
             <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value, mode)}>
-              <option value={20}>Лёгкая</option>
-              <option value={50}>Средняя</option>
-              <option value={100}>Сложная</option>
+              <option value={20}>{ lang === 'en' ? 'Easy' : 'Лёгкая' }</option>
+              <option value={50}>{ lang === 'en' ? 'Medium' : 'Средняя' }</option>
+              <option value={100}>{ lang === 'en' ? 'Hard' : 'Сложная' }</option>
             </select>
           </label>
         )}
