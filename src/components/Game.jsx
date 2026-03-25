@@ -153,11 +153,12 @@ export default function Game() {
     _soundPack = userSettings.soundPack || 'classic'
     _soundOn = soundOn && userSettings.soundPack !== 'off'
   }, [userSettings, soundOn])
-  // Обновляем настройки когда возвращаются на вкладку Game
+  // Обновляем настройки мгновенно (storage event + custom + focus)
   useEffect(() => {
     const refresh = () => setUserSettings(getSettings())
     window.addEventListener('focus', refresh)
-    return () => window.removeEventListener('focus', refresh)
+    window.addEventListener('stolbiki-settings-changed', refresh)
+    return () => { window.removeEventListener('focus', refresh); window.removeEventListener('stolbiki-settings-changed', refresh) }
   }, [])
   // Таймеры игроков
   const TIMER_LIMITS = { off: 0, blitz: 180, rapid: 600, classical: 1800 }
@@ -1204,8 +1205,11 @@ export default function Game() {
             </div>
             <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               {!tournament && (
-                <button className="btn primary" onClick={() => newGame()} style={{ fontSize: 12, padding: '8px 16px' }}>
-                  Ещё партию
+                <button className="btn primary" onClick={() => {
+                  if (mode === 'online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))
+                  else newGame()
+                }} style={{ fontSize: 12, padding: '8px 16px' }}>
+                  {mode === 'online' ? (lang === 'en' ? 'Back to lobby' : 'В лобби') : (lang === 'en' ? 'New game' : 'Ещё партию')}
                 </button>
               )}
               {mode === 'ai' && !tournament && (
@@ -1269,11 +1273,11 @@ export default function Game() {
                   navigator.clipboard?.writeText(shareText)
                 }
               }} style={{ fontSize: 12, padding: '8px 12px' }}>
-                
+                {lang === 'en' ? 'Share' : 'Поделиться'}
               </button>
               {moveHistoryRef.current.length > 0 && (
                 <button className="btn" onClick={() => setShowReplay(true)} style={{ fontSize: 12, padding: '8px 12px' }}>
-                  
+                  {lang === 'en' ? 'Replay' : 'Повтор'}
                 </button>
               )}
             </div>

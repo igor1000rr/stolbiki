@@ -1499,10 +1499,10 @@ body::before {
 }
 
 /* Reduced motion */
-.reduced-motion *, .reduced-motion *::before, .reduced-motion *::after {
-  animation-duration: 0.01ms !important;
-  transition-duration: 0.01ms !important;
-}
+.reduced-motion * { animation: none !important; }
+.reduced-motion *::before, .reduced-motion *::after { animation: none !important; }
+.reduced-motion .chip-drop { transform: none; opacity: 1; }
+.reduced-motion .chip-hidden { opacity: 1; }
 
 /* Large text */
 .large-text { font-size: 18px; }

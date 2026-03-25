@@ -48,6 +48,7 @@ export default function Settings() {
     setS(ns)
     save(ns)
     applySettings(ns)
+    window.dispatchEvent(new CustomEvent('stolbiki-settings-changed'))
   }
 
   // Применяем при загрузке
