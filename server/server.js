@@ -890,8 +890,8 @@ if (blogCount === 0) {
     'Stacks enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback. Found a bug or have an idea? Let us know via your profile.',
     'release', 1)
   seed.run('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
-    'Нейросеть AI прошла 3 прогона GPU-обучения. Результаты:\n\n- 1146 итераций self-play\n- Loss снизился до 0.098\n- Винрейт лучшей модели: 97%\n- Баланс P1/P2: 52% / 48%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
-    'The AI neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss dropped to 0.098\n- Best model win rate: 97%\n- P1/P2 balance: 52% / 48%\n\nAI is notably stronger in endgame and better at evaluating the golden stand.',
+    'Нейросеть AI прошла 3 прогона GPU-обучения. Результаты:\n\n- 1146 итераций self-play\n- Loss снизился до 0.098\n- Винрейт лучшей модели: 97%\n- Баланс P1/P2: 50% / 50%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
+    'The AI neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss dropped to 0.098\n- Best model win rate: 97%\n- P1/P2 balance: 50% / 50%\n\nAI is notably stronger in endgame and better at evaluating the golden stand.',
     'ai', 0)
   seed.run('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
     'Добавлены тактические головоломки!\n\n- Головоломка дня — обновляется каждый день\n- Задача недели — сложнее, обновляется по понедельникам\n- Банк из 50 головоломок с 3 уровнями сложности\n- Лидерборды и статистика решений\n\nЦель — закрыть нужные стойки за ограниченное число ходов. Тренирует тактическое мышление.',

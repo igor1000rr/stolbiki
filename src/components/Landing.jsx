@@ -91,7 +91,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <div className="l-num-sep" />
         <div className="l-num"><span className="l-num-val"><Counter end="97" suffix="%" /></span><span className="l-num-label">{en ? 'AI win rate' : 'винрейт AI'}</span></div>
         <div className="l-num-sep" />
-        <div className="l-num"><span className="l-num-val">52:48</span><span className="l-num-label">{en ? 'balance' : 'баланс'}</span></div>
+        <div className="l-num"><span className="l-num-val">50:50</span><span className="l-num-label">{en ? 'balance' : 'баланс'}</span></div>
       </section>
 
       {/* ═══ STEPS — staggered reveal with animated line ═══ */}
@@ -191,7 +191,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
               icon: 'star', num: '8+', t: en ? 'Families' : 'Семьи',
               d: en ? 'Simple rules, deep strategy. Perfect for game nights with kids.' : 'Простые правила, глубокая стратегия. Идеально для вечеров с детьми.' },
             { c: '#3dd68c', bg: 'rgba(61,214,140,0.06)', border: 'rgba(61,214,140,0.15)',
-              icon: 'trophy', num: '52:48', t: en ? 'Board gamers' : 'Настольщики',
+              icon: 'trophy', num: '50:50', t: en ? 'Board gamers' : 'Настольщики',
               d: en ? 'Original mechanics. Mathematically verified balance on 239K games.' : 'Оригинальная механика. Баланс математически проверен на 239K партиях.' },
             { c: '#4a9eff', bg: 'rgba(74,158,255,0.06)', border: 'rgba(74,158,255,0.15)',
               icon: 'online', num: '0s', t: en ? 'Online players' : 'Онлайн',
@@ -244,7 +244,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при 5:5. Контроль — ключевая стратегия.'],
             [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes — PWA. Add to home screen, play offline.' : 'Да — PWA. Добавьте на экран, играйте оффлайн.'],
             [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first chip, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
-            [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '52:48 first-move edge. Confirmed across 239K games.' : '52:48 в пользу первого хода. Проверено на 239K партиях.'],
+            [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '50:50 balance. Confirmed across 239K games.' : '50:50 баланс. Проверено на 239K партиях.'],
             [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely. No ads, no paywalls. Open source.' : 'Полностью. Без рекламы. Open source.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
@@ -264,8 +264,8 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <h2 className="l-title">{en ? 'About the project' : 'О проекте'}</h2>
           <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.75, marginBottom: 20 }}>
             {en
-              ? 'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 52:48 between first and second player, verified by statistical analysis.'
-              : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 52:48 между первым и вторым игроком, подтверждено статистическим анализом.'}
+              ? 'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.'
+              : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.'}
           </p>
         </div>
       </section>

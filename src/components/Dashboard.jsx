@@ -166,7 +166,7 @@ export default function Dashboard() {
         <ChartWrap title="Эволюция баланса P1 vs P2 (новые правила)">
           <BalanceChart />
           <div style={{ fontSize: 11, color: '#6b6880', marginTop: 8, textAlign: 'center' }}>
-            Среднее: P1=52%, P2=48% • Осцилляция ±10% (нормально для 64-нейронной CPU сети)
+            Среднее: P1=50%, P2=50% • Осцилляция ±10% (нормально для 64-нейронной CPU сети)
           </div>
         </ChartWrap>
 
@@ -181,7 +181,7 @@ export default function Dashboard() {
                 Итераций: <b style={{ color: '#e8e6f0' }}>500 (стар) + 1,000 (нов)</b><br/>
                 Loss min: <b style={{ color: '#e8e6f0' }}>0.72</b><br/>
                 WR: <b style={{ color: '#e8e6f0' }}>~90%</b><br/>
-                Баланс: <b style={{ color: '#3dd68c' }}>50:50 (стар), 52:48 (нов)</b>
+                Баланс: <b style={{ color: '#3dd68c' }}>50:50</b>
               </div>
             </div>
             <div style={{ padding: 14, background: 'rgba(155,89,182,0.04)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.1)' }}>
