@@ -457,6 +457,7 @@ export default function Game() {
   // Сессионная статистика
   useEffect(() => {
     if (result === null) return
+    if (result === -1) return // Ничья — не меняем статистику
     const won = (mode === 'pvp') ? true : result === humanPlayer
     setSessionStats(prev => ({
       wins: prev.wins + (won ? 1 : 0),
