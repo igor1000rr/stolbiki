@@ -7,14 +7,14 @@ const OPENINGS = [
     name: { ru: 'Центральная', en: 'Central' },
     moves: '5', // первый ход на стойку 5
     frequency: 18.2,
-    winP1: 52.1,
+    winP1: 50.3,
     desc: { ru: 'Ставка на центральную стойку. Гибкий дебют, позволяющий развивать обе стороны.', en: 'Central stand play. Flexible opening for both sides.' },
   },
   {
     name: { ru: 'Золотая', en: 'Golden' },
     moves: '★',
     frequency: 14.7,
-    winP1: 51.8,
+    winP1: 50.6,
     desc: { ru: 'Ранний контроль золотой стойки. Страховка при 5:5.', en: 'Early golden stand control. Insurance for 5:5 ties.' },
   },
   {
@@ -28,7 +28,7 @@ const OPENINGS = [
     name: { ru: 'Парная', en: 'Paired' },
     moves: '4',
     frequency: 10.8,
-    winP1: 51.2,
+    winP1: 50.2,
     desc: { ru: 'Стойка рядом с центром. Готовит парное закрытие 4+5.', en: 'Near-center stand. Prepares paired close of 4+5.' },
   },
   {
@@ -45,7 +45,7 @@ const HEATMAP_DATA = {
   // Средняя частота закрытия каждой стойки
   closeFreq: [7.2, 10.8, 11.5, 10.1, 9.8, 12.1, 10.4, 9.9, 9.3, 8.9],
   // Процент владения P1
-  p1Ownership: [48.2, 51.3, 52.8, 50.1, 49.5, 53.2, 50.8, 49.2, 48.8, 47.1],
+  p1Ownership: [48.2, 50.8, 50.6, 50.1, 49.5, 50.4, 50.8, 49.2, 49.8, 47.1],
   // Средний ход закрытия
   avgCloseTurn: [14.2, 11.8, 10.5, 12.1, 12.8, 10.2, 11.4, 12.6, 13.1, 13.8],
   // Частота первого хода на каждую стойку
@@ -186,7 +186,7 @@ export default function Openings() {
               <p>• {lang === 'en' ? 'Stand 5 is the most popular first move (18.2%) and closes most often' : 'Стойка 5 — самый популярный первый ход (18.2%) и закрывается чаще всех'}</p>
               <p>• {lang === 'en' ? 'Golden stand (★) closes late (avg turn 14.2) — high strategic value' : 'Золотая стойка (★) закрывается поздно (ход 14.2) — высокая стратегическая ценность'}</p>
               <p>• {lang === 'en' ? 'Edge stands (8,9) close late and are harder to control' : 'Крайние стойки (8,9) закрываются поздно и сложнее контролировать'}</p>
-              <p>• {lang === 'en' ? 'Balance: P1 wins 52% on average (confirmed across 239K games)' : 'Баланс: P1 побеждает в 52% (подтверждено на 239K партиях)'}</p>
+              <p>• {lang === 'en' ? 'Balance: 50:50 between P1 and P2 (confirmed across 239K games)' : 'Баланс: 50:50 между P1 и P2 (подтверждено на 239K партиях)'}</p>
             </div>
           </div>
         </div>
