@@ -1198,7 +1198,7 @@ export default function Game() {
         const won = (mode === 'pvp') ? true : result === humanPlayer
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
-        const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — 178.212.12.71`
+        const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
         return (
           <div className="game-result" style={{ borderLeft: `3px solid ${won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '\o/' : '—'}</div>
@@ -1265,7 +1265,7 @@ export default function Game() {
                   // Подпись
                   ctx.fillStyle = '#444'
                   ctx.font = '12px sans-serif'
-                  ctx.fillText('Stacks — 178.212.12.71', 300, 300)
+                  ctx.fillText('Stacks — snatch-highrise.com', 300, 300)
 
                   const blob = await new Promise(r => c.toBlob(r, 'image/png'))
                   const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: http://178.212.12.71/sitemap.xml
+Sitemap: https://snatch-highrise.com/sitemap.xml

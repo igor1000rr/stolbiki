@@ -217,7 +217,7 @@ function checkAchievements(userId) {
 const app = express()
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://178.212.12.71', 'http://localhost:5173']
+  : ['https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'http://178.212.12.71', 'http://localhost:5173']
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
