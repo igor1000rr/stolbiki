@@ -1195,14 +1195,17 @@ export default function Game() {
       )}
 
       {result !== null && (() => {
-        const won = (mode === 'pvp') ? true : result === humanPlayer
+        const isDraw = result === -1
+        const won = isDraw ? false : (mode === 'pvp') ? true : result === humanPlayer
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
-        const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
+        const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
         return (
-          <div className="game-result" style={{ borderLeft: `3px solid ${won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>{won ? '\o/' : '—'}</div>
-            <span style={{ fontSize: 20 }}>{mode === 'pvp'
+          <div className="game-result" style={{ borderLeft: `3px solid ${isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>{isDraw ? '=' : won ? '\o/' : '—'}</div>
+            <span style={{ fontSize: 20 }}>{isDraw
+              ? (lang === 'en' ? 'Draw' : 'Ничья')
+              : mode === 'pvp'
               ? `${result === 0 ? t('game.blueWin') : t('game.redWin')}`
               : mode === 'online'
               ? (won ? t('game.victory') : t('game.defeat'))

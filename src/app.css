@@ -323,7 +323,6 @@ body::before {
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.06);
   margin-bottom: 20px;
-  overflow-x: hidden;
   box-shadow:
     0 20px 60px rgba(0,0,0,0.5),
     0 4px 12px rgba(0,0,0,0.3),
@@ -1339,13 +1338,13 @@ body::before {
    ═══════════════════════════════════════════ */
 @media (max-width: 680px) {
   .app { padding: 0 10px 60px; }
-  .board { gap: 2px; padding: 16px 6px 22px; border-radius: 16px; margin-bottom: 12px; }
-  .stand { width: 48px; min-height: 175px; border-radius: 0 0 8px 8px; padding: 5px 3px 3px;
+  .board { gap: 2px; padding: 20px 6px 22px; border-radius: 16px; margin-bottom: 12px; }
+  .stand { flex: 1; max-width: 48px; min-height: 175px; border-radius: 0 0 8px 8px; padding: 5px 3px 3px;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .stand:hover { transform: none; box-shadow: none; }
   .stand:active { transform: scale(0.94); background: rgba(255,255,255,0.03); transition-duration: 0.08s; }
   .stand.golden:active { background: rgba(255,190,48,0.08); }
-  .chip { width: 36px; height: 11px; border-radius: 6px; }
+  .chip { width: calc(100% - 8px); max-width: 36px; height: 11px; border-radius: 6px; }
   .stand-label { font-size: 10px; top: -18px; }
   .scoreboard { gap: 24px; margin-bottom: 10px; }
   .score-num { font-size: 36px; }
@@ -1381,8 +1380,8 @@ body::before {
 
 /* Большие телефоны */
 @media (max-width: 560px) {
-  .stand { width: 42px; min-height: 155px; }
-  .chip { width: 32px; height: 10px; }
+  .stand { flex: 1; max-width: 42px; min-height: 155px; }
+  .chip { width: calc(100% - 6px); max-width: 32px; height: 10px; }
   .score-num { font-size: 32px; }
   .scoreboard { gap: 18px; }
   .l-hero-title { font-size: 24px; }
@@ -1399,9 +1398,9 @@ body::before {
 @media (max-width: 400px) {
   .app { padding: 0 6px 40px; }
   .board { gap: 1px; padding: 12px 3px 18px; border-radius: 12px; }
-  .stand { width: 34px; min-height: 130px; padding: 4px 2px 2px; }
+  .stand { flex: 1; max-width: 34px; min-height: 130px; padding: 4px 2px 2px; }
   .stand-label { font-size: 8px; top: -14px; }
-  .chip { width: 26px; height: 8px; border-radius: 4px; }
+  .chip { width: calc(100% - 4px); max-width: 26px; height: 8px; border-radius: 4px; }
   .score-num { font-size: 28px; }
   .scoreboard { gap: 14px; }
   .score-label { font-size: 8px; }
@@ -1415,8 +1414,8 @@ body::before {
 
 /* Совсем маленькие экраны */
 @media (max-width: 340px) {
-  .stand { width: 30px; min-height: 110px; }
-  .chip { width: 22px; height: 7px; }
+  .stand { flex: 1; max-width: 30px; min-height: 110px; }
+  .chip { width: calc(100% - 4px); max-width: 22px; height: 7px; }
   .score-num { font-size: 24px; }
   .board { padding: 10px 2px 14px; }
   .btn { padding: 7px 10px; font-size: 10px; min-height: 36px; }
