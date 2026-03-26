@@ -122,7 +122,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             role="button" tabIndex={0} aria-label={isClosed ? `Stand ${i} closed, owner P${state.closed[i]+1}` : `Stand ${i}, ${chips.length} of 11 chips`}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStandClick?.(i) } }}
             title={isClosed ? `Закрыта: П${state.closed[i]+1}` : `${chips.length}/11 фишек, свободно: ${11 - chips.length}`}>
-            <span className="stand-label">{isGolden ? '★' : i}</span>
+            <span className="stand-label">{isGolden ? '★' : 'ABCDEFGHI'[i - 1]}</span>
             {isClosed && <span className="stand-owner">П{state.closed[i] + 1}</span>}
 
             {/* Счётчик фишек */}

@@ -18,7 +18,7 @@ function Bullet({ children, color = 'var(--ink3)' }) {
   )
 }
 
-// SVG-схема переноса (статичная)
+// SVG-схема переноса
 function TransferSchema({ lang }) {
   const en = lang === 'en'
   return (
@@ -88,9 +88,12 @@ export default function Rules() {
       <Section title={en ? 'Game Rules "Stacks"' : 'Правила игры «Стойки»'}>
         <Bullet>{en ? 'Strategic board game for two players' : 'Стратегическая настольная игра для двух игроков'}</Bullet>
         <Bullet>{en ? 'Players compete for control of stands' : 'Игроки соревнуются за контроль стоек'}</Bullet>
-        <Bullet>{en ? 'A stand belongs to a player if their chip is on top (the stand is considered closed)' : 'Стойка принадлежит игроку, если фишка его цвета установлена на вершине (стойка считается закрытой)'}</Bullet>
         <Bullet>{en ? 'The player who closed more stands wins' : 'Побеждает игрок, который закрыл больше стоек к концу игры'}</Bullet>
-        <Bullet color="var(--gold)">{en ? 'If both players closed 5 stands, the golden stand owner wins' : 'Если оба игрока закрыли по 5 стоек, победителем становится игрок, закрывший золотую стойку'}</Bullet>
+      </Section>
+
+      <Section title={en ? 'Setup' : 'Подготовка'}>
+        <Bullet>{en ? '10 stands on the table: 1 golden (★) and 9 regular' : '10 стоек на столе: 1 золотая (★) и 9 обычных'}</Bullet>
+        <Bullet>{en ? 'First move — only 1 chip is placed, then the second player can swap colors' : 'Первый ход — ставится 1 фишка, второй игрок может поменяться цветами'}</Bullet>
       </Section>
 
       <Section title={en ? 'Turn' : 'Ход'}>
@@ -100,79 +103,48 @@ export default function Rules() {
 
         <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(74,158,255,0.04)', border: '1px solid rgba(74,158,255,0.12)', marginBottom: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--p1)', marginBottom: 8 }}>
-            {en ? 'Phase 1: Transfer' : 'Фаза 1: Перенос'}
+            {en ? '1. Transfer' : '1. Перемещение фишек'}
           </div>
-          <Bullet>{en ? 'Can make one transfer or skip this action' : 'Можно сделать один перенос или пропустить это действие'}</Bullet>
-          <Bullet>{en ? 'The top continuous group of same-color chips transfers from one stand to another' : 'Переносится верхняя непрерывная группа фишек одного цвета с одной стойки на другую'}</Bullet>
-          <Bullet>{en ? 'The group transfers whole — cannot split' : 'Группа переносится целиком — делить нельзя'}</Bullet>
+          <Bullet>{en ? 'Can make one transfer or skip this action' : 'Можно сделать один перенос или пропустить действие'}</Bullet>
+          <Bullet>{en ? 'The top group of same-color chips transfers whole — cannot split' : 'Переносится верхняя группа фишек одного цвета — группа переносится целиком, делить её нельзя'}</Bullet>
           <Bullet>{en ? 'Can transfer your chips and opponent\'s chips' : 'Можно переносить свои фишки и фишки соперника'}</Bullet>
           <Bullet>{en ? 'Target: empty stand or stand with same color on top' : 'Куда: на пустую стойку или на фишки такого же цвета сверху'}</Bullet>
-          <Bullet>{en ? 'Max 11 chips on a stand. If more after transfer — excess removed' : 'На стойке максимум 11 фишек. Если после переноса больше 11 — лишние удаляются из игры'}</Bullet>
+          <Bullet>{en ? 'Max 11 chips on a stand, excess removed from the game' : 'На стойке не может быть больше 11 фишек, остальные убираются из игры'}</Bullet>
         </div>
 
         <TransferSchema lang={lang} />
 
         <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(240,96,64,0.04)', border: '1px solid rgba(240,96,64,0.12)', marginTop: 20, marginBottom: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
-            {en ? 'Phase 2: Placement' : 'Фаза 2: Установка'}
+            {en ? '2. Placement' : '2. Установка фишек'}
           </div>
-          <Bullet>{en ? 'After transfer, the player places their chips' : 'После переноса игрок может поставить свои фишки'}</Bullet>
-          <Bullet>{en ? 'Can place 1 to 3 chips per turn' : 'Можно поставить от 1 до 3 фишек за ход'}</Bullet>
-          <Bullet>{en ? 'Chips can be placed on max 2 stands' : 'Фишки можно поставить максимум на 2 стойки'}</Bullet>
-          <Bullet color="var(--gold)">{en ? 'First move of the game — only 1 chip' : 'Первый ход игры — только 1 фишка'}</Bullet>
+          <Bullet>{en ? '1 to 3 chips per turn' : 'От 1 до 3 фишек за ход'}</Bullet>
+          <Bullet>{en ? 'On max 2 stands' : 'Максимум на 2 стойки'}</Bullet>
         </div>
       </Section>
 
-      <Section title={en ? 'Closing Stands' : 'Закрытие стоек'}>
-        <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(61,214,140,0.04)', border: '1px solid rgba(61,214,140,0.12)', marginBottom: 14 }}>
-          <Bullet>{en ? 'A stand can only be closed by transfer (with one exception)' : 'Стойку можно закрыть только переносом (кроме исключения)'}</Bullet>
-          <Bullet>{en ? 'After transfer the stand reaches 11 chips — it closes' : 'После переноса стойка достигает 11 фишек → закрывается'}</Bullet>
-          <Bullet>{en ? 'Owner = color of the top group' : 'Владелец = цвет верхней группы'}</Bullet>
-          <Bullet>{en ? 'Excess chips are removed' : 'Лишние фишки удаляются'}</Bullet>
-        </div>
-        <div style={{ padding: '10px 16px', borderRadius: 8, background: 'rgba(255,190,48,0.04)', border: '1px solid rgba(255,190,48,0.12)', marginBottom: 14, fontSize: 13, color: 'var(--ink2)' }}>
-          <b style={{ color: 'var(--gold)' }}>{en ? 'Exception: ' : 'Исключение: '}</b>
-          {en ? 'When only 2 stands remain open, you can close a stand by placement (filling to 11).' : 'Когда осталось только 2 открытых стойки, можно закрыть стойку установкой (заполнив до 11).'}
-        </div>
+      <Section title={en ? 'Closing Stands' : 'Закрытие стойки'}>
+        <Bullet>{en ? 'A stand can only be closed by transferring a group of your color chips' : 'Стойка закрывается только переносом группы фишек своего цвета'}</Bullet>
+        <Bullet>{en ? 'Exception: when only 2 stands remain open, you can close by placement' : 'Установкой можно закрыть, когда осталось 2 стойки'}</Bullet>
+        <Bullet>{en ? 'If a stand has 11 chips, it is blocked: no placement or transfer allowed' : 'Если на стойке 11 фишек, она блокируется: ставить и переносить нельзя'}</Bullet>
+        <Bullet>{en ? 'Only one stand can be closed per turn' : 'За ход можно закрыть только одну стойку'}</Bullet>
+        <Bullet color="var(--green)">{en ? 'Owner = player whose chip is on top' : 'Стойка принадлежит игроку, чья фишка установлена на вершине'}</Bullet>
         <CloseSchema lang={lang} />
       </Section>
 
-      <Section title={en ? 'First Move Balance' : 'Баланс первого хода'}>
-        <Bullet>{en ? 'Needed to balance the first player\'s advantage' : 'Баланс нужен, чтобы уравновесить преимущество первого игрока'}</Bullet>
-        <Bullet>{en ? 'In the first turn, only 1 chip can be placed' : 'В первый ход можно поставить только 1 фишку'}</Bullet>
-        <Bullet>{en ? 'After that, the second player can: play their color OR swap colors' : 'После этого второй игрок может: играть своим цветом или поменяться цветами'}</Bullet>
-      </Section>
-
       <Section title={en ? 'Victory' : 'Победа'}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <Bullet>{en ? 'The player who closed more stands wins' : 'Побеждает игрок, закрывший больше стоек'}</Bullet>
+        <Bullet color="var(--gold)">{en ? 'At 5:5 the golden stand (★) owner wins' : 'При счёте 5:5 побеждает владелец золотой стойки (★)'}</Bullet>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           <div style={{ textAlign: 'center', padding: 16, background: 'rgba(61,214,140,0.06)', borderRadius: 12, border: '1px solid rgba(61,214,140,0.15)' }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>6+</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>{en ? 'stands = victory' : 'стоек = победа'}</div>
           </div>
           <div style={{ textAlign: 'center', padding: 16, background: 'rgba(255,190,48,0.06)', borderRadius: 12, border: '1px solid rgba(255,190,48,0.15)' }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>5:5</div>
-            <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>{en ? 'golden stand decides' : 'золотая стойка решает'}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>{en ? 'golden stand decides' : 'золотая ★ решает'}</div>
           </div>
         </div>
-      </Section>
-
-      <Section title={en ? 'Strategy' : 'Стратегия'}>
-        <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, fontStyle: 'italic' }}>
-          {en ? 'Data based on AI research · 239K+ games analyzed' : 'Данные предоставлены на основании AI-исследования · 239K+ партий'}
-        </p>
-        {(en ? [
-          'Golden stand is priority #1. 77% of ties are decided by golden.',
-          'Transfer is the key mechanic. Most stands close via transfer.',
-          'Swap rule. If P1 placed on golden — consider swap.',
-          'Control. Early capture of 3-4 stands = strategic advantage.',
-          'Diversify. Place on different stands — don\'t stack all in one.',
-        ] : [
-          'Золотая стойка — приоритет №1. 77% ничьих решает золотая.',
-          'Перенос — главная механика. Большинство стоек закрываются переносом.',
-          'Swap. Если П1 поставил на золотую — рассмотрите swap.',
-          'Контроль. Ранний захват 3-4 стоек = стратегическое преимущество.',
-          'Разнообразие. Ставьте на разные стойки — не складывайте все в одну.',
-        ]).map((t, i) => <Bullet key={i}>{t}</Bullet>)}
       </Section>
 
       <Section title={en ? 'Keyboard Shortcuts' : 'Горячие клавиши'}>

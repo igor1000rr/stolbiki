@@ -13,7 +13,7 @@ import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
 
-const SL = i => i === GOLDEN_STAND ? '★' : String(i)
+const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
 // Title blink when it's your turn (tab in background)
 let _titleBlinkInterval = null
@@ -677,6 +677,13 @@ export default function Game() {
       const canClose = gs.canCloseByPlacement()
 
       let space = gs.standSpace(i)
+      // Учитываем pending-перенос: фишки уже визуально ушли / пришли
+      if (transfer) {
+        const [src, dst] = transfer
+        const [, grpSize] = gs.topGroup(src)
+        if (i === src) space += grpSize   // фишки ушли — стало больше места
+        if (i === dst) space -= grpSize   // фишки пришли — стало меньше места
+      }
       if (!canClose) space = Math.max(0, space - 1)
       if (space <= 0) { setInfo(`Стойка ${SL(i)} заполнена`); return }
 
@@ -818,8 +825,8 @@ export default function Game() {
     setInfo(lang === 'en' ? 'Resigned' : 'Сдались')
     finishRecording(winner, [gs.countClosed(0), gs.countClosed(1)])
     // Notify opponent in online
-    if (mode === 'online' && onlineRef.current?.ws) {
-      onlineRef.current.ws.send(JSON.stringify({ type: 'resign' }))
+    if (mode === 'online') {
+      MP.send({ type: 'resign' })
     }
     sl()
   }
@@ -1072,36 +1079,37 @@ export default function Game() {
       {/* Swap кнопка */}
       {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
         <div style={{ textAlign: 'center', margin: '8px 0' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 6 }}>
-            Игрок 1 поставил первую фишку. Хотите поменять цвета?
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>
+            {lang === 'en' ? 'Player 1 placed the first chip. Swap colors?' : 'Игрок 1 поставил первую фишку. Хотите поменять цвета?'}
           </div>
-          <button className="btn" onClick={() => {
-            const action = { swap: true }
-            if (mode === 'online') MP.sendMove(action)
-            recordMove(gs, action, gs.currentPlayer)
-            moveHistoryRef.current.push({ action, player: gs.currentPlayer })
-            addLog('Swap — цвета поменялись!', gs.currentPlayer)
-            ss()
-            const ns = applyAction(gs, action)
-            setGs(ns)
-            setPhase('place')
-            if (mode === 'online') {
-              // После swap в онлайне: мы забрали позицию P1, теперь наш ход
-              setHumanPlayer(0) // Мы теперь синие
-              onlineRef.current && (onlineRef.current.myColor = 0)
-              setLocked(false)
-              setInfo(t('game.swapOnlineDone'))
-            } else {
-              setInfo(t('game.swapDone'))
-            }
-          }} style={{ borderColor: '#9b59b6', color: '#9b59b6', marginRight: 8 }}>
-            Swap
-          </button>
-          <button className="btn" onClick={() => {
-            setInfo(lang === 'en' ? 'Swap declined' : 'Swap отклонён')
-          }} style={{ fontSize: 12 }}>
-            Нет, продолжить
-          </button>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn" onClick={() => {
+              const action = { swap: true }
+              if (mode === 'online') MP.sendMove(action)
+              recordMove(gs, action, gs.currentPlayer)
+              moveHistoryRef.current.push({ action, player: gs.currentPlayer })
+              addLog('Swap — цвета поменялись!', gs.currentPlayer)
+              ss()
+              const ns = applyAction(gs, action)
+              setGs(ns)
+              setPhase('place')
+              if (mode === 'online') {
+                setHumanPlayer(0)
+                onlineRef.current && (onlineRef.current.myColor = 0)
+                setLocked(false)
+                setInfo(t('game.swapOnlineDone'))
+              } else {
+                setInfo(t('game.swapDone'))
+              }
+            }} style={{ borderColor: '#9b59b6', color: '#9b59b6', padding: '10px 20px' }}>
+              Swap
+            </button>
+            <button className="btn" onClick={() => {
+              setInfo(lang === 'en' ? 'Swap declined' : 'Swap отклонён')
+            }} style={{ fontSize: 12, padding: '10px 16px' }}>
+              {lang === 'en' ? 'No, continue' : 'Нет, продолжить'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -1112,20 +1120,22 @@ export default function Game() {
           <div style={{ fontSize: 12, color: '#c8c4d8', marginBottom: 8 }}>
             {lang === 'en' ? 'Opponent offers a draw' : 'Противник предлагает ничью'}
           </div>
-          <button className="btn" onClick={() => {
-            if (onlineRef.current?.ws) onlineRef.current.ws.send(JSON.stringify({ type: 'drawResponse', accepted: true }))
-            setResult(-1); setPhase('done'); setLocked(false)
-            setInfo(lang === 'en' ? 'Draw agreed' : 'Ничья')
-            setDrawOffered(false)
-          }} style={{ borderColor: '#3dd68c', color: '#3dd68c', marginRight: 8 }}>
-            {lang === 'en' ? 'Accept' : 'Принять'}
-          </button>
-          <button className="btn" onClick={() => {
-            if (onlineRef.current?.ws) onlineRef.current.ws.send(JSON.stringify({ type: 'drawResponse', accepted: false }))
-            setDrawOffered(false)
-          }} style={{ fontSize: 12 }}>
-            {lang === 'en' ? 'Decline' : 'Отклонить'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button className="btn" onClick={() => {
+              MP.send({ type: 'drawResponse', accepted: true })
+              setResult(-1); setPhase('done'); setLocked(false)
+              setInfo(lang === 'en' ? 'Draw agreed' : 'Ничья')
+              setDrawOffered(false)
+            }} style={{ borderColor: '#3dd68c', color: '#3dd68c' }}>
+              {lang === 'en' ? 'Accept' : 'Принять'}
+            </button>
+            <button className="btn" onClick={() => {
+              MP.send({ type: 'drawResponse', accepted: false })
+              setDrawOffered(false)
+            }} style={{ fontSize: 12 }}>
+              {lang === 'en' ? 'Decline' : 'Отклонить'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -1160,7 +1170,7 @@ export default function Game() {
         )}
         {!gs.gameOver && mode === 'online' && (
           <button className="btn" onClick={() => {
-            if (onlineRef.current?.ws) onlineRef.current.ws.send(JSON.stringify({ type: 'drawOffer' }))
+            MP.send({ type: 'drawOffer' })
             setInfo(lang === 'en' ? 'Draw offered...' : 'Ничья предложена...')
           }} style={{ fontSize: 11, opacity: 0.6 }}>
             {lang === 'en' ? 'Offer draw' : 'Ничья'}

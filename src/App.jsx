@@ -156,9 +156,12 @@ export default function App() {
     const handler = () => { setTab('game'); setMobileMenu(false) }
     window.addEventListener('stolbiki-online-start', handler)
     window.addEventListener('stolbiki-daily-start', handler)
+    const backToLobby = () => { setTab('online'); setMobileMenu(false) }
+    window.addEventListener('stolbiki-back-to-lobby', backToLobby)
     return () => {
       window.removeEventListener('stolbiki-online-start', handler)
       window.removeEventListener('stolbiki-daily-start', handler)
+      window.removeEventListener('stolbiki-back-to-lobby', backToLobby)
     }
   }, [])
 

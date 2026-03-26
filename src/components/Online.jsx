@@ -269,13 +269,6 @@ export default function Online() {
     return () => window.removeEventListener('stolbiki-back-to-lobby', back)
   }, [])
 
-  // Listen for back-to-lobby from Game result screen
-  useEffect(() => {
-    const handler = () => backToLobby()
-    window.addEventListener('stolbiki-back-to-lobby', handler)
-    return () => window.removeEventListener('stolbiki-back-to-lobby', handler)
-  }, [])
-
   const roomUrl = roomId ? `${location.origin}?room=${roomId}` : ''
 
   // Проверяем URL при загрузке
