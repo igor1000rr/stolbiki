@@ -1398,7 +1398,7 @@ body::before {
 @media (max-width: 400px) {
   .app { padding: 0 6px 40px; }
   .board { gap: 1px; padding: 12px 3px 18px; border-radius: 12px; }
-  .stand { flex: 1; max-width: 34px; min-height: 115px; padding: 4px 2px 2px; }
+  .stand { flex: 1; max-width: 34px; min-height: 118px; padding: 4px 2px 2px; }
   .stand-label { font-size: 8px; top: -14px; }
   .chip { width: calc(100% - 4px); max-width: 26px; height: 8px; border-radius: 4px; }
   .score-num { font-size: 28px; }
@@ -1414,7 +1414,7 @@ body::before {
 
 /* Совсем маленькие экраны */
 @media (max-width: 340px) {
-  .stand { flex: 1; max-width: 30px; min-height: 100px; }
+  .stand { flex: 1; max-width: 30px; min-height: 106px; }
   .chip { width: calc(100% - 4px); max-width: 22px; height: 7px; }
   .score-num { font-size: 24px; }
   .board { padding: 10px 2px 14px; }
