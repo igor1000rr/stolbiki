@@ -367,7 +367,7 @@ body::before {
   flex-direction: column-reverse;
   align-items: center;
   width: 56px;
-  min-height: 210px;
+  min-height: 185px;
   padding: 4px 4px 6px;
   position: relative;
   border-radius: 12px 12px 0 0;
@@ -1339,7 +1339,7 @@ body::before {
 @media (max-width: 680px) {
   .app { padding: 0 10px 60px; }
   .board { gap: 2px; padding: 20px 6px 22px; border-radius: 16px; margin-bottom: 12px; }
-  .stand { flex: 1; max-width: 48px; min-height: 175px; border-radius: 0 0 8px 8px; padding: 5px 3px 3px;
+  .stand { flex: 1; max-width: 48px; min-height: 155px; border-radius: 0 0 8px 8px; padding: 5px 3px 3px;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .stand:hover { transform: none; box-shadow: none; }
   .stand:active { transform: scale(0.94); background: rgba(255,255,255,0.03); transition-duration: 0.08s; }
@@ -1380,7 +1380,7 @@ body::before {
 
 /* Большие телефоны */
 @media (max-width: 560px) {
-  .stand { flex: 1; max-width: 42px; min-height: 155px; }
+  .stand { flex: 1; max-width: 42px; min-height: 140px; }
   .chip { width: calc(100% - 6px); max-width: 32px; height: 10px; }
   .score-num { font-size: 32px; }
   .scoreboard { gap: 18px; }
@@ -1398,7 +1398,7 @@ body::before {
 @media (max-width: 400px) {
   .app { padding: 0 6px 40px; }
   .board { gap: 1px; padding: 12px 3px 18px; border-radius: 12px; }
-  .stand { flex: 1; max-width: 34px; min-height: 130px; padding: 4px 2px 2px; }
+  .stand { flex: 1; max-width: 34px; min-height: 115px; padding: 4px 2px 2px; }
   .stand-label { font-size: 8px; top: -14px; }
   .chip { width: calc(100% - 4px); max-width: 26px; height: 8px; border-radius: 4px; }
   .score-num { font-size: 28px; }
@@ -1414,7 +1414,7 @@ body::before {
 
 /* Совсем маленькие экраны */
 @media (max-width: 340px) {
-  .stand { flex: 1; max-width: 30px; min-height: 110px; }
+  .stand { flex: 1; max-width: 30px; min-height: 100px; }
   .chip { width: calc(100% - 4px); max-width: 22px; height: 7px; }
   .score-num { font-size: 24px; }
   .board { padding: 10px 2px 14px; }
@@ -1475,7 +1475,7 @@ body::before {
 .chip-rounded .chip { border-radius: 50%; width: 14px; height: 14px; margin: 1px auto; }
 
 /* Board density */
-.board-compact .stand { min-height: 140px; width: 44px; }
+.board-compact .stand { min-height: 130px; width: 44px; }
 .board-compact .chip { width: 34px; height: 9px; }
 .board-compact .board { gap: 2px; }
 .board-wide .stand { min-height: 200px; width: 62px; }

@@ -54,25 +54,27 @@ function CloseSchema({ lang }) {
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', marginBottom: 10 }}>
         {en ? 'Closing example' : 'Пример закрытия'}
       </div>
-      <svg viewBox="0 0 360 130" style={{ width: '100%', maxWidth: 400, display: 'block', margin: '0 auto' }}>
-        <rect x={20} y={20} width={50} height={95} rx={6} fill="none" stroke="var(--surface3)" strokeWidth={1.5} />
-        <text x={45} y={14} textAnchor="middle" fontSize={10} fill="var(--ink3)">{en ? 'Before' : 'До'}</text>
-        {[0,1,2,3,4].map(i => <rect key={`b${i}`} x={28} y={92 - i*12} width={34} height={9} rx={3} fill="var(--p1)" opacity={0.7} />)}
-        {[0,1,2].map(i => <rect key={`r${i}`} x={28} y={32 - i*12 + 20} width={34} height={9} rx={3} fill="var(--p2)" opacity={0.7} />)}
-        <text x={45} y={126} textAnchor="middle" fontSize={9} fill="var(--ink3)">8/11</text>
+      <svg viewBox="0 0 360 155" style={{ width: '100%', maxWidth: 400, display: 'block', margin: '0 auto' }}>
+        {/* Левая стойка — До (8 фишек: 5 синих + 3 красных) */}
+        <rect x={20} y={15} width={50} height={112} rx={6} fill="none" stroke="var(--surface3)" strokeWidth={1.5} />
+        <text x={45} y={10} textAnchor="middle" fontSize={10} fill="var(--ink3)">{en ? 'Before' : 'До'}</text>
+        {[0,1,2,3,4].map(i => <rect key={`b${i}`} x={28} y={110 - i*12} width={34} height={9} rx={3} fill="var(--p1)" opacity={0.7} />)}
+        {[0,1,2].map(i => <rect key={`r${i}`} x={28} y={50 - i*12} width={34} height={9} rx={3} fill="var(--p2)" opacity={0.7} />)}
+        <text x={45} y={145} textAnchor="middle" fontSize={9} fill="var(--ink3)">8/11</text>
 
-        <text x={105} y={55} fontSize={10} fill="var(--gold)">+3</text>
-        <line x1={120} y1={65} x2={190} y2={65} stroke="var(--gold)" strokeWidth={1.5} strokeDasharray="4,3" />
-        <polygon points="190,60 200,65 190,70" fill="var(--gold)" />
+        <text x={105} y={70} fontSize={10} fill="var(--gold)">+3</text>
+        <line x1={120} y1={80} x2={190} y2={80} stroke="var(--gold)" strokeWidth={1.5} strokeDasharray="4,3" />
+        <polygon points="190,75 200,80 190,85" fill="var(--gold)" />
 
-        <rect x={210} y={20} width={50} height={95} rx={6} fill="rgba(61,214,140,0.08)" stroke="var(--green)" strokeWidth={1.5} />
-        <text x={235} y={14} textAnchor="middle" fontSize={10} fill="var(--green)">{en ? 'Closed' : 'Закрыта'}</text>
-        {Array.from({length: 11}).map((_, i) => <rect key={`f${i}`} x={218} y={103 - i*7.5} width={34} height={6} rx={2} fill={i >= 8 ? 'var(--p2)' : 'var(--p1)'} opacity={0.5} />)}
-        <text x={235} y={126} textAnchor="middle" fontSize={9} fill="var(--green)">11/11</text>
+        {/* Правая стойка — Закрыта (11 фишек) */}
+        <rect x={210} y={15} width={50} height={112} rx={6} fill="rgba(61,214,140,0.08)" stroke="var(--green)" strokeWidth={1.5} />
+        <text x={235} y={10} textAnchor="middle" fontSize={10} fill="var(--green)">{en ? 'Closed' : 'Закрыта'}</text>
+        {Array.from({length: 11}).map((_, i) => <rect key={`f${i}`} x={218} y={113 - i*9} width={34} height={6} rx={2} fill={i >= 8 ? 'var(--p2)' : 'var(--p1)'} opacity={0.5} />)}
+        <text x={235} y={145} textAnchor="middle" fontSize={9} fill="var(--green)">11/11</text>
 
-        <text x={300} y={55} fontSize={10} fill="var(--ink2)">{en ? 'Owner:' : 'Владелец:'}</text>
-        <rect x={285} y={62} width={34} height={10} rx={3} fill="var(--p2)" opacity={0.8} />
-        <text x={302} y={86} textAnchor="middle" fontSize={9} fill="var(--p2-light)">{en ? 'top color' : 'верхний цвет'}</text>
+        <text x={300} y={70} fontSize={10} fill="var(--ink2)">{en ? 'Owner:' : 'Владелец:'}</text>
+        <rect x={285} y={78} width={34} height={10} rx={3} fill="var(--p2)" opacity={0.8} />
+        <text x={302} y={102} textAnchor="middle" fontSize={9} fill="var(--p2-light)">{en ? 'top color' : 'верхний цвет'}</text>
       </svg>
     </div>
   )
