@@ -1,0 +1,387 @@
+/**
+ * Модуль базы данных — схема, сид-данные, ачивки, миграции
+ * Экспортирует: db, JWT_SECRET, bcrypt, checkAchievements, __dirname
+ */
+
+import Database from 'better-sqlite3'
+import bcrypt from 'bcryptjs'
+import { readFileSync, existsSync, mkdirSync } from 'fs'
+import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+// ═══ Загрузка .env ═══
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const envPath = resolve(__dirname, '.env')
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+    const [k, ...v] = line.split('=')
+    if (k && !k.startsWith('#')) process.env[k.trim()] = v.join('=').trim()
+  }
+}
+
+// ═══ Конфиг ═══
+export const PORT = process.env.PORT || 3001
+export const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
+    process.exit(1)
+  }
+  return 'stolbiki_dev_secret_' + Math.random().toString(36).slice(2)
+})()
+const DB_PATH = process.env.DB_PATH || './data/stolbiki.db'
+
+// Создаём директорию для БД
+const dbDir = dirname(resolve(DB_PATH))
+if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
+
+// ═══ База данных ═══
+export const db = new Database(DB_PATH)
+db.pragma('journal_mode = WAL')
+db.pragma('foreign_keys = ON')
+
+// ─── Основные таблицы ───
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
+    password_hash TEXT NOT NULL,
+    rating INTEGER DEFAULT 1000,
+    games_played INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    win_streak INTEGER DEFAULT 0,
+    best_streak INTEGER DEFAULT 0,
+    golden_closed INTEGER DEFAULT 0,
+    comebacks INTEGER DEFAULT 0,
+    perfect_wins INTEGER DEFAULT 0,
+    beat_hard_ai INTEGER DEFAULT 0,
+    is_admin INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    last_seen TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    achievement_id TEXT NOT NULL,
+    unlocked_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(user_id, achievement_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS games (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    won INTEGER NOT NULL,
+    score TEXT NOT NULL,
+    rating_before INTEGER,
+    rating_after INTEGER,
+    rating_delta INTEGER,
+    difficulty INTEGER,
+    closed_golden INTEGER DEFAULT 0,
+    is_comeback INTEGER DEFAULT 0,
+    mode TEXT DEFAULT 'ai',
+    turns INTEGER DEFAULT 0,
+    duration INTEGER DEFAULT 0,
+    played_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS friends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    friend_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (friend_id) REFERENCES users(id),
+    UNIQUE(user_id, friend_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS training_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    game_data TEXT NOT NULL,
+    winner INTEGER,
+    total_moves INTEGER,
+    mode TEXT,
+    difficulty INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    title_ru TEXT NOT NULL,
+    title_en TEXT,
+    body_ru TEXT NOT NULL,
+    body_en TEXT,
+    tag TEXT DEFAULT 'update',
+    pinned INTEGER DEFAULT 0,
+    published INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_users_rating ON users(rating DESC);
+  CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_id, played_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id, status);
+  CREATE INDEX IF NOT EXISTS idx_blog_published ON blog_posts(published, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS seasons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    active INTEGER DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS season_ratings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    season_id INTEGER NOT NULL,
+    rating INTEGER DEFAULT 1000,
+    games INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    UNIQUE(user_id, season_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (season_id) REFERENCES seasons(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS rating_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL,
+    delta INTEGER NOT NULL,
+    game_id INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`)
+
+// ─── CMS ───
+db.exec(`
+  CREATE TABLE IF NOT EXISTS site_content (
+    key TEXT PRIMARY KEY,
+    section TEXT NOT NULL DEFAULT 'general',
+    value_ru TEXT NOT NULL DEFAULT '',
+    value_en TEXT NOT NULL DEFAULT '',
+    label TEXT DEFAULT '',
+    updated_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
+// ─── Daily + Puzzles ───
+db.exec(`
+  CREATE TABLE IF NOT EXISTS daily_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER, username TEXT, seed TEXT,
+    turns INTEGER, duration INTEGER, won INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, seed)
+  );
+  CREATE TABLE IF NOT EXISTS puzzle_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER, username TEXT,
+    puzzle_type TEXT NOT NULL,
+    puzzle_id TEXT NOT NULL,
+    solved INTEGER DEFAULT 0,
+    moves_used INTEGER,
+    duration INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, puzzle_type, puzzle_id)
+  );
+`)
+
+// ─── Миграции (безопасно — если колонка есть, не упадёт) ───
+try { db.exec('ALTER TABLE users ADD COLUMN fast_wins INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN online_wins INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN puzzles_solved INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT "default"') } catch {}
+try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
+
+// ─── Сид контента CMS ───
+const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
+if (contentCount === 0) {
+  const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
+
+  // Секция: Сайт
+  const siteSeed = [
+    ['site.name', 'Перехват высотки', 'Snatch Highrise', 'Название игры'],
+    ['site.tagline', 'Стратегическая настолка с AI', 'Strategy board game powered by AI', 'Слоган / подзаголовок'],
+    ['site.description', 'Стратегическая настольная игра с AI-противником на базе AlphaZero. Играйте онлайн, решайте головоломки, соревнуйтесь.', 'Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.', 'Описание для поисковиков (meta)'],
+    ['site.beta_text', 'Открытая бета — активная разработка', 'Open beta — active development', 'Текст под логотипом'],
+    ['footer.tagline', 'Настольные игры и AI-исследования', 'Board games meet AI research', 'Подпись в футере'],
+  ]
+  for (const [key, ru, en, label] of siteSeed) ins.run(key, 'Сайт', ru, en, label)
+
+  // Секция: Главная страница
+  const landingSeed = [
+    ['landing.play_btn', 'Играть', 'Play free', 'Кнопка «Играть»'],
+    ['landing.learn_btn', 'Обучение за 2 мин', 'Learn in 2 min', 'Кнопка «Обучение»'],
+    ['landing.stat_games', 'партий', 'games analyzed', 'Подпись под числом 239K+'],
+    ['landing.stat_winrate', 'винрейт AI', 'AI win rate', 'Подпись под числом 97%'],
+    ['landing.stat_balance', 'баланс', 'balance', 'Подпись под числом 50:50'],
+    ['landing.steps_title', 'Научитесь за 3 шага', 'Learn in 3 steps', 'Заголовок блока «3 шага»'],
+    ['landing.step1_title', 'Ставьте', 'Place', 'Шаг 1 — заголовок'],
+    ['landing.step1_desc', 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.', 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.', 'Шаг 1 — описание'],
+    ['landing.step2_title', 'Переносите', 'Transfer', 'Шаг 2 — заголовок'],
+    ['landing.step2_desc', 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.', 'Move your top chip group to another stand. The key tactical move that decides games.', 'Шаг 2 — описание'],
+    ['landing.step3_title', 'Закрывайте', 'Close', 'Шаг 3 — заголовок'],
+    ['landing.step3_desc', 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!', 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!', 'Шаг 3 — описание'],
+    ['landing.features_title', 'Что внутри', "What's inside", 'Заголовок блока фич'],
+    ['landing.ai_title', 'AI на нейросети', 'Neural network AI', 'Фича: AI'],
+    ['landing.ai_desc', '239K партий self-play, архитектура AlphaZero. Играйте против сильнейшего AI.', '239K self-play games, AlphaZero architecture. Challenge the strongest AI.', 'Фича: AI описание'],
+    ['landing.puzzles_title', 'Головоломки', 'Puzzles', 'Фича: Головоломки'],
+    ['landing.puzzles_desc', 'Ежедневные и еженедельные головоломки. Найдите лучший ход.', 'Daily & weekly puzzles. Find the best move.', 'Фича: Головоломки описание'],
+    ['landing.online_title', 'Онлайн мультиплеер', 'Online multiplayer', 'Фича: Онлайн'],
+    ['landing.online_desc', 'Играйте с друзьями или случайным соперником. Турниры Best-of-3/5.', 'Play with friends or random opponents. Best-of-3/5 tournaments.', 'Фича: Онлайн описание'],
+  ]
+  for (const [key, ru, en, label] of landingSeed) ins.run(key, 'Главная', ru, en, label)
+
+  // i18n ключи
+  const i18nMap = {
+    'nav': 'Навигация', 'game': 'Игра', 'tournament': 'Турниры', 'online': 'Онлайн',
+    'daily': 'Ежедневный челлендж', 'puzzle': 'Головоломки', 'trainer': 'Тренер',
+    'swap': 'Swap / Баланс', 'replay': 'Повтор партии', 'tutorial': 'Обучение',
+    'header': 'Шапка сайта', 'common': 'Общее',
+  }
+  const i18nLabels = {
+    'nav.play': 'Меню: Играть', 'nav.online': 'Меню: Онлайн', 'nav.profile': 'Меню: Профиль',
+    'nav.rules': 'Меню: Правила', 'nav.puzzles': 'Меню: Головоломки', 'nav.simulator': 'Меню: Симулятор',
+    'nav.analytics': 'Меню: Аналитика', 'nav.replays': 'Меню: Реплеи',
+    'game.newGame': 'Кнопка «Новая игра»', 'game.confirm': 'Кнопка «Подтвердить»',
+    'game.reset': 'Кнопка «Сброс»', 'game.transfer': 'Кнопка «Сделать перенос»',
+    'game.cancelTransfer': 'Кнопка «Отменить перенос»',
+    'game.blue': 'Название: Синие', 'game.red': 'Название: Красные',
+    'game.victory': 'Текст: Победа', 'game.defeat': 'Текст: Поражение',
+    'game.aiWins': 'Текст: AI победил', 'game.gameOver': 'Текст: Игра окончена',
+    'game.place1': 'Подсказка: поставьте 1 фишку', 'game.placeChips': 'Подсказка: расставьте фишки',
+    'game.aiThinking': 'Текст: AI думает', 'game.opponentTurn': 'Текст: Ход противника',
+    'game.timeUp': 'Текст: Время вышло',
+    'header.title': 'Логотип: название в шапке',
+    'tutorial.title': 'Заголовок обучения',
+    'common.online': 'Статус: Онлайн', 'common.offline': 'Статус: Оффлайн',
+  }
+  const i18nRu = {
+    'nav.play': 'Играть', 'nav.online': 'Онлайн', 'nav.profile': 'Профиль',
+    'nav.rules': 'Правила', 'nav.puzzles': 'Головоломки', 'nav.simulator': 'Симулятор',
+    'nav.analytics': 'Аналитика', 'nav.replays': 'Реплеи',
+    'game.newGame': 'Новая игра', 'game.confirm': 'Подтвердить', 'game.reset': 'Сброс',
+    'game.transfer': '↗ Сделать перенос', 'game.cancelTransfer': '✕ Отменить перенос',
+    'game.mode': 'Режим', 'game.vsAI': 'Против AI', 'game.pvp': 'Вдвоём', 'game.spectate': 'AI vs AI',
+    'game.side': 'Сторона', 'game.blue': 'Синие', 'game.red': 'Красные',
+    'game.blueFirst': 'Синие (первый ход)', 'game.redSwap': 'Красные (swap)',
+    'game.difficulty': 'Сложность', 'game.easy': 'Лёгкая', 'game.medium': 'Средняя', 'game.hard': 'Сложная',
+    'game.hints': 'Подсказки', 'game.trainer': 'Тренер',
+    'game.victory': 'Победа!', 'game.defeat': 'Поражение', 'game.aiWins': 'AI победил',
+    'game.blueWin': 'Синие победили!', 'game.redWin': 'Красные победили!',
+    'game.gameOver': 'Игра окончена', 'game.place1': 'Поставьте 1 фишку',
+    'game.place1first': 'Ваш ход — поставьте 1 фишку',
+    'game.placeChips': 'Расставьте фишки', 'game.clickStands': 'Кликайте на стойки',
+    'game.aiFirst': 'AI ходит первым...', 'game.aiThinking': 'AI думает...',
+    'game.opponentTurn': 'Ход противника', 'game.timeUp': 'Время вышло!',
+    'game.oppTimeUp': 'У соперника вышло время!', 'game.max2stands': 'Макс 2 стойки',
+    'game.allPlaced': 'Все фишки расставлены', 'game.undone': 'Ход отменён',
+    'game.yourTurn': 'ваш ход', 'game.pass': 'пас',
+    'game.swapDone': 'Swap выполнен — цвета поменялись', 'game.swapOnlineDone': 'Swap — вы теперь синие',
+    'game.selectTransferFrom': 'Выберите стойку для переноса', 'game.transferSelected': 'Перенос выбран, расставьте фишки',
+    'game.transferCancelled': 'Перенос отменён', 'game.swap': 'Swap — смена цветов',
+    'header.title': 'Перехват высотки', 'header.totalUsers': 'игроков', 'header.totalGames': 'партий', 'header.avgRating': 'ср. рейтинг',
+    'tutorial.title': 'Как играть',
+    'common.online': 'Онлайн', 'common.offline': 'Оффлайн',
+    'tournament.won': 'Турнир выигран!', 'tournament.lost': 'Турнир проигран', 'tournament.draw': 'Ничья в турнире',
+    'trainer.strong': 'Сильная позиция', 'trainer.slight': 'Небольшое преимущество',
+    'trainer.equal': 'Равная позиция', 'trainer.weak': 'Слабая позиция', 'trainer.bad': 'Плохая позиция',
+  }
+  const i18nEn = {
+    'nav.play': 'Play', 'nav.online': 'Online', 'nav.profile': 'Profile',
+    'nav.rules': 'Rules', 'nav.puzzles': 'Puzzles', 'nav.simulator': 'Simulator',
+    'nav.analytics': 'Analytics', 'nav.replays': 'Replays',
+    'game.newGame': 'New game', 'game.confirm': 'Confirm', 'game.reset': 'Reset',
+    'game.transfer': '↗ Transfer', 'game.cancelTransfer': '✕ Cancel transfer',
+    'game.mode': 'Mode', 'game.vsAI': 'vs AI', 'game.pvp': 'PvP', 'game.spectate': 'AI vs AI',
+    'game.side': 'Side', 'game.blue': 'Blue', 'game.red': 'Red',
+    'game.blueFirst': 'Blue (first move)', 'game.redSwap': 'Red (swap)',
+    'game.difficulty': 'Difficulty', 'game.easy': 'Easy', 'game.medium': 'Medium', 'game.hard': 'Hard',
+    'game.hints': 'Hints', 'game.trainer': 'Trainer',
+    'game.victory': 'Victory!', 'game.defeat': 'Defeat', 'game.aiWins': 'AI wins',
+    'game.blueWin': 'Blue wins!', 'game.redWin': 'Red wins!',
+    'game.gameOver': 'Game over', 'game.place1': 'Place 1 chip',
+    'game.place1first': 'Your turn — place 1 chip', 'game.placeChips': 'Place chips',
+    'game.clickStands': 'Click stands to place', 'game.aiFirst': 'AI goes first...',
+    'game.aiThinking': 'AI thinking...', 'game.opponentTurn': "Opponent's turn",
+    'game.timeUp': 'Time up!', 'game.oppTimeUp': "Opponent's time is up!",
+    'game.max2stands': 'Max 2 stands', 'game.allPlaced': 'All chips placed',
+    'game.undone': 'Move undone', 'game.yourTurn': 'your turn', 'game.pass': 'pass',
+    'game.swapDone': 'Swap done — colors changed', 'game.swapOnlineDone': 'Swap — you are now blue',
+    'game.selectTransferFrom': 'Select stand to transfer from', 'game.transferSelected': 'Transfer set, place chips',
+    'game.transferCancelled': 'Transfer cancelled', 'game.swap': 'Swap colors',
+    'header.title': 'Snatch Highrise', 'header.totalUsers': 'players', 'header.totalGames': 'games', 'header.avgRating': 'avg rating',
+    'tutorial.title': 'How to play',
+    'common.online': 'Online', 'common.offline': 'Offline',
+    'tournament.won': 'Tournament won!', 'tournament.lost': 'Tournament lost', 'tournament.draw': 'Tournament draw',
+    'trainer.strong': 'Strong position', 'trainer.slight': 'Slight advantage',
+    'trainer.equal': 'Equal position', 'trainer.weak': 'Weak position', 'trainer.bad': 'Bad position',
+  }
+
+  for (const key of Object.keys(i18nRu)) {
+    const prefix = key.split('.')[0]
+    const section = i18nMap[prefix] || 'Другое'
+    const label = i18nLabels[key] || key
+    ins.run(key, section, i18nRu[key], i18nEn[key] || '', label)
+  }
+
+  console.log('Контент сайта засеян: сайт + главная + i18n')
+}
+
+console.log('База данных готова:', DB_PATH)
+
+// ═══ Ачивки ═══
+const ALL_ACHIEVEMENTS = [
+  { id: 'first_win', check: u => u.wins >= 1 },
+  { id: 'streak_3', check: u => u.best_streak >= 3 },
+  { id: 'streak_5', check: u => u.best_streak >= 5 },
+  { id: 'streak_10', check: u => u.best_streak >= 10 },
+  { id: 'golden_1', check: u => u.golden_closed >= 1 },
+  { id: 'golden_10', check: u => u.golden_closed >= 10 },
+  { id: 'comeback', check: u => u.comebacks >= 1 },
+  { id: 'games_10', check: u => u.games_played >= 10 },
+  { id: 'games_50', check: u => u.games_played >= 50 },
+  { id: 'games_100', check: u => u.games_played >= 100 },
+  { id: 'rating_1200', check: u => u.rating >= 1200 },
+  { id: 'rating_1500', check: u => u.rating >= 1500 },
+  { id: 'beat_hard', check: u => u.beat_hard_ai },
+  { id: 'perfect', check: u => u.perfect_wins >= 1 },
+  { id: 'streak_20', check: u => u.best_streak >= 20 },
+  { id: 'games_500', check: u => u.games_played >= 500 },
+  { id: 'golden_50', check: u => u.golden_closed >= 50 },
+  { id: 'comeback_5', check: u => u.comebacks >= 5 },
+  { id: 'perfect_3', check: u => u.perfect_wins >= 3 },
+  { id: 'rating_1800', check: u => u.rating >= 1800 },
+  { id: 'rating_2000', check: u => u.rating >= 2000 },
+  { id: 'fast_win', check: u => (u.fast_wins || 0) >= 1 },
+  { id: 'fast_win_5', check: u => (u.fast_wins || 0) >= 5 },
+  { id: 'online_win', check: u => (u.online_wins || 0) >= 1 },
+  { id: 'online_10', check: u => (u.online_wins || 0) >= 10 },
+  { id: 'puzzle_10', check: u => (u.puzzles_solved || 0) >= 10 },
+]
+
+export function checkAchievements(userId) {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId)
+  if (!user) return []
+  const existing = db.prepare('SELECT achievement_id FROM achievements WHERE user_id = ?').all(userId).map(a => a.achievement_id)
+  const newAch = []
+  const insert = db.prepare('INSERT OR IGNORE INTO achievements (user_id, achievement_id) VALUES (?, ?)')
+  for (const ach of ALL_ACHIEVEMENTS) {
+    if (!existing.includes(ach.id) && ach.check(user)) {
+      insert.run(userId, ach.id)
+      newAch.push(ach.id)
+    }
+  }
+  return newAch
+}
+
+export { bcrypt }
+export { __dirname as serverDir }
