@@ -76,8 +76,52 @@ export function sampleRandomAction(state) {
 }
 
 /**
- * Оценка позиции: гибрид (N-ходовой rollout + нейросеть) или чистый rollout
- * rolloutDepth: сколько ходов доиграть перед оценкой NN (больше = точнее, но медленнее)
+ * Тактическая эвристика — бонусы/штрафы за конкретные паттерны
+ * Возвращает значение от -1 до +1 с точки зрения player
+ */
+function heuristicEval(state, player) {
+  const opp = 1 - player
+  let score = 0
+
+  // Закрытые стойки — самое важное
+  const myClosed = state.countClosed(player)
+  const oppClosed = state.countClosed(opp)
+  score += (myClosed - oppClosed) * 0.15
+
+  // Золотая стойка — двойная ценность
+  if (0 in state.closed) {
+    score += state.closed[0] === player ? 0.12 : -0.12
+  }
+
+  // Анализ открытых стоек
+  for (let i = 0; i < state.numStands; i++) {
+    if (i in state.closed) continue
+    const chips = state.stands[i]
+    if (!chips.length) continue
+    const [topColor, topSize] = state.topGroup(i)
+    const total = chips.length
+    const space = 11 - total
+
+    // Стойка почти закрыта (8+ фишек) с нашими сверху — очень ценно
+    if (total >= 8 && topColor === player) {
+      score += (i === 0 ? 0.08 : 0.05) // золотая ценнее
+    }
+    // Стойка почти закрыта с чужими сверху — опасность
+    if (total >= 8 && topColor === opp) {
+      score -= (i === 0 ? 0.08 : 0.05)
+    }
+
+    // Доминирование верха — контроль позиции
+    if (topSize >= 3 && topColor === player) score += 0.02
+    if (topSize >= 3 && topColor === opp) score -= 0.02
+  }
+
+  return Math.max(-1, Math.min(1, score))
+}
+
+/**
+ * Оценка позиции: GPU eval + тактические эвристики
+ * GPU-сеть даёт стратегическую оценку, эвристики — тактическую
  */
 function evaluatePosition(state, player, rolloutDepth = 3) {
   if (state.gameOver) {
@@ -86,7 +130,7 @@ function evaluatePosition(state, player, rolloutDepth = 3) {
     return 0
   }
 
-  // С нейросетью: доиграть rolloutDepth ходов рандомно → оценить NN
+  // С нейросетью: гибрид NN + heuristic
   if (nnReady()) {
     let s = state
     for (let d = 0; d < rolloutDepth && !s.gameOver; d++) {
@@ -97,8 +141,13 @@ function evaluatePosition(state, player, rolloutDepth = 3) {
       if (s.winner === 1 - player) return -1
       return 0
     }
-    const val = nnEvaluate(s)
-    return s.currentPlayer === player ? val : -val
+    const nnVal = nnEvaluate(s)
+    const nn = s.currentPlayer === player ? nnVal : -nnVal
+    const heur = heuristicEval(s, player)
+    // GPU-сеть: 60% NN + 40% эвристика (сеть v500 ещё слабая)
+    // CPU-сеть: 40% NN + 60% эвристика
+    const nnWeight = isGpuReady() ? 0.6 : 0.4
+    return nn * nnWeight + heur * (1 - nnWeight)
   }
 
   // Fallback: случайный rollout
@@ -129,6 +178,45 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   const useNN = nnReady()
   const useGpuNet = isGpuReady()
 
+  /** Умная установка: приоритет стойкам с нашим контролем и близким к закрытию */
+  function smartPlacement(st, exclude = []) {
+    const canClose = st.canCloseByPlacement()
+    const minSpace = canClose ? 0 : 1
+    const avail = st.openStands().filter(i => !exclude.includes(i) && st.standSpace(i) > minSpace)
+    if (!avail.length) return {}
+
+    // Оцениваем каждую стойку
+    const scored = avail.map(i => {
+      const chips = st.stands[i]
+      const [tc, ts] = st.topGroup(i)
+      const total = chips.length
+      let score = total * 2 // Больше фишек — ближе к закрытию
+      if (tc === player) score += 10 + ts * 3 // Наши сверху — ценно
+      if (tc === 1 - player) score -= 5 // Чужие сверху — не ставим
+      if (i === 0) score += 5 // Золотая
+      if (total >= 7 && tc === player) score += 20 // Почти закрываем!
+      if (total >= 7 && tc === 1 - player) score += 8 // Блокируем
+      return { i, score }
+    }).sort((a, b) => b.score - a.score)
+
+    const pl = {}
+    let rem = maxP
+    // Ставим на лучшие стойки
+    const topN = Math.min(2, scored.filter(s => s.score > 0).length)
+    for (let k = 0; k < topN && rem > 0; k++) {
+      const { i } = scored[k]
+      const cap = canClose ? Math.min(st.standSpace(i), rem) : Math.min(st.standSpace(i) - 1, rem)
+      if (cap > 0) { pl[i] = Math.min(cap, rem); rem -= pl[i] }
+    }
+    // Если остались фишки — на следующую лучшую
+    if (rem > 0 && scored.length > topN) {
+      const { i } = scored[topN]
+      const cap = canClose ? Math.min(st.standSpace(i), rem) : Math.min(st.standSpace(i) - 1, rem)
+      if (cap > 0) pl[i] = Math.min(cap, rem)
+    }
+    return pl
+  }
+
   function randPlacement(st, exclude = []) {
     const canClose = st.canCloseByPlacement()
     const minSpace = canClose ? 0 : 1
@@ -146,7 +234,7 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     return pl
   }
 
-  // ── Генерация кандидатов — чем сильнее AI, тем больше ──
+  // ── Генерация кандидатов ──
   const isHard = numSimulations >= 300
 
   // Swap
@@ -154,57 +242,78 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     actions.push({ swap: true })
   }
 
-  // ВСЕ закрывающие переносы (полный перебор)
+  // ═══ ЗАКРЫВАЮЩИЕ ПЕРЕНОСЫ (высший приоритет) ═══
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
-    if (state.stands[dst].length + gs >= MAX_CHIPS) {
-      // Каждый закрывающий перенос с несколькими вариантами установки
-      for (let k = 0; k < (gc === player ? 4 : 2); k++) {
-        actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
+    if (state.stands[dst].length + gs >= MAX_CHIPS && gc === player) {
+      // Наш закрывающий — 6 вариантов установки (максимальный приоритет)
+      for (let k = 0; k < 6; k++) {
+        actions.push({ transfer: [src, dst], placement: k < 3 ? smartPlacement(state, [src, dst]) : randPlacement(state, [src, dst]) })
       }
     }
   }
-
-  // Стратегические переносы
-  const strat = transfers.filter(([s, d]) => {
-    const [, gs] = state.topGroup(s)
-    return state.stands[d].length + gs < MAX_CHIPS
-  })
-  // Для сложных: все переносы, для лёгких: рандомная выборка
-  const stratSample = isHard ? strat : strat.sort(() => Math.random() - 0.5).slice(0, 5)
-  for (const t of stratSample) {
-    actions.push({ transfer: t, placement: randPlacement(state, [t[0], t[1]]) })
-    if (isHard) actions.push({ transfer: t, placement: randPlacement(state, [t[0], t[1]]) })
+  // Вражеские закрывающие — тоже добавляем (иногда выгодно закрыть за противника, захватив потом)
+  for (const [src, dst] of transfers) {
+    const [gc, gs] = state.topGroup(src)
+    if (state.stands[dst].length + gs >= MAX_CHIPS && gc !== player) {
+      actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
+    }
   }
 
-  // Установки: на каждую открытую стойку — несколько вариантов
+  // ═══ ПОДГОТОВИТЕЛЬНЫЕ ПЕРЕНОСЫ — строим к закрытию ═══
+  for (const [src, dst] of transfers) {
+    const [gc, gs] = state.topGroup(src)
+    const dstTotal = state.stands[dst].length
+    if (dstTotal + gs >= MAX_CHIPS) continue // уже выше
+    // Перенос наших фишек на стойку где мы доминируем — строим к 11
+    const [dtc] = state.topGroup(dst)
+    if (gc === player && (dstTotal + gs >= 7)) {
+      // Высокая стойка + наш перенос = почти закрытие
+      actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
+      actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
+    } else if (gc === player) {
+      actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
+    }
+  }
+
+  // ═══ УМНЫЕ УСТАНОВКИ ═══
   const canCloseP = state.canCloseByPlacement()
   const minSpP = canCloseP ? 0 : 1
   const avail = state.openStands().filter(i => state.standSpace(i) > minSpP)
   if (avail.length) {
-    const sorted = [...avail].sort((a, b) => state.stands[b].length - state.stands[a].length)
-    // Одиночные установки
-    for (let k = 0; k < Math.min(isHard ? 10 : 6, sorted.length); k++) {
-      const idx = sorted[k]
+    // Сортируем: наши высокие стойки первые
+    const scored = avail.map(i => {
+      const [tc, ts] = state.topGroup(i)
+      const total = state.stands[i].length
+      let s = total * 2
+      if (tc === player) s += 10 + ts * 3
+      if (tc === 1 - player) s -= 3
+      if (i === 0) s += 5
+      if (total >= 7 && tc === player) s += 20
+      return { i, s }
+    }).sort((a, b) => b.s - a.s)
+
+    // Полная установка на лучшие стойки
+    for (let k = 0; k < Math.min(isHard ? 8 : 5, scored.length); k++) {
+      const idx = scored[k].i
       const sp = canCloseP ? state.standSpace(idx) : state.standSpace(idx) - 1
-      if (sp > 0) actions.push({ placement: { [idx]: Math.min(maxP, sp) } })
-      if (sp > 1 && maxP >= 2) actions.push({ placement: { [idx]: 1 } })
-      if (sp > 2 && maxP >= 3) actions.push({ placement: { [idx]: 2 } })
+      if (sp > 0) {
+        actions.push({ placement: { [idx]: Math.min(maxP, sp) } })
+        if (sp > 1 && maxP >= 2) actions.push({ placement: { [idx]: 2 } })
+        if (maxP >= 1) actions.push({ placement: { [idx]: 1 } })
+      }
     }
-    // Двойные установки
-    if (avail.length >= 2 && maxP >= 2) {
-      const lim = isHard ? 5 : 3
-      for (let i = 0; i < Math.min(lim, sorted.length); i++) {
-        for (let j = i + 1; j < Math.min(lim + 1, sorted.length); j++) {
-          const [i1, i2] = [sorted[i], sorted[j]]
+
+    // Двойные установки на 2 лучших стойки
+    if (scored.length >= 2 && maxP >= 2) {
+      for (let i = 0; i < Math.min(4, scored.length); i++) {
+        for (let j = i + 1; j < Math.min(5, scored.length); j++) {
+          const [i1, i2] = [scored[i].i, scored[j].i]
           const s1 = canCloseP ? state.standSpace(i1) : state.standSpace(i1) - 1
           const s2 = canCloseP ? state.standSpace(i2) : state.standSpace(i2) - 1
           if (s1 > 0 && s2 > 0) {
             actions.push({ placement: { [i1]: Math.min(2, s1), [i2]: 1 } })
             actions.push({ placement: { [i1]: 1, [i2]: Math.min(2, s2) } })
-            if (maxP >= 3 && s1 > 1 && s2 > 1) {
-              actions.push({ placement: { [i1]: 2, [i2]: 1 } })
-            }
           }
         }
       }
