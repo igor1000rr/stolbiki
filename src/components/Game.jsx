@@ -235,8 +235,8 @@ export default function Game() {
       moveHistoryRef.current = []
       setShowReplay(false)
 
-      const myName = players[playerIdx] || (lang === 'en' ? 'You' : 'Вы')
-      const oppName = players[1 - playerIdx] || (lang === 'en' ? 'Opponent' : 'Противник')
+      const myName = players[playerIdx] || t('game.you')
+      const oppName = players[1 - playerIdx] || t('game.opponent')
       setLog([{ text: `Онлайн: ${myName} vs ${oppName}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
 
       if (state.currentPlayer === myColor) {
@@ -294,7 +294,7 @@ export default function Game() {
             setTransfer(null)
             setPlacement({})
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.placeChips'))
-            if (document.hidden) startTitleBlink(lang === 'en' ? 'Your turn!' : 'Ваш ход!')
+            if (document.hidden) startTitleBlink(t('game.yourTurnBlink'))
           }, 300)
         } else {
           setLocked(true)
@@ -310,7 +310,7 @@ export default function Game() {
     function handleOnlineResign() {
       const myColor = onlineRef.current?.myColor ?? 0
       setResult(myColor); setPhase('done'); setLocked(false)
-      setInfo(lang === 'en' ? 'Opponent resigned!' : 'Противник сдался!')
+      setInfo(t('game.opponentResigned'))
       sw()
     }
 
@@ -323,9 +323,9 @@ export default function Game() {
     function handleDrawResponse(e) {
       if (e.detail?.accepted) {
         setResult(-1); setPhase('done'); setLocked(false)
-        setInfo(lang === 'en' ? 'Draw agreed' : 'Согласована ничья')
+        setInfo(t('game.drawAgreed'))
       } else {
-        setInfo(lang === 'en' ? 'Draw declined' : 'Ничья отклонена')
+        setInfo(t('game.drawDeclined'))
       }
       setDrawOffered(false)
     }
@@ -843,7 +843,7 @@ export default function Game() {
     if (gs.gameOver) return
     const winner = mode === 'online' ? (1 - (onlineRef.current?.myColor ?? 0)) : (1 - humanPlayer)
     setResult(winner); setPhase('done'); setLocked(false)
-    setInfo(lang === 'en' ? 'Resigned' : 'Сдались')
+    setInfo(t('game.resigned'))
     finishRecording(winner, [gs.countClosed(0), gs.countClosed(1)])
     // Notify opponent in online
     if (mode === 'online') {
@@ -911,27 +911,27 @@ export default function Game() {
 
       {mode !== 'online' && (
       <div className="game-settings">
-        <label>{ lang === 'en' ? 'Mode:' : 'Режим:' }
+        <label>{t('game.modeLabel')}
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
-            <option value="ai">{ lang === 'en' ? 'vs AI' : 'Против AI' }</option>
-            <option value="pvp">{ lang === 'en' ? 'PvP' : 'Вдвоём' }</option>
+            <option value="ai">{t('game.vsAI')}</option>
+            <option value="pvp">{t('game.pvp')}</option>
             <option value="spectate">AI vs AI</option>
           </select>
         </label>
         {mode === 'ai' && (
-          <label>{ lang === 'en' ? 'Side:' : 'Сторона:' }
+          <label>{t('game.sideLabel')}
             <select value={humanPlayer} onChange={e => newGame(+e.target.value, difficulty, mode)}>
-              <option value={0}>{ lang === 'en' ? 'Blue (first move)' : 'Синие (первый ход)' }</option>
-              <option value={1}>{ lang === 'en' ? 'Red (swap)' : 'Красные (swap)' }</option>
+              <option value={0}>{t('game.blueFirst')}</option>
+              <option value={1}>{t('game.redSwap')}</option>
             </select>
           </label>
         )}
         {mode === 'ai' && (
-          <label>{ lang === 'en' ? 'Difficulty:' : 'Сложность:' }
+          <label>{t('game.diffLabel')}
             <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value, mode)}>
-              <option value={50}>{ lang === 'en' ? 'Easy' : 'Лёгкая' }</option>
-              <option value={150}>{ lang === 'en' ? 'Medium' : 'Средняя' }</option>
-              <option value={400}>{ lang === 'en' ? 'Hard' : 'Сложная' }</option>
+              <option value={50}>{t('game.easy')}</option>
+              <option value={150}>{t('game.medium')}</option>
+              <option value={400}>{t('game.hard')}</option>
             </select>
           </label>
         )}
@@ -1101,7 +1101,7 @@ export default function Game() {
       {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
         <div style={{ textAlign: 'center', margin: '8px 0' }}>
           <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>
-            {lang === 'en' ? 'Player 1 placed the first chip. Swap colors?' : 'Игрок 1 поставил первую фишку. Хотите поменять цвета?'}
+            {t('game.swapQuestion')}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button className="btn" onClick={() => {
@@ -1126,9 +1126,9 @@ export default function Game() {
               Swap
             </button>
             <button className="btn" onClick={() => {
-              setInfo(lang === 'en' ? 'Swap declined' : 'Swap отклонён')
+              setInfo(t('game.swapDeclined'))
             }} style={{ fontSize: 12, padding: '10px 16px' }}>
-              {lang === 'en' ? 'No, continue' : 'Нет, продолжить'}
+              {t('game.noContinue')}
             </button>
           </div>
         </div>
@@ -1139,22 +1139,22 @@ export default function Game() {
         <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
           background: 'rgba(155,89,182,0.08)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.2)' }}>
           <div style={{ fontSize: 12, color: '#c8c4d8', marginBottom: 8 }}>
-            {lang === 'en' ? 'Opponent offers a draw' : 'Противник предлагает ничью'}
+            {t('game.drawOfferReceived')}
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
             <button className="btn" onClick={() => {
               MP.send({ type: 'drawResponse', accepted: true })
               setResult(-1); setPhase('done'); setLocked(false)
-              setInfo(lang === 'en' ? 'Draw agreed' : 'Ничья')
+              setInfo(t('game.drawAgreed'))
               setDrawOffered(false)
             }} style={{ borderColor: '#3dd68c', color: '#3dd68c' }}>
-              {lang === 'en' ? 'Accept' : 'Принять'}
+              {t('game.accept')}
             </button>
             <button className="btn" onClick={() => {
               MP.send({ type: 'drawResponse', accepted: false })
               setDrawOffered(false)
             }} style={{ fontSize: 12 }}>
-              {lang === 'en' ? 'Decline' : 'Отклонить'}
+              {t('game.decline')}
             </button>
           </div>
         </div>
@@ -1180,25 +1180,25 @@ export default function Game() {
         )}
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: '#ffbe30', color: '#ffbe30' }}>
-            {hintLoading ? '...' : (lang === 'en' ? 'Hint' : 'Подсказка')}
+            {hintLoading ? '...' : (t('game.hint'))}
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
         {!gs.gameOver && mode !== 'pvp' && (
           <button className="btn" onClick={resign} style={{ fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
-            {lang === 'en' ? 'Resign' : 'Сдаться'}
+            {t('game.resign')}
           </button>
         )}
         {!gs.gameOver && mode === 'online' && (
           <button className="btn" onClick={() => {
             MP.send({ type: 'drawOffer' })
-            setInfo(lang === 'en' ? 'Draw offered...' : 'Ничья предложена...')
+            setInfo(t('game.drawOffered'))
           }} style={{ fontSize: 11, opacity: 0.6 }}>
-            {lang === 'en' ? 'Offer draw' : 'Ничья'}
+            {t('game.offerDraw')}
           </button>
         )}
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
-          <button className="btn" onClick={undoMove} style={{ fontSize: 11 }}>{lang === 'en' ? 'Undo' : 'Отмена'}</button>
+          <button className="btn" onClick={undoMove} style={{ fontSize: 11 }}>{t('game.undo')}</button>
         )}
       </div>
 
@@ -1225,7 +1225,7 @@ export default function Game() {
           <div className="game-result" style={{ borderLeft: `3px solid ${isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>{isDraw ? '=' : won ? '\o/' : '—'}</div>
             <span style={{ fontSize: 20 }}>{isDraw
-              ? (lang === 'en' ? 'Draw' : 'Ничья')
+              ? (t('game.draw'))
               : mode === 'pvp'
               ? `${result === 0 ? t('game.blueWin') : t('game.redWin')}`
               : mode === 'online'
@@ -1244,7 +1244,7 @@ export default function Game() {
                   if (mode === 'online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))
                   else newGame()
                 }} style={{ fontSize: 12, padding: '8px 16px' }}>
-                  {mode === 'online' ? (lang === 'en' ? 'Back to lobby' : 'В лобби') : (lang === 'en' ? 'New game' : 'Ещё партию')}
+                  {mode === 'online' ? (t('game.backToLobby')) : (t('game.anotherGame'))}
                 </button>
               )}
               {mode === 'ai' && !tournament && (
@@ -1308,11 +1308,11 @@ export default function Game() {
                   navigator.clipboard?.writeText(shareText)
                 }
               }} style={{ fontSize: 12, padding: '8px 12px' }}>
-                {lang === 'en' ? 'Share' : 'Поделиться'}
+                {t('game.share')}
               </button>
               {moveHistoryRef.current.length > 0 && (
                 <button className="btn" onClick={() => setShowReplay(true)} style={{ fontSize: 12, padding: '8px 12px' }}>
-                  {lang === 'en' ? 'Replay' : 'Повтор'}
+                  {t('game.replay')}
                 </button>
               )}
             </div>

@@ -53,7 +53,7 @@ function PostView({ post, lang, onBack }) {
   return (
     <article style={{ maxWidth: 700, margin: '0 auto' }}>
       <button className="btn" onClick={onBack} style={{ fontSize: 11, padding: '5px 12px', marginBottom: 16 }}>
-        ← {lang === 'en' ? 'All posts' : 'Все записи'}
+        ← {t('blog.allPosts')}
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -120,20 +120,20 @@ export default function Blog() {
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 22, color: 'var(--ink)', fontWeight: 700, margin: 0 }}>
-          {lang === 'en' ? 'Blog' : 'Блог'}
+          {t('blog.title')}
         </h2>
         <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
-          {lang === 'en' ? 'News, updates, and development log' : 'Новости, обновления и дневник разработки'}
+          {t('blog.subtitle')}
         </p>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 40 }}>
-          {lang === 'en' ? 'Loading...' : 'Загрузка...'}
+          {t('common.loading')}
         </div>
       ) : posts.length === 0 ? (
         <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 40 }}>
-          {lang === 'en' ? 'No posts yet' : 'Пока нет записей'}
+          {t('blog.noPosts')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

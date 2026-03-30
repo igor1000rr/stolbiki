@@ -35,13 +35,13 @@ function PuzzleLeaderboard({ data, lang }) {
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-        {lang === 'en' ? 'Leaderboard' : 'Лидерборд'}
+        {t('puzzle.leaderboard')}
       </div>
       {data.slice(0, 5).map((r, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 11, color: 'var(--ink2)' }}>
           <span style={{ width: 16, color: i === 0 ? '#ffc145' : 'var(--ink3)', fontWeight: 700 }}>{i + 1}</span>
           <span style={{ flex: 1 }}>{r.username}</span>
-          <span style={{ color: 'var(--ink3)' }}>{r.moves_used} {lang === 'en' ? 'moves' : 'ход.'}</span>
+          <span style={{ color: 'var(--ink3)' }}>{r.moves_used} {t('puzzle.movesShort')}</span>
         </div>
       ))}
     </div>
@@ -66,14 +66,14 @@ function PuzzleCard({ puzzle, lang, onPlay, userSolved }) {
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>{title}</span>
         {solved && <span style={{ fontSize: 14 }}></span>}
         <span style={{ fontSize: 10, color: 'var(--ink3)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 4 }}>
-          {puzzle.maxMoves} {lang === 'en' ? 'moves' : 'ход.'}
+          {puzzle.maxMoves} {t('puzzle.movesShort')}
         </span>
       </div>
       <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5 }}>{desc}</div>
       <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 10, color: 'var(--ink3)' }}>
         <span>{diff}</span>
-        {solveRate !== null && <span>{lang === 'en' ? 'Solve rate' : 'Решаемость'}: {solveRate}%</span>}
-        {puzzle.stats?.solved > 0 && <span>{puzzle.stats.solved} {lang === 'en' ? 'solved' : 'решили'}</span>}
+        {solveRate !== null && <span>{t('puzzle.solveRate')}: {solveRate}%</span>}
+        {puzzle.stats?.solved > 0 && <span>{puzzle.stats.solved} {t('puzzle.solvedCount')}</span>}
       </div>
     </div>
   )
@@ -199,7 +199,7 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
           <div style={{ fontSize: 20, fontWeight: 800, color: movesUsed >= puzzle.maxMoves ? 'var(--p2)' : 'var(--ink)' }}>
             {movesUsed}/{puzzle.maxMoves}
           </div>
-          <div style={{ fontSize: 9, color: 'var(--ink3)' }}>{lang === 'en' ? 'moves' : 'ходов'}</div>
+          <div style={{ fontSize: 9, color: 'var(--ink3)' }}>{t('puzzle.movesCount')}</div>
         </div>
       </div>
 
@@ -210,11 +210,11 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>{status === 'solved' ? '!' : ''}</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: status === 'solved' ? 'var(--green)' : 'var(--p2)', marginBottom: 12 }}>
-            {status === 'solved' ? (lang === 'en' ? 'Solved!' : 'Решено!') : (lang === 'en' ? 'Failed' : 'Не удалось')}
+            {status === 'solved' ? t('puzzle.solvedStatus') : t('puzzle.failedStatus')}
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button className="btn" onClick={reset}>{lang === 'en' ? 'Retry' : 'Заново'}</button>
-            <button className="btn primary" onClick={onBack}>{lang === 'en' ? 'Back' : 'К списку'}</button>
+            <button className="btn" onClick={reset}>{t('puzzle.retryBtn')}</button>
+            <button className="btn primary" onClick={onBack}>{t('puzzle.backBtn')}</button>
           </div>
         </div>
       )}
@@ -299,23 +299,23 @@ export default function Puzzles() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 22, color: 'var(--ink)', fontWeight: 700, margin: 0 }}>
-            {lang === 'en' ? 'Puzzles' : 'Головоломки'}
+            {t('puzzle.title')}
           </h2>
           <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-            {lang === 'en' ? 'Close stands in limited moves' : 'Закрывайте стойки за ограниченное число ходов'}
+            {t('puzzle.closeStands')}
           </p>
         </div>
         <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--ink3)' }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>{solvedSet.size}</div>
-          {lang === 'en' ? 'solved' : 'решено'}
+          {t('puzzle.solvedLabel')}
         </div>
       </div>
 
       {/* Табы */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
         {[
-          ['featured', lang === 'en' ? ' Featured' : ' Избранные'],
-          ['bank', lang === 'en' ? ' All puzzles' : ' Все головоломки'],
+          ['featured', ' ' + t('puzzle.featured')],
+          ['bank', ' ' + t('puzzle.allPuzzles')],
         ].map(([id, label]) => (
           <button key={id} className={`btn ${tab === id ? 'primary' : ''}`} onClick={() => setTab(id)}
             style={{ fontSize: 12, padding: '7px 16px' }}>
@@ -333,9 +333,9 @@ export default function Puzzles() {
               <span style={{ fontSize: 28 }}></span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-                  {lang === 'en' ? 'Daily Puzzle' : 'Головоломка дня'}
+                  {t('puzzle.dailyTitle')}
                 </div>
-                <Countdown label={lang === 'en' ? 'Next in' : 'Новая через'} targetDate={nextDay.getTime()} />
+                <Countdown label={t('puzzle.nextIn')} targetDate={nextDay.getTime()} />
               </div>
               {daily && solvedSet.has(`daily:${daily.id}`) && <span style={{ fontSize: 20 }}></span>}
             </div>
@@ -348,19 +348,19 @@ export default function Puzzles() {
                   <span style={{ fontSize: 10, color: DIFF_COLORS[daily.difficulty], background: `${DIFF_COLORS[daily.difficulty]}15`, padding: '2px 8px', borderRadius: 4 }}>
                     {DIFF_LABELS[daily.difficulty]?.[lang]}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{daily.maxMoves} {lang === 'en' ? 'moves' : 'ходов'}</span>
+                  <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{daily.maxMoves} {t('puzzle.movesCount')}</span>
                   {daily.stats?.solved > 0 && (
                     <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{daily.stats.solved} ✓</span>
                   )}
                 </div>
                 <button className="btn primary" onClick={() => setActivePuzzle({ ...daily, type: 'daily' })}
                   style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '10px 0' }}>
-                  {solvedSet.has(`daily:${daily.id}`) ? (lang === 'en' ? '↻ Replay' : '↻ Переиграть') : (lang === 'en' ? '▶ Play' : '▶ Играть')}
+                  {solvedSet.has(`daily:${daily.id}`) ? t('puzzle.replayBtn') : t('puzzle.playBtn')}
                 </button>
                 <PuzzleLeaderboard data={daily.leaderboard} lang={lang} />
               </>
             ) : (
-              <div style={{ color: 'var(--ink3)', fontSize: 12 }}>{lang === 'en' ? 'Loading...' : 'Загрузка...'}</div>
+              <div style={{ color: 'var(--ink3)', fontSize: 12 }}>{t('common.loading')}</div>
             )}
           </div>
 
@@ -370,9 +370,9 @@ export default function Puzzles() {
               <span style={{ fontSize: 28 }}></span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-                  {lang === 'en' ? 'Weekly Challenge' : 'Задача недели'}
+                  {t('puzzle.weeklyTitle')}
                 </div>
-                <Countdown label={lang === 'en' ? 'Next in' : 'Новая через'} targetDate={nextMonday.getTime()} />
+                <Countdown label={t('puzzle.nextIn')} targetDate={nextMonday.getTime()} />
               </div>
               {weekly && solvedSet.has(`weekly:${weekly.id}`) && <span style={{ fontSize: 20 }}></span>}
             </div>
@@ -385,16 +385,16 @@ export default function Puzzles() {
                   <span style={{ fontSize: 10, color: DIFF_COLORS[weekly.difficulty], background: `${DIFF_COLORS[weekly.difficulty]}15`, padding: '2px 8px', borderRadius: 4 }}>
                     {DIFF_LABELS[weekly.difficulty]?.[lang]}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{weekly.maxMoves} {lang === 'en' ? 'moves' : 'ходов'}</span>
+                  <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{weekly.maxMoves} {t('puzzle.movesCount')}</span>
                 </div>
                 <button className="btn primary" onClick={() => setActivePuzzle({ ...weekly, type: 'weekly' })}
                   style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '10px 0' }}>
-                  {solvedSet.has(`weekly:${weekly.id}`) ? (lang === 'en' ? '↻ Replay' : '↻ Переиграть') : (lang === 'en' ? '▶ Play' : '▶ Играть')}
+                  {solvedSet.has(`weekly:${weekly.id}`) ? t('puzzle.replayBtn') : t('puzzle.playBtn')}
                 </button>
                 <PuzzleLeaderboard data={weekly.leaderboard} lang={lang} />
               </>
             ) : (
-              <div style={{ color: 'var(--ink3)', fontSize: 12 }}>{lang === 'en' ? 'Loading...' : 'Загрузка...'}</div>
+              <div style={{ color: 'var(--ink3)', fontSize: 12 }}>{t('common.loading')}</div>
             )}
           </div>
         </div>
@@ -406,10 +406,10 @@ export default function Puzzles() {
           {/* Фильтр сложности */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
             {[
-              [0, lang === 'en' ? 'All' : 'Все'],
-              [1, lang === 'en' ? 'Easy' : 'Лёгкие'],
-              [2, lang === 'en' ? 'Medium' : 'Средние'],
-              [3, lang === 'en' ? 'Hard' : 'Сложные'],
+              [0, t('puzzle.filterAll')],
+              [1, t('puzzle.filterEasy')],
+              [2, t('puzzle.filterMedium')],
+              [3, t('puzzle.filterHard')],
             ].map(([d, label]) => (
               <button key={d} className={`btn ${bankDiff === d ? 'primary' : ''}`}
                 onClick={() => { setBankDiff(d); setBankPage(1) }}
@@ -429,7 +429,7 @@ export default function Puzzles() {
           </div>
           {(!bank?.puzzles?.length) && (
             <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 40, fontSize: 13 }}>
-              {lang === 'en' ? 'Loading puzzles...' : 'Загрузка головоломок...'}
+              {t('puzzle.loadingPuzzles')}
             </div>
           )}
 

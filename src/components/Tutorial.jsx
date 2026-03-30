@@ -198,13 +198,13 @@ export default function Tutorial({ onClose }) {
             <button className="btn primary" onClick={current.isFinal ? onClose : advanceStep}
               style={{ fontSize: 14, padding: '10px 24px' }}>
               {current.isFinal
-                ? (lang === 'en' ? 'Start playing!' : 'Начать играть!')
-                : (lang === 'en' ? 'Next →' : 'Далее →')
+                ? t('tutorial.start')
+                : t('tutorial.next')
               }
             </button>
           )}
           <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '6px 12px' }}>
-            {lang === 'en' ? 'Skip' : 'Пропустить'}
+            {t('tutorial.skip')}
           </button>
         </div>
       </div>

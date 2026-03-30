@@ -94,17 +94,17 @@ export default function Openings() {
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
         
         <h2 style={{ fontSize: 20, color: 'var(--ink)', fontWeight: 700 }}>
-          {lang === 'en' ? 'Opening Book & Heatmap' : 'Книга дебютов и карта стоек'}
+          {t('openings.title')}
         </h2>
         <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
-          {lang === 'en' ? 'Based on AI research · 239K+ games analyzed' : 'На основании AI-исследования · 239K+ партий'}
+          {t('openings.subtitle')}
         </p>
       </div>
 
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, justifyContent: 'center' }}>
         {[
-          ['openings', lang === 'en' ? 'Openings' : 'Дебюты'],
-          ['heatmap', lang === 'en' ? 'Heatmap' : 'Тепловая карта'],
+          ['openings', t('openings.tabOpenings')],
+          ['heatmap', t('openings.tabHeatmap')],
         ].map(([id, label]) => (
           <button key={id} className={`btn ${tab === id ? 'primary' : ''}`}
             onClick={() => setTab(id)} style={{ fontSize: 12, padding: '6px 14px' }}>
@@ -130,7 +130,7 @@ export default function Openings() {
                     {o.name[lang] || o.name.ru}
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--ink3)' }}>
-                    {o.frequency}% {lang === 'en' ? 'usage' : 'популярность'} · P1 WR {o.winP1}%
+                    {o.frequency}% {t('openings.usage')} · P1 WR {o.winP1}%
                   </div>
                 </div>
               </div>
@@ -156,12 +156,12 @@ export default function Openings() {
           <HeatmapBar
             values={HEATMAP_DATA.firstMoveFreq} labels={labels}
             colorFn={i => `rgba(240,96,64,${0.15 + i * 0.75})`}
-            title={lang === 'en' ? 'First move frequency (%)' : 'Частота первого хода (%)'}
+            title={t('openings.firstMoveFreq')}
           />
           <HeatmapBar
             values={HEATMAP_DATA.closeFreq} labels={labels}
             colorFn={i => `rgba(74,158,255,${0.15 + i * 0.75})`}
-            title={lang === 'en' ? 'Close frequency (%)' : 'Частота закрытия (%)'}
+            title={t('openings.closeFreq')}
           />
           <HeatmapBar
             values={HEATMAP_DATA.p1Ownership} labels={labels}
@@ -170,23 +170,23 @@ export default function Openings() {
               const norm = (HEATMAP_DATA.p1Ownership[labels.indexOf(labels[HEATMAP_DATA.p1Ownership.indexOf(i * Math.max(...HEATMAP_DATA.p1Ownership))])] || i * 53) / 53
               return i > 0.52 ? `rgba(74,158,255,${0.2 + (i - 0.5) * 1.5})` : `rgba(255,96,102,${0.2 + (0.5 - i) * 1.5})`
             }}
-            title={lang === 'en' ? 'P1 (Blue) ownership (%)' : 'Владение P1 Синих (%)'}
+            title={t('openings.p1Ownership')}
           />
           <HeatmapBar
             values={HEATMAP_DATA.avgCloseTurn} labels={labels}
             colorFn={i => `rgba(61,214,140,${0.15 + (1 - i) * 0.75})`}
-            title={lang === 'en' ? 'Average close turn' : 'Средний ход закрытия'}
+            title={t('openings.avgCloseTurn')}
           />
 
           <div className="dash-card" style={{ marginTop: 16, padding: '12px 16px' }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
-              {lang === 'en' ? 'Key insights' : 'Выводы'}
+              {t('openings.insights')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.8 }}>
-              <p>• {lang === 'en' ? 'Stand 5 is the most popular first move (18.2%) and closes most often' : 'Стойка 5 — самый популярный первый ход (18.2%) и закрывается чаще всех'}</p>
-              <p>• {lang === 'en' ? 'Golden stand (★) closes late (avg turn 14.2) — high strategic value' : 'Золотая стойка (★) закрывается поздно (ход 14.2) — высокая стратегическая ценность'}</p>
-              <p>• {lang === 'en' ? 'Edge stands (8,9) close late and are harder to control' : 'Крайние стойки (8,9) закрываются поздно и сложнее контролировать'}</p>
-              <p>• {lang === 'en' ? 'Balance: 50:50 between P1 and P2 (confirmed across 239K games)' : 'Баланс: 50:50 между P1 и P2 (подтверждено на 239K партиях)'}</p>
+              <p>• {t('openings.insight1')}</p>
+              <p>• {t('openings.insight2')}</p>
+              <p>• {t('openings.insight3')}</p>
+              <p>• {t('openings.insight4')}</p>
             </div>
           </div>
         </div>
