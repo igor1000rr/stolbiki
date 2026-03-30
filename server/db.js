@@ -338,6 +338,79 @@ if (contentCount === 0) {
 
 console.log('База данных готова:', DB_PATH)
 
+// ─── Миграция: добавляем новые i18n ключи если их нет в CMS ───
+const newKeys = {
+  'common.loading': ['Общее', 'Загрузка...', 'Loading...', 'Текст загрузки'],
+  'game.you': ['Игра', 'Вы', 'You', 'Имя: Вы'],
+  'game.opponent': ['Игра', 'Противник', 'Opponent', 'Имя: Противник'],
+  'game.yourTurnBlink': ['Игра', 'Ваш ход!', 'Your turn!', 'Мигание таба при ходе'],
+  'game.opponentResigned': ['Игра', 'Противник сдался!', 'Opponent resigned!', 'Текст: противник сдался'],
+  'game.drawAgreed': ['Игра', 'Согласована ничья', 'Draw agreed', 'Текст: ничья принята'],
+  'game.drawDeclined': ['Игра', 'Ничья отклонена', 'Draw declined', 'Текст: ничья отклонена'],
+  'game.resigned': ['Игра', 'Сдались', 'Resigned', 'Текст: вы сдались'],
+  'game.hint': ['Игра', 'Подсказка', 'Hint', 'Кнопка подсказки'],
+  'game.resign': ['Игра', 'Сдаться', 'Resign', 'Кнопка сдаться'],
+  'game.drawOffered': ['Игра', 'Ничья предложена...', 'Draw offered...', 'Текст: ничья отправлена'],
+  'game.offerDraw': ['Игра', 'Ничья', 'Offer draw', 'Кнопка предложить ничью'],
+  'game.undo': ['Игра', 'Отмена', 'Undo', 'Кнопка отмены хода'],
+  'game.draw': ['Игра', 'Ничья', 'Draw', 'Результат: ничья'],
+  'game.backToLobby': ['Игра', 'В лобби', 'Back to lobby', 'Кнопка назад в лобби'],
+  'game.share': ['Игра', 'Поделиться', 'Share', 'Кнопка поделиться'],
+  'game.replay': ['Игра', 'Повтор', 'Replay', 'Кнопка повтора'],
+  'game.swapQuestion': ['Игра', 'Игрок 1 поставил первую фишку. Хотите поменять цвета?', 'Player 1 placed first chip. Swap colors?', 'Вопрос swap'],
+  'game.swapDeclined': ['Игра', 'Swap отклонён', 'Swap declined', 'Текст: swap отклонён'],
+  'game.noContinue': ['Игра', 'Нет, продолжить', 'No, continue', 'Кнопка отказа от swap'],
+  'game.drawOfferReceived': ['Игра', 'Противник предлагает ничью', 'Opponent offers a draw', 'Текст: предложение ничьи'],
+  'game.accept': ['Игра', 'Принять', 'Accept', 'Кнопка принять'],
+  'game.decline': ['Игра', 'Отклонить', 'Decline', 'Кнопка отклонить'],
+  'game.modeLabel': ['Игра', 'Режим:', 'Mode:', 'Лейбл: режим'],
+  'game.sideLabel': ['Игра', 'Сторона:', 'Side:', 'Лейбл: сторона'],
+  'game.diffLabel': ['Игра', 'Сложность:', 'Difficulty:', 'Лейбл: сложность'],
+  'puzzle.leaderboard': ['Головоломки', 'Лидерборд', 'Leaderboard', 'Заголовок лидерборда'],
+  'puzzle.movesShort': ['Головоломки', 'ход.', 'moves', 'Сокращение: ходы'],
+  'puzzle.movesCount': ['Головоломки', 'ходов', 'moves', 'Подпись: ходов'],
+  'puzzle.solveRate': ['Головоломки', 'Решаемость', 'Solve rate', 'Решаемость %'],
+  'puzzle.solvedCount': ['Головоломки', 'решили', 'solved', 'Подпись: решили'],
+  'puzzle.solvedStatus': ['Головоломки', 'Решено!', 'Solved!', 'Статус: решено'],
+  'puzzle.failedStatus': ['Головоломки', 'Не удалось', 'Failed', 'Статус: не решено'],
+  'puzzle.retryBtn': ['Головоломки', 'Заново', 'Retry', 'Кнопка повтора'],
+  'puzzle.backBtn': ['Головоломки', 'К списку', 'Back', 'Кнопка назад'],
+  'puzzle.closeStands': ['Головоломки', 'Закрывайте стойки за ограниченное число ходов', 'Close stands in limited moves', 'Подзаголовок головоломок'],
+  'puzzle.solvedLabel': ['Головоломки', 'решено', 'solved', 'Подпись: решено'],
+  'puzzle.featured': ['Головоломки', 'Избранные', 'Featured', 'Вкладка: избранные'],
+  'puzzle.allPuzzles': ['Головоломки', 'Все головоломки', 'All puzzles', 'Вкладка: все'],
+  'puzzle.dailyTitle': ['Головоломки', 'Головоломка дня', 'Daily Puzzle', 'Заголовок дневной'],
+  'puzzle.weeklyTitle': ['Головоломки', 'Задача недели', 'Weekly Challenge', 'Заголовок недельной'],
+  'puzzle.nextIn': ['Головоломки', 'Новая через', 'Next in', 'Таймер: новая через'],
+  'puzzle.replayBtn': ['Головоломки', '↻ Переиграть', '↻ Replay', 'Кнопка переиграть'],
+  'puzzle.playBtn': ['Головоломки', '▶ Играть', '▶ Play', 'Кнопка играть'],
+  'puzzle.loadingPuzzles': ['Головоломки', 'Загрузка головоломок...', 'Loading puzzles...', 'Загрузка'],
+  'puzzle.filterAll': ['Головоломки', 'Все', 'All', 'Фильтр: все'],
+  'puzzle.filterEasy': ['Головоломки', 'Лёгкие', 'Easy', 'Фильтр: лёгкие'],
+  'puzzle.filterMedium': ['Головоломки', 'Средние', 'Medium', 'Фильтр: средние'],
+  'puzzle.filterHard': ['Головоломки', 'Сложные', 'Hard', 'Фильтр: сложные'],
+  'openings.title': ['Аналитика', 'Книга дебютов и карта стоек', 'Opening Book & Heatmap', 'Заголовок дебютов'],
+  'openings.subtitle': ['Аналитика', 'На основании AI-исследования · 239K+ партий', 'Based on AI research · 239K+ games analyzed', 'Подзаголовок'],
+  'openings.tabOpenings': ['Аналитика', 'Дебюты', 'Openings', 'Вкладка: дебюты'],
+  'openings.tabHeatmap': ['Аналитика', 'Тепловая карта', 'Heatmap', 'Вкладка: карта'],
+  'openings.usage': ['Аналитика', 'популярность', 'usage', 'Подпись: популярность'],
+  'openings.insights': ['Аналитика', 'Выводы', 'Key insights', 'Заголовок выводов'],
+  'blog.title': ['Блог', 'Блог', 'Blog', 'Заголовок блога'],
+  'blog.subtitle': ['Блог', 'Новости, обновления и дневник разработки', 'News, updates, and development log', 'Подзаголовок блога'],
+  'blog.allPosts': ['Блог', 'Все записи', 'All posts', 'Ссылка: все записи'],
+  'blog.noPosts': ['Блог', 'Пока нет записей', 'No posts yet', 'Текст: нет записей'],
+  'tutorial.start': ['Обучение', 'Начать играть!', 'Start playing!', 'Кнопка: начать'],
+  'tutorial.next': ['Обучение', 'Далее →', 'Next →', 'Кнопка: далее'],
+  'tutorial.skip': ['Обучение', 'Пропустить', 'Skip', 'Кнопка: пропустить'],
+}
+const migrateIns = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
+let migrated = 0
+for (const [key, [section, ru, en, label]] of Object.entries(newKeys)) {
+  const r = migrateIns.run(key, section, ru, en, label)
+  if (r.changes > 0) migrated++
+}
+if (migrated > 0) console.log(`CMS миграция: добавлено ${migrated} новых ключей`)
+
 // ═══ Ачивки ═══
 const ALL_ACHIEVEMENTS = [
   { id: 'first_win', check: u => u.wins >= 1 },
