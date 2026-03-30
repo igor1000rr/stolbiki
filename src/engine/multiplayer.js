@@ -139,3 +139,20 @@ export function spectateRoom(roomId, callback) {
   ws.onclose = () => { if (!intentionalClose && onMessage) onMessage({ type: 'disconnected' }) }
   ws.onerror = () => {}
 }
+
+// Reconnect при возврате из фона (Capacitor + PWA)
+if (typeof window !== 'undefined') {
+  window.addEventListener('stolbiki-app-resume', () => {
+    if (ws && ws.readyState !== 1 && onMessage && !intentionalClose) {
+      console.log('WS reconnect on resume')
+      reconnectAttempts = 0
+      try {
+        const newWs = new WebSocket(getWsUrl())
+        newWs.onopen = () => { ws = newWs; reconnectAttempts = 0 }
+        newWs.onmessage = (e) => { try { if (onMessage) onMessage(JSON.parse(e.data)) } catch {} }
+        newWs.onclose = () => {}
+        newWs.onerror = () => {}
+      } catch {}
+    }
+  })
+}

@@ -24,19 +24,60 @@ class ErrorBoundary extends Component {
   }
 }
 
-// ─── Capacitor: перенаправляем /api/ на сервер в native mode ───
-if (window.Capacitor?.isNativePlatform?.()) {
+// ─── Capacitor: native платформа ───
+const isNative = !!window.Capacitor?.isNativePlatform?.()
+
+if (isNative) {
   const SERVER = import.meta.env.VITE_SERVER_URL || 'https://snatch-highrise.com'
+
+  // Fetch interceptor: /api/ → сервер
   const _fetch = window.fetch.bind(window)
   window.fetch = (url, opts) => {
-    if (typeof url === 'string' && url.startsWith('/api')) {
-      url = SERVER + url
-    }
+    if (typeof url === 'string' && url.startsWith('/api')) url = SERVER + url
     return _fetch(url, opts)
   }
-  // Глобальный WS base для multiplayer.js
+
+  // WS base для multiplayer.js
   window.__SH_WS_BASE = SERVER.replace(/^http/, 'ws') + '/ws'
-  console.log('Capacitor native mode: API →', SERVER)
+
+  // StatusBar + SplashScreen (async import — не ломает web)
+  Promise.all([
+    import('@capacitor/status-bar').catch(() => null),
+    import('@capacitor/splash-screen').catch(() => null),
+  ]).then(([sbMod, spMod]) => {
+    if (sbMod?.StatusBar) {
+      sbMod.StatusBar.setBackgroundColor({ color: '#0d0d14' }).catch(() => {})
+      sbMod.StatusBar.setStyle({ style: 'DARK' }).catch(() => {})
+    }
+    if (spMod?.SplashScreen) {
+      spMod.SplashScreen.hide().catch(() => {})
+    }
+  })
+
+  // Android back button → навигация назад или выход
+  import('@capacitor/app').then(({ App: CapApp }) => {
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) window.history.back()
+      else CapApp.exitApp()
+    })
+    // Deep links: snatch-highrise.com?room=XXX
+    CapApp.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const u = new URL(url)
+        const room = u.searchParams.get('room')
+        if (room) window.dispatchEvent(new CustomEvent('stolbiki-deeplink-room', { detail: { room } }))
+      } catch {}
+    })
+  }).catch(() => {})
+
+  // WS reconnect при возврате из фона
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      window.dispatchEvent(new CustomEvent('stolbiki-app-resume'))
+    }
+  })
+
+  console.log('Capacitor native: API →', SERVER)
 }
 
 createRoot(document.getElementById('root')).render(
@@ -47,8 +88,8 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>
 )
 
-// PWA Service Worker
-if ('serviceWorker' in navigator) {
+// PWA Service Worker (только в браузере, не в native app)
+if (!isNative && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })

@@ -14,7 +14,7 @@ import { setupWebSocket } from './ws.js'
 const app = express()
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'http://178.212.12.71', 'http://localhost:5173']
+  : ['https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'http://178.212.12.71', 'http://localhost:5173', 'capacitor://localhost', 'http://localhost']
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {

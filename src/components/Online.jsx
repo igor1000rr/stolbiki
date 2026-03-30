@@ -328,9 +328,17 @@ export default function Online() {
     const room = params.get('room')
     if (room) {
       setJoinCode(room)
-      // Убираем room из URL
       history.replaceState(null, '', location.pathname)
     }
+    // Deep link из Capacitor native app
+    const handleDeepLink = (e) => {
+      if (e.detail?.room) {
+        setJoinCode(e.detail.room)
+        setScreen('lobby')
+      }
+    }
+    window.addEventListener('stolbiki-deeplink-room', handleDeepLink)
+    return () => window.removeEventListener('stolbiki-deeplink-room', handleDeepLink)
   }, [])
 
   const inputStyle = {
