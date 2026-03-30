@@ -7,6 +7,7 @@ import helmet from 'helmet'
 import { readFileSync, existsSync, mkdirSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { GameState, applyAction, getLegalActions } from './game-engine.js'
 
 // ═══ Загрузка .env ═══
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1188,6 +1189,75 @@ function wsAuth(token) {
   try { return jwt.verify(token, JWT_SECRET) } catch { return null }
 }
 
+// ─── Хелперы серверной валидации ходов ───
+
+/** Сравнение двух action объектов (transfer, placement, swap) */
+function actionsEqual(a, b) {
+  // swap
+  if (a.swap || b.swap) return !!a.swap === !!b.swap
+  // transfer
+  const at = a.transfer, bt = b.transfer
+  if (!at && !bt) { /* ok */ }
+  else if (!at || !bt) return false
+  else if (at[0] !== bt[0] || at[1] !== bt[1]) return false
+  // placement
+  const ap = a.placement || {}, bp = b.placement || {}
+  const ak = Object.keys(ap).sort(), bk = Object.keys(bp).sort()
+  if (ak.length !== bk.length) return false
+  for (let i = 0; i < ak.length; i++) {
+    if (ak[i] !== bk[i] || ap[ak[i]] !== bp[bk[i]]) return false
+  }
+  return true
+}
+
+/** Конвертация game player index → room player index */
+function gameToRoomPlayer(room, gamePlayer) {
+  const firstP = room.firstPlayer ?? 0
+  return gamePlayer === 0 ? firstP : 1 - firstP
+}
+
+/** Обработка gameOver сервером: обновление счёта + турнирная логика */
+function handleServerGameOver(room) {
+  const gs = room.gameState
+  if (!gs) return
+  const winner = gs.winner // 0, 1 (game player) или -1 (ничья)
+  if (winner >= 0) {
+    const roomWinner = gameToRoomPlayer(room, winner)
+    room.scores[roomWinner]++
+  }
+  // Рассылаем серверный gameOver с авторитетным победителем
+  const gameOverMsg = JSON.stringify({
+    type: 'serverGameOver',
+    winner: winner >= 0 ? gameToRoomPlayer(room, winner) : -1,
+    scores: room.scores,
+  })
+  room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(gameOverMsg))
+  handleTournamentNext(room)
+}
+
+/** Турнирная логика: следующая партия или финал */
+function handleTournamentNext(room) {
+  if (room.currentGame < room.totalGames) {
+    room.currentGame++
+    room.firstPlayer = room.currentGame % 2 === 1 ? 0 : 1
+    room.gameState = new GameState()
+    const nextMsg = JSON.stringify({
+      type: 'nextGame',
+      currentGame: room.currentGame, totalGames: room.totalGames,
+      scores: room.scores,
+      firstPlayer: room.firstPlayer,
+    })
+    room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(nextMsg))
+  } else {
+    const finalMsg = JSON.stringify({
+      type: 'tournamentOver',
+      scores: room.scores,
+      winner: room.scores[0] > room.scores[1] ? 0 : room.scores[1] > room.scores[0] ? 1 : -1,
+    })
+    room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(finalMsg))
+  }
+}
+
 wss.on('connection', (ws, req) => {
   let playerRoom = null
   let playerIdx = -1
@@ -1227,7 +1297,7 @@ wss.on('connection', (ws, req) => {
         // Create room
         const roomId = Math.random().toString(36).slice(2, 8).toUpperCase()
         const room = { id: roomId, players: [{ ws: p1.ws, name: p1.name, userId: p1.userId }, { ws: p2.ws, name: p2.name, userId: p2.userId }],
-          mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0] }
+          mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0], gameState: new GameState(), firstPlayer: 0 }
         rooms.set(roomId, room)
         // Notify both
         p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0 }))
@@ -1264,6 +1334,8 @@ wss.on('connection', (ws, req) => {
       if (room.players.length === 2) {
         room.state = 'playing'
         room.currentGame = 1
+        room.gameState = new GameState()
+        room.firstPlayer = 0
         const startMsg = JSON.stringify({
           type: 'start',
           players: room.players.map(p => p.name),
@@ -1277,21 +1349,62 @@ wss.on('connection', (ws, req) => {
       }
     }
 
-    // ─── MOVE ───
+    // ─── MOVE (серверная валидация) ───
     if (msg.type === 'move' && playerRoom) {
-      const opponentIdx = 1 - playerIdx
-      const opponent = playerRoom.players[opponentIdx]
-      if (opponent?.ws?.readyState === 1) {
-        opponent.ws.send(JSON.stringify({ type: 'move', action: msg.action, from: playerIdx }))
+      const room = playerRoom
+      const gs = room.gameState
+      if (!gs || gs.gameOver) {
+        ws.send(JSON.stringify({ type: 'error', msg: 'Игра не активна' }))
+      } else {
+        // Маппинг: room.firstPlayer — кто из комнаты играет за game player 0
+        const firstP = room.firstPlayer ?? 0
+        const gamePlayer = playerIdx === firstP ? 0 : 1
+        if (gs.currentPlayer !== gamePlayer) {
+          ws.send(JSON.stringify({ type: 'error', msg: 'Не ваш ход' }))
+        } else {
+          // Валидируем action через движок
+          const action = msg.action || {}
+          const legal = getLegalActions(gs)
+          const isLegal = legal.some(a => actionsEqual(a, action))
+          if (!isLegal) {
+            ws.send(JSON.stringify({ type: 'error', msg: 'Недопустимый ход' }))
+          } else {
+            // Применяем ход
+            room.gameState = applyAction(gs, action)
+            // Рассылаем ход оппоненту (отправитель уже применил локально)
+            const opponent = room.players[1 - playerIdx]
+            if (opponent?.ws?.readyState === 1) {
+              opponent.ws.send(JSON.stringify({ type: 'move', action, from: playerIdx }))
+            }
+            // Проверяем gameOver — сервер определяет победителя
+            if (room.gameState.gameOver) {
+              handleServerGameOver(room)
+            }
+          }
+        }
       }
     }
 
     // ─── RESIGN ───
     if (msg.type === 'resign' && playerRoom) {
-      const opponent = playerRoom.players[1 - playerIdx]
-      if (opponent?.ws?.readyState === 1) {
-        opponent.ws.send(JSON.stringify({ type: 'resign', from: playerIdx }))
+      const room = playerRoom
+      // Определяем победителя — оппонент
+      const firstP = room.firstPlayer ?? 0
+      const resignedGamePlayer = playerIdx === firstP ? 0 : 1
+      const winnerGamePlayer = 1 - resignedGamePlayer
+      // Помечаем gameOver на сервере
+      if (room.gameState) {
+        room.gameState.gameOver = true
+        room.gameState.winner = winnerGamePlayer
       }
+      // Рассылаем resign
+      room.players.forEach((p, i) => {
+        if (i !== playerIdx && p.ws?.readyState === 1) {
+          p.ws.send(JSON.stringify({ type: 'resign', from: playerIdx }))
+        }
+      })
+      // Обрабатываем счёт/турнир
+      handleServerGameOver(room)
     }
 
     // ─── CHAT (quick messages) ───
@@ -1317,34 +1430,28 @@ wss.on('connection', (ws, req) => {
       if (opponent?.ws?.readyState === 1) {
         opponent.ws.send(JSON.stringify({ type: 'drawResponse', accepted: msg.accepted, from: playerIdx }))
       }
+      // Ничья принята — обрабатываем как gameOver с winner=-1
+      if (msg.accepted) {
+        const room = playerRoom
+        if (room.gameState) {
+          room.gameState.gameOver = true
+          room.gameState.winner = -1
+        }
+        handleServerGameOver(room)
+      }
     }
 
-    // ─── GAME OVER ───
+    // Клиентский gameOver игнорируется — сервер сам определяет через движок
     if (msg.type === 'gameOver' && playerRoom) {
-      const room = playerRoom
-      if (msg.winner === 0) room.scores[0]++
-      else if (msg.winner === 1) room.scores[1]++
-
-      // Турнир — следующая партия?
-      if (room.currentGame < room.totalGames) {
-        room.currentGame++
-        const nextMsg = JSON.stringify({
-          type: 'nextGame',
-          currentGame: room.currentGame, totalGames: room.totalGames,
-          scores: room.scores,
-          // Меняем стороны каждую партию
-          firstPlayer: room.currentGame % 2 === 1 ? 0 : 1,
-        })
-        room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(nextMsg))
-      } else {
-        // Турнир завершён
-        const finalMsg = JSON.stringify({
-          type: 'tournamentOver',
-          scores: room.scores,
-          winner: room.scores[0] > room.scores[1] ? 0 : room.scores[1] > room.scores[0] ? 1 : -1,
-        })
-        room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(finalMsg))
+      // Backward compatibility: если gameState не инициализирован (старые сессии),
+      // принимаем от клиента как раньше
+      if (!playerRoom.gameState) {
+        const room = playerRoom
+        if (msg.winner === 0) room.scores[0]++
+        else if (msg.winner === 1) room.scores[1]++
+        handleTournamentNext(room)
       }
+      // Иначе — игнорируем, gameOver обрабатывается через валидацию ходов
     }
 
     // (дубликат chat удалён — обрабатывается выше на строке ~1056)
@@ -1817,7 +1924,7 @@ app.post('/api/admin/content/bulk', auth, adminOnly, (req, res) => {
 
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n✅ Стойки API + WS: http://0.0.0.0:${PORT}`)
+  console.log(`\n✅ Snatch Highrise API + WS: http://0.0.0.0:${PORT}`)
   console.log(`   WebSocket: ws://0.0.0.0:${PORT}/ws`)
   console.log(`   Health: http://0.0.0.0:${PORT}/api/health`)
 })

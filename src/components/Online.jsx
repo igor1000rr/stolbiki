@@ -181,6 +181,14 @@ export default function Online() {
       case 'resign':
         window.dispatchEvent(new CustomEvent('stolbiki-online-resign', { detail: { from: msg.from } }))
         break
+      case 'serverGameOver':
+        // Серверное подтверждение gameOver — обновляем счёт
+        setScores(msg.scores)
+        // Если клиент ещё не показал gameOver — форсируем через событие
+        window.dispatchEvent(new CustomEvent('stolbiki-online-server-gameover', {
+          detail: { winner: msg.winner, scores: msg.scores }
+        }))
+        break
       case 'drawOffer':
         window.dispatchEvent(new CustomEvent('stolbiki-online-draw-offer', { detail: { from: msg.from } }))
         break

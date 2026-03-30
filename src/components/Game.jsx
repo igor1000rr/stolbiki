@@ -334,12 +334,28 @@ export default function Game() {
     window.addEventListener('stolbiki-online-draw-offer', handleDrawOffer)
     window.addEventListener('stolbiki-online-draw-response', handleDrawResponse)
 
+    // Серверное подтверждение gameOver (авторитетный источник)
+    function handleServerGameOver(e) {
+      const { winner } = e.detail
+      const myColor = onlineRef.current?.myColor ?? 0
+      // Если клиент ещё не показал gameOver — форсируем
+      setResult(prev => {
+        if (prev !== null) return prev // Уже показали
+        const won = winner === (onlineRef.current?.playerIdx ?? 0)
+        setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
+        setPhase('done'); setLocked(false); setInfo(t('game.gameOver'))
+        return winner >= 0 ? (winner === (onlineRef.current?.playerIdx ?? 0) ? myColor : 1 - myColor) : -1
+      })
+    }
+    window.addEventListener('stolbiki-online-server-gameover', handleServerGameOver)
+
     return () => {
       window.removeEventListener('stolbiki-online-start', handleOnlineStart)
       window.removeEventListener('stolbiki-online-move', handleOnlineMove)
       window.removeEventListener('stolbiki-online-resign', handleOnlineResign)
       window.removeEventListener('stolbiki-online-draw-offer', handleDrawOffer)
       window.removeEventListener('stolbiki-online-draw-response', handleDrawResponse)
+      window.removeEventListener('stolbiki-online-server-gameover', handleServerGameOver)
     }
   }, []) // eslint-disable-line
 
