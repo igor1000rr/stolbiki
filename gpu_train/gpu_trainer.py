@@ -19,7 +19,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import multiprocessing as mp
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'analysis'))
-from game import GameState, apply_action
+from game import GameState, apply_action, get_valid_transfers
 from train import sample_random_action_fast
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -55,6 +55,91 @@ def encode_state(state):
     return np.array(f, dtype=np.float32)
 
 INPUT_SIZE = 107
+
+
+def heuristic_score(state, player):
+    """Тактическая эвристика — синхронизирована с JS hybrid evaluator"""
+    opp = 1 - player
+    score = 0.0
+    score += (state.count_closed(player) - state.count_closed(opp)) * 0.15
+    if 0 in state.closed:
+        score += 0.12 if state.closed[0] == player else -0.12
+    for i in range(state.num_stands):
+        if i in state.closed:
+            continue
+        ch = state.stands[i]
+        if not ch:
+            continue
+        tc, ts = state.top_group(i)
+        total = len(ch)
+        if total >= 8 and tc == player:
+            score += 0.08 if i == 0 else 0.05
+        if total >= 8 and tc == opp:
+            score -= 0.08 if i == 0 else 0.05
+        if ts >= 3 and tc == player:
+            score += 0.02
+        if ts >= 3 and tc == opp:
+            score -= 0.02
+    return max(-1.0, min(1.0, score))
+
+
+def smart_placement(state, player, exclude=None):
+    """Умная установка — приоритет своим высоким стойкам"""
+    exclude = exclude or []
+    can_close = state.can_close_by_placement()
+    min_space = 0 if can_close else 1
+    avail = [i for i in state.open_stands() if i not in exclude and state.stand_space(i) > min_space]
+    if not avail:
+        return {}
+    max_place = 5 if state.is_first_turn() else 3
+    opp = 1 - player
+    scored = []
+    for i in avail:
+        tc, ts = state.top_group(i)
+        total = len(state.stands[i])
+        s = total * 2
+        if tc == player: s += 10 + ts * 3
+        if tc == opp: s -= 5
+        if i == 0: s += 5
+        if total >= 7 and tc == player: s += 20
+        scored.append((i, s))
+    scored.sort(key=lambda x: -x[1])
+    pl = {}
+    rem = max_place
+    for idx, _ in scored[:2]:
+        if rem <= 0: break
+        cap = min(state.stand_space(idx), rem) if can_close else min(state.stand_space(idx) - 1, rem)
+        if cap > 0:
+            pl[idx] = min(cap, rem)
+            rem -= pl[idx]
+    return pl
+
+
+def gen_smart_candidates(state, player, n_random=6):
+    """Генерация кандидатов: закрывающие + подготовительные + умные + рандомные"""
+    cands = []
+    transfers = get_valid_transfers(state)
+    # Закрывающие переносы
+    for src, dst in transfers:
+        tc, gs = state.top_group(src)
+        if len(state.stands[dst]) + gs >= 11:
+            cands.append({'transfer': (src, dst), 'placement': smart_placement(state, player, [src, dst])})
+            cands.append({'transfer': (src, dst), 'placement': {}})
+    # Подготовительные переносы (строим к 7+)
+    for src, dst in transfers:
+        tc, gs = state.top_group(src)
+        total_after = len(state.stands[dst]) + gs
+        if total_after >= 11: continue
+        if tc == player and total_after >= 7:
+            cands.append({'transfer': (src, dst), 'placement': smart_placement(state, player, [src, dst])})
+    # Умные установки
+    for _ in range(2):
+        pl = smart_placement(state, player)
+        if pl: cands.append({'placement': pl})
+    # Рандомные
+    for _ in range(n_random):
+        cands.append(sample_random_action_fast(state))
+    return cands if cands else [sample_random_action_fast(state)]
 
 
 # ═══ Сеть ═══
@@ -109,14 +194,24 @@ class VectorizedSelfPlay:
 
             for gi in active:
                 state = games[gi]
-                cands = []
-                for _ in range(K):
+                player = state.current_player
+                cands = gen_smart_candidates(state, player, n_random=K)
+                valid_cands = []
+                for a in cands:
+                    try:
+                        ns = apply_action(state, a)
+                        all_features.append(encode_state(ns))
+                        game_map.append((gi, len(valid_cands)))
+                        valid_cands.append((a, ns, player))
+                    except:
+                        pass
+                if not valid_cands:
                     a = sample_random_action_fast(state)
                     ns = apply_action(state, a)
                     all_features.append(encode_state(ns))
-                    game_map.append((gi, len(cands)))
-                    cands.append(a)
-                candidates[gi] = cands
+                    game_map.append((gi, 0))
+                    valid_cands.append((a, ns, player))
+                candidates[gi] = valid_cands
 
             # ОДИН батч на GPU для ВСЕХ кандидатов ВСЕХ партий
             with torch.no_grad():
@@ -130,8 +225,16 @@ class VectorizedSelfPlay:
             for gi in active:
                 state = games[gi]
                 K_actual = len(candidates[gi])
-                scores = -all_vals[val_idx:val_idx + K_actual]  # Минус — оценка следующего
+                nn_scores = all_vals[val_idx:val_idx + K_actual]
                 val_idx += K_actual
+
+                # Hybrid: 60% NN + 40% heuristic
+                scores = np.zeros(K_actual)
+                for j in range(K_actual):
+                    _, ns, player = candidates[gi][j]
+                    nn_v = nn_scores[j] if ns.current_player == player else -nn_scores[j]
+                    h_v = heuristic_score(ns, player)
+                    scores[j] = nn_v * 0.6 + h_v * 0.4
 
                 # Exploration через softmax
                 temp = 0.3 if state.turn < 20 else 0.05
@@ -146,7 +249,7 @@ class VectorizedSelfPlay:
                 trajectories[gi].append((encode_state(state), state.current_player))
 
                 # Применяем ход
-                games[gi] = apply_action(state, candidates[gi][best])
+                games[gi] = apply_action(state, candidates[gi][best][0])
 
                 if not games[gi].game_over and games[gi].turn <= self.max_turns:
                     new_active.append(gi)
@@ -203,6 +306,7 @@ def warmup_parallel(total_games, num_workers=None):
 # ═══ Eval ═══
 
 def evaluate_net(net, num_games=40):
+    """Оценка: hybrid AI (NN + heuristics) vs random"""
     net.eval()
     wins = 0
     for g in range(num_games):
@@ -210,15 +314,32 @@ def evaluate_net(net, num_games=40):
         net_player = g % 2
         while not state.game_over:
             if state.current_player == net_player:
-                cands = [sample_random_action_fast(state) for _ in range(6)]
-                feats = np.array([encode_state(apply_action(state, a)) for a in cands])
+                cands = gen_smart_candidates(state, net_player, n_random=8)
+                feats, valid = [], []
+                for a in cands:
+                    try:
+                        ns = apply_action(state, a)
+                        feats.append(encode_state(ns))
+                        valid.append((a, ns))
+                    except:
+                        pass
+                if not valid:
+                    state = apply_action(state, sample_random_action_fast(state))
+                    if state.turn > 150: break
+                    continue
                 with torch.no_grad():
-                    vals = net(torch.tensor(feats, dtype=torch.float32).to(DEVICE)).cpu().numpy().flatten()
-                action = cands[np.argmin(vals)]
+                    vals = net(torch.tensor(np.array(feats), dtype=torch.float32).to(DEVICE)).cpu().numpy().flatten()
+                # Hybrid: 60% NN + 40% heuristic
+                scores = []
+                for j, (a, ns) in enumerate(valid):
+                    nn_v = vals[j] if ns.current_player == net_player else -vals[j]
+                    h_v = heuristic_score(ns, net_player)
+                    scores.append(nn_v * 0.6 + h_v * 0.4)
+                action = valid[int(np.argmax(scores))][0]
             else:
                 action = sample_random_action_fast(state)
             state = apply_action(state, action)
-            if state.turn > 100: break
+            if state.turn > 150: break
         if state.winner == net_player: wins += 1
     return wins / num_games
 
@@ -352,29 +473,55 @@ class GPUTrainer:
 
 
 if __name__ == '__main__':
+    import argparse
     mp.set_start_method('spawn', force=True)
     print_gpu_info()
+
+    parser = argparse.ArgumentParser(description='GPU Self-Play тренер')
+    parser.add_argument('--checkpoint', help='Путь к чекпоинту (.pt)')
+    parser.add_argument('--iterations', type=int, default=2000, help='Кол-во итераций')
+    parser.add_argument('--parallel', type=int, default=20, help='Параллельных партий')
+    parser.add_argument('--export-json', default='../src/engine/gpu_weights.json', help='Экспорт весов')
+    args = parser.parse_args()
 
     config = {
         'hidden': 256,
         'num_blocks': 6,
-        'lr': 0.002,
-        'batch_size': 1024,          # Большие батчи — GPU загружен
-        'epochs': 25,
-        'parallel': 15,              # 30→15 партий параллельно
-        'rounds_per_iter': 2,        # 3→2 раунда = 30 партий/итерацию
-        'num_candidates': 4,         # 6→4
-        'eval_games': 30,            # 40→30
-        'num_iterations': 500,
-        'buffer_size': 200000,
-        'warmup_games': 400,         # 1000→400
+        'lr': 0.001,
+        'batch_size': 1024,
+        'epochs': 20,
+        'parallel': args.parallel,
+        'rounds_per_iter': 3,
+        'num_candidates': 8,
+        'eval_games': 40,
+        'num_iterations': args.iterations,
+        'buffer_size': 300000,
+        'warmup_games': 500,
         'checkpoint_dir': 'gpu_checkpoint',
     }
 
     trainer = GPUTrainer(config)
-    ckpts = sorted([f for f in os.listdir(config['checkpoint_dir']) if f.endswith('.pt')]) if os.path.exists(config['checkpoint_dir']) else []
-    if ckpts:
-        trainer.load(os.path.join(config['checkpoint_dir'], ckpts[-1]))
 
-    print(f'\nСтарт с v{trainer.version}')
+    # Загружаем чекпоинт
+    if args.checkpoint and os.path.exists(args.checkpoint):
+        trainer.load(args.checkpoint)
+    else:
+        ckpts = sorted([f for f in os.listdir(config['checkpoint_dir']) if f.endswith('.pt')]) if os.path.exists(config['checkpoint_dir']) else []
+        if ckpts:
+            trainer.load(os.path.join(config['checkpoint_dir'], ckpts[-1]))
+
+    print(f'\nСтарт с v{trainer.version}, {args.iterations} итераций')
     trainer.run()
+
+    # Экспорт весов в JSON
+    if args.export_json:
+        weights = {}
+        total = 0
+        for k, v in trainer.net.state_dict().items():
+            arr = np.round(v.cpu().numpy().astype(np.float32), 4).flatten()
+            weights[k] = arr.tolist()
+            total += arr.size
+        with open(args.export_json, 'w') as f:
+            json.dump(weights, f, separators=(',', ':'))
+        print(f'\n✅ Экспорт: {total:,} params → {args.export_json}')
+        print(f'   git add {args.export_json} && git commit && git push')
