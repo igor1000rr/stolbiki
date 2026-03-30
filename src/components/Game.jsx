@@ -526,8 +526,8 @@ export default function Game() {
     const d = diff ?? difficulty
     let m = gameMode ?? mode
     // Если были в онлайн-режиме и начинаем новую — сбрасываем в AI
-    if (m === 'online' && !gameMode) m = 'ai'
-    if (m === 'online') return // Онлайн-игры стартуют через stolbiki-online-start
+    if ((m === 'online' || m === 'spectate-online') && !gameMode) m = 'ai'
+    if (m === 'online' || m === 'spectate-online') return // Онлайн-игры стартуют через stolbiki-online-start
     // Сброс онлайн состояния
     setOnlineRoom(null); setOnlinePlayerIdx(-1); setOnlinePlayers([])
     onlineRef.current = null
@@ -1173,7 +1173,7 @@ export default function Game() {
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
-        {!gs.gameOver && mode !== 'pvp' && (
+        {!gs.gameOver && mode !== 'pvp' && mode !== 'spectate-online' && (
           <button className="btn" onClick={resign} style={{ fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
             {t('game.resign')}
           </button>
@@ -1230,10 +1230,10 @@ export default function Game() {
             <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               {!tournament && (
                 <button className="btn primary" onClick={() => {
-                  if (mode === 'online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))
+                  if (mode === 'online' || mode === 'spectate-online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))
                   else newGame()
                 }} style={{ fontSize: 12, padding: '8px 16px' }}>
-                  {mode === 'online' ? (t('game.backToLobby')) : (t('game.anotherGame'))}
+                  {(mode === 'online' || mode === 'spectate-online') ? (t('game.backToLobby')) : (t('game.anotherGame'))}
                 </button>
               )}
               {mode === 'online' && !tournament && !rematchPending && (
