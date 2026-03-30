@@ -373,7 +373,7 @@ app.post('/api/games', auth, (req, res) => {
   // ── Валидация turns/duration ──
   const safeTurns = Math.max(0, Math.min(500, Math.floor(+turns || 0)))
   const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
-  const safeDifficulty = Math.max(0, Math.min(100, Math.floor(+difficulty || 50)))
+  const safeDifficulty = Math.max(0, Math.min(400, Math.floor(+difficulty || 150)))
 
   // ── Антиспам: 1 партия / 10 сек ──
   const now = Date.now()
@@ -388,8 +388,8 @@ app.post('/api/games', auth, (req, res) => {
 
   const ratingBefore = user.rating
   let ratingDelta = won ? 25 : -15
-  if (safeDifficulty >= 100) ratingDelta = won ? 35 : -10
-  else if (safeDifficulty <= 20) ratingDelta = won ? 15 : -20
+  if (safeDifficulty >= 400) ratingDelta = won ? 35 : -10
+  else if (safeDifficulty <= 50) ratingDelta = won ? 15 : -20
 
   const ratingAfter = Math.max(100, Math.min(2500, ratingBefore + ratingDelta))
   const newStreak = won ? user.win_streak + 1 : 0
@@ -413,7 +413,7 @@ app.post('/api/games', auth, (req, res) => {
     newStreak, bestStreak,
     closedGolden ? 1 : 0, isComeback ? 1 : 0,
     score === '6:0' && won ? 1 : 0,
-    safeDifficulty >= 100 && won ? 1 : 0,
+    safeDifficulty >= 400 && won ? 1 : 0,
     isFastWin ? 1 : 0,
     isOnline && won ? 1 : 0,
     req.user.id
@@ -543,7 +543,7 @@ app.get('/api/friends', auth, (req, res) => {
 app.post('/api/training', auth, (req, res) => {
   const { gameData, winner, totalMoves, mode, difficulty } = req.body
   db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, JSON.stringify(gameData), winner, totalMoves || 0, mode || 'ai', difficulty || 50)
+    .run(req.user.id, JSON.stringify(gameData), winner, totalMoves || 0, mode || 'ai', difficulty || 150)
   res.json({ ok: true })
 })
 

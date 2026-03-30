@@ -403,7 +403,7 @@ export default function Profile() {
       })
       // Отправляем на сервер
       if (serverOnline && API.isLoggedIn()) {
-        API.recordGame({ won, score, difficulty: vsHardAi ? 100 : 50, closedGolden, isComeback, isOnline: !!isOnline }).catch(() => {})
+        API.recordGame({ won, score, difficulty: vsHardAi ? 400 : 150, closedGolden, isComeback, isOnline: !!isOnline }).catch(() => {})
       }
     }
     return () => { delete window.stolbikiRecordGame }

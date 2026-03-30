@@ -143,7 +143,7 @@ export default function Game() {
   const [transfer, setTransfer] = useState(null)
   const [placement, setPlacement] = useState({})
   const [humanPlayer, setHumanPlayer] = useState(0)
-  const [difficulty, setDifficulty] = useState(50)
+  const [difficulty, setDifficulty] = useState(150)
   const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
   const [soundOn, setSoundOn] = useState(true)
   useEffect(() => { _soundOn = soundOn }, [soundOn])
@@ -377,7 +377,7 @@ export default function Game() {
       const hp = state.currentPlayer
       gsRef.current = state
       setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
-      setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(100); setMode('ai')
+      setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(400); setMode('ai')
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
       startRecording()
       setGameMeta('daily', 100)
@@ -508,7 +508,7 @@ export default function Game() {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-                window.stolbikiRecordGame(won, score, difficulty >= 100, closedGolden, false)
+                window.stolbikiRecordGame(won, score, difficulty >= 400, closedGolden, false)
               }
               // Турнир — запись результата (AI gameOver)
               if (tournament) {
@@ -759,7 +759,7 @@ export default function Game() {
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          window.stolbikiRecordGame(w, score, difficulty >= 100, closedGolden, false, mode === 'online')
+          window.stolbikiRecordGame(w, score, difficulty >= 400, closedGolden, false, mode === 'online')
         }
         // Турнир — запись результата
         if (tournament) {
@@ -909,9 +909,9 @@ export default function Game() {
         {mode === 'ai' && (
           <label>{ lang === 'en' ? 'Difficulty:' : 'Сложность:' }
             <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value, mode)}>
-              <option value={20}>{ lang === 'en' ? 'Easy' : 'Лёгкая' }</option>
-              <option value={50}>{ lang === 'en' ? 'Medium' : 'Средняя' }</option>
-              <option value={100}>{ lang === 'en' ? 'Hard' : 'Сложная' }</option>
+              <option value={50}>{ lang === 'en' ? 'Easy' : 'Лёгкая' }</option>
+              <option value={150}>{ lang === 'en' ? 'Medium' : 'Средняя' }</option>
+              <option value={400}>{ lang === 'en' ? 'Hard' : 'Сложная' }</option>
             </select>
           </label>
         )}
