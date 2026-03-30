@@ -27,6 +27,7 @@ export default function Game() {
   const [placement, setPlacement] = useState({})
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(150)
+  const difficultyRef = useRef(150)
   const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
   const [soundOn, setSoundOnState] = useState(true)
   useEffect(() => { setSoundOn(soundOn) }, [soundOn])
@@ -354,7 +355,7 @@ export default function Game() {
       const hp = state.currentPlayer
       gsRef.current = state
       setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
-      setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(400); setMode('ai')
+      setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(400); difficultyRef.current = 400; setMode('ai')
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
       startRecording()
       setGameMeta('daily', 100)
@@ -465,11 +466,12 @@ export default function Game() {
     const startTime = Date.now()
     setTimeout(() => {
       const gpu = isGpuReady()
+      const diff = difficultyRef.current
       const action = mctsSearch(state, ...(
-        difficulty >= 800 ? (gpu ? [1500, 0] : [1200, 10]) : // Экстрим: 1500 GPU-симуляций (~2с)
-        difficulty >= 400 ? (gpu ? [600, 0] : [800, 8]) :    // Сложная: 600 GPU-симуляций (~0.8с)
-        difficulty >= 150 ? (gpu ? [200, 1] : [500, 3]) :    // Средняя
-                            (gpu ? [80, 1]  : [200, 1])      // Лёгкая
+        diff >= 800 ? (gpu ? [1500, 0] : [1200, 10]) : // Экстрим: 1500 GPU-симуляций (~2с)
+        diff >= 400 ? (gpu ? [600, 0] : [800, 8]) :    // Сложная: 600 GPU-симуляций (~0.8с)
+        diff >= 150 ? (gpu ? [200, 1] : [500, 3]) :    // Средняя
+                       (gpu ? [80, 1]  : [200, 1])      // Лёгкая
       ))
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
       setTimeout(() => {
@@ -491,7 +493,7 @@ export default function Game() {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-                window.stolbikiRecordGame(won, score, difficulty >= 400, closedGolden, false)
+                window.stolbikiRecordGame(won, score, difficultyRef.current >= 400, closedGolden, false)
               }
               // Турнир — запись результата (AI gameOver)
               if (tournament) {
@@ -540,7 +542,7 @@ export default function Game() {
     const state = new GameState()
     gsRef.current = state
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
-    setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); setMode(m)
+    setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); difficultyRef.current = d; setMode(m)
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording()
     setGameMeta(m, d)
