@@ -46,6 +46,7 @@ function PostCard({ post, lang, onOpen }) {
 }
 
 function PostView({ post, lang, onBack }) {
+  const { t } = useI18n()
   const title = lang === 'en' && post.title_en ? post.title_en : post.title_ru
   const body = lang === 'en' && post.body_en ? post.body_en : post.body_ru
   const tag = TAG_STYLE[post.tag] || TAG_STYLE.update
@@ -75,7 +76,7 @@ function PostView({ post, lang, onBack }) {
 }
 
 export default function Blog() {
-  const { lang } = useI18n()
+  const { t, lang } = useI18n()
   const [posts, setPosts] = useState([])
   const [activePost, setActivePost] = useState(null)
   const [loading, setLoading] = useState(true)

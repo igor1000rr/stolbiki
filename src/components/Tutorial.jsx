@@ -77,7 +77,7 @@ const STEPS = [
 ]
 
 export default function Tutorial({ onClose }) {
-  const { lang } = useI18n()
+  const { t, lang } = useI18n()
   const [step, setStep] = useState(0)
   const [gs, setGs] = useState(() => { const s = new GameState(); STEPS[0].setup(s); return s })
   const [clicks, setClicks] = useState(0)

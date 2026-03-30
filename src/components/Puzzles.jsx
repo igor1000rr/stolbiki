@@ -31,6 +31,7 @@ function Countdown({ label, targetDate }) {
 }
 
 function PuzzleLeaderboard({ data, lang }) {
+  const { t } = useI18n()
   if (!data?.length) return null
   return (
     <div style={{ marginTop: 10 }}>
@@ -49,6 +50,7 @@ function PuzzleLeaderboard({ data, lang }) {
 }
 
 function PuzzleCard({ puzzle, lang, onPlay, userSolved }) {
+  const { t } = useI18n()
   const diff = DIFF_LABELS[puzzle.difficulty]?.[lang] || DIFF_LABELS[puzzle.difficulty]?.ru
   const color = DIFF_COLORS[puzzle.difficulty]
   const desc = lang === 'en' ? puzzle.desc_en : puzzle.desc_ru
@@ -81,6 +83,7 @@ function PuzzleCard({ puzzle, lang, onPlay, userSolved }) {
 
 // ═══ Игровой экран головоломки ═══
 function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
+  const { t } = useI18n()
   const [gs, setGs] = useState(null)
   const [movesUsed, setMovesUsed] = useState(0)
   const [status, setStatus] = useState(null) // null | 'solved' | 'failed'
