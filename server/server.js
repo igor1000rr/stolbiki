@@ -784,6 +784,23 @@ app.post('/api/rooms', (req, res) => {
   res.json({ roomId: id })
 })
 
+// Список активных комнат (для спектатора)
+app.get('/api/rooms/active', (req, res) => {
+  const active = []
+  for (const [id, room] of rooms) {
+    if (room.state === 'playing' && room.players.length === 2) {
+      active.push({
+        id: room.id,
+        players: room.players.map(p => p.name),
+        scores: room.scores,
+        turn: room.gameState?.turn || 0,
+        spectators: (room.spectators || []).filter(s => s.readyState === 1).length,
+      })
+    }
+  }
+  res.json(active)
+})
+
 app.get('/api/rooms/:id', (req, res) => {
   const room = rooms.get(req.params.id.toUpperCase())
   if (!room) return res.status(404).json({ error: 'Комната не найдена' })

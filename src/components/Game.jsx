@@ -135,6 +135,7 @@ export default function Game() {
     }
 
     function handleOnlineMove(e) {
+      if (modeRef.current === 'spectate-online') return // Обрабатывается handleSpectateMove
       const action = e.detail
       const myColorBefore = onlineRef.current?.myColor ?? 0
       const opponentColor = 1 - myColorBefore
@@ -246,6 +247,57 @@ export default function Game() {
     window.addEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
     window.addEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
 
+    // ─── Спектатор: наблюдение за чужой игрой ───
+    function handleSpectateStart(e) {
+      const { players, firstPlayer, gameState: gsData } = e.detail
+      cancelRecording()
+      // Восстанавливаем GameState из серверных данных
+      const state = new GameState()
+      if (gsData) {
+        state.stands = gsData.stands || state.stands
+        state.closed = gsData.closed || state.closed
+        state.currentPlayer = gsData.currentPlayer ?? 0
+        state.turn = gsData.turn ?? 0
+        state.swapAvailable = gsData.swapAvailable ?? true
+        state.gameOver = gsData.gameOver ?? false
+        state.winner = gsData.winner ?? null
+      }
+      gsRef.current = state
+      setGs(state); setPhase('done'); setSelected(null); setTransfer(null); setPlacement({})
+      setResult(null); setHint(null); setAiThinking(false); setScoreBump(null)
+      setHumanPlayer(0); setMode('spectate-online')
+      setLocked(true)
+      aiRunning.current = false; modeRef.current = 'spectate-online'
+      setOnlinePlayers(players || [])
+      onlineRef.current = { roomId: null, playerIdx: -1, myColor: 0 }
+      moveHistoryRef.current = []
+      setShowReplay(false); setPosEval(null)
+      setInfo(`${(players || []).join(' vs ')} — ${lang === 'en' ? 'watching' : 'наблюдение'}`)
+      setLog([{ text: `👁 ${(players || []).join(' vs ')}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+    }
+
+    // Спектатор получает ходы обоих игроков
+    function handleSpectateMove(e) {
+      if (modeRef.current !== 'spectate-online') return
+      const action = e.detail
+      const prevState = gsRef.current
+      const ns = applyAction(prevState, action)
+      setGs(ns)
+      gsRef.current = ns
+      if (action.transfer) st()
+      else if (action.swap) ss()
+      else sp()
+      addLog(describeAction(action, prevState.currentPlayer, t), prevState.currentPlayer)
+      if (ns.gameOver) {
+        setTimeout(() => {
+          setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver'))
+        }, 500)
+      }
+    }
+    // Спектатор слушает те же move-события что и online
+    window.addEventListener('stolbiki-spectate-start', handleSpectateStart)
+    window.addEventListener('stolbiki-online-move', handleSpectateMove)
+
     return () => {
       window.removeEventListener('stolbiki-online-start', handleOnlineStart)
       window.removeEventListener('stolbiki-online-move', handleOnlineMove)
@@ -255,6 +307,8 @@ export default function Game() {
       window.removeEventListener('stolbiki-online-server-gameover', handleServerGameOver)
       window.removeEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
       window.removeEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
+      window.removeEventListener('stolbiki-spectate-start', handleSpectateStart)
+      window.removeEventListener('stolbiki-online-move', handleSpectateMove)
     }
   }, []) // eslint-disable-line
 
@@ -807,8 +861,14 @@ export default function Game() {
           <span style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>Онлайн — {onlinePlayers.join(' vs ')}</span>
         </div>
       )}
+      {mode === 'spectate-online' && (
+        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
+          background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
+          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600 }}>👁 {onlinePlayers.join(' vs ')}</span>
+        </div>
+      )}
 
-      {mode !== 'online' && (
+      {mode !== 'online' && mode !== 'spectate-online' && (
       <div className="game-settings">
         <label>{t('game.modeLabel')}
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
@@ -899,12 +959,12 @@ export default function Game() {
         </div>
       )}
 
-      {(mode === 'pvp' || mode === 'spectate' || mode === 'online') && !gs.gameOver && (
+      {(mode === 'pvp' || mode === 'spectate' || mode === 'online' || mode === 'spectate-online') && !gs.gameOver && (
         <div style={{ textAlign: 'center', padding: '6px 12px', margin: '0 auto 8px', fontSize: 13, fontWeight: 600,
           color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
-          {mode === 'spectate' ? `${t('game.aiThinking')} (${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')})` :
+          {mode === 'spectate' || mode === 'spectate-online' ? `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}` :
            mode === 'online' ? (gs.currentPlayer === humanPlayer ? 'Ваш ход' : 'Ходит противник') :
            `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}`}
         </div>

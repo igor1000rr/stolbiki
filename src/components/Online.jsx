@@ -122,6 +122,8 @@ export default function Online() {
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [tournamentResult, setTournamentResult] = useState(null)
+  const [activeRooms, setActiveRooms] = useState([])
+  const [loadingRooms, setLoadingRooms] = useState(false)
 
   // Refs для актуальных значений в WS callback (не stale)
   const roomIdRef = useRef('')
@@ -226,6 +228,21 @@ export default function Online() {
       case 'matchCancelled':
         setScreen('lobby')
         break
+      case 'spectateJoined':
+        setScreen('spectating')
+        setPlayers(msg.players || [])
+        playersRef.current = msg.players || []
+        setScores(msg.scores || [0, 0])
+        // Передаём состояние в Game.jsx через событие
+        window.dispatchEvent(new CustomEvent('stolbiki-spectate-start', {
+          detail: {
+            players: msg.players,
+            firstPlayer: msg.firstPlayer ?? 0,
+            gameState: msg.gameState,
+            spectators: msg.spectators,
+          }
+        }))
+        break
     }
   }
 
@@ -279,6 +296,19 @@ export default function Online() {
     setTournamentResult(null)
     setMessages([])
     setScores([0, 0])
+  }
+
+  async function loadActiveRooms() {
+    setLoadingRooms(true)
+    try {
+      const list = await MP.getActiveRooms()
+      setActiveRooms(list)
+    } catch { setActiveRooms([]) }
+    setLoadingRooms(false)
+  }
+
+  function startSpectate(targetRoomId) {
+    MP.spectateRoom(targetRoomId, handleWS)
   }
 
   useEffect(() => () => MP.disconnect(), [])
@@ -363,6 +393,41 @@ export default function Online() {
 
         {/* Ежедневный челлендж */}
         <DailyChallenge />
+
+        {/* Наблюдение за играми */}
+        <div className="dash-card" style={{ maxWidth: 560, margin: '16px auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 14, color: '#eae8f2', marginBottom: 0 }}>{en ? 'Live games' : 'Живые партии'}</h3>
+            <button className="btn" onClick={loadActiveRooms} disabled={loadingRooms}
+              style={{ fontSize: 10, padding: '4px 10px' }}>
+              {loadingRooms ? '...' : (en ? 'Refresh' : 'Обновить')}
+            </button>
+          </div>
+          {activeRooms.length === 0 ? (
+            <p style={{ color: '#6e6a82', fontSize: 12 }}>
+              {en ? 'No active games right now' : 'Сейчас нет активных игр'}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {activeRooms.map(r => (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div>
+                    <span style={{ fontSize: 13, color: '#eae8f2', fontWeight: 600 }}>{r.players.join(' vs ')}</span>
+                    <span style={{ fontSize: 11, color: '#6e6a82', marginLeft: 8 }}>
+                      {r.scores[0]}:{r.scores[1]} · {en ? 'turn' : 'ход'} {r.turn}
+                      {r.spectators > 0 && ` · 👁 ${r.spectators}`}
+                    </span>
+                  </div>
+                  <button className="btn" onClick={() => startSpectate(r.id)}
+                    style={{ fontSize: 10, padding: '4px 10px' }}>
+                    {en ? 'Watch' : 'Смотреть'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -482,6 +547,33 @@ export default function Online() {
             placeholder={en ? 'Message...' : 'Сообщение...'} style={{ ...inputStyle, marginBottom: 0, flex: 1, fontSize: 12, padding: '6px 10px' }} />
           <button className="btn" onClick={sendChat} style={{ fontSize: 11, padding: '6px 12px', minHeight: 0 }}>
             <Icon name="arrow" size={14} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── SPECTATING ───
+  if (screen === 'spectating') {
+    return (
+      <div>
+        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
+          background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
+          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600 }}>
+            👁 {en ? 'Spectating' : 'Наблюдение'} — {players.join(' vs ')}
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 700, margin: '0 10px', color: '#eae8f2' }}>
+            {scores[0]}:{scores[1]}
+          </span>
+        </div>
+        {status && (
+          <div style={{ textAlign: 'center', padding: 8, color: '#ffc145', fontSize: 12, marginBottom: 8 }}>
+            {status}
+          </div>
+        )}
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <button className="btn" onClick={backToLobby} style={{ fontSize: 12 }}>
+            {en ? '← Back to lobby' : '← В лобби'}
           </button>
         </div>
       </div>

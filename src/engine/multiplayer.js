@@ -116,3 +116,26 @@ export async function getRoomInfo(roomId) {
   if (!res.ok) return null
   return await res.json()
 }
+
+export async function getActiveRooms() {
+  const res = await fetch(`${API}/rooms/active`)
+  if (!res.ok) return []
+  return await res.json()
+}
+
+export function spectateRoom(roomId, callback) {
+  onMessage = callback
+  intentionalClose = false
+  reconnectAttempts = 0
+  if (ws) { intentionalClose = true; ws.close() }
+  intentionalClose = false
+
+  ws = new WebSocket(getWsUrl())
+  ws.onopen = () => {
+    reconnectAttempts = 0
+    ws.send(JSON.stringify({ type: 'spectate', roomId }))
+  }
+  ws.onmessage = (e) => { try { if (onMessage) onMessage(JSON.parse(e.data)) } catch {} }
+  ws.onclose = () => { if (!intentionalClose && onMessage) onMessage({ type: 'disconnected' }) }
+  ws.onerror = () => {}
+}

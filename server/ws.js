@@ -43,6 +43,14 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
     return gamePlayer === 0 ? firstP : 1 - firstP
   }
 
+  /** Рассылка сообщения всем зрителям комнаты */
+  function broadcastToSpectators(room, msg) {
+    if (!room.spectators) return
+    const data = typeof msg === 'string' ? msg : JSON.stringify(msg)
+    room.spectators = room.spectators.filter(s => s.readyState === 1)
+    room.spectators.forEach(s => s.send(data))
+  }
+
   /** Обработка gameOver сервером: обновление счёта + турнирная логика */
   function handleServerGameOver(room) {
     const gs = room.gameState
@@ -58,6 +66,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
       scores: room.scores,
     })
     room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(gameOverMsg))
+    broadcastToSpectators(room, gameOverMsg)
     handleTournamentNext(room)
   }
 
@@ -89,6 +98,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
     let playerRoom = null
     let playerIdx = -1
     let wsUser = null
+    let isSpectator = false
 
     const url = new URL(req.url, 'http://localhost')
     const tokenFromUrl = url.searchParams.get('token')
@@ -125,7 +135,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
               { ws: p2.ws, name: p2.name, userId: p2.userId },
             ],
             mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0],
-            gameState: new GameState(), firstPlayer: 0,
+            gameState: new GameState(), firstPlayer: 0, spectators: [],
           }
           rooms.set(roomId, room)
           p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0 }))
@@ -175,6 +185,29 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
         }
       }
 
+      // ─── SPECTATE ───
+      if (msg.type === 'spectate') {
+        const roomId = (msg.roomId || '').toUpperCase()
+        const room = rooms.get(roomId)
+        if (!room) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната не найдена' }))
+        if (!room.spectators) room.spectators = []
+        room.spectators.push(ws)
+        playerRoom = room
+        isSpectator = true
+        // Отправляем текущее состояние игры
+        const gs = room.gameState
+        ws.send(JSON.stringify({
+          type: 'spectateJoined',
+          roomId,
+          players: room.players.map(p => p.name),
+          scores: room.scores,
+          firstPlayer: room.firstPlayer ?? 0,
+          // Сериализуем gameState для восстановления на клиенте
+          gameState: gs ? { stands: gs.stands, closed: gs.closed, currentPlayer: gs.currentPlayer, turn: gs.turn, swapAvailable: gs.swapAvailable, gameOver: gs.gameOver, winner: gs.winner } : null,
+          spectators: room.spectators.filter(s => s.readyState === 1).length,
+        }))
+      }
+
       // ─── MOVE (серверная валидация) ───
       if (msg.type === 'move' && playerRoom) {
         const room = playerRoom
@@ -198,6 +231,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
               if (opponent?.ws?.readyState === 1) {
                 opponent.ws.send(JSON.stringify({ type: 'move', action, from: playerIdx }))
               }
+              // Спектаторы получают все ходы
+              broadcastToSpectators(room, { type: 'move', action, from: playerIdx })
               if (room.gameState.gameOver) {
                 handleServerGameOver(room)
               }
@@ -300,13 +335,19 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
     ws.on('close', () => {
       if (playerRoom) {
         const room = playerRoom
-        const dcMsg = JSON.stringify({ type: 'disconnected', playerIdx })
-        room.players.forEach((p, i) => {
-          if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(dcMsg)
-        })
-        setTimeout(() => {
-          if (room.players.some(p => p.ws?.readyState !== 1)) rooms.delete(room.id)
-        }, 60000)
+        if (isSpectator) {
+          // Зритель отключился — убираем из списка
+          if (room.spectators) room.spectators = room.spectators.filter(s => s !== ws)
+        } else {
+          const dcMsg = JSON.stringify({ type: 'disconnected', playerIdx })
+          room.players.forEach((p, i) => {
+            if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(dcMsg)
+          })
+          broadcastToSpectators(room, dcMsg)
+          setTimeout(() => {
+            if (room.players.some(p => p.ws?.readyState !== 1)) rooms.delete(room.id)
+          }, 60000)
+        }
       }
     })
   })
