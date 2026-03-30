@@ -127,6 +127,7 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   const player = state.currentPlayer
   const maxP = state.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const useNN = nnReady()
+  const useGpuNet = isGpuReady()
 
   function randPlacement(st, exclude = []) {
     const canClose = st.canCloseByPlacement()
@@ -145,22 +146,22 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     return pl
   }
 
-  // ── Генерация кандидатов ──
+  // ── Генерация кандидатов — чем сильнее AI, тем больше ──
+  const isHard = numSimulations >= 300
 
   // Swap
   if (state.turn === 1 && state.swapAvailable) {
     actions.push({ swap: true })
   }
 
-  // Закрывающие переносы (приоритет)
+  // ВСЕ закрывающие переносы (полный перебор)
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
-    if (state.stands[dst].length + gs >= MAX_CHIPS && gc === player) {
-      actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
-      actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
-      actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
-    } else if (state.stands[dst].length + gs >= MAX_CHIPS) {
-      actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
+    if (state.stands[dst].length + gs >= MAX_CHIPS) {
+      // Каждый закрывающий перенос с несколькими вариантами установки
+      for (let k = 0; k < (gc === player ? 4 : 2); k++) {
+        actions.push({ transfer: [src, dst], placement: randPlacement(state, [src, dst]) })
+      }
     }
   }
 
@@ -169,33 +170,40 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     const [, gs] = state.topGroup(s)
     return state.stands[d].length + gs < MAX_CHIPS
   })
-  for (let i = 0; i < Math.min(5, strat.length); i++) {
-    const t = strat[Math.floor(Math.random() * strat.length)]
+  // Для сложных: все переносы, для лёгких: рандомная выборка
+  const stratSample = isHard ? strat : strat.sort(() => Math.random() - 0.5).slice(0, 5)
+  for (const t of stratSample) {
     actions.push({ transfer: t, placement: randPlacement(state, [t[0], t[1]]) })
+    if (isHard) actions.push({ transfer: t, placement: randPlacement(state, [t[0], t[1]]) })
   }
 
-  // Только установка
+  // Установки: на каждую открытую стойку — несколько вариантов
   const canCloseP = state.canCloseByPlacement()
   const minSpP = canCloseP ? 0 : 1
   const avail = state.openStands().filter(i => state.standSpace(i) > minSpP)
   if (avail.length) {
     const sorted = [...avail].sort((a, b) => state.stands[b].length - state.stands[a].length)
-    for (let k = 0; k < Math.min(6, sorted.length); k++) {
+    // Одиночные установки
+    for (let k = 0; k < Math.min(isHard ? 10 : 6, sorted.length); k++) {
       const idx = sorted[k]
       const sp = canCloseP ? state.standSpace(idx) : state.standSpace(idx) - 1
       if (sp > 0) actions.push({ placement: { [idx]: Math.min(maxP, sp) } })
       if (sp > 1 && maxP >= 2) actions.push({ placement: { [idx]: 1 } })
+      if (sp > 2 && maxP >= 3) actions.push({ placement: { [idx]: 2 } })
     }
+    // Двойные установки
     if (avail.length >= 2 && maxP >= 2) {
-      for (let i = 0; i < Math.min(3, sorted.length); i++) {
-        for (let j = i + 1; j < Math.min(4, sorted.length); j++) {
+      const lim = isHard ? 5 : 3
+      for (let i = 0; i < Math.min(lim, sorted.length); i++) {
+        for (let j = i + 1; j < Math.min(lim + 1, sorted.length); j++) {
           const [i1, i2] = [sorted[i], sorted[j]]
           const s1 = canCloseP ? state.standSpace(i1) : state.standSpace(i1) - 1
           const s2 = canCloseP ? state.standSpace(i2) : state.standSpace(i2) - 1
           if (s1 > 0 && s2 > 0) {
             actions.push({ placement: { [i1]: Math.min(2, s1), [i2]: 1 } })
-            if (maxP >= 3 && s2 > 1) {
-              actions.push({ placement: { [i1]: 1, [i2]: Math.min(2, s2) } })
+            actions.push({ placement: { [i1]: 1, [i2]: Math.min(2, s2) } })
+            if (maxP >= 3 && s1 > 1 && s2 > 1) {
+              actions.push({ placement: { [i1]: 2, [i2]: 1 } })
             }
           }
         }
@@ -203,10 +211,11 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     }
   }
 
-  // Добить рандомными
-  while (actions.length < 15) actions.push(sampleRandomAction(state))
+  // Рандомные для exploration
+  const minActions = isHard ? 25 : 15
+  while (actions.length < minActions) actions.push(sampleRandomAction(state))
 
-  // Убираем дубликаты
+  // Дедупликация
   const seen = new Set()
   const finalActions = []
   for (const a of actions) {
@@ -217,12 +226,13 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   for (let i = 0; i < finalActions.length; i++) { visits.push(0); values.push(0) }
 
   // ── MCTS симуляции ──
-  const cExplore = useNN ? 1.2 : 1.4
+  // GPU-сеть точнее → меньше exploration нужен
+  const cExplore = useGpuNet ? 1.0 : useNN ? 1.2 : 1.4
 
   for (let sim = 0; sim < numSimulations; sim++) {
     const totalV = visits.reduce((a, b) => a + b, 0) + 1
 
-    // UCB1 выбор
+    // UCB1
     let bestIdx = 0, bestScore = -Infinity
     for (let i = 0; i < finalActions.length; i++) {
       const score = visits[i] === 0
@@ -231,7 +241,6 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
       if (score > bestScore) { bestScore = score; bestIdx = i }
     }
 
-    // Применяем ход и оцениваем
     const s = applyAction(state, finalActions[bestIdx])
     const val = evaluatePosition(s, player, rolloutDepth)
 

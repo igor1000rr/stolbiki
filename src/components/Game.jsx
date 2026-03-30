@@ -466,10 +466,10 @@ export default function Game() {
     setTimeout(() => {
       const gpu = isGpuReady()
       const action = mctsSearch(state, ...(
-        difficulty >= 800 ? (gpu ? [600, 4] : [1200, 10]) :  // Экстрим
-        difficulty >= 400 ? (gpu ? [300, 2] : [800, 8]) :    // Сложная
-        difficulty >= 150 ? (gpu ? [150, 1] : [500, 3]) :    // Средняя
-                            (gpu ? [80, 0]  : [200, 1])      // Лёгкая
+        difficulty >= 800 ? (gpu ? [600, 0] : [1200, 10]) :  // Экстрим: GPU прямая оценка
+        difficulty >= 400 ? (gpu ? [400, 0] : [800, 8]) :    // Сложная: GPU прямая оценка
+        difficulty >= 150 ? (gpu ? [200, 1] : [500, 3]) :    // Средняя
+                            (gpu ? [80, 1]  : [200, 1])      // Лёгкая
       ))
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
       setTimeout(() => {
