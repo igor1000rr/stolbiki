@@ -455,17 +455,21 @@ if (!blogExists) {
     )
   console.log('Блог: добавлен пост v3.4')
 }
-// Обновляем пост v3.4 — добавляем GPU-нейросеть
-const blogPost34 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v3-4-security-spectator'").get()
-if (blogPost34) {
-  db.prepare("UPDATE blog_posts SET body_ru=?, body_en=?, title_ru=?, title_en=? WHERE slug='v3-4-security-spectator'").run(
+
+// ─── Блог-пост v3.5 ───
+const blog35 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v3-5-gpu-neural-extreme'").get()
+if (!blog35) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v3-5-gpu-neural-extreme',
+    'v3.5 — GPU-нейросеть, экстрим, рематч, спектатор',
+    'v3.5 — GPU neural network, extreme, rematch, spectator',
     `Самое большое обновление Snatch Highrise!
 
 **GPU-нейросеть в браузере:** ResNet с 840K параметрами (93× больше предыдущей) теперь работает прямо в браузере. Обучена через 500 итераций self-play на NVIDIA GPU. AI стал значительно сильнее — каждая оценка позиции точнее.
 
 **Экстрим-сложность:** Новый уровень — 600 GPU-симуляций. Самый сильный AI в игре. Сеть продолжает обучаться на партиях реальных игроков.
 
-**Безопасность:** Сервер валидирует каждый ход через движок. Раньше клиент мог подменить результат — теперь gameOver определяет сервер.
+**Серверная валидация:** Сервер валидирует каждый ход через движок. Раньше клиент мог подменить результат — теперь gameOver определяет сервер.
 
 **Рематч:** После онлайн-партии — кнопка рематча, сервер автоматически меняет стороны.
 
@@ -482,7 +486,7 @@ if (blogPost34) {
 
 **Extreme difficulty:** New level — 600 GPU simulations. The strongest AI in the game. The network continues learning from real player games.
 
-**Security:** Server validates every move through the game engine. Previously clients could fake results — now gameOver is determined server-side.
+**Server-side validation:** Server validates every move through the game engine. Previously clients could fake results — now gameOver is determined server-side.
 
 **Rematch:** After an online game — rematch button, server automatically swaps sides.
 
@@ -493,10 +497,13 @@ if (blogPost34) {
 **Push notifications:** Browser shows "Your turn!" when tab is in background.
 
 **Under the hood:** server.js split into 3 modules, Game.jsx decomposed, 84 texts moved to CMS.`,
-    'v3.4 — GPU-нейросеть, экстрим, безопасность, спектатор',
-    'v3.4 — GPU neural network, extreme, security, spectator'
+    'update', 1, 1
   )
+  console.log('Блог: добавлен пост v3.5')
 }
+
+// Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
+db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
 
 // ═══ Ачивки ═══
 const ALL_ACHIEVEMENTS = [

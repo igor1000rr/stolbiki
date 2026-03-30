@@ -6,10 +6,10 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
-    version: '3.4',
+    version: '3.5',
     date: '2026-03-30',
-    title_ru: 'Безопасность, модули, CMS, рематч, спектатор, профили',
-    title_en: 'Security, modules, CMS, rematch, spectator, profiles',
+    title_ru: 'GPU-нейросеть, экстрим, рематч, спектатор, профили',
+    title_en: 'GPU neural network, extreme, rematch, spectator, profiles',
     changes_ru: [
       { type: 'new', text: 'GPU-нейросеть в браузере — ResNet 840K параметров (v500, NVIDIA), значительно сильнее AI' },
       { type: 'new', text: 'Сложность «Экстрим» — 600 GPU-симуляций, самый сильный AI' },
