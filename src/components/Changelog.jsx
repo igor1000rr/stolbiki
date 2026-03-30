@@ -11,7 +11,7 @@ const VERSIONS = [
     title_ru: 'Безопасность, модули, CMS, рематч, спектатор, профили',
     title_en: 'Security, modules, CMS, rematch, spectator, profiles',
     changes_ru: [
-      { type: 'new', text: 'GPU-нейросеть в браузере — ResNet 840K параметров (v500, GTX 1080), значительно сильнее AI' },
+      { type: 'new', text: 'GPU-нейросеть в браузере — ResNet 840K параметров (v500, NVIDIA), значительно сильнее AI' },
       { type: 'new', text: 'Сложность «Экстрим» — 600 GPU-симуляций, самый сильный AI' },
       { type: 'new', text: 'Доучивание AI на партиях реальных игроков (retrain.py pipeline)' },
       { type: 'new', text: 'Серверная валидация ходов — движок на сервере, защита от gameOver эксплойта' },
@@ -27,7 +27,7 @@ const VERSIONS = [
       { type: 'fix', text: 'spectate-online: newGame reset, resign скрыт, back-to-lobby' },
     ],
     changes_en: [
-      { type: 'new', text: 'GPU neural network in browser — ResNet 840K params (v500, GTX 1080), much stronger AI' },
+      { type: 'new', text: 'GPU neural network in browser — ResNet 840K params (v500, NVIDIA), much stronger AI' },
       { type: 'new', text: 'Extreme difficulty — 600 GPU simulations, strongest AI level' },
       { type: 'new', text: 'AI retraining on real player games (retrain.py pipeline)' },
       { type: 'new', text: 'Server-side move validation — game engine on server, gameOver exploit fixed' },

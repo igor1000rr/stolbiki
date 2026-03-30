@@ -69,7 +69,11 @@ function PostView({ post, lang, onBack }) {
       </h1>
 
       <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.9, whiteSpace: 'pre-line' }}>
-        {body}
+        {(body || '').split(/(\*\*.+?\*\*)/).map((part, i) =>
+          part.startsWith('**') && part.endsWith('**')
+            ? <b key={i} style={{ color: 'var(--ink)' }}>{part.slice(2, -2)}</b>
+            : part
+        )}
       </div>
     </article>
   )

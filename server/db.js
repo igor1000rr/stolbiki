@@ -461,9 +461,11 @@ if (blogPost34) {
   db.prepare("UPDATE blog_posts SET body_ru=?, body_en=?, title_ru=?, title_en=? WHERE slug='v3-4-security-spectator'").run(
     `Самое большое обновление Snatch Highrise!
 
-**GPU-нейросеть в браузере:** ResNet с 840K параметрами (93× больше предыдущей) теперь работает прямо в браузере. Обучена на GTX 1080 через 500 итераций self-play. AI стал значительно сильнее — с GPU-сетью достаточно меньше MCTS-симуляций, каждая оценка точнее.
+**GPU-нейросеть в браузере:** ResNet с 840K параметрами (93× больше предыдущей) теперь работает прямо в браузере. Обучена через 500 итераций self-play на NVIDIA GPU. AI стал значительно сильнее — каждая оценка позиции точнее.
 
-**Безопасность:** Сервер валидирует каждый ход через движок. Раньше клиент мог подменить результат — теперь все ходы проверяются через getLegalActions, gameOver определяет сервер.
+**Экстрим-сложность:** Новый уровень — 600 GPU-симуляций. Самый сильный AI в игре. Сеть продолжает обучаться на партиях реальных игроков.
+
+**Безопасность:** Сервер валидирует каждый ход через движок. Раньше клиент мог подменить результат — теперь gameOver определяет сервер.
 
 **Рематч:** После онлайн-партии — кнопка рематча, сервер автоматически меняет стороны.
 
@@ -476,9 +478,11 @@ if (blogPost34) {
 **Под капотом:** server.js → 3 модуля, Game.jsx декомпозирован, 84 текста на CMS.`,
     `The biggest Snatch Highrise update yet!
 
-**GPU neural network in browser:** ResNet with 840K parameters (93× larger than previous) now runs directly in the browser. Trained on GTX 1080 through 500 iterations of self-play. AI is significantly stronger — with GPU net, fewer MCTS simulations needed, each evaluation is more accurate.
+**GPU neural network in browser:** ResNet with 840K parameters (93× larger than previous) now runs directly in the browser. Trained through 500 iterations of self-play on NVIDIA GPU. AI is significantly stronger — each position evaluation is more accurate.
 
-**Security:** Server validates every move through the game engine. Previously clients could fake results — now all moves checked via getLegalActions, gameOver determined server-side.
+**Extreme difficulty:** New level — 600 GPU simulations. The strongest AI in the game. The network continues learning from real player games.
+
+**Security:** Server validates every move through the game engine. Previously clients could fake results — now gameOver is determined server-side.
 
 **Rematch:** After an online game — rematch button, server automatically swaps sides.
 
@@ -489,8 +493,8 @@ if (blogPost34) {
 **Push notifications:** Browser shows "Your turn!" when tab is in background.
 
 **Under the hood:** server.js split into 3 modules, Game.jsx decomposed, 84 texts moved to CMS.`,
-    'v3.4 — GPU-нейросеть, безопасность, спектатор, рематч',
-    'v3.4 — GPU neural network, security, spectator, rematch'
+    'v3.4 — GPU-нейросеть, экстрим, безопасность, спектатор',
+    'v3.4 — GPU neural network, extreme, security, spectator'
   )
 }
 
