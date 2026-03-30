@@ -3,7 +3,7 @@
  * Полное управление: пользователи, партии, блог, сезоны, сервер
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useI18n, translations } from '../engine/i18n'
+import { useI18n } from '../engine/i18n'
 import Icon from './Icon'
 
 const API = '/api'
@@ -891,20 +891,27 @@ function ContentTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(null)
-  const [filter, setFilter] = useState('all')
+  const [activeSection, setActiveSection] = useState(null)
   const [search, setSearch] = useState('')
-  const [edited, setEdited] = useState({}) // { key: { value_ru, value_en } }
+  const [edited, setEdited] = useState({})
 
   useEffect(() => {
     fetch('/api/admin/content', { headers: { 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` } })
-      .then(r => r.json()).then(data => { setItems(data); setLoading(false) }).catch(() => setLoading(false))
+      .then(r => r.json()).then(data => {
+        setItems(data)
+        const sections = [...new Set(data.map(i => i.section))]
+        if (sections.length) setActiveSection(sections[0])
+        setLoading(false)
+      }).catch(() => setLoading(false))
   }, [])
 
   const sections = [...new Set(items.map(i => i.section))]
   const filtered = items.filter(i => {
-    if (filter !== 'all' && i.section !== filter) return false
-    if (search && !i.key.toLowerCase().includes(search.toLowerCase()) && !i.label?.toLowerCase().includes(search.toLowerCase())
-      && !i.value_ru.toLowerCase().includes(search.toLowerCase())) return false
+    if (activeSection && i.section !== activeSection) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return i.label?.toLowerCase().includes(q) || i.value_ru.toLowerCase().includes(q) || i.key.toLowerCase().includes(q)
+    }
     return true
   })
 
@@ -925,120 +932,93 @@ function ContentTab() {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
         body: JSON.stringify(body),
       })
-      setItems(prev => prev.map(i => i.key === key ? { ...i, ...body, updated_at: new Date().toISOString() } : i))
+      setItems(prev => prev.map(i => i.key === key ? { ...i, ...body } : i))
       setEdited(prev => { const n = { ...prev }; delete n[key]; return n })
-      // Инвалидируем кеш контента на клиенте
       localStorage.removeItem('stolbiki_content')
     } catch {}
     setSaving(null)
   }
 
-  async function saveAll() {
-    for (const key of Object.keys(edited)) await saveItem(key)
-  }
+  async function saveAll() { for (const key of Object.keys(edited)) await saveItem(key) }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Загрузка...</div>
 
   const hasEdits = Object.keys(edited).length > 0
-  const isLong = (v) => v && v.length > 80
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12 }}>
-          <option value="all">Все разделы</option>
-          {sections.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." style={{
-          padding: '6px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--surface3)',
-          color: 'var(--ink)', fontSize: 12, flex: 1, minWidth: 120
-        }} />
-        {hasEdits && (
-          <button onClick={saveAll} style={{
-            padding: '6px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff',
-            border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer'
-          }}>
-            Сохранить всё ({Object.keys(edited).length})
-          </button>
-        )}
-        <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{filtered.length} из {items.length}</span>
-        <button onClick={async () => {
-          const allKeys = Object.keys(translations.ru || {})
-          const bulk = allKeys.map(key => ({
-            key, section: 'i18n',
-            value_ru: translations.ru?.[key] || '',
-            value_en: translations.en?.[key] || '',
-            label: key,
-          }))
-          const res = await fetch('/api/admin/content/bulk', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
-            body: JSON.stringify({ items: bulk }),
-          })
-          const data = await res.json()
-          alert(`Импортировано ${data.added} новых ключей из ${data.total}`)
-          location.reload()
-        }} style={{
-          padding: '6px 12px', borderRadius: 8, background: 'var(--surface2)', color: 'var(--ink3)',
-          border: '1px solid var(--surface3)', fontSize: 10, cursor: 'pointer'
-        }}>
-          + Импорт i18n ({Object.keys(translations.ru || {}).length})
-        </button>
+      {/* Вкладки по секциям */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
+        {sections.map(s => (
+          <button key={s} onClick={() => setActiveSection(s)} style={{
+            padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            background: activeSection === s ? 'var(--accent)' : 'var(--surface2)',
+            color: activeSection === s ? '#fff' : 'var(--ink3)',
+          }}>{s} ({items.filter(i => i.section === s).length})</button>
+        ))}
       </div>
 
+      {/* Поиск + сохранить */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по описанию или тексту..."
+          style={{ flex: 1, padding: '8px 14px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 13 }} />
+        {hasEdits && (
+          <button onClick={saveAll} style={{
+            padding: '8px 20px', borderRadius: 8, background: 'var(--accent)', color: '#fff',
+            border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
+          }}>Сохранить ({Object.keys(edited).length})</button>
+        )}
+      </div>
+
+      {/* Карточки */}
       {filtered.map(item => {
         const e = edited[item.key] || {}
         const ruVal = e.value_ru !== undefined ? e.value_ru : item.value_ru
         const enVal = e.value_en !== undefined ? e.value_en : item.value_en
         const isChanged = item.key in edited
-        const long = isLong(item.value_ru) || isLong(item.value_en)
+        const long = (item.value_ru + item.value_en).length > 120
 
         return (
           <div key={item.key} style={{
-            padding: '12px 16px', marginBottom: 8, borderRadius: 10,
-            background: isChanged ? 'rgba(240,96,64,0.06)' : 'var(--surface)',
+            padding: '14px 18px', marginBottom: 10, borderRadius: 12,
+            background: isChanged ? 'rgba(240,96,64,0.05)' : 'var(--surface)',
             border: `1px solid ${isChanged ? 'rgba(240,96,64,0.2)' : 'var(--surface3)'}`,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div>
-                <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: 'monospace', marginRight: 8 }}>{item.key}</span>
-                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{item.label}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <span style={{ fontSize: 9, color: 'var(--ink3)', padding: '2px 6px', background: 'var(--surface2)', borderRadius: 4 }}>{item.section}</span>
-                {isChanged && (
-                  <button onClick={() => saveItem(item.key)} disabled={saving === item.key}
-                    style={{ padding: '3px 10px', borderRadius: 6, background: '#3dd68c', color: '#000', border: 'none', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
-                    {saving === item.key ? '...' : '✓'}
-                  </button>
-                )}
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.label || item.key}</span>
+              {isChanged && (
+                <button onClick={() => saveItem(item.key)} disabled={saving === item.key}
+                  style={{ padding: '4px 14px', borderRadius: 6, background: '#3dd68c', color: '#000', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                  {saving === item.key ? '...' : 'Сохранить'}
+                </button>
+              )}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
-                <div style={{ fontSize: 9, color: 'var(--ink3)', marginBottom: 3 }}>RU</div>
+                <div style={{ fontSize: 10, color: 'var(--p2)', marginBottom: 4, fontWeight: 600 }}>Русский</div>
                 {long ? (
-                  <textarea value={ruVal} onChange={e => handleChange(item.key, 'value_ru', e.target.value)} rows={3}
-                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
+                  <textarea value={ruVal} onChange={e2 => handleChange(item.key, 'value_ru', e2.target.value)} rows={3}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
                 ) : (
-                  <input value={ruVal} onChange={e => handleChange(item.key, 'value_ru', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12 }} />
+                  <input value={ruVal} onChange={e2 => handleChange(item.key, 'value_ru', e2.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 13 }} />
                 )}
               </div>
               <div>
-                <div style={{ fontSize: 9, color: 'var(--ink3)', marginBottom: 3 }}>EN</div>
+                <div style={{ fontSize: 10, color: 'var(--p1)', marginBottom: 4, fontWeight: 600 }}>English</div>
                 {long ? (
-                  <textarea value={enVal} onChange={e => handleChange(item.key, 'value_en', e.target.value)} rows={3}
-                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
+                  <textarea value={enVal} onChange={e2 => handleChange(item.key, 'value_en', e2.target.value)} rows={3}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
                 ) : (
-                  <input value={enVal} onChange={e => handleChange(item.key, 'value_en', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12 }} />
+                  <input value={enVal} onChange={e2 => handleChange(item.key, 'value_en', e2.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 13 }} />
                 )}
               </div>
             </div>
           </div>
         )
       })}
+      {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Ничего не найдено</div>}
     </div>
   )
 }

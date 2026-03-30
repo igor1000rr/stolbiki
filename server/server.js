@@ -171,60 +171,150 @@ db.exec(`
   )
 `)
 
-// Сид контента (только если пусто)
+// Сид контента — автоматически при первом запуске
 const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
 if (contentCount === 0) {
   const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
-  const seed = [
-    // ── Сайт ──
-    ['site.name', 'site', 'Перехват высотки', 'Snatch Highrise', 'Название игры'],
-    ['site.tagline', 'site', 'Стратегическая настолка с AI', 'Strategy board game powered by AI', 'Подзаголовок'],
-    ['site.description', 'site', 'Стратегическая настольная игра с AI-противником на базе AlphaZero. Играйте онлайн, решайте головоломки, соревнуйтесь.', 'Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.', 'Описание (meta)'],
-    ['site.beta_text', 'site', 'Открытая бета — активная разработка', 'Open beta — active development', 'Текст беты'],
 
-    // ── Лендинг: герой ──
-    ['landing.play_btn', 'landing', 'Играть', 'Play free', 'Кнопка Играть'],
-    ['landing.learn_btn', 'landing', 'Обучение за 2 мин', 'Learn in 2 min', 'Кнопка Обучение'],
-    ['landing.stat_games', 'landing', 'партий', 'games analyzed', 'Подпись под 239K+'],
-    ['landing.stat_winrate', 'landing', 'винрейт AI', 'AI win rate', 'Подпись под 97%'],
-    ['landing.stat_balance', 'landing', 'баланс', 'balance', 'Подпись под 50:50'],
-
-    // ── Лендинг: 3 шага ──
-    ['landing.steps_title', 'landing', 'Научитесь за 3 шага', 'Learn in 3 steps', 'Заголовок секции'],
-    ['landing.step1_title', 'landing', 'Ставьте', 'Place', 'Шаг 1 заголовок'],
-    ['landing.step1_desc', 'landing', 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.', 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.', 'Шаг 1 описание'],
-    ['landing.step2_title', 'landing', 'Переносите', 'Transfer', 'Шаг 2 заголовок'],
-    ['landing.step2_desc', 'landing', 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.', 'Move your top chip group to another stand. The key tactical move that decides games.', 'Шаг 2 описание'],
-    ['landing.step3_title', 'landing', 'Закрывайте', 'Close', 'Шаг 3 заголовок'],
-    ['landing.step3_desc', 'landing', 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!', 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!', 'Шаг 3 описание'],
-
-    // ── Лендинг: фичи ──
-    ['landing.features_title', 'landing', 'Что внутри', "What's inside", 'Заголовок фич'],
-    ['landing.ai_title', 'landing', 'AI на базе AlphaZero', 'AlphaZero AI', 'Блок AI заголовок'],
-    ['landing.online_title', 'landing', 'Онлайн мультиплеер', 'Online multiplayer', 'Блок онлайн'],
-    ['landing.online_desc', 'landing', 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.', 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.', 'Описание онлайн'],
-    ['landing.puzzles_title', 'landing', 'Головоломки', 'Daily puzzles', 'Блок головоломки'],
-    ['landing.puzzles_desc', 'landing', 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.', 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.', 'Описание головоломки'],
-
-    // ── Лендинг: FAQ ──
-    ['landing.faq_title', 'landing', 'Частые вопросы', 'FAQ', 'FAQ заголовок'],
-    ['landing.faq1_q', 'landing', 'Как научиться?', 'How to learn?', 'FAQ вопрос 1'],
-    ['landing.faq1_a', 'landing', 'Туториал в 5 шагов научит основам. Раздел Правила — детали.', 'The 5-step tutorial covers basics. Rules section has details.', 'FAQ ответ 1'],
-    ['landing.faq2_q', 'landing', 'Это сбалансировано?', 'Is it balanced?', 'FAQ вопрос 2'],
-    ['landing.faq2_a', 'landing', '50:50 баланс. Проверено на 239K партиях.', '50:50 balance. Confirmed across 239K games.', 'FAQ ответ 2'],
-
-    // ── Лендинг: about ──
-    ['landing.about_title', 'landing', 'Об игре', 'About', 'О проекте заголовок'],
-    ['landing.about_text', 'landing',
-      'Перехват высотки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.',
-      'Snatch Highrise is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.',
-      'О проекте текст'],
-
-    // ── Футер ──
-    ['footer.tagline', 'site', 'Настольные игры и AI-исследования', 'Board games meet AI research', 'Футер подпись'],
+  // ── Секция: Сайт ──
+  const siteSeed = [
+    ['site.name', 'Перехват высотки', 'Snatch Highrise', 'Название игры'],
+    ['site.tagline', 'Стратегическая настолка с AI', 'Strategy board game powered by AI', 'Слоган / подзаголовок'],
+    ['site.description', 'Стратегическая настольная игра с AI-противником на базе AlphaZero. Играйте онлайн, решайте головоломки, соревнуйтесь.', 'Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.', 'Описание для поисковиков (meta)'],
+    ['site.beta_text', 'Открытая бета — активная разработка', 'Open beta — active development', 'Текст под логотипом'],
+    ['footer.tagline', 'Настольные игры и AI-исследования', 'Board games meet AI research', 'Подпись в футере'],
   ]
-  for (const [key, section, ru, en, label] of seed) ins.run(key, section, ru, en, label)
-  console.log('Контент сайта засеян:', seed.length, 'ключей')
+  for (const [key, ru, en, label] of siteSeed) ins.run(key, 'Сайт', ru, en, label)
+
+  // ── Секция: Главная страница ──
+  const landingSeed = [
+    ['landing.play_btn', 'Играть', 'Play free', 'Кнопка «Играть»'],
+    ['landing.learn_btn', 'Обучение за 2 мин', 'Learn in 2 min', 'Кнопка «Обучение»'],
+    ['landing.stat_games', 'партий', 'games analyzed', 'Подпись под числом 239K+'],
+    ['landing.stat_winrate', 'винрейт AI', 'AI win rate', 'Подпись под числом 97%'],
+    ['landing.stat_balance', 'баланс', 'balance', 'Подпись под числом 50:50'],
+    ['landing.steps_title', 'Научитесь за 3 шага', 'Learn in 3 steps', 'Заголовок блока «3 шага»'],
+    ['landing.step1_title', 'Ставьте', 'Place', 'Шаг 1 — заголовок'],
+    ['landing.step1_desc', 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.', 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.', 'Шаг 1 — описание'],
+    ['landing.step2_title', 'Переносите', 'Transfer', 'Шаг 2 — заголовок'],
+    ['landing.step2_desc', 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.', 'Move your top chip group to another stand. The key tactical move that decides games.', 'Шаг 2 — описание'],
+    ['landing.step3_title', 'Закрывайте', 'Close', 'Шаг 3 — заголовок'],
+    ['landing.step3_desc', 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!', 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!', 'Шаг 3 — описание'],
+    ['landing.features_title', 'Что внутри', "What's inside", 'Заголовок блока фич'],
+    ['landing.ai_title', 'AI на базе AlphaZero', 'AlphaZero AI', 'Заголовок блока AI'],
+    ['landing.online_title', 'Онлайн мультиплеер', 'Online multiplayer', 'Заголовок блока онлайн'],
+    ['landing.online_desc', 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.', 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.', 'Описание онлайн'],
+    ['landing.puzzles_title', 'Головоломки', 'Daily puzzles', 'Заголовок блока головоломок'],
+    ['landing.puzzles_desc', 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.', 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.', 'Описание головоломок'],
+    ['landing.about_title', 'Об игре', 'About', 'Заголовок «О проекте»'],
+    ['landing.about_text', 'Перехват высотки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.', 'Snatch Highrise is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.', 'Текст «О проекте»'],
+  ]
+  for (const [key, ru, en, label] of landingSeed) ins.run(key, 'Главная', ru, en, label)
+
+  // ── Секции из i18n: автоматический импорт ──
+  const i18nMap = {
+    'nav': 'Навигация',
+    'game': 'Игра',
+    'tournament': 'Турниры',
+    'online': 'Онлайн',
+    'daily': 'Ежедневный челлендж',
+    'puzzle': 'Головоломки',
+    'trainer': 'Тренер',
+    'swap': 'Swap / Баланс',
+    'replay': 'Повтор партии',
+    'tutorial': 'Обучение',
+    'header': 'Шапка сайта',
+    'common': 'Общее',
+  }
+  const i18nLabels = {
+    'nav.play': 'Меню: Играть', 'nav.online': 'Меню: Онлайн', 'nav.profile': 'Меню: Профиль',
+    'nav.rules': 'Меню: Правила', 'nav.puzzles': 'Меню: Головоломки', 'nav.simulator': 'Меню: Симулятор',
+    'nav.analytics': 'Меню: Аналитика', 'nav.replays': 'Меню: Реплеи',
+    'game.newGame': 'Кнопка «Новая игра»', 'game.confirm': 'Кнопка «Подтвердить»',
+    'game.reset': 'Кнопка «Сброс»', 'game.transfer': 'Кнопка «Сделать перенос»',
+    'game.cancelTransfer': 'Кнопка «Отменить перенос»',
+    'game.blue': 'Название: Синие', 'game.red': 'Название: Красные',
+    'game.victory': 'Текст: Победа', 'game.defeat': 'Текст: Поражение',
+    'game.aiWins': 'Текст: AI победил', 'game.gameOver': 'Текст: Игра окончена',
+    'game.place1': 'Подсказка: поставьте 1 фишку', 'game.placeChips': 'Подсказка: расставьте фишки',
+    'game.aiThinking': 'Текст: AI думает', 'game.opponentTurn': 'Текст: Ход противника',
+    'game.timeUp': 'Текст: Время вышло',
+    'header.title': 'Логотип: название в шапке',
+    'tutorial.title': 'Заголовок обучения',
+    'common.online': 'Статус: Онлайн', 'common.offline': 'Статус: Оффлайн',
+  }
+
+  // Читаем i18n ключи из хардкода
+  const i18nRu = {
+    'nav.play': 'Играть', 'nav.online': 'Онлайн', 'nav.profile': 'Профиль',
+    'nav.rules': 'Правила', 'nav.puzzles': 'Головоломки', 'nav.simulator': 'Симулятор',
+    'nav.analytics': 'Аналитика', 'nav.replays': 'Реплеи',
+    'game.newGame': 'Новая игра', 'game.confirm': 'Подтвердить', 'game.reset': 'Сброс',
+    'game.transfer': '↗ Сделать перенос', 'game.cancelTransfer': '✕ Отменить перенос',
+    'game.mode': 'Режим', 'game.vsAI': 'Против AI', 'game.pvp': 'Вдвоём', 'game.spectate': 'AI vs AI',
+    'game.side': 'Сторона', 'game.blue': 'Синие', 'game.red': 'Красные',
+    'game.blueFirst': 'Синие (первый ход)', 'game.redSwap': 'Красные (swap)',
+    'game.difficulty': 'Сложность', 'game.easy': 'Лёгкая', 'game.medium': 'Средняя', 'game.hard': 'Сложная',
+    'game.hints': 'Подсказки', 'game.trainer': 'Тренер',
+    'game.victory': 'Победа!', 'game.defeat': 'Поражение', 'game.aiWins': 'AI победил',
+    'game.blueWin': 'Синие победили!', 'game.redWin': 'Красные победили!',
+    'game.gameOver': 'Игра окончена', 'game.newGame': 'Новая игра',
+    'game.place1': 'Поставьте 1 фишку', 'game.place1first': 'Ваш ход — поставьте 1 фишку',
+    'game.placeChips': 'Расставьте фишки', 'game.clickStands': 'Кликайте на стойки',
+    'game.aiFirst': 'AI ходит первым...', 'game.aiThinking': 'AI думает...',
+    'game.opponentTurn': 'Ход противника', 'game.timeUp': 'Время вышло!',
+    'game.oppTimeUp': 'У соперника вышло время!', 'game.max2stands': 'Макс 2 стойки',
+    'game.allPlaced': 'Все фишки расставлены', 'game.undone': 'Ход отменён',
+    'game.yourTurn': 'ваш ход', 'game.pass': 'пас',
+    'game.swapDone': 'Swap выполнен — цвета поменялись', 'game.swapOnlineDone': 'Swap — вы теперь синие',
+    'game.selectTransferFrom': 'Выберите стойку для переноса', 'game.transferSelected': 'Перенос выбран, расставьте фишки',
+    'game.transferCancelled': 'Перенос отменён', 'game.swap': 'Swap — смена цветов',
+    'header.title': 'Перехват высотки', 'header.totalUsers': 'игроков', 'header.totalGames': 'партий', 'header.avgRating': 'ср. рейтинг',
+    'tutorial.title': 'Как играть',
+    'common.online': 'Онлайн', 'common.offline': 'Оффлайн',
+    'tournament.won': 'Турнир выигран!', 'tournament.lost': 'Турнир проигран', 'tournament.draw': 'Ничья в турнире',
+    'trainer.strong': 'Сильная позиция', 'trainer.slight': 'Небольшое преимущество',
+    'trainer.equal': 'Равная позиция', 'trainer.weak': 'Слабая позиция', 'trainer.bad': 'Плохая позиция',
+  }
+  const i18nEn = {
+    'nav.play': 'Play', 'nav.online': 'Online', 'nav.profile': 'Profile',
+    'nav.rules': 'Rules', 'nav.puzzles': 'Puzzles', 'nav.simulator': 'Simulator',
+    'nav.analytics': 'Analytics', 'nav.replays': 'Replays',
+    'game.newGame': 'New game', 'game.confirm': 'Confirm', 'game.reset': 'Reset',
+    'game.transfer': '↗ Transfer', 'game.cancelTransfer': '✕ Cancel transfer',
+    'game.mode': 'Mode', 'game.vsAI': 'vs AI', 'game.pvp': 'PvP', 'game.spectate': 'AI vs AI',
+    'game.side': 'Side', 'game.blue': 'Blue', 'game.red': 'Red',
+    'game.blueFirst': 'Blue (first move)', 'game.redSwap': 'Red (swap)',
+    'game.difficulty': 'Difficulty', 'game.easy': 'Easy', 'game.medium': 'Medium', 'game.hard': 'Hard',
+    'game.hints': 'Hints', 'game.trainer': 'Trainer',
+    'game.victory': 'Victory!', 'game.defeat': 'Defeat', 'game.aiWins': 'AI wins',
+    'game.blueWin': 'Blue wins!', 'game.redWin': 'Red wins!',
+    'game.gameOver': 'Game over', 'game.place1': 'Place 1 chip',
+    'game.place1first': 'Your turn — place 1 chip', 'game.placeChips': 'Place chips',
+    'game.clickStands': 'Click stands to place', 'game.aiFirst': 'AI goes first...',
+    'game.aiThinking': 'AI thinking...', 'game.opponentTurn': "Opponent's turn",
+    'game.timeUp': 'Time up!', 'game.oppTimeUp': "Opponent's time is up!",
+    'game.max2stands': 'Max 2 stands', 'game.allPlaced': 'All chips placed',
+    'game.undone': 'Move undone', 'game.yourTurn': 'your turn', 'game.pass': 'pass',
+    'game.swapDone': 'Swap done — colors changed', 'game.swapOnlineDone': 'Swap — you are now blue',
+    'game.selectTransferFrom': 'Select stand to transfer from', 'game.transferSelected': 'Transfer set, place chips',
+    'game.transferCancelled': 'Transfer cancelled', 'game.swap': 'Swap colors',
+    'header.title': 'Snatch Highrise', 'header.totalUsers': 'players', 'header.totalGames': 'games', 'header.avgRating': 'avg rating',
+    'tutorial.title': 'How to play',
+    'common.online': 'Online', 'common.offline': 'Offline',
+    'tournament.won': 'Tournament won!', 'tournament.lost': 'Tournament lost', 'tournament.draw': 'Tournament draw',
+    'trainer.strong': 'Strong position', 'trainer.slight': 'Slight advantage',
+    'trainer.equal': 'Equal position', 'trainer.weak': 'Weak position', 'trainer.bad': 'Bad position',
+  }
+
+  for (const key of Object.keys(i18nRu)) {
+    const prefix = key.split('.')[0]
+    const section = i18nMap[prefix] || 'Другое'
+    const label = i18nLabels[key] || key
+    ins.run(key, section, i18nRu[key], i18nEn[key] || '', label)
+  }
+
+  console.log('Контент сайта засеян: сайт + главная + i18n')
 }
 
 console.log('База данных готова:', DB_PATH)
