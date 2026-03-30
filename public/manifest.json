@@ -1,6 +1,6 @@
 {
-  "name": "Stacks — Strategy Board Game",
-  "short_name": "Stacks",
+  "name": "Snatch Highrise — Strategy Board Game",
+  "short_name": "Snatch Highrise",
   "description": "Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.",
   "start_url": "/",
   "display": "standalone",

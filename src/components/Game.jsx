@@ -868,7 +868,7 @@ export default function Game() {
             onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}></div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Как играть в Стойки</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Как играть в Snatch Highrise</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
               <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
@@ -1204,7 +1204,7 @@ export default function Game() {
         const won = isDraw ? false : (mode === 'pvp') ? true : result === humanPlayer
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
-        const shareText = `Stacks${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
+        const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
         return (
           <div className="game-result" style={{ borderLeft: `3px solid ${isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>{isDraw ? '=' : won ? '\o/' : '—'}</div>
@@ -1256,7 +1256,7 @@ export default function Game() {
                   ctx.fillStyle = '#e8e6f0'
                   ctx.font = 'bold 72px sans-serif'
                   ctx.fillText(`${s0} : ${s1}`, 300, 150)
-                  // Стойки визуализация
+                  // Визуализация стоек
                   for (let si = 0; si < 10; si++) {
                     const x = 60 + si * 52
                     const owner = gs.closed[si]
@@ -1273,7 +1273,7 @@ export default function Game() {
                   // Подпись
                   ctx.fillStyle = '#444'
                   ctx.font = '12px sans-serif'
-                  ctx.fillText('Stacks — snatch-highrise.com', 300, 300)
+                  ctx.fillText('Snatch Highrise — snatch-highrise.com', 300, 300)
 
                   const blob = await new Promise(r => c.toBlob(r, 'image/png'))
                   const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })

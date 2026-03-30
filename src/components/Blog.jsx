@@ -103,13 +103,13 @@ export default function Blog() {
   function openPost(post) {
     setActivePost(post)
     history.replaceState(null, '', `#blog/${post.slug}`)
-    document.title = `${lang === 'en' && post.title_en ? post.title_en : post.title_ru} — Stacks`
+    document.title = `${lang === 'en' && post.title_en ? post.title_en : post.title_ru} — Snatch Highrise`
   }
 
   function goBack() {
     setActivePost(null)
     history.replaceState(null, '', '#blog')
-    document.title = 'Stacks — Strategy board game with AI'
+    document.title = 'Snatch Highrise — Strategy board game with AI'
   }
 
   if (activePost) {

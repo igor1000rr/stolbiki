@@ -266,8 +266,8 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <h2 className="l-title">{c('landing.about_title', en ? 'About the project' : 'О проекте')}</h2>
           <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.75, marginBottom: 20 }}>
             {c('landing.about_text', en
-              ? 'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.'
-              : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.')}
+              ? 'Snatch Highrise is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.'
+              : 'Перехват высотки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.')}
           </p>
         </div>
       </section>

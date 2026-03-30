@@ -177,7 +177,7 @@ if (contentCount === 0) {
   const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
   const seed = [
     // ── Сайт ──
-    ['site.name', 'site', 'Стойки', 'Stacks', 'Название игры'],
+    ['site.name', 'site', 'Перехват высотки', 'Snatch Highrise', 'Название игры'],
     ['site.tagline', 'site', 'Стратегическая настолка с AI', 'Strategy board game powered by AI', 'Подзаголовок'],
     ['site.description', 'site', 'Стратегическая настольная игра с AI-противником на базе AlphaZero. Играйте онлайн, решайте головоломки, соревнуйтесь.', 'Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.', 'Описание (meta)'],
     ['site.beta_text', 'site', 'Открытая бета — активная разработка', 'Open beta — active development', 'Текст беты'],
@@ -216,8 +216,8 @@ if (contentCount === 0) {
     // ── Лендинг: about ──
     ['landing.about_title', 'landing', 'Об игре', 'About', 'О проекте заголовок'],
     ['landing.about_text', 'landing',
-      'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.',
-      'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.',
+      'Перехват высотки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.',
+      'Snatch Highrise is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.',
       'О проекте текст'],
 
     // ── Футер ──
@@ -954,8 +954,8 @@ const blogCount = db.prepare('SELECT COUNT(*) as c FROM blog_posts').get().c
 if (blogCount === 0) {
   const seed = db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)')
   seed.run('launch', 'Запуск открытой беты', 'Open beta launch',
-    'Стойки выходят в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n- Игра против AI (3 уровня сложности)\n- Онлайн мультиплеер по ссылке\n- Ежедневные и еженедельные головоломки\n- Режим «Тренер» с оценкой каждого хода\n- 4 цветовые темы\n- Print & Play PDF\n\nМы активно собираем обратную связь. Нашли баг или есть идея? Пишите в профиле.',
-    'Stacks enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback. Found a bug or have an idea? Let us know via your profile.',
+    'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n- Игра против AI (3 уровня сложности)\n- Онлайн мультиплеер по ссылке\n- Ежедневные и еженедельные головоломки\n- Режим «Тренер» с оценкой каждого хода\n- 4 цветовые темы\n- Print & Play PDF\n\nМы активно собираем обратную связь. Нашли баг или есть идея? Пишите в профиле.',
+    'Snatch Highrise enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback. Found a bug or have an idea? Let us know via your profile.',
     'release', 1)
   seed.run('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
     'Нейросеть AI прошла 3 прогона GPU-обучения. Результаты:\n\n- 1146 итераций self-play\n- Loss снизился до 0.098\n- Винрейт лучшей модели: 97%\n- Баланс P1/P2: 50% / 50%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
@@ -966,8 +966,8 @@ if (blogCount === 0) {
     'Tactical puzzles are here!\n\n- Daily puzzle — refreshes every day\n- Weekly challenge — harder, refreshes on Mondays\n- Bank of 50 puzzles with 3 difficulty levels\n- Leaderboards and solve stats\n\nGoal: close the required stands in limited moves. Trains tactical thinking.',
     'feature', 0)
   seed.run('roadmap', 'Что дальше: планы развития', 'What\'s next: roadmap',
-    'Стойки — исследовательский проект на стыке настольных игр и AI. Вот что в планах:\n\nБлижайшее:\n- Рейтинговые сезоны\n- Push-уведомления\n- Расширенная книга дебютов\n\nБудущее:\n- Мобильное приложение (iOS/Android)\n- Турниры с призами\n- Физическое издание игры\n- Открытый API для разработчиков\n\nСледите за обновлениями в этом блоге.',
-    'Stacks is a research project at the intersection of board games and AI. Here\'s what\'s planned:\n\nComing soon:\n- Ranked seasons\n- Push notifications\n- Extended opening book\n\nFuture:\n- Mobile app (iOS/Android)\n- Tournaments with prizes\n- Physical game edition\n- Open API for developers\n\nStay tuned via this blog.',
+    'Snatch Highrise — исследовательский проект на стыке настольных игр и AI. Вот что в планах:\n\nБлижайшее:\n- Рейтинговые сезоны\n- Push-уведомления\n- Расширенная книга дебютов\n\nБудущее:\n- Мобильное приложение (iOS/Android)\n- Турниры с призами\n- Физическое издание игры\n- Открытый API для разработчиков\n\nСледите за обновлениями в этом блоге.',
+    'Snatch Highrise is a research project at the intersection of board games and AI. Here\'s what\'s planned:\n\nComing soon:\n- Ranked seasons\n- Push notifications\n- Extended opening book\n\nFuture:\n- Mobile app (iOS/Android)\n- Tournaments with prizes\n- Physical game edition\n- Open API for developers\n\nStay tuned via this blog.',
     'roadmap', 0)
 }
 
@@ -1710,6 +1710,19 @@ app.post('/api/admin/content', auth, adminOnly, (req, res) => {
 app.delete('/api/admin/content/:key', auth, adminOnly, (req, res) => {
   db.prepare('DELETE FROM site_content WHERE key=?').run(req.params.key)
   res.json({ ok: true })
+})
+
+// Админ: массовый импорт (i18n ключей)
+app.post('/api/admin/content/bulk', auth, adminOnly, (req, res) => {
+  const { items } = req.body // [{ key, section, value_ru, value_en, label }]
+  if (!items || !Array.isArray(items)) return res.status(400).json({ error: 'items обязателен' })
+  const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
+  let added = 0
+  for (const item of items) {
+    const r = ins.run(item.key, item.section || 'i18n', item.value_ru || '', item.value_en || '', item.label || '')
+    if (r.changes > 0) added++
+  }
+  res.json({ ok: true, added, total: items.length })
 })
 
 // ═══ Старт ═══

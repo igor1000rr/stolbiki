@@ -5,7 +5,7 @@
 
 import { createContext, useContext, useState, useCallback } from 'react'
 
-const translations = {
+export const translations = {
   ru: {
     // Навигация
     'nav.play': 'Играть',
@@ -141,11 +141,11 @@ const translations = {
     'replay.play': '▶ Играть',
     'replay.pause': '⏸ Пауза',
     // Туториал
-    'tutorial.title': 'Как играть в Стойки',
+    'tutorial.title': 'Как играть',
     'tutorial.got': 'Понятно, играем!',
     'tutorial.rules': 'Подробные правила — вкладка «Правила»',
     // Хедер
-    'header.title': 'Стойки',
+    'header.title': 'Перехват высотки',
     'header.subtitle': 'Настольная игра — играйте, анализируйте, соревнуйтесь',
     'header.players': 'игроков',
     'header.games': 'партий',
@@ -280,10 +280,10 @@ const translations = {
     'replay.close': '✕ Close',
     'replay.play': '▶ Play',
     'replay.pause': '⏸ Pause',
-    'tutorial.title': 'How to play Stacks',
+    'tutorial.title': 'How to play',
     'tutorial.got': 'Got it, let\'s play!',
     'tutorial.rules': 'Detailed rules — see "Rules" tab',
-    'header.title': 'Stacks',
+    'header.title': 'Snatch Highrise',
     'header.subtitle': 'Board game — play, analyze, compete',
     'header.players': 'players',
     'header.games': 'games',
@@ -300,10 +300,46 @@ export function useI18n() {
   return { t, lang }
 }
 
+// CMS-переопределения — загружаются из /api/content один раз
+let _cmsOverrides = null
+let _cmsLoading = false
+
+async function loadCmsOverrides() {
+  if (_cmsOverrides || _cmsLoading) return
+  _cmsLoading = true
+  try {
+    // Проверяем кеш
+    const cached = JSON.parse(localStorage.getItem('stolbiki_content') || '{}')
+    if (cached.data && cached.ts && Date.now() - cached.ts < 300000) {
+      _cmsOverrides = cached.data
+      _cmsLoading = false
+      return
+    }
+    const res = await fetch('/api/content')
+    if (res.ok) {
+      _cmsOverrides = await res.json()
+      localStorage.setItem('stolbiki_content', JSON.stringify({ data: _cmsOverrides, ts: Date.now() }))
+    }
+  } catch {}
+  _cmsLoading = false
+}
+
 export function useI18nProvider() {
   const [lang, setLang] = useState(() => localStorage.getItem('stolbiki_lang') || 'ru')
+  const [, setTick] = useState(0)
+
+  // Загружаем CMS-переопределения при первом рендере
+  useState(() => {
+    loadCmsOverrides().then(() => setTick(t => t + 1))
+  })
 
   const t = useCallback((key) => {
+    // 1. CMS override (если есть)
+    if (_cmsOverrides && _cmsOverrides[key]) {
+      const val = lang === 'en' ? _cmsOverrides[key].en : _cmsOverrides[key].ru
+      if (val) return val
+    }
+    // 2. Хардкод
     return translations[lang]?.[key] || translations.ru?.[key] || key
   }, [lang])
 

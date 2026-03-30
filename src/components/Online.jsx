@@ -398,7 +398,7 @@ export default function Online() {
         </p>
 
         <button className="btn" onClick={() => {
-          if (navigator.share) navigator.share({ text: `Играем в Стойки! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
+          if (navigator.share) navigator.share({ text: `Играем в Snatch Highrise! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
           else navigator.clipboard?.writeText(roomUrl)
         }} style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }}>
           Поделиться ссылкой

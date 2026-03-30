@@ -87,7 +87,7 @@ export default function Rules() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
-      <Section title={en ? 'Game Rules "Stacks"' : 'Правила игры «Стойки»'}>
+      <Section title={en ? 'Game Rules "Snatch Highrise"' : 'Правила игры «Перехват высотки»'}>
         <Bullet>{en ? 'Strategic board game for two players' : 'Стратегическая настольная игра для двух игроков'}</Bullet>
         <Bullet>{en ? 'Players compete for control of stands' : 'Игроки соревнуются за контроль стоек'}</Bullet>
         <Bullet>{en ? 'The player who closed more stands wins' : 'Побеждает игрок, который закрыл больше стоек к концу игры'}</Bullet>

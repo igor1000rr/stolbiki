@@ -391,7 +391,7 @@ export default function App() {
       <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
           <div className="site-footer-brand">
-            <span style={{ opacity: 0.6 }}>Stacks</span>
+            <span style={{ opacity: 0.6 }}>Snatch Highrise</span>
             <span className="beta-badge">beta</span>
             <span className="site-footer-divider" />
             <span style={{ opacity: 0.4, fontSize: 10 }}>

@@ -1,9 +1,9 @@
 /**
- * Админ-панель Стоек
+ * Админ-панель Snatch Highrise
  * Полное управление: пользователи, партии, блог, сезоны, сервер
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useI18n } from '../engine/i18n'
+import { useI18n, translations } from '../engine/i18n'
 import Icon from './Icon'
 
 const API = '/api'
@@ -963,6 +963,27 @@ function ContentTab() {
           </button>
         )}
         <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{filtered.length} из {items.length}</span>
+        <button onClick={async () => {
+          const allKeys = Object.keys(translations.ru || {})
+          const bulk = allKeys.map(key => ({
+            key, section: 'i18n',
+            value_ru: translations.ru?.[key] || '',
+            value_en: translations.en?.[key] || '',
+            label: key,
+          }))
+          const res = await fetch('/api/admin/content/bulk', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
+            body: JSON.stringify({ items: bulk }),
+          })
+          const data = await res.json()
+          alert(`Импортировано ${data.added} новых ключей из ${data.total}`)
+          location.reload()
+        }} style={{
+          padding: '6px 12px', borderRadius: 8, background: 'var(--surface2)', color: 'var(--ink3)',
+          border: '1px solid var(--surface3)', fontSize: 10, cursor: 'pointer'
+        }}>
+          + Импорт i18n ({Object.keys(translations.ru || {}).length})
+        </button>
       </div>
 
       {filtered.map(item => {

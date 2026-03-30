@@ -1,5 +1,5 @@
 /**
- * API клиент для Стойки
+ * API клиент для Snatch Highrise
  * Автоматически переключается между сервером и localStorage fallback
  */
 
