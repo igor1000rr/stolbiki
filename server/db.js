@@ -406,6 +406,7 @@ const newKeys = {
   'game.rematchOffer': ['Игра', 'Противник предлагает рематч', 'Opponent offers a rematch', 'Текст: предложение рематча'],
   'game.rematchWaiting': ['Игра', 'Рематч предложен...', 'Rematch offered...', 'Текст: ожидание рематча'],
   'game.rematchDeclined': ['Игра', 'Рематч отклонён', 'Rematch declined', 'Текст: рематч отклонён'],
+  'game.extreme': ['Игра', 'Экстрим', 'Extreme', 'Сложность: экстрим'],
   'game.watching': ['Игра', 'наблюдение', 'watching', 'Текст: режим наблюдения'],
 }
 const migrateIns = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')

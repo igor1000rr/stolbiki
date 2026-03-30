@@ -355,6 +355,35 @@ app.get('/api/training/export', auth, adminOnly, (req, res) => {
   res.json(data.map(d => ({ ...JSON.parse(d.game_data), winner: d.winner })))
 })
 
+// Экспорт позиций для GPU-доучивания (формат gpu_trainer.py)
+app.get('/api/admin/training/export-gpu', auth, adminOnly, (req, res) => {
+  const limit = Math.min(+req.query.limit || 5000, 50000)
+  const minMoves = +req.query.minMoves || 5
+  const rows = db.prepare('SELECT game_data, winner, mode, difficulty FROM training_data WHERE total_moves >= ? ORDER BY created_at DESC LIMIT ?').all(minMoves, limit)
+  
+  // Конвертируем в формат: [{ states: [[107 floats], ...], winner: 0|1 }]
+  const games = []
+  for (const row of rows) {
+    try {
+      const data = JSON.parse(row.game_data)
+      if (!data.moves || row.winner < 0) continue
+      games.push({
+        moves: data.moves, // [{state: {stands, closed, turn, player}, action, player}]
+        winner: row.winner,
+        mode: row.mode,
+        difficulty: row.difficulty,
+      })
+    } catch {}
+  }
+  
+  res.json({
+    total: games.length,
+    format: 'raw_moves',
+    note: 'Encode states client-side using encode_state(). winner: 0=P1, 1=P2',
+    games,
+  })
+})
+
 // ═══ SEARCH ═══
 app.get('/api/users/search', auth, (req, res) => {
   const q = req.query.q
