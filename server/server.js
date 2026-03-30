@@ -551,6 +551,58 @@ const PUZZLE_TEMPLATES = [
         desc_ru: 'Разберите позицию и закройте 2 стойки', desc_en: 'Untangle and close 2 stands' }
     }
   },
+  // ─── Дополнительные шаблоны ───
+  { difficulty: 1, maxMoves: 1, title_ru: 'Точный перенос', title_en: 'Precise transfer',
+    gen: (rng) => {
+      const s = 1 + Math.floor(rng() * 8)
+      const stands = Array.from({length:10}, () => [])
+      stands[s] = [...Array(3).fill(1), ...Array(5).fill(0)]
+      const src = (s + 1 + Math.floor(rng() * 4)) % 10
+      stands[src] = Array(3).fill(0)
+      return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 1 },
+        desc_ru: `Закройте стойку ${s} одним переносом`, desc_en: `Close stand ${s} in one transfer` }
+    }
+  },
+  { difficulty: 2, maxMoves: 2, title_ru: 'Золото и стойка', title_en: 'Gold and stand',
+    gen: (rng) => {
+      const s = 1 + Math.floor(rng() * 9)
+      const stands = Array.from({length:10}, () => [])
+      stands[0] = [...Array(2).fill(1), ...Array(6).fill(0)]
+      stands[s] = Array(8).fill(0)
+      const src1 = s === 1 ? 2 : 1
+      const src2 = s === 3 ? 4 : 3
+      stands[src1] = Array(3).fill(0)
+      stands[src2] = Array(3).fill(0)
+      return { stands, goal: { minClosed: 2, maxMoves: 2 },
+        desc_ru: 'Закройте золотую ★ и ещё одну стойку', desc_en: 'Close golden ★ and one more stand' }
+    }
+  },
+  { difficulty: 2, maxMoves: 2, title_ru: 'Перехват врага', title_en: 'Enemy takeover',
+    gen: (rng) => {
+      const s = 1 + Math.floor(rng() * 9)
+      const stands = Array.from({length:10}, () => [])
+      stands[s] = [...Array(7).fill(1), ...Array(1).fill(0)]
+      const src = (s + 2 + Math.floor(rng() * 3)) % 10
+      stands[src] = Array(3).fill(0)
+      return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 2 },
+        desc_ru: `Перехватите стойку ${s} у противника`, desc_en: `Take over stand ${s} from opponent` }
+    }
+  },
+  { difficulty: 3, maxMoves: 3, title_ru: 'Золотой удар', title_en: 'Golden strike',
+    gen: (rng) => {
+      const s = 3 + Math.floor(rng() * 6)
+      const stands = Array.from({length:10}, () => [])
+      stands[0] = [...Array(4).fill(1), ...Array(4).fill(0)]
+      stands[s] = [...Array(5).fill(1), ...Array(3).fill(0)]
+      const used = new Set([0, s])
+      const srcs = []
+      for (let i = 1; i < 10 && srcs.length < 2; i++) if (!used.has(i)) { srcs.push(i); used.add(i) }
+      stands[srcs[0]] = Array(3).fill(0)
+      stands[srcs[1]] = Array(3).fill(0)
+      return { stands, goal: { closedByPlayer: { 0: 0 }, minClosed: 2, maxMoves: 3 },
+        desc_ru: 'Закройте золотую ★ и перехватите стойку', desc_en: 'Close golden ★ and capture a stand' }
+    }
+  },
 ]
 
 function puzzleSeededRandom(seed) {
@@ -592,10 +644,14 @@ app.get('/api/puzzles/daily', (req, res) => {
   res.json(puzzle)
 })
 
-// ─── Weekly puzzle (новая каждую неделю, сложнее) ───
+// ─── Weekly puzzle (новая каждую неделю, пн-вс, сложнее) ───
 app.get('/api/puzzles/weekly', (req, res) => {
   const d = new Date()
-  const weekNum = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / 604800000)
+  // ISO week number (пн=1, вс=7)
+  const jan1 = new Date(d.getFullYear(), 0, 1)
+  const dayOfYear = Math.floor((d - jan1) / 86400000) + 1
+  const weekDay = d.getDay() || 7 // пн=1..вс=7
+  const weekNum = Math.floor((dayOfYear - weekDay + 10) / 7)
   const seed = `weekly-${d.getFullYear()}-W${weekNum}`
   const puzzle = generatePuzzle(seed, 3)
   puzzle.type = 'weekly'
@@ -612,12 +668,12 @@ app.get('/api/puzzles/bank', (req, res) => {
   const diff = parseInt(req.query.difficulty) || 0
   
   const puzzles = []
-  const total = 50
+  const total = 200
   const start = (page - 1) * perPage
   
   for (let i = start; i < Math.min(start + perPage, total); i++) {
     const seed = `bank-${i}`
-    const difficulty = i < 15 ? 1 : i < 35 ? 2 : 3
+    const difficulty = i < 50 ? 1 : i < 130 ? 2 : 3
     if (diff && difficulty !== diff) continue
     const p = generatePuzzle(seed, difficulty)
     p.type = 'bank'
@@ -636,7 +692,7 @@ app.get('/api/puzzles/:type/:id', (req, res) => {
   const { type, id } = req.params
   if (!['daily', 'weekly', 'bank'].includes(type)) return res.status(400).json({ error: 'Invalid type' })
   const seed = type === 'bank' ? `bank-${id}` : id
-  const difficulty = type === 'weekly' ? 3 : type === 'daily' ? 2 : (parseInt(id) < 15 ? 1 : parseInt(id) < 35 ? 2 : 3)
+  const difficulty = type === 'weekly' ? 3 : type === 'daily' ? 2 : (parseInt(id) < 50 ? 1 : parseInt(id) < 130 ? 2 : 3)
   const puzzle = generatePuzzle(seed, difficulty)
   puzzle.type = type
   const stats = db.prepare('SELECT COUNT(*) as total, SUM(solved) as solved FROM puzzle_results WHERE puzzle_type=? AND puzzle_id=?').get(type, seed)

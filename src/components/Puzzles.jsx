@@ -14,10 +14,12 @@ function Countdown({ label, targetDate }) {
     const tick = () => {
       const diff = targetDate - Date.now()
       if (diff <= 0) { setLeft('00:00:00'); return }
-      const h = Math.floor(diff / 3600000)
+      const d = Math.floor(diff / 86400000)
+      const h = Math.floor((diff % 86400000) / 3600000)
       const m = Math.floor((diff % 3600000) / 60000)
       const s = Math.floor((diff % 60000) / 1000)
-      setLeft(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
+      if (d > 0) setLeft(`${d}д ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
+      else setLeft(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
     }
     tick()
     const t = setInterval(tick, 1000)
@@ -283,8 +285,10 @@ export default function Puzzles() {
   // Таймер до следующего дня/недели
   const now = new Date()
   const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  const dayOfWeek = now.getDay()
-  const nextMonday = new Date(now); nextMonday.setDate(now.getDate() + (8 - dayOfWeek) % 7 || 7); nextMonday.setHours(0,0,0,0)
+  // Следующий понедельник 00:00 (ISO weeks, пн=1..вс=7)
+  const dayOfWeek = now.getDay() || 7 // пн=1..вс=7
+  const daysUntilMon = dayOfWeek === 1 ? 7 : (8 - dayOfWeek)
+  const nextMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilMon)
 
   // ═══ Активная головоломка ═══
   if (activePuzzle) {
