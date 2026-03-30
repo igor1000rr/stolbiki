@@ -74,21 +74,20 @@ export function sampleRandomAction(state) {
 }
 
 /**
- * Оценка позиции: гибрид (3-ходовой rollout + нейросеть) или чистый rollout
- * Возвращает значение от -1 до +1 относительно player
+ * Оценка позиции: гибрид (N-ходовой rollout + нейросеть) или чистый rollout
+ * rolloutDepth: сколько ходов доиграть перед оценкой NN (больше = точнее, но медленнее)
  */
-function evaluatePosition(state, player) {
+function evaluatePosition(state, player, rolloutDepth = 3) {
   if (state.gameOver) {
     if (state.winner === player) return 1
     if (state.winner === 1 - player) return -1
     return 0
   }
 
-  // С нейросетью: доиграть 3 хода рандомно → оценить NN
-  // Гибрид компенсирует слабость маленькой сети (8K параметров)
+  // С нейросетью: доиграть rolloutDepth ходов рандомно → оценить NN
   if (nnReady()) {
     let s = state
-    for (let d = 0; d < 3 && !s.gameOver; d++) {
+    for (let d = 0; d < rolloutDepth && !s.gameOver; d++) {
       s = applyAction(s, sampleRandomAction(s))
     }
     if (s.gameOver) {
@@ -118,7 +117,7 @@ function evaluatePosition(state, player) {
  * numSimulations: 20 (лёгкая), 50 (средняя), 100 (сложная)
  * С нейросетью каждая симуляция даёт точную оценку вместо случайного rollout
  */
-export function mctsSearch(state, numSimulations = 50) {
+export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   const actions = []
   const visits = []
   const values = []
@@ -232,7 +231,7 @@ export function mctsSearch(state, numSimulations = 50) {
 
     // Применяем ход и оцениваем
     const s = applyAction(state, finalActions[bestIdx])
-    const val = evaluatePosition(s, player)
+    const val = evaluatePosition(s, player, rolloutDepth)
 
     visits[bestIdx]++
     values[bestIdx] += val

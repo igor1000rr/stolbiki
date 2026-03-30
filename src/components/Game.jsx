@@ -487,7 +487,11 @@ export default function Game() {
     setInfo(t('game.aiThinking'))
     const startTime = Date.now()
     setTimeout(() => {
-      const action = mctsSearch(state, difficulty)
+      const action = mctsSearch(state, ...(
+        difficulty >= 400 ? [800, 8] :   // Сложная: 800 сим, глубина 8
+        difficulty >= 150 ? [500, 3] :   // Средняя: 500 сим, глубина 3
+                            [200, 1]     // Лёгкая: 200 сим, глубина 1
+      ))
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
       setTimeout(() => {
         setAiThinking(false)
