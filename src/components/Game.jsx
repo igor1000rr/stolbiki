@@ -903,6 +903,7 @@ export default function Game() {
               <option value={400}>{t('game.hard')}</option>
               <option value={800}>{t('game.extreme')}</option>
             </select>
+            {isGpuReady() && <span style={{ fontSize: 8, color: '#3dd68c', marginLeft: 4 }}>GPU</span>}
           </label>
         )}
         {mode === 'ai' && (
