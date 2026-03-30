@@ -41,6 +41,16 @@ server/data/
 # Бэкапы
 *-backups/
 
+# Capacitor build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+android/.idea/
+android/local.properties
+ios/App/Pods/
+ios/DerivedData/
+
 # Отчёты (генерятся, не хранить в git)
 public/report.pdf
 public/stolbiki-report.docx

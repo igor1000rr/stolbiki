@@ -3,7 +3,7 @@
  * JWT auth через query param, reconnect с лимитом
  */
 
-const WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws'
+const WS_BASE = window.__SH_WS_BASE || (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws'
 const API = '/api'
 
 function getWsUrl() {

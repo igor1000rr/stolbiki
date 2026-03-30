@@ -24,6 +24,21 @@ class ErrorBoundary extends Component {
   }
 }
 
+// ─── Capacitor: перенаправляем /api/ на сервер в native mode ───
+if (window.Capacitor?.isNativePlatform?.()) {
+  const SERVER = import.meta.env.VITE_SERVER_URL || 'https://snatch-highrise.com'
+  const _fetch = window.fetch.bind(window)
+  window.fetch = (url, opts) => {
+    if (typeof url === 'string' && url.startsWith('/api')) {
+      url = SERVER + url
+    }
+    return _fetch(url, opts)
+  }
+  // Глобальный WS base для multiplayer.js
+  window.__SH_WS_BASE = SERVER.replace(/^http/, 'ws') + '/ws'
+  console.log('Capacitor native mode: API →', SERVER)
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
