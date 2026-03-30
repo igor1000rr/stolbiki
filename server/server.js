@@ -159,6 +159,74 @@ db.exec(`
   );
 `)
 
+// Таблица контента сайта (CMS)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS site_content (
+    key TEXT PRIMARY KEY,
+    section TEXT NOT NULL DEFAULT 'general',
+    value_ru TEXT NOT NULL DEFAULT '',
+    value_en TEXT NOT NULL DEFAULT '',
+    label TEXT DEFAULT '',
+    updated_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
+// Сид контента (только если пусто)
+const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
+if (contentCount === 0) {
+  const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
+  const seed = [
+    // ── Сайт ──
+    ['site.name', 'site', 'Стойки', 'Stacks', 'Название игры'],
+    ['site.tagline', 'site', 'Стратегическая настолка с AI', 'Strategy board game powered by AI', 'Подзаголовок'],
+    ['site.description', 'site', 'Стратегическая настольная игра с AI-противником на базе AlphaZero. Играйте онлайн, решайте головоломки, соревнуйтесь.', 'Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.', 'Описание (meta)'],
+    ['site.beta_text', 'site', 'Открытая бета — активная разработка', 'Open beta — active development', 'Текст беты'],
+
+    // ── Лендинг: герой ──
+    ['landing.play_btn', 'landing', 'Играть', 'Play free', 'Кнопка Играть'],
+    ['landing.learn_btn', 'landing', 'Обучение за 2 мин', 'Learn in 2 min', 'Кнопка Обучение'],
+    ['landing.stat_games', 'landing', 'партий', 'games analyzed', 'Подпись под 239K+'],
+    ['landing.stat_winrate', 'landing', 'винрейт AI', 'AI win rate', 'Подпись под 97%'],
+    ['landing.stat_balance', 'landing', 'баланс', 'balance', 'Подпись под 50:50'],
+
+    // ── Лендинг: 3 шага ──
+    ['landing.steps_title', 'landing', 'Научитесь за 3 шага', 'Learn in 3 steps', 'Заголовок секции'],
+    ['landing.step1_title', 'landing', 'Ставьте', 'Place', 'Шаг 1 заголовок'],
+    ['landing.step1_desc', 'landing', 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.', 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.', 'Шаг 1 описание'],
+    ['landing.step2_title', 'landing', 'Переносите', 'Transfer', 'Шаг 2 заголовок'],
+    ['landing.step2_desc', 'landing', 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.', 'Move your top chip group to another stand. The key tactical move that decides games.', 'Шаг 2 описание'],
+    ['landing.step3_title', 'landing', 'Закрывайте', 'Close', 'Шаг 3 заголовок'],
+    ['landing.step3_desc', 'landing', 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!', 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!', 'Шаг 3 описание'],
+
+    // ── Лендинг: фичи ──
+    ['landing.features_title', 'landing', 'Что внутри', "What's inside", 'Заголовок фич'],
+    ['landing.ai_title', 'landing', 'AI на базе AlphaZero', 'AlphaZero AI', 'Блок AI заголовок'],
+    ['landing.online_title', 'landing', 'Онлайн мультиплеер', 'Online multiplayer', 'Блок онлайн'],
+    ['landing.online_desc', 'landing', 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.', 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.', 'Описание онлайн'],
+    ['landing.puzzles_title', 'landing', 'Головоломки', 'Daily puzzles', 'Блок головоломки'],
+    ['landing.puzzles_desc', 'landing', 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.', 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.', 'Описание головоломки'],
+
+    // ── Лендинг: FAQ ──
+    ['landing.faq_title', 'landing', 'Частые вопросы', 'FAQ', 'FAQ заголовок'],
+    ['landing.faq1_q', 'landing', 'Как научиться?', 'How to learn?', 'FAQ вопрос 1'],
+    ['landing.faq1_a', 'landing', 'Туториал в 5 шагов научит основам. Раздел Правила — детали.', 'The 5-step tutorial covers basics. Rules section has details.', 'FAQ ответ 1'],
+    ['landing.faq2_q', 'landing', 'Это сбалансировано?', 'Is it balanced?', 'FAQ вопрос 2'],
+    ['landing.faq2_a', 'landing', '50:50 баланс. Проверено на 239K партиях.', '50:50 balance. Confirmed across 239K games.', 'FAQ ответ 2'],
+
+    // ── Лендинг: about ──
+    ['landing.about_title', 'landing', 'Об игре', 'About', 'О проекте заголовок'],
+    ['landing.about_text', 'landing',
+      'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.',
+      'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.',
+      'О проекте текст'],
+
+    // ── Футер ──
+    ['footer.tagline', 'site', 'Настольные игры и AI-исследования', 'Board games meet AI research', 'Футер подпись'],
+  ]
+  for (const [key, section, ru, en, label] of seed) ins.run(key, section, ru, en, label)
+  console.log('Контент сайта засеян:', seed.length, 'ключей')
+}
+
 console.log('База данных готова:', DB_PATH)
 
 // ═══ Ачивки ═══
@@ -1597,6 +1665,52 @@ addPost('changelog-v3-4', 'Changelog: v3.4', 'Changelog: v3.4',
   '• Dropdown active style fixed\n' +
   '• Blog: individual URLs (#blog/slug)',
   'release')
+
+// ═══ КОНТЕНТ (CMS) ═══
+
+// Получить весь контент (публичный, кешируется)
+app.get('/api/content', (req, res) => {
+  const rows = db.prepare('SELECT key, section, value_ru, value_en FROM site_content ORDER BY section, key').all()
+  const content = {}
+  for (const row of rows) {
+    content[row.key] = { ru: row.value_ru, en: row.value_en }
+  }
+  res.set('Cache-Control', 'public, max-age=60')
+  res.json(content)
+})
+
+// Админ: получить весь контент с метаданными
+app.get('/api/admin/content', auth, adminOnly, (req, res) => {
+  const rows = db.prepare('SELECT * FROM site_content ORDER BY section, key').all()
+  res.json(rows)
+})
+
+// Админ: обновить один ключ
+app.put('/api/admin/content/:key', auth, adminOnly, (req, res) => {
+  const { value_ru, value_en } = req.body
+  const existing = db.prepare('SELECT key FROM site_content WHERE key=?').get(req.params.key)
+  if (!existing) return res.status(404).json({ error: 'Ключ не найден' })
+  db.prepare("UPDATE site_content SET value_ru=?, value_en=?, updated_at=datetime('now') WHERE key=?")
+    .run(value_ru ?? '', value_en ?? '', req.params.key)
+  res.json({ ok: true })
+})
+
+// Админ: добавить новый ключ
+app.post('/api/admin/content', auth, adminOnly, (req, res) => {
+  const { key, section, value_ru, value_en, label } = req.body
+  if (!key) return res.status(400).json({ error: 'key обязателен' })
+  try {
+    db.prepare('INSERT INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
+      .run(key, section || 'general', value_ru || '', value_en || '', label || '')
+    res.json({ ok: true })
+  } catch (e) { res.status(409).json({ error: 'Ключ уже существует' }) }
+})
+
+// Админ: удалить ключ
+app.delete('/api/admin/content/:key', auth, adminOnly, (req, res) => {
+  db.prepare('DELETE FROM site_content WHERE key=?').run(req.params.key)
+  res.json({ ok: true })
+})
 
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {

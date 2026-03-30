@@ -886,9 +886,146 @@ function SeasonsTab() {
   )
 }
 
+// ═══ КОНТЕНТ (CMS) ═══
+function ContentTab() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(null)
+  const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [edited, setEdited] = useState({}) // { key: { value_ru, value_en } }
+
+  useEffect(() => {
+    fetch('/api/admin/content', { headers: { 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` } })
+      .then(r => r.json()).then(data => { setItems(data); setLoading(false) }).catch(() => setLoading(false))
+  }, [])
+
+  const sections = [...new Set(items.map(i => i.section))]
+  const filtered = items.filter(i => {
+    if (filter !== 'all' && i.section !== filter) return false
+    if (search && !i.key.toLowerCase().includes(search.toLowerCase()) && !i.label?.toLowerCase().includes(search.toLowerCase())
+      && !i.value_ru.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
+
+  function handleChange(key, field, value) {
+    setEdited(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }))
+  }
+
+  async function saveItem(key) {
+    const item = items.find(i => i.key === key)
+    const edits = edited[key] || {}
+    const body = {
+      value_ru: edits.value_ru !== undefined ? edits.value_ru : item.value_ru,
+      value_en: edits.value_en !== undefined ? edits.value_en : item.value_en,
+    }
+    setSaving(key)
+    try {
+      await fetch(`/api/admin/content/${encodeURIComponent(key)}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
+        body: JSON.stringify(body),
+      })
+      setItems(prev => prev.map(i => i.key === key ? { ...i, ...body, updated_at: new Date().toISOString() } : i))
+      setEdited(prev => { const n = { ...prev }; delete n[key]; return n })
+      // Инвалидируем кеш контента на клиенте
+      localStorage.removeItem('stolbiki_content')
+    } catch {}
+    setSaving(null)
+  }
+
+  async function saveAll() {
+    for (const key of Object.keys(edited)) await saveItem(key)
+  }
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Загрузка...</div>
+
+  const hasEdits = Object.keys(edited).length > 0
+  const isLong = (v) => v && v.length > 80
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <select value={filter} onChange={e => setFilter(e.target.value)}
+          style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12 }}>
+          <option value="all">Все разделы</option>
+          {sections.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." style={{
+          padding: '6px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--surface3)',
+          color: 'var(--ink)', fontSize: 12, flex: 1, minWidth: 120
+        }} />
+        {hasEdits && (
+          <button onClick={saveAll} style={{
+            padding: '6px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff',
+            border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer'
+          }}>
+            Сохранить всё ({Object.keys(edited).length})
+          </button>
+        )}
+        <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{filtered.length} из {items.length}</span>
+      </div>
+
+      {filtered.map(item => {
+        const e = edited[item.key] || {}
+        const ruVal = e.value_ru !== undefined ? e.value_ru : item.value_ru
+        const enVal = e.value_en !== undefined ? e.value_en : item.value_en
+        const isChanged = item.key in edited
+        const long = isLong(item.value_ru) || isLong(item.value_en)
+
+        return (
+          <div key={item.key} style={{
+            padding: '12px 16px', marginBottom: 8, borderRadius: 10,
+            background: isChanged ? 'rgba(240,96,64,0.06)' : 'var(--surface)',
+            border: `1px solid ${isChanged ? 'rgba(240,96,64,0.2)' : 'var(--surface3)'}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div>
+                <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: 'monospace', marginRight: 8 }}>{item.key}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{item.label}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 9, color: 'var(--ink3)', padding: '2px 6px', background: 'var(--surface2)', borderRadius: 4 }}>{item.section}</span>
+                {isChanged && (
+                  <button onClick={() => saveItem(item.key)} disabled={saving === item.key}
+                    style={{ padding: '3px 10px', borderRadius: 6, background: '#3dd68c', color: '#000', border: 'none', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
+                    {saving === item.key ? '...' : '✓'}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: 'var(--ink3)', marginBottom: 3 }}>RU</div>
+                {long ? (
+                  <textarea value={ruVal} onChange={e => handleChange(item.key, 'value_ru', e.target.value)} rows={3}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
+                ) : (
+                  <input value={ruVal} onChange={e => handleChange(item.key, 'value_ru', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12 }} />
+                )}
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: 'var(--ink3)', marginBottom: 3 }}>EN</div>
+                {long ? (
+                  <textarea value={enVal} onChange={e => handleChange(item.key, 'value_en', e.target.value)} rows={3}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit' }} />
+                ) : (
+                  <input value={enVal} onChange={e => handleChange(item.key, 'value_en', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--surface3)', color: 'var(--ink)', fontSize: 12 }} />
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ═══ MAIN ═══
 const TABS = [
   { id: 'overview', label: 'Обзор', icon: '◉' },
+  { id: 'content', label: 'Контент', icon: '✏' },
   { id: 'users', label: 'Пользователи', icon: '◎' },
   { id: 'games', label: 'Партии', icon: '♟' },
   { id: 'blog', label: 'Блог', icon: '✎' },
@@ -933,6 +1070,7 @@ export default function Admin() {
           {TABS.find(t => t.id === tab)?.label}
         </h2>
         {tab === 'overview' && <OverviewTab />}
+        {tab === 'content' && <ContentTab />}
         {tab === 'users' && <UsersTab />}
         {tab === 'games' && <GamesTab />}
         {tab === 'blog' && <BlogTab />}
@@ -961,6 +1099,7 @@ export default function Admin() {
           {TABS.find(t => t.id === tab)?.label}
         </h2>
         {tab === 'overview' && <OverviewTab />}
+        {tab === 'content' && <ContentTab />}
         {tab === 'users' && <UsersTab />}
         {tab === 'games' && <GamesTab />}
         {tab === 'blog' && <BlogTab />}

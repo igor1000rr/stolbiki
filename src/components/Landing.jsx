@@ -1,4 +1,5 @@
 import { useI18n } from '../engine/i18n'
+import { useContent } from '../engine/content'
 import { useRef, useEffect, useState } from 'react'
 import Icon from './Icon'
 
@@ -39,6 +40,7 @@ function Counter({ end, suffix = '', duration = 1200 }) {
 export default function Landing({ onPlay, onTutorial, publicStats }) {
   const { lang } = useI18n()
   const en = lang === 'en'
+  const { c } = useContent(lang)
 
   // Per-section reveal refs
   const [heroRef, heroVis] = useReveal(0.1)
@@ -64,7 +66,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           ))}
         </div>
         <h1 className="l-hero-title">
-          {en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI'}
+          {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
         </h1>
         <p className="l-hero-sub">
           {en
@@ -73,36 +75,36 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </p>
         <div className="l-hero-meta">
           <span className="beta-badge">beta</span>
-          {en ? 'Open beta — active development' : 'Открытая бета — активная разработка'}
+          {c('site.beta_text', en ? 'Open beta — active development' : 'Открытая бета — активная разработка')}
         </div>
         <div className="l-hero-btns">
           <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
-            <Icon name="play" size={18} color="#fff" />{en ? 'Play free' : 'Играть'}
+            <Icon name="play" size={18} color="#fff" />{c('landing.play_btn', en ? 'Play free' : 'Играть')}
           </button>
           <button className="btn l-btn-lg" onClick={onTutorial}>
-            <Icon name="rules" size={16} />{en ? 'Learn in 2 min' : 'Обучение за 2 мин'}
+            <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
           </button>
         </div>
       </section>
 
       {/* ═══ NUMBERS — count-up animation ═══ */}
       <section className={`l-numbers ${numVis ? 'in' : ''}`} ref={numRef}>
-        <div className="l-num"><span className="l-num-val"><Counter end="239" suffix="K+" /></span><span className="l-num-label">{en ? 'games analyzed' : 'партий'}</span></div>
+        <div className="l-num"><span className="l-num-val"><Counter end="239" suffix="K+" /></span><span className="l-num-label">{c('landing.stat_games', en ? 'games analyzed' : 'партий')}</span></div>
         <div className="l-num-sep" />
-        <div className="l-num"><span className="l-num-val"><Counter end="97" suffix="%" /></span><span className="l-num-label">{en ? 'AI win rate' : 'винрейт AI'}</span></div>
+        <div className="l-num"><span className="l-num-val"><Counter end="97" suffix="%" /></span><span className="l-num-label">{c('landing.stat_winrate', en ? 'AI win rate' : 'винрейт AI')}</span></div>
         <div className="l-num-sep" />
-        <div className="l-num"><span className="l-num-val">50:50</span><span className="l-num-label">{en ? 'balance' : 'баланс'}</span></div>
+        <div className="l-num"><span className="l-num-val">50:50</span><span className="l-num-label">{c('landing.stat_balance', en ? 'balance' : 'баланс')}</span></div>
       </section>
 
       {/* ═══ STEPS — staggered reveal with animated line ═══ */}
       <section className="l-section">
-        <h2 className="l-title">{en ? 'Learn in 3 steps' : 'Научитесь за 3 шага'}</h2>
+        <h2 className="l-title">{c('landing.steps_title', en ? 'Learn in 3 steps' : 'Научитесь за 3 шага')}</h2>
         <div className={`l-steps ${stepVis ? 'in' : ''}`} ref={stepRef}>
           <div className="l-steps-line" />
           {[
-            { n: '01', t: en ? 'Place' : 'Ставьте', d: en ? 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.' : 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.' },
-            { n: '02', t: en ? 'Transfer' : 'Переносите', d: en ? 'Move your top chip group to another stand. The key tactical move that decides games.' : 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.' },
-            { n: '03', t: en ? 'Close' : 'Закрывайте', d: en ? 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!' : 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!' },
+            { n: '01', t: c('landing.step1_title', en ? 'Place' : 'Ставьте'), d: c('landing.step1_desc', en ? 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.' : 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.') },
+            { n: '02', t: c('landing.step2_title', en ? 'Transfer' : 'Переносите'), d: c('landing.step2_desc', en ? 'Move your top chip group to another stand. The key tactical move that decides games.' : 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.') },
+            { n: '03', t: c('landing.step3_title', en ? 'Close' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!' : 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!') },
           ].map((s, i) => (
             <div key={i} className="l-step" style={{ '--i': i }}>
               <div className="l-step-n">{s.n}</div>
@@ -117,7 +119,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
 
       {/* ═══ FEATURES — editorial showcase, NO grid cards ═══ */}
       <section className="l-section">
-        <h2 className="l-title">{en ? 'What\'s inside' : 'Что внутри'}</h2>
+        <h2 className="l-title">{c('landing.features_title', en ? "What's inside" : 'Что внутри')}</h2>
 
         <div className={`l-showcase ${featVis ? 'in' : ''}`} ref={featRef}>
           {/* AI — full-width hero banner */}
@@ -125,7 +127,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             <div className="l-ai-glow" />
             <div className="l-ai-top">
               <Icon name="ai" size={24} color="#4a9eff" />
-              <h3>{en ? 'AlphaZero AI' : 'AI на базе AlphaZero'}</h3>
+              <h3>{c('landing.ai_title', en ? 'AlphaZero AI' : 'AI на базе AlphaZero')}</h3>
             </div>
             <p className="l-ai-desc">{en
               ? 'Neural network trained via GPU self-play. Three difficulty levels from casual to grandmaster. The AI learns from every game it plays against itself.'
@@ -150,16 +152,16 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             <div className="l-split-item">
               <div className="l-split-bar" style={{ background: '#3dd68c' }} />
               <div>
-                <div className="l-split-head"><Icon name="online" size={18} color="#3dd68c" /><h4>{en ? 'Online multiplayer' : 'Онлайн мультиплеер'}</h4></div>
-                <p>{en ? 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.' : 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.'}</p>
+                <div className="l-split-head"><Icon name="online" size={18} color="#3dd68c" /><h4>{c('landing.online_title', en ? 'Online multiplayer' : 'Онлайн мультиплеер')}</h4></div>
+                <p>{c('landing.online_desc', en ? 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.' : 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.')}</p>
               </div>
             </div>
             <div className="l-split-line" />
             <div className="l-split-item">
               <div className="l-split-bar" style={{ background: '#ffc145' }} />
               <div>
-                <div className="l-split-head"><Icon name="puzzle" size={18} color="#ffc145" /><h4>{en ? 'Daily puzzles' : 'Головоломки'}</h4></div>
-                <p>{en ? 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.' : 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.'}</p>
+                <div className="l-split-head"><Icon name="puzzle" size={18} color="#ffc145" /><h4>{c('landing.puzzles_title', en ? 'Daily puzzles' : 'Головоломки')}</h4></div>
+                <p>{c('landing.puzzles_desc', en ? 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.' : 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.')}</p>
               </div>
             </div>
           </div>
@@ -261,11 +263,11 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       {/* ═══ ABOUT ═══ */}
       <section className="l-section" style={{ borderTop: '1px solid var(--surface2)', paddingTop: 48 }}>
         <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="l-title">{en ? 'About the project' : 'О проекте'}</h2>
+          <h2 className="l-title">{c('landing.about_title', en ? 'About the project' : 'О проекте')}</h2>
           <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.75, marginBottom: 20 }}>
-            {en
+            {c('landing.about_text', en
               ? 'Stacks is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.'
-              : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.'}
+              : 'Стойки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.')}
           </p>
         </div>
       </section>
