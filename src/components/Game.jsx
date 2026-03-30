@@ -12,6 +12,7 @@ import { isLoggedIn } from '../engine/api'
 import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
+import ReplayViewer, { describeAction } from './ReplayViewer'
 
 const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
@@ -47,93 +48,6 @@ const sc = () => playSound(_sc, [15, 30, 15])
 const sw = () => playSound(_sw, [10, 20, 10, 20, 30])
 const sl = () => playSound(_sl, 20)
 const ss = () => playSound(_ss, 12)
-
-function describeAction(a, p, t) {
-  const name = p === 0 ? t('game.blue') : t('game.red')
-  if (a.swap) return `${name}: Swap — ${t('game.swap') || 'смена цветов'}`
-  const parts = []
-  if (a.transfer) parts.push(`перенос ${SL(a.transfer[0])} → ${SL(a.transfer[1])}`)
-  if (a.placement && Object.keys(a.placement).length) {
-    parts.push(`установка: ${Object.entries(a.placement).map(([k, v]) => `${v} на ${SL(+k)}`).join(', ')}`)
-  }
-  if (!parts.length) parts.push(t('game.pass'))
-  return `${name}: ${parts.join(' + ')}`
-}
-
-// ─── Анимированный повтор партии ───
-function ReplayViewer({ moves, onClose }) {
-  const { t } = useI18n()
-  const [step, setStep] = useState(0)
-  const [playing, setPlaying] = useState(false)
-  const [gs, setGs] = useState(() => new GameState())
-  const timerRef = useRef(null)
-
-  // Пересчитываем состояние на каждом шагу
-  useEffect(() => {
-    let state = new GameState()
-    for (let i = 0; i < step; i++) {
-      if (moves[i]) state = applyAction(state, moves[i].action)
-    }
-    setGs(state)
-  }, [step, moves])
-
-  // Автоплей
-  useEffect(() => {
-    if (!playing) { clearInterval(timerRef.current); return }
-    timerRef.current = setInterval(() => {
-      setStep(prev => {
-        if (prev >= moves.length) { setPlaying(false); return prev }
-        return prev + 1
-      })
-    }, 1200)
-    return () => clearInterval(timerRef.current)
-  }, [playing, moves.length])
-
-  const currentMove = step > 0 && step <= moves.length ? moves[step - 1] : null
-  const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 2000, overflow: 'auto', padding: '12px' }}>
-      <div style={{ maxWidth: 500, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Повтор партии</span>
-          <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '4px 12px' }}>✕ Закрыть</button>
-        </div>
-
-        <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)' }}>{s0} : {s1}</span>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
-            Ход {step}/{moves.length}
-            {currentMove && ` · ${describeAction(currentMove.action, currentMove.player, t)}`}
-          </div>
-        </div>
-
-        <Board state={gs} pending={{}} selected={null} phase="done" humanPlayer={0} onStandClick={() => {}} aiThinking={false} />
-
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
-          <button className="btn" onClick={() => { setStep(0); setPlaying(false) }} disabled={step === 0} style={{ fontSize: 12, padding: '8px 12px' }}>⏮</button>
-          <button className="btn" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0} style={{ fontSize: 12, padding: '8px 12px' }}>◀</button>
-          <button className="btn primary" onClick={() => setPlaying(p => !p)} style={{ fontSize: 12, padding: '8px 16px' }}>
-            {playing ? '⏸ Пауза' : '▶ Играть'}
-          </button>
-          <button className="btn" onClick={() => setStep(s => Math.min(moves.length, s + 1))} disabled={step >= moves.length} style={{ fontSize: 12, padding: '8px 12px' }}>▶</button>
-          <button className="btn" onClick={() => { setStep(moves.length); setPlaying(false) }} disabled={step >= moves.length} style={{ fontSize: 12, padding: '8px 12px' }}>⏭</button>
-        </div>
-
-        {/* Прогресс */}
-        <div style={{ margin: '10px 0', height: 4, borderRadius: 2, background: 'var(--surface2)', cursor: 'pointer' }}
-          onClick={e => {
-            const rect = e.currentTarget.getBoundingClientRect()
-            const pct = (e.clientX - rect.left) / rect.width
-            setStep(Math.round(pct * moves.length))
-            setPlaying(false)
-          }}>
-          <div style={{ width: `${moves.length ? (step / moves.length) * 100 : 0}%`, height: '100%', borderRadius: 2, background: 'var(--p1)', transition: 'width 0.3s' }} />
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default function Game() {
   const { t, lang } = useI18n()
