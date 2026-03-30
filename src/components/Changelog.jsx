@@ -6,6 +6,34 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '3.4',
+    date: '2026-03-30',
+    title_ru: 'Безопасность, модули, CMS, рематч, спектатор, профили',
+    title_en: 'Security, modules, CMS, rematch, spectator, profiles',
+    changes_ru: [
+      { type: 'new', text: 'Серверная валидация ходов — движок на сервере, защита от gameOver эксплойта' },
+      { type: 'new', text: 'Рематч в онлайн-режиме — кнопка после партии, сервер меняет стороны' },
+      { type: 'new', text: 'Спектатор-режим — наблюдение за чужими партиями в реальном времени' },
+      { type: 'new', text: 'Публичные профили — клик по нику в лидерборде открывает карточку игрока' },
+      { type: 'new', text: 'Push-уведомления (Browser Notification API) — ваш ход, ничья, рематч' },
+      { type: 'new', text: 'CMS: 84 хардкодных текста заменены на i18n, 65 новых ключей в админке' },
+      { type: 'new', text: 'server.js разбит на модули: db.js (387), ws.js (286), server.js (1248)' },
+      { type: 'new', text: 'Game.jsx декомпозиция: ReplayViewer.jsx, gameUtils.js (1424→1267 строк)' },
+      { type: 'fix', text: 'Переименование лога «Стойки API» → «Snatch Highrise API»' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Server-side move validation — game engine on server, gameOver exploit fixed' },
+      { type: 'new', text: 'Online rematch — button after game, server swaps sides automatically' },
+      { type: 'new', text: 'Spectator mode — watch live games in real-time' },
+      { type: 'new', text: 'Public profiles — click username in leaderboard to view player card' },
+      { type: 'new', text: 'Push notifications (Browser Notification API) — your turn, draw, rematch' },
+      { type: 'new', text: 'CMS: 84 hardcoded texts replaced with i18n, 65 new keys in admin' },
+      { type: 'new', text: 'server.js split into modules: db.js (387), ws.js (286), server.js (1248)' },
+      { type: 'new', text: 'Game.jsx decomposition: ReplayViewer.jsx, gameUtils.js (1424→1267 lines)' },
+      { type: 'fix', text: 'Console log renamed "Стойки API" → "Snatch Highrise API"' },
+    ],
+  },
+  {
     version: '3.3',
     date: '2026-03-24',
     title_ru: 'Адаптивка, тема Wood, правила',

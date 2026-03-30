@@ -3,7 +3,7 @@
  * Вынесены для декомпозиции
  */
 
-import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as _sw, soundLose as _sl, soundClick as _sk, soundSwap as _ss } from '../engine/sounds'
+import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as _sw, soundLose as _sl, soundSwap as _ss } from '../engine/sounds'
 
 // ─── Title blink (таб мигает когда ваш ход) ───
 let _titleBlinkInterval = null
@@ -77,4 +77,32 @@ export function generateShareImage(gs, won, isDraw, s0, s1) {
   ctx.font = '12px sans-serif'
   ctx.fillText('snatch-highrise.com', 300, 300)
   return c
+}
+
+// ─── Browser Notifications (таб в фоне) ───
+
+/** Запросить разрешение на уведомления */
+export async function requestNotificationPermission() {
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+  const result = await Notification.requestPermission()
+  return result === 'granted'
+}
+
+/** Показать уведомление (только если таб в фоне) */
+export function showNotification(title, body, onClick) {
+  if (!document.hidden) return // Таб активен — не нужно
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  try {
+    const n = new Notification(title, {
+      body,
+      icon: '/favicon.svg',
+      tag: 'snatch-' + Date.now(), // Не группируем — каждое уведомление отдельно
+      requireInteraction: false,
+    })
+    n.onclick = () => { window.focus(); n.close(); if (onClick) onClick() }
+    // Автозакрытие через 8 сек
+    setTimeout(() => n.close(), 8000)
+  } catch {}
 }

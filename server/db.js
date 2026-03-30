@@ -406,6 +406,7 @@ const newKeys = {
   'game.rematchOffer': ['Игра', 'Противник предлагает рематч', 'Opponent offers a rematch', 'Текст: предложение рематча'],
   'game.rematchWaiting': ['Игра', 'Рематч предложен...', 'Rematch offered...', 'Текст: ожидание рематча'],
   'game.rematchDeclined': ['Игра', 'Рематч отклонён', 'Rematch declined', 'Текст: рематч отклонён'],
+  'game.watching': ['Игра', 'наблюдение', 'watching', 'Текст: режим наблюдения'],
 }
 const migrateIns = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
 let migrated = 0
@@ -414,6 +415,45 @@ for (const [key, [section, ru, en, label]] of Object.entries(newKeys)) {
   if (r.changes > 0) migrated++
 }
 if (migrated > 0) console.log(`CMS миграция: добавлено ${migrated} новых ключей`)
+
+// ─── Миграция: блог-пост v3.4 ───
+const blogExists = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v3-4-security-spectator'").get()
+if (!blogExists) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'v3-4-security-spectator',
+      'v3.4 — Безопасность, спектатор, рематч и публичные профили',
+      'v3.4 — Security, spectator mode, rematch & public profiles',
+      `Большое обновление серверной части и онлайн-функционала!
+
+**Безопасность:** Сервер теперь валидирует каждый ход через игровой движок. Раньше клиент мог отправить «я выиграл» — больше нет. Все ходы проверяются через getLegalActions, очерёдность контролируется, gameOver определяет сервер.
+
+**Рематч:** После онлайн-партии можно предложить рематч — сервер автоматически меняет стороны. Если оппонент принял — новая игра начинается мгновенно.
+
+**Спектатор-режим:** В лобби появился раздел «Живые партии». Можно наблюдать за чужими играми в реальном времени — ходы, звуки, счёт.
+
+**Публичные профили:** Клик по нику в лидерборде открывает карточку игрока: рейтинг, статистика, ачивки.
+
+**Push-уведомления:** Когда таб в фоне — браузер покажет уведомление «Ваш ход!», «Ничья предложена» или «Рематч».
+
+**Под капотом:** server.js разбит на 3 модуля (db.js, ws.js, server.js). Game.jsx декомпозирован. 84 хардкодных текста заменены на CMS-ключи.`,
+      `Major server-side and online functionality update!
+
+**Security:** Server now validates every move through the game engine. Previously a client could send "I won" — not anymore. All moves are checked via getLegalActions, turn order is enforced, gameOver is determined server-side.
+
+**Rematch:** After an online game you can offer a rematch — server automatically swaps sides. If opponent accepts, new game starts instantly.
+
+**Spectator mode:** The lobby now has a "Live games" section. Watch others play in real-time — moves, sounds, score.
+
+**Public profiles:** Click a username in the leaderboard to view their player card: rating, stats, achievements.
+
+**Push notifications:** When the tab is in background, browser shows notifications for "Your turn!", "Draw offered", "Rematch".
+
+**Under the hood:** server.js split into 3 modules (db.js, ws.js, server.js). Game.jsx decomposed. 84 hardcoded texts replaced with CMS keys.`,
+      'update', 1, 1
+    )
+  console.log('Блог: добавлен пост v3.4')
+}
 
 // ═══ Ачивки ═══
 const ALL_ACHIEVEMENTS = [

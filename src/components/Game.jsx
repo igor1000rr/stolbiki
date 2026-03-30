@@ -12,7 +12,7 @@ import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
-import { startTitleBlink, sp, st, sc, sw, sl, ss, setSoundOn, generateShareImage } from './gameUtils'
+import { startTitleBlink, sp, st, sc, sw, sl, ss, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 
 const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
@@ -93,6 +93,7 @@ export default function Game() {
   useEffect(() => {
     function handleOnlineStart(e) {
       const { players, firstPlayer, roomId, playerIdx, nextGame } = e.detail
+      requestNotificationPermission() // Запрашиваем разрешение для уведомлений
       // Кто первый ходит = синие (currentPlayer=0 в GameState)
       // firstPlayer — индекс игрока в комнате, который играет синими
       const myColor = (playerIdx === (firstPlayer ?? 0)) ? 0 : 1
@@ -181,7 +182,10 @@ export default function Game() {
             setTransfer(null)
             setPlacement({})
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.placeChips'))
-            if (document.hidden) startTitleBlink(t('game.yourTurnBlink'))
+            if (document.hidden) {
+              startTitleBlink(t('game.yourTurnBlink'))
+              showNotification('Snatch Highrise', t('game.yourTurnBlink'))
+            }
           }, 300)
         } else {
           setLocked(true)
@@ -199,11 +203,13 @@ export default function Game() {
       setResult(myColor); setPhase('done'); setLocked(false)
       setInfo(t('game.opponentResigned'))
       sw()
+      showNotification('Snatch Highrise', t('game.opponentResigned'))
     }
 
     // Draw offer
     function handleDrawOffer() {
       setDrawOffered(true)
+      showNotification('Snatch Highrise', t('game.drawOfferReceived'))
     }
 
     // Draw response
@@ -239,10 +245,11 @@ export default function Game() {
     // Rematch
     function handleRematchOffer() {
       setRematchOffered(true)
+      showNotification('Snatch Highrise', t('game.rematchOffer'))
     }
     function handleRematchDeclined() {
       setRematchPending(false)
-      setInfo(lang === 'en' ? 'Rematch declined' : 'Рематч отклонён')
+      setInfo(t('game.rematchDeclined'))
     }
     window.addEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
     window.addEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
@@ -272,7 +279,7 @@ export default function Game() {
       onlineRef.current = { roomId: null, playerIdx: -1, myColor: 0 }
       moveHistoryRef.current = []
       setShowReplay(false); setPosEval(null)
-      setInfo(`${(players || []).join(' vs ')} — ${lang === 'en' ? 'watching' : 'наблюдение'}`)
+      setInfo(`${(players || []).join(' vs ')} — ${t('game.watching')}`)
       setLog([{ text: `👁 ${(players || []).join(' vs ')}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
     }
 
