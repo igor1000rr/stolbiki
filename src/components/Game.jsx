@@ -466,8 +466,8 @@ export default function Game() {
     setTimeout(() => {
       const gpu = isGpuReady()
       const action = mctsSearch(state, ...(
-        difficulty >= 800 ? (gpu ? [600, 0] : [1200, 10]) :  // Экстрим: GPU прямая оценка
-        difficulty >= 400 ? (gpu ? [400, 0] : [800, 8]) :    // Сложная: GPU прямая оценка
+        difficulty >= 800 ? (gpu ? [1500, 0] : [1200, 10]) : // Экстрим: 1500 GPU-симуляций (~2с)
+        difficulty >= 400 ? (gpu ? [600, 0] : [800, 8]) :    // Сложная: 600 GPU-симуляций (~0.8с)
         difficulty >= 150 ? (gpu ? [200, 1] : [500, 3]) :    // Средняя
                             (gpu ? [80, 1]  : [200, 1])      // Лёгкая
       ))
