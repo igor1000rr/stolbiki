@@ -1,115 +1,179 @@
 /**
  * Нейросеть для оценки позиции в браузере
- * Архитектура: MLP 73→64→64→1 (ReLU + Tanh)
- * Обучена на 239K+ партий self-play (AlphaZero подход)
- * Веса: analysis/final_net.npz → net_weights.json (8,961 параметров)
+ * 
+ * GPU-сеть: ResNet 107→256→[6 ResBlocks]→64→1 (840,321 params)
+ *   - gpu_weights.json (~900KB gzip), v500, self-play на GTX 1080
+ * CPU-сеть: MLP 73→64→64→1 (8,961 params) — fallback
+ *   - net_weights.json (179KB), 239K партий
+ * 
+ * GPU грузится lazy. Если недоступна — CPU-сеть.
  */
 
 import { GOLDEN_STAND, MAX_CHIPS } from './game.js'
 
-let weights = null
-let loadingPromise = null
+let cpuWeights = null
+let gpuWeights = null
+let loadingCpu = null
+let loadingGpu = null
+let useGpu = false
 
-/**
- * Загрузка весов нейросети (lazy, один раз)
- */
+// ═══ Загрузка ═══
+
 export async function loadWeights() {
-  if (weights) return weights
-  if (loadingPromise) return loadingPromise
+  if (!cpuWeights && !loadingCpu) {
+    loadingCpu = fetch(new URL('./net_weights.json', import.meta.url))
+      .then(r => r.json())
+      .then(data => { cpuWeights = data })
+      .catch(() => {})
+  }
+  await loadingCpu
 
-  loadingPromise = fetch(new URL('./net_weights.json', import.meta.url))
-    .then(r => r.json())
-    .then(data => {
-      weights = {
-        w1: data.w1, b1: data.b1,  // 73×64, 64
-        w2: data.w2, b2: data.b2,  // 64×64, 64
-        w3: data.w3, b3: data.b3,  // 64×1,  1
-      }
-      return weights
-    })
-
-  return loadingPromise
+  if (!gpuWeights && !loadingGpu) {
+    loadingGpu = fetch(new URL('./gpu_weights.json', import.meta.url))
+      .then(r => r.json())
+      .then(data => { gpuWeights = data; useGpu = true; console.log('GPU нейросеть: 840K params ✅') })
+      .catch(() => console.log('GPU нейросеть недоступна, CPU fallback'))
+  }
+  await loadingGpu
+  return gpuWeights || cpuWeights
 }
 
-/**
- * Синхронная проверка готовности
- */
-export function isReady() {
-  return weights !== null
-}
+export function isReady() { return !!(gpuWeights || cpuWeights) }
+export function isGpuReady() { return !!gpuWeights }
 
-/**
- * Кодирование состояния игры в вектор (73 элемента)
- * Точная копия Python encode_state() из analysis/game.py
- */
-export function encodeState(state, player) {
+// ═══ Кодирование: CPU (73 фичи) ═══
+
+function encodeStateCpu(state, player) {
   const opp = 1 - player
   const vec = []
-
   for (let i = 0; i < state.numStands; i++) {
     const chips = state.stands[i]
     const cMe = chips.filter(c => c === player).length / MAX_CHIPS
     const cOpp = chips.filter(c => c === opp).length / MAX_CHIPS
-
     const [topColor, topSize] = state.topGroup(i)
-    let tc
-    if (topColor === -1) tc = 0.5
-    else if (topColor === player) tc = 1.0
-    else tc = 0.0
-
+    const tc = topColor === -1 ? 0.5 : topColor === player ? 1.0 : 0.0
     const isClosed = (i in state.closed) ? 1.0 : 0.0
-    let closedBy = 0.0
-    if (i in state.closed) {
-      closedBy = state.closed[i] === player ? 1.0 : -1.0
-    }
-
-    const isGolden = i === GOLDEN_STAND ? 1.0 : 0.0
-
-    vec.push(cMe, cOpp, tc, topSize / MAX_CHIPS, isClosed, closedBy, isGolden)
+    const closedBy = (i in state.closed) ? (state.closed[i] === player ? 1.0 : -1.0) : 0.0
+    vec.push(cMe, cOpp, tc, topSize / MAX_CHIPS, isClosed, closedBy, i === GOLDEN_STAND ? 1.0 : 0.0)
   }
-
-  vec.push(state.turn / 100.0)
-  vec.push((state.countClosed(player) - state.countClosed(opp)) / state.numStands)
-  vec.push(state.numOpen() / state.numStands)
-
+  vec.push(state.turn / 100.0, (state.countClosed(player) - state.countClosed(opp)) / state.numStands, state.numOpen() / state.numStands)
   return vec
 }
 
-/**
- * Forward pass: MLP 73→64(ReLU)→64(ReLU)→1(Tanh)
- * Возвращает оценку позиции от -1 (проигрыш) до +1 (выигрыш)
- */
-export function evaluate(state) {
-  if (!weights) return 0
+// ═══ Кодирование: GPU (107 фич) — копия Python encode_state ═══
 
-  const player = state.currentPlayer
-  const x = encodeState(state, player)
+function encodeStateGpu(state, player) {
+  const opp = 1 - player
+  const f = []
+  for (let i = 0; i < state.numStands; i++) {
+    const chips = state.stands[i]
+    const total = chips.length
+    const [tc, ts] = state.topGroup(i)
+    f.push(
+      total / 11.0,
+      chips.filter(c => c === player).length / 11.0,
+      chips.filter(c => c === opp).length / 11.0,
+      ts / 11.0,
+      tc === player ? 1.0 : 0.0,
+      tc === opp ? 1.0 : 0.0,
+      (i in state.closed) ? 1.0 : 0.0,
+      state.closed[i] === player ? 1.0 : 0.0,
+      i === 0 ? 1.0 : 0.0,
+      Math.max(0, 11 - total) / 11.0
+    )
+  }
+  const mc = state.countClosed(player), oc = state.countClosed(opp)
+  f.push(mc / 5, oc / 5, (mc - oc) / 5, state.numOpen() / 10, state.turn / 100,
+    state.swapAvailable ? 1.0 : 0.0, state.canCloseByPlacement() ? 1.0 : 0.0)
+  return f
+}
 
-  // Layer 1: z1 = x @ w1 + b1, a1 = relu(z1)
+// ═══ Математика ═══
+
+function linear(x, w, b, inSize, outSize) {
+  const y = new Float32Array(outSize)
+  for (let j = 0; j < outSize; j++) {
+    let sum = b[j]
+    const off = j * inSize
+    for (let i = 0; i < inSize; i++) sum += x[i] * w[off + i]
+    y[j] = sum
+  }
+  return y
+}
+
+function layerNorm(x, weight, bias, size) {
+  let mean = 0
+  for (let i = 0; i < size; i++) mean += x[i]
+  mean /= size
+  let v = 0
+  for (let i = 0; i < size; i++) v += (x[i] - mean) * (x[i] - mean)
+  v /= size
+  const s = Math.sqrt(v + 1e-5)
+  const y = new Float32Array(size)
+  for (let i = 0; i < size; i++) y[i] = (x[i] - mean) / s * weight[i] + bias[i]
+  return y
+}
+
+function relu(x) { for (let i = 0; i < x.length; i++) if (x[i] < 0) x[i] = 0; return x }
+
+// ═══ Forward: CPU (MLP 73→64→64→1) ═══
+
+function evaluateCpu(state) {
+  if (!cpuWeights) return 0
+  const x = encodeStateCpu(state, state.currentPlayer)
   const a1 = new Float32Array(64)
   for (let j = 0; j < 64; j++) {
-    let sum = weights.b1[j]
-    for (let i = 0; i < 73; i++) {
-      sum += x[i] * weights.w1[i][j]
-    }
-    a1[j] = sum > 0 ? sum : 0  // ReLU
+    let sum = cpuWeights.b1[j]
+    for (let i = 0; i < 73; i++) sum += x[i] * cpuWeights.w1[i][j]
+    a1[j] = sum > 0 ? sum : 0
   }
-
-  // Layer 2: z2 = a1 @ w2 + b2, a2 = relu(z2)
   const a2 = new Float32Array(64)
   for (let j = 0; j < 64; j++) {
-    let sum = weights.b2[j]
-    for (let i = 0; i < 64; i++) {
-      sum += a1[i] * weights.w2[i][j]
-    }
-    a2[j] = sum > 0 ? sum : 0  // ReLU
+    let sum = cpuWeights.b2[j]
+    for (let i = 0; i < 64; i++) sum += a1[i] * cpuWeights.w2[i][j]
+    a2[j] = sum > 0 ? sum : 0
   }
-
-  // Layer 3: z3 = a2 @ w3 + b3, out = tanh(z3)
-  let sum = weights.b3[0]
-  for (let i = 0; i < 64; i++) {
-    sum += a2[i] * weights.w3[i][0]
-  }
-
+  let sum = cpuWeights.b3[0]
+  for (let i = 0; i < 64; i++) sum += a2[i] * cpuWeights.w3[i][0]
   return Math.tanh(sum)
 }
+
+// ═══ Forward: GPU (ResNet 107→256→6×ResBlock→64→1) ═══
+
+function evaluateGpu(state) {
+  if (!gpuWeights) return evaluateCpu(state)
+  const w = gpuWeights
+  const x = encodeStateGpu(state, state.currentPlayer)
+
+  // proj: Linear(107→256) + LayerNorm(256) + ReLU
+  let h = linear(x, w['proj.0.weight'], w['proj.0.bias'], 107, 256)
+  h = layerNorm(h, w['proj.1.weight'], w['proj.1.bias'], 256)
+  h = relu(h)
+
+  // 6 × ResBlock
+  for (let b = 0; b < 6; b++) {
+    const p = `blocks.${b}`
+    let out = linear(h, w[`${p}.fc1.weight`], w[`${p}.fc1.bias`], 256, 256)
+    out = layerNorm(out, w[`${p}.ln1.weight`], w[`${p}.ln1.bias`], 256)
+    out = relu(out)
+    out = linear(out, w[`${p}.fc2.weight`], w[`${p}.fc2.bias`], 256, 256)
+    out = layerNorm(out, w[`${p}.ln2.weight`], w[`${p}.ln2.bias`], 256)
+    for (let i = 0; i < 256; i++) out[i] += h[i] // skip connection
+    h = relu(out)
+  }
+
+  // value: Linear(256→64) + ReLU + Linear(64→1) + Tanh
+  let v = linear(h, w['value.0.weight'], w['value.0.bias'], 256, 64)
+  v = relu(v)
+  let val = w['value.2.bias'][0]
+  for (let i = 0; i < 64; i++) val += v[i] * w['value.2.weight'][i]
+  return Math.tanh(val)
+}
+
+// ═══ API ═══
+
+export function evaluate(state) {
+  return useGpu ? evaluateGpu(state) : evaluateCpu(state)
+}
+
+export const encodeState = encodeStateCpu

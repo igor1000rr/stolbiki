@@ -4,6 +4,7 @@ import {
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
 } from '../engine/game'
 import { mctsSearch } from '../engine/ai'
+import { isGpuReady } from '../engine/neuralnet'
 import { getHint } from '../engine/hints'
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
 import * as MP from '../engine/multiplayer'
@@ -463,10 +464,11 @@ export default function Game() {
     setInfo(t('game.aiThinking'))
     const startTime = Date.now()
     setTimeout(() => {
+      const gpu = isGpuReady()
       const action = mctsSearch(state, ...(
-        difficulty >= 400 ? [800, 8] :   // Сложная: 800 сим, глубина 8
-        difficulty >= 150 ? [500, 3] :   // Средняя: 500 сим, глубина 3
-                            [200, 1]     // Лёгкая: 200 сим, глубина 1
+        difficulty >= 400 ? (gpu ? [300, 2] : [800, 8]) :   // Сложная
+        difficulty >= 150 ? (gpu ? [150, 1] : [500, 3]) :   // Средняя
+                            (gpu ? [80, 0]  : [200, 1])     // Лёгкая
       ))
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
       setTimeout(() => {

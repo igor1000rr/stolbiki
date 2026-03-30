@@ -1,16 +1,18 @@
 /**
  * AI для игры «Перехват высотки»
- * MCTS + нейросеть (8,961 параметров, обучена на 239K+ партий)
+ * MCTS + нейросеть гибрид
  *
- * Без нейросети: случайные rollouts (слабый AI)
- * С нейросетью: прямая оценка позиции (сильный AI)
+ * CPU-сеть: 8,961 params (27µs/eval) — fallback
+ * GPU-сеть: 840,321 params (1.2ms/eval) — значительно сильнее
+ * 
+ * С GPU-сетью достаточно меньше симуляций — каждая оценка точнее.
  */
 
 import {
   GameState, getValidTransfers, getValidPlacements,
   applyAction, MAX_CHIPS, MAX_PLACE, FIRST_TURN_MAX
 } from './game.js'
-import { evaluate as nnEvaluate, isReady as nnReady, loadWeights } from './neuralnet.js'
+import { evaluate as nnEvaluate, isReady as nnReady, isGpuReady, loadWeights } from './neuralnet.js'
 
 // Автозагрузка весов при импорте
 loadWeights().catch(() => {})

@@ -454,6 +454,44 @@ if (!blogExists) {
     )
   console.log('Блог: добавлен пост v3.4')
 }
+// Обновляем пост v3.4 — добавляем GPU-нейросеть
+const blogPost34 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v3-4-security-spectator'").get()
+if (blogPost34) {
+  db.prepare("UPDATE blog_posts SET body_ru=?, body_en=?, title_ru=?, title_en=? WHERE slug='v3-4-security-spectator'").run(
+    `Самое большое обновление Snatch Highrise!
+
+**GPU-нейросеть в браузере:** ResNet с 840K параметрами (93× больше предыдущей) теперь работает прямо в браузере. Обучена на GTX 1080 через 500 итераций self-play. AI стал значительно сильнее — с GPU-сетью достаточно меньше MCTS-симуляций, каждая оценка точнее.
+
+**Безопасность:** Сервер валидирует каждый ход через движок. Раньше клиент мог подменить результат — теперь все ходы проверяются через getLegalActions, gameOver определяет сервер.
+
+**Рематч:** После онлайн-партии — кнопка рематча, сервер автоматически меняет стороны.
+
+**Спектатор-режим:** В лобби «Живые партии» — наблюдайте за чужими играми в реальном времени.
+
+**Публичные профили:** Клик по нику в лидерборде — карточка с рейтингом, статистикой и ачивками.
+
+**Push-уведомления:** Браузер покажет «Ваш ход!» когда таб в фоне.
+
+**Под капотом:** server.js → 3 модуля, Game.jsx декомпозирован, 84 текста на CMS.`,
+    `The biggest Snatch Highrise update yet!
+
+**GPU neural network in browser:** ResNet with 840K parameters (93× larger than previous) now runs directly in the browser. Trained on GTX 1080 through 500 iterations of self-play. AI is significantly stronger — with GPU net, fewer MCTS simulations needed, each evaluation is more accurate.
+
+**Security:** Server validates every move through the game engine. Previously clients could fake results — now all moves checked via getLegalActions, gameOver determined server-side.
+
+**Rematch:** After an online game — rematch button, server automatically swaps sides.
+
+**Spectator mode:** "Live games" in lobby — watch others play in real-time.
+
+**Public profiles:** Click username in leaderboard — player card with rating, stats, achievements.
+
+**Push notifications:** Browser shows "Your turn!" when tab is in background.
+
+**Under the hood:** server.js split into 3 modules, Game.jsx decomposed, 84 texts moved to CMS.`,
+    'v3.4 — GPU-нейросеть, безопасность, спектатор, рематч',
+    'v3.4 — GPU neural network, security, spectator, rematch'
+  )
+}
 
 // ═══ Ачивки ═══
 const ALL_ACHIEVEMENTS = [
