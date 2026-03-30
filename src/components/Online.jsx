@@ -195,6 +195,19 @@ export default function Online() {
       case 'drawResponse':
         window.dispatchEvent(new CustomEvent('stolbiki-online-draw-response', { detail: { accepted: msg.accepted } }))
         break
+      case 'rematchOffer':
+        window.dispatchEvent(new CustomEvent('stolbiki-online-rematch-offer', { detail: { from: msg.from } }))
+        break
+      case 'rematchDeclined':
+        window.dispatchEvent(new CustomEvent('stolbiki-online-rematch-declined'))
+        break
+      case 'rematchStart':
+        setScores(msg.scores || [0, 0])
+        setScreen('playing')
+        window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
+          detail: { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true }
+        }))
+        break
       case 'disconnected':
         if (msg.playerIdx !== playerIdxRef.current) setStatus('Противник отключился... ждём реконнект')
         break

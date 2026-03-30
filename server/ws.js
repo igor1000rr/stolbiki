@@ -266,6 +266,35 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
           handleTournamentNext(room)
         }
       }
+
+      // ─── REMATCH ───
+      if (msg.type === 'rematchOffer' && playerRoom) {
+        const opponent = playerRoom.players[1 - playerIdx]
+        if (opponent?.ws?.readyState === 1) {
+          opponent.ws.send(JSON.stringify({ type: 'rematchOffer', from: playerIdx }))
+        }
+      }
+
+      if (msg.type === 'rematchResponse' && playerRoom) {
+        const room = playerRoom
+        const opponent = room.players[1 - playerIdx]
+        if (msg.accepted) {
+          // Меняем стороны: кто был firstPlayer, становится вторым
+          room.firstPlayer = room.firstPlayer === 0 ? 1 : 0
+          room.gameState = new GameState()
+          const startMsg = JSON.stringify({
+            type: 'rematchStart',
+            players: room.players.map(p => p.name),
+            firstPlayer: room.firstPlayer,
+            scores: room.scores,
+          })
+          room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(startMsg))
+        } else {
+          if (opponent?.ws?.readyState === 1) {
+            opponent.ws.send(JSON.stringify({ type: 'rematchDeclined' }))
+          }
+        }
+      }
     })
 
     ws.on('close', () => {

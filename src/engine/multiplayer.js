@@ -68,6 +68,14 @@ export function sendChat(text) {
   send({ type: 'chat', text })
 }
 
+export function sendRematchOffer() {
+  send({ type: 'rematchOffer' })
+}
+
+export function sendRematchResponse(accepted) {
+  send({ type: 'rematchResponse', accepted })
+}
+
 export function findMatch(name, callback) {
   onMessage = callback
   intentionalClose = false

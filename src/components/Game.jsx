@@ -76,6 +76,8 @@ export default function Game() {
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
   const [onlinePlayers, setOnlinePlayers] = useState([])
   const [drawOffered, setDrawOffered] = useState(false)
+  const [rematchOffered, setRematchOffered] = useState(false)  // получили предложение рематча
+  const [rematchPending, setRematchPending] = useState(false)  // отправили предложение, ждём ответ
   const onlineRef = useRef(null) // { roomId, playerIdx, myColor }
   const gsRef = useRef(gs) // актуальное состояние для WS обработчиков
   const aiRunning = useRef(false)
@@ -115,6 +117,9 @@ export default function Game() {
       setPosEval(null)
       moveHistoryRef.current = []
       setShowReplay(false)
+      setRematchOffered(false)
+      setRematchPending(false)
+      setDrawOffered(false)
 
       const myName = players[playerIdx] || t('game.you')
       const oppName = players[1 - playerIdx] || t('game.opponent')
@@ -230,6 +235,17 @@ export default function Game() {
     }
     window.addEventListener('stolbiki-online-server-gameover', handleServerGameOver)
 
+    // Rematch
+    function handleRematchOffer() {
+      setRematchOffered(true)
+    }
+    function handleRematchDeclined() {
+      setRematchPending(false)
+      setInfo(lang === 'en' ? 'Rematch declined' : 'Рематч отклонён')
+    }
+    window.addEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
+    window.addEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
+
     return () => {
       window.removeEventListener('stolbiki-online-start', handleOnlineStart)
       window.removeEventListener('stolbiki-online-move', handleOnlineMove)
@@ -237,6 +253,8 @@ export default function Game() {
       window.removeEventListener('stolbiki-online-draw-offer', handleDrawOffer)
       window.removeEventListener('stolbiki-online-draw-response', handleDrawResponse)
       window.removeEventListener('stolbiki-online-server-gameover', handleServerGameOver)
+      window.removeEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
+      window.removeEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
     }
   }, []) // eslint-disable-line
 
@@ -1041,6 +1059,29 @@ export default function Game() {
         </div>
       )}
 
+      {rematchOffered && gs.gameOver && mode === 'online' && (
+        <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
+          background: 'rgba(61,214,140,0.08)', borderRadius: 10, border: '1px solid rgba(61,214,140,0.2)' }}>
+          <div style={{ fontSize: 12, color: '#c8c4d8', marginBottom: 8 }}>
+            {t('game.rematchOffer')}
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button className="btn" onClick={() => {
+              MP.sendRematchResponse(true)
+              setRematchOffered(false)
+            }} style={{ borderColor: '#3dd68c', color: '#3dd68c' }}>
+              {t('game.accept')}
+            </button>
+            <button className="btn" onClick={() => {
+              MP.sendRematchResponse(false)
+              setRematchOffered(false)
+            }} style={{ fontSize: 12 }}>
+              {t('game.decline')}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="actions">
         {isMyTurn && phase === 'place' && hasTransfers && !transfer && (
           <button className="btn" onClick={startTransfer}>{t('game.transfer')}</button>
@@ -1127,6 +1168,18 @@ export default function Game() {
                 }} style={{ fontSize: 12, padding: '8px 16px' }}>
                   {mode === 'online' ? (t('game.backToLobby')) : (t('game.anotherGame'))}
                 </button>
+              )}
+              {mode === 'online' && !tournament && !rematchPending && (
+                <button className="btn" onClick={() => {
+                  MP.sendRematchOffer()
+                  setRematchPending(true)
+                  setInfo(t('game.rematchWaiting'))
+                }} style={{ fontSize: 12, padding: '8px 16px', borderColor: '#3dd68c', color: '#3dd68c' }}>
+                  {t('game.rematch')}
+                </button>
+              )}
+              {mode === 'online' && rematchPending && (
+                <span style={{ fontSize: 11, color: 'var(--ink3)', padding: '8px 12px' }}>{t('game.rematchWaiting')}</span>
               )}
               {mode === 'ai' && !tournament && (
                 <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: 12, padding: '8px 14px' }}>
