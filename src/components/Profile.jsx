@@ -242,8 +242,10 @@ function SeasonSection({ data, myName }) {
 const loadProfile = loadLocal
 const saveProfile = saveLocal
 
-export default function Profile() {
+export default function Profile({ viewUsername, onClose }) {
   const [profile, setProfile] = useState(loadLocal)
+  const [publicProfile, setPublicProfile] = useState(null)
+  const [publicLoading, setPublicLoading] = useState(false)
   const [tab, setTab] = useState('profile')
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
@@ -264,6 +266,15 @@ export default function Profile() {
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
 
+  // Загрузка публичного профиля
+  useEffect(() => {
+    if (!viewUsername) { setPublicProfile(null); return }
+    setPublicLoading(true)
+    API.getPublicProfile(viewUsername)
+      .then(setPublicProfile)
+      .catch(() => setPublicProfile(null))
+      .finally(() => setPublicLoading(false))
+  }, [viewUsername])
   // Загружаем данные с сервера
   useEffect(() => {
     if (!serverOnline || !API.isLoggedIn()) return
@@ -408,6 +419,74 @@ export default function Profile() {
     }
     return () => { delete window.stolbikiRecordGame }
   }, [serverOnline])
+
+  // ─── Публичный профиль (просмотр чужого) ───
+  if (viewUsername) {
+    if (publicLoading) return (
+      <div className="dash-card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center', padding: 40 }}>
+        <div style={{ fontSize: 14, color: 'var(--ink3)' }}>Загрузка...</div>
+      </div>
+    )
+    if (!publicProfile) return (
+      <div className="dash-card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center', padding: 40 }}>
+        <div style={{ fontSize: 14, color: '#ff6066' }}>Пользователь не найден</div>
+        {onClose && <button className="btn" onClick={onClose} style={{ marginTop: 12 }}>← Назад</button>}
+      </div>
+    )
+    const pp = publicProfile
+    const ppWinRate = pp.gamesPlayed > 0 ? Math.round(pp.wins / pp.gamesPlayed * 100) : 0
+    const ppAchievements = (pp.achievements || []).map(id => ALL_ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean)
+    return (
+      <div>
+        <div className="dash-card" style={{ maxWidth: 500, margin: '20px auto' }}>
+          {onClose && (
+            <button className="btn" onClick={onClose} style={{ fontSize: 11, marginBottom: 12 }}>← Назад</button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+            <AvatarCircle avatar={pp.avatar || 'default'} name={pp.username} size={56} />
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>{pp.username}</div>
+              <RatingBadge rating={pp.rating} />
+            </div>
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#ffc145' }}>{pp.rating}</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>ELO</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{pp.gamesPlayed}</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>Партий</div>
+            </div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#3dd68c' }}>{ppWinRate}%</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>Винрейт</div>
+            </div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#f0654a' }}>{pp.bestStreak}</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>Серия</div>
+            </div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{pp.goldenClosed}</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>Золотых</div>
+            </div>
+          </div>
+          {ppAchievements.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>Ачивки ({ppAchievements.length})</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {ppAchievements.map(a => (
+                  <span key={a.id} title={a.name_en || a.id} style={{
+                    fontSize: 20, filter: 'none',
+                  }}>{a.icon}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // Не залогинен
   if (!profile) {
@@ -717,7 +796,14 @@ export default function Profile() {
                     {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1}
                   </td>
                   <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? '#6db4ff' : '#e8e6f0' }}>
-                    {p.name || p.username} {p.isMe && <span style={{ fontSize: 9, color: '#6b6880' }}>(вы)</span>}
+                    {!p.isMe && serverOnline ? (
+                      <span style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.15)' }}
+                        onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-view-profile', { detail: { username: p.name || p.username } }))}>
+                        {p.name || p.username}
+                      </span>
+                    ) : (
+                      <>{p.name || p.username} {p.isMe && <span style={{ fontSize: 9, color: '#6b6880' }}>(вы)</span>}</>
+                    )}
                   </td>
                   <td style={{ fontWeight: 600 }}>{p.rating}</td>
                   <td>{p.wins}</td>

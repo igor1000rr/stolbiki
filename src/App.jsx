@@ -65,6 +65,7 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
+  const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
 
   // Ленивый mount для Game/Online — грузятся только при первом посещении таба
 
@@ -158,10 +159,13 @@ export default function App() {
     window.addEventListener('stolbiki-daily-start', handler)
     const backToLobby = () => { setTab('online'); setMobileMenu(false) }
     window.addEventListener('stolbiki-back-to-lobby', backToLobby)
+    const viewProfileHandler = (e) => { setViewProfile(e.detail?.username || null); setTab('profile'); setMobileMenu(false) }
+    window.addEventListener('stolbiki-view-profile', viewProfileHandler)
     return () => {
       window.removeEventListener('stolbiki-online-start', handler)
       window.removeEventListener('stolbiki-daily-start', handler)
       window.removeEventListener('stolbiki-back-to-lobby', backToLobby)
+      window.removeEventListener('stolbiki-view-profile', viewProfileHandler)
     }
   }, [])
 
@@ -376,7 +380,7 @@ export default function App() {
           {tab === 'openings' && <Openings />}
           {tab === 'blog' && <Blog />}
           {tab === 'settings' && <Settings />}
-          {tab === 'profile' && <Profile />}
+          {tab === 'profile' && <Profile viewUsername={viewProfile} onClose={viewProfile ? () => setViewProfile(null) : null} />}
           {tab === 'sim' && isAdmin && <Simulator />}
           {tab === 'dash' && isAdmin && <Dashboard />}
           {tab === 'replay' && isAdmin && <Replay />}
