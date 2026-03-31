@@ -191,10 +191,12 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
   const title = lang === 'en' ? puzzle.title_en : puzzle.title_ru
   const desc = lang === 'en' ? puzzle.desc_en : puzzle.desc_ru
 
+  const isNative = !!window.Capacitor?.isNativePlatform?.()
+
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       {/* Шапка */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 4px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isNative ? 4 : 12, padding: '0 4px' }}>
         <button className="btn" onClick={onBack} style={{ fontSize: 11, padding: '5px 12px' }}>←</button>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{title}</div>
