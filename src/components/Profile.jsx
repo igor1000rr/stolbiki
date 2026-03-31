@@ -59,38 +59,38 @@ const ACH_COLORS = {
 }
 const ALL_ACHIEVEMENTS = [
   // Победы
-  { id: 'first_win', color: ACH_COLORS.bronze, name: 'Первая победа', nameEn: 'First win', desc: 'Победите в первой партии', check: p => p.wins >= 1 },
-  { id: 'perfect', color: ACH_COLORS.gold, name: 'Доминирование', nameEn: 'Domination', desc: 'Победите 6:0', check: p => p.perfectWins >= 1 },
-  { id: 'perfect_3', color: ACH_COLORS.diamond, name: 'Абсолют', nameEn: 'Absolute', desc: '3 победы 6:0', check: p => p.perfectWins >= 3 },
-  { id: 'fast_win', color: ACH_COLORS.silver, name: 'Блиц', nameEn: 'Blitz', desc: 'Победа за 10 ходов', check: p => (p.fastWins || 0) >= 1 },
-  { id: 'fast_win_5', color: ACH_COLORS.gold, name: 'Молния', nameEn: 'Lightning', desc: '5 быстрых побед', check: p => (p.fastWins || 0) >= 5 },
+  { id: 'first_win', color: ACH_COLORS.bronze, name: 'Первая победа', nameEn: 'First win', desc: 'Победите в первой партии', descEn: 'Win your first game', check: p => p.wins >= 1 },
+  { id: 'perfect', color: ACH_COLORS.gold, name: 'Доминирование', nameEn: 'Domination', desc: 'Победите 6:0', descEn: 'Win 6:0', check: p => p.perfectWins >= 1 },
+  { id: 'perfect_3', color: ACH_COLORS.diamond, name: 'Абсолют', nameEn: 'Absolute', desc: '3 победы 6:0', descEn: '3 perfect wins', check: p => p.perfectWins >= 3 },
+  { id: 'fast_win', color: ACH_COLORS.silver, name: 'Блиц', nameEn: 'Blitz', desc: 'Победа за 10 ходов', descEn: 'Win in 10 moves', check: p => (p.fastWins || 0) >= 1 },
+  { id: 'fast_win_5', color: ACH_COLORS.gold, name: 'Молния', nameEn: 'Lightning', desc: '5 быстрых побед', descEn: '5 fast wins', check: p => (p.fastWins || 0) >= 5 },
   // Серии
-  { id: 'streak_3', color: ACH_COLORS.bronze, name: 'В ударе', nameEn: 'On fire', desc: '3 победы подряд', check: p => p.bestStreak >= 3 },
-  { id: 'streak_5', color: ACH_COLORS.silver, name: 'Неудержимый', nameEn: 'Unstoppable', desc: '5 побед подряд', check: p => p.bestStreak >= 5 },
-  { id: 'streak_10', color: ACH_COLORS.gold, name: 'Легенда', nameEn: 'Legend', desc: '10 побед подряд', check: p => p.bestStreak >= 10 },
-  { id: 'streak_20', color: ACH_COLORS.diamond, name: 'Бессмертный', nameEn: 'Immortal', desc: '20 побед подряд', check: p => p.bestStreak >= 20 },
+  { id: 'streak_3', color: ACH_COLORS.bronze, name: 'В ударе', nameEn: 'On fire', desc: '3 победы подряд', descEn: '3 wins in a row', check: p => p.bestStreak >= 3 },
+  { id: 'streak_5', color: ACH_COLORS.silver, name: 'Неудержимый', nameEn: 'Unstoppable', desc: '5 побед подряд', descEn: '5 wins in a row', check: p => p.bestStreak >= 5 },
+  { id: 'streak_10', color: ACH_COLORS.gold, name: 'Легенда', nameEn: 'Legend', desc: '10 побед подряд', descEn: '10 wins in a row', check: p => p.bestStreak >= 10 },
+  { id: 'streak_20', color: ACH_COLORS.diamond, name: 'Бессмертный', nameEn: 'Immortal', desc: '20 побед подряд', descEn: '20 wins in a row', check: p => p.bestStreak >= 20 },
   // Золотая стойка
-  { id: 'golden_1', color: ACH_COLORS.bronze, name: 'Золотой', nameEn: 'Golden', desc: 'Закройте золотую стойку', check: p => p.goldenClosed >= 1 },
-  { id: 'golden_10', color: ACH_COLORS.silver, name: 'Золотая лихорадка', nameEn: 'Gold rush', desc: 'Закройте золотую 10 раз', check: p => p.goldenClosed >= 10 },
-  { id: 'golden_50', color: ACH_COLORS.gold, name: 'Золотой магнат', nameEn: 'Gold magnate', desc: 'Закройте золотую 50 раз', check: p => p.goldenClosed >= 50 },
+  { id: 'golden_1', color: ACH_COLORS.bronze, name: 'Золотой', nameEn: 'Golden', desc: 'Закройте золотую стойку', descEn: 'Close the golden stand', check: p => p.goldenClosed >= 1 },
+  { id: 'golden_10', color: ACH_COLORS.silver, name: 'Золотая лихорадка', nameEn: 'Gold rush', desc: 'Закройте золотую 10 раз', descEn: 'Close golden 10 times', check: p => p.goldenClosed >= 10 },
+  { id: 'golden_50', color: ACH_COLORS.gold, name: 'Золотой магнат', nameEn: 'Gold magnate', desc: 'Закройте золотую 50 раз', descEn: 'Close golden 50 times', check: p => p.goldenClosed >= 50 },
   // Камбэки
-  { id: 'comeback', color: ACH_COLORS.silver, name: 'Камбэк', nameEn: 'Comeback', desc: 'Победа при отставании 3+', check: p => p.comebacks >= 1 },
-  { id: 'comeback_5', color: ACH_COLORS.gold, name: 'Феникс', nameEn: 'Phoenix', desc: '5 камбэков', check: p => p.comebacks >= 5 },
+  { id: 'comeback', color: ACH_COLORS.silver, name: 'Камбэк', nameEn: 'Comeback', desc: 'Победа при отставании 3+', descEn: 'Win when trailing by 3+', check: p => p.comebacks >= 1 },
+  { id: 'comeback_5', color: ACH_COLORS.gold, name: 'Феникс', nameEn: 'Phoenix', desc: '5 камбэков', descEn: '5 comebacks', check: p => p.comebacks >= 5 },
   // Партии
-  { id: 'games_10', color: ACH_COLORS.bronze, name: 'Новичок', nameEn: 'Newcomer', desc: '10 партий', check: p => p.gamesPlayed >= 10 },
-  { id: 'games_50', color: ACH_COLORS.silver, name: 'Опытный', nameEn: 'Experienced', desc: '50 партий', check: p => p.gamesPlayed >= 50 },
-  { id: 'games_100', color: ACH_COLORS.gold, name: 'Ветеран', nameEn: 'Veteran', desc: '100 партий', check: p => p.gamesPlayed >= 100 },
-  { id: 'games_500', color: ACH_COLORS.diamond, name: 'Адепт', nameEn: 'Adept', desc: '500 партий', check: p => p.gamesPlayed >= 500 },
+  { id: 'games_10', color: ACH_COLORS.bronze, name: 'Новичок', nameEn: 'Newcomer', desc: '10 партий', descEn: '10 games played', check: p => p.gamesPlayed >= 10 },
+  { id: 'games_50', color: ACH_COLORS.silver, name: 'Опытный', nameEn: 'Experienced', desc: '50 партий', descEn: '50 games played', check: p => p.gamesPlayed >= 50 },
+  { id: 'games_100', color: ACH_COLORS.gold, name: 'Ветеран', nameEn: 'Veteran', desc: '100 партий', descEn: '100 games played', check: p => p.gamesPlayed >= 100 },
+  { id: 'games_500', color: ACH_COLORS.diamond, name: 'Адепт', nameEn: 'Adept', desc: '500 партий', descEn: '500 games played', check: p => p.gamesPlayed >= 500 },
   // Рейтинг
-  { id: 'rating_1200', color: ACH_COLORS.bronze, name: 'Рост', nameEn: 'Rising', desc: 'Рейтинг 1200', check: p => p.rating >= 1200 },
-  { id: 'rating_1500', color: ACH_COLORS.silver, name: 'Мастер', nameEn: 'Master', desc: 'Рейтинг 1500', check: p => p.rating >= 1500 },
-  { id: 'rating_1800', color: ACH_COLORS.gold, name: 'Гроссмейстер', nameEn: 'Grandmaster', desc: 'Рейтинг 1800', check: p => p.rating >= 1800 },
-  { id: 'rating_2000', color: ACH_COLORS.diamond, name: 'Чемпион', nameEn: 'Champion', desc: 'Рейтинг 2000', check: p => p.rating >= 2000 },
+  { id: 'rating_1200', color: ACH_COLORS.bronze, name: 'Рост', nameEn: 'Rising', desc: 'Рейтинг 1200', descEn: 'Reach 1200 rating', check: p => p.rating >= 1200 },
+  { id: 'rating_1500', color: ACH_COLORS.silver, name: 'Мастер', nameEn: 'Master', desc: 'Рейтинг 1500', descEn: 'Reach 1500 rating', check: p => p.rating >= 1500 },
+  { id: 'rating_1800', color: ACH_COLORS.gold, name: 'Гроссмейстер', nameEn: 'Grandmaster', desc: 'Рейтинг 1800', descEn: 'Reach 1800 rating', check: p => p.rating >= 1800 },
+  { id: 'rating_2000', color: ACH_COLORS.diamond, name: 'Чемпион', nameEn: 'Champion', desc: 'Рейтинг 2000', descEn: 'Reach 2000 rating', check: p => p.rating >= 2000 },
   // Специальные
-  { id: 'beat_hard', color: ACH_COLORS.gold, name: 'Стратег', nameEn: 'Strategist', desc: 'Победите AI на сложной', check: p => p.beatHardAi },
-  { id: 'online_win', color: ACH_COLORS.bronze, name: 'Онлайн', nameEn: 'Online', desc: 'Победа в онлайн-матче', check: p => (p.onlineWins || 0) >= 1 },
-  { id: 'online_10', color: ACH_COLORS.silver, name: 'Боец', nameEn: 'Fighter', desc: '10 онлайн-побед', check: p => (p.onlineWins || 0) >= 10 },
-  { id: 'puzzle_10', color: ACH_COLORS.silver, name: 'Решатель', nameEn: 'Solver', desc: 'Решите 10 головоломок', check: p => (p.puzzlesSolved || 0) >= 10 },
+  { id: 'beat_hard', color: ACH_COLORS.gold, name: 'Стратег', nameEn: 'Strategist', desc: 'Победите AI на сложной', descEn: 'Beat AI on hard', check: p => p.beatHardAi },
+  { id: 'online_win', color: ACH_COLORS.bronze, name: 'Онлайн', nameEn: 'Online', desc: 'Победа в онлайн-матче', descEn: 'Win an online match', check: p => (p.onlineWins || 0) >= 1 },
+  { id: 'online_10', color: ACH_COLORS.silver, name: 'Боец', nameEn: 'Fighter', desc: '10 онлайн-побед', descEn: '10 online wins', check: p => (p.onlineWins || 0) >= 10 },
+  { id: 'puzzle_10', color: ACH_COLORS.silver, name: 'Решатель', nameEn: 'Solver', desc: 'Решите 10 головоломок', descEn: 'Solve 10 puzzles', check: p => (p.puzzlesSolved || 0) >= 10 },
 ]
 
 // ─── Фейковый лидерборд (заменится на серверный) ───
@@ -105,12 +105,12 @@ const FAKE_LEADERBOARD = [
   { name: 'NoviceNinja', rating: 1178, wins: 45, games: 112 },
 ]
 
-function RatingBadge({ rating }) {
+function RatingBadge({ rating, en }) {
   let color, label
-  if (rating >= 1500) { color = '#ffc145'; label = 'Мастер' }
-  else if (rating >= 1200) { color = '#9b59b6'; label = 'Опытный' }
-  else if (rating >= 1000) { color = '#3498db'; label = 'Новичок' }
-  else { color = '#95a5a6'; label = 'Начинающий' }
+  if (rating >= 1500) { color = '#ffc145'; label = en ? 'Master' : 'Мастер' }
+  else if (rating >= 1200) { color = '#9b59b6'; label = en ? 'Expert' : 'Опытный' }
+  else if (rating >= 1000) { color = '#3498db'; label = en ? 'Novice' : 'Новичок' }
+  else { color = '#95a5a6'; label = en ? 'Beginner' : 'Начинающий' }
   return (
     <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 600,
       color, border: `1px solid ${color}33`, background: `${color}11` }}>{label}</span>
@@ -128,9 +128,11 @@ function achProgress(id, p) {
   return map[id] || [0, 1]
 }
 
-function AchievementCard({ ach, unlocked, profile }) {
+function AchievementCard({ ach, unlocked, profile, en }) {
   const [cur, target] = profile ? achProgress(ach.id, profile) : [0, 1]
   const pct = Math.min(cur / target, 1)
+  const name = en && ach.nameEn ? ach.nameEn : ach.name
+  const desc = en && ach.descEn ? ach.descEn : ach.desc
   return (
     <div style={{
       padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
@@ -141,11 +143,11 @@ function AchievementCard({ ach, unlocked, profile }) {
       <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: unlocked ? `${ach.color}20` : '#1a1a2a', border: `2px solid ${unlocked ? ach.color : '#333'}`,
         fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : '#444' }}>
-        {ach.name[0]}
+        {name[0]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? '#e8e6f0' : '#6b6880' }}>{ach.name}</div>
-        <div style={{ fontSize: 10, color: '#6b6880' }}>{ach.desc}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? '#e8e6f0' : '#6b6880' }}>{name}</div>
+        <div style={{ fontSize: 10, color: '#6b6880' }}>{desc}</div>
         {!unlocked && (
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#2a2a38', overflow: 'hidden' }}>
@@ -428,13 +430,13 @@ export default function Profile({ viewUsername, onClose }) {
   if (viewUsername) {
     if (publicLoading) return (
       <div className="dash-card" style={{ maxWidth: 500, margin: isNative ? '12px auto' : '40px auto', textAlign: 'center', padding: isNative ? 24 : 40 }}>
-        <div style={{ fontSize: 14, color: 'var(--ink3)' }}>Загрузка...</div>
+        <div style={{ fontSize: 14, color: 'var(--ink3)' }}>{en ? 'Loading...' : 'Загрузка...'}</div>
       </div>
     )
     if (!publicProfile) return (
       <div className="dash-card" style={{ maxWidth: 500, margin: isNative ? '12px auto' : '40px auto', textAlign: 'center', padding: isNative ? 24 : 40 }}>
-        <div style={{ fontSize: 14, color: '#ff6066' }}>Пользователь не найден</div>
-        {onClose && <button className="btn" onClick={onClose} style={{ marginTop: 12 }}>← Назад</button>}
+        <div style={{ fontSize: 14, color: '#ff6066' }}>{en ? 'User not found' : 'Пользователь не найден'}</div>
+        {onClose && <button className="btn" onClick={onClose} style={{ marginTop: 12 }}>{en ? '← Back' : '← Назад'}</button>}
       </div>
     )
     const pp = publicProfile
@@ -444,13 +446,13 @@ export default function Profile({ viewUsername, onClose }) {
       <div>
         <div className="dash-card" style={{ maxWidth: 500, margin: '20px auto' }}>
           {onClose && (
-            <button className="btn" onClick={onClose} style={{ fontSize: 11, marginBottom: 12 }}>← Назад</button>
+            <button className="btn" onClick={onClose} style={{ fontSize: 11, marginBottom: 12 }}>{en ? '← Back' : '← Назад'}</button>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
             <AvatarCircle avatar={pp.avatar || 'default'} name={pp.username} size={56} />
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>{pp.username}</div>
-              <RatingBadge rating={pp.rating} />
+              <RatingBadge rating={pp.rating} en={en} />
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#ffc145' }}>{pp.rating}</div>
@@ -477,7 +479,7 @@ export default function Profile({ viewUsername, onClose }) {
           </div>
           {ppAchievements.length > 0 && (
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>Ачивки ({ppAchievements.length})</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>{en ? 'Achievements' : 'Ачивки'} ({ppAchievements.length})</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {ppAchievements.map(a => (
                   <span key={a.id} title={a.name_en || a.id} style={{
@@ -502,7 +504,7 @@ export default function Profile({ viewUsername, onClose }) {
           <div style={{ fontSize: 48, marginBottom: 16 }}></div>
           <h3>{loginMode ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}</h3>
           {serverOnline && (
-            <div style={{ fontSize: 10, color: '#3dd68c', marginBottom: 10 }}>● Сервер онлайн</div>
+            <div style={{ fontSize: 10, color: '#3dd68c', marginBottom: 10 }}>● {en ? 'Server online' : 'Сервер онлайн'}</div>
           )}
           {error && <div style={{ fontSize: 12, color: '#ff6066', marginBottom: 10 }}>{error}</div>}
           <input type="text" placeholder={en ? "Username" : "Никнейм"} value={regName}
@@ -573,7 +575,7 @@ export default function Profile({ viewUsername, onClose }) {
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>{profile.name}</div>
-                <RatingBadge rating={profile.rating} />
+                <RatingBadge rating={profile.rating} en={en} />
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#ffc145' }}>{profile.rating}</div>
@@ -673,9 +675,9 @@ export default function Profile({ viewUsername, onClose }) {
               <h3>{ en ? 'Recent achievements' : 'Последние ачивки'}</h3>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 {unlockedAch.slice(-5).map(a => (
-                  <span key={a.id} title={a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
+                  <span key={a.id} title={en && a.nameEn ? a.nameEn : a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
                     alignItems: 'center', justifyContent: 'center', background: `${a.color}20`, border: `2px solid ${a.color}`,
-                    fontSize: 12, fontWeight: 800, color: a.color }}>{a.name[0]}</span>
+                    fontSize: 12, fontWeight: 800, color: a.color }}>{(en && a.nameEn ? a.nameEn : a.name)[0]}</span>
                 ))}
               </div>
             </div>
@@ -774,7 +776,7 @@ export default function Profile({ viewUsername, onClose }) {
             <div className="dash-card" style={{ marginBottom: 16 }}>
               <h3 style={{ color: '#3dd68c' }}>Разблокированные</h3>
               <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-                {unlockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked profile={profile} />)}
+                {unlockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked profile={profile} en={en} />)}
               </div>
             </div>
           )}
@@ -782,7 +784,7 @@ export default function Profile({ viewUsername, onClose }) {
           <div className="dash-card">
             <h3>Заблокированные</h3>
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-              {lockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked={false} profile={profile} />)}
+              {lockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked={false} profile={profile} en={en} />)}
             </div>
           </div>
         </div>

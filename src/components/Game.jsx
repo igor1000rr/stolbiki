@@ -1526,7 +1526,7 @@ export default function Game() {
           <div className="ach-icon">{newAch.icon}</div>
           <div>
             <div className="ach-label">{lang === 'en' ? 'Achievement unlocked!' : 'Ачивка разблокирована!'}</div>
-            <div className="ach-name">{newAch.name}</div>
+            <div className="ach-name">{lang === 'en' && newAch.nameEn ? newAch.nameEn : newAch.name}</div>
           </div>
         </div>
       )}
