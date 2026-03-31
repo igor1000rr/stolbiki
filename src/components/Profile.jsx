@@ -460,19 +460,19 @@ export default function Profile({ viewUsername, onClose }) {
           <div className="profile-stats-grid">
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{pp.gamesPlayed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Партий</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Games' : 'Партий'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#3dd68c' }}>{ppWinRate}%</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Винрейт</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#f0654a' }}>{pp.bestStreak}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Серия</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Streak' : 'Серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{pp.goldenClosed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Золотых</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
           </div>
           {ppAchievements.length > 0 && (
@@ -500,31 +500,31 @@ export default function Profile({ viewUsername, onClose }) {
       <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 130px)' } : undefined}>
         <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-          <h3>{loginMode ? 'Вход' : 'Регистрация'}</h3>
+          <h3>{loginMode ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}</h3>
           {serverOnline && (
             <div style={{ fontSize: 10, color: '#3dd68c', marginBottom: 10 }}>● Сервер онлайн</div>
           )}
           {error && <div style={{ fontSize: 12, color: '#ff6066', marginBottom: 10 }}>{error}</div>}
-          <input type="text" placeholder="Никнейм" value={regName}
+          <input type="text" placeholder={en ? "Username" : "Никнейм"} value={regName}
             onChange={e => setRegName(e.target.value)} style={inputStyle}
             onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
           {serverOnline && (
-            <input type="password" placeholder="Пароль (мин 4 символа)" value={regPass}
+            <input type="password" placeholder={en ? "Password (min 4 chars)" : "Пароль (мин 4 символа)"} value={regPass}
               onChange={e => setRegPass(e.target.value)} style={inputStyle}
               onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
           )}
           <button className="btn primary" onClick={loginMode ? doLogin : register} style={{ width: '100%' }}>
-            {loginMode ? 'Войти' : 'Создать профиль'}
+            {loginMode ? (en ? 'Login' : 'Войти') : (en ? 'Create profile' : 'Создать профиль')}
           </button>
           {serverOnline && (
             <button className="btn" onClick={() => { setLoginMode(!loginMode); setError('') }}
               style={{ width: '100%', marginTop: 8, fontSize: 12 }}>
-              {loginMode ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти'}
+              {loginMode ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация') : (en ? 'Have account? Login' : 'Уже есть аккаунт? Войти')}
             </button>
           )}
           {!serverOnline && (
             <p style={{ color: '#6b6880', fontSize: 10, marginTop: 12 }}>
-              Оффлайн-режим: данные сохраняются локально
+              {en ? 'Offline mode: data saved locally' : 'Оффлайн-режим: данные сохраняются локально'}
             </p>
           )}
         </div>
@@ -541,11 +541,11 @@ export default function Profile({ viewUsername, onClose }) {
         .sort((a, b) => b.rating - a.rating)
 
   const tabs = [
-    { id: 'profile', label: 'Профиль' },
-    { id: 'history', label: `История (${(profile.history || []).length})` },
-    { id: 'achievements', label: `Ачивки (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
-    { id: 'leaderboard', label: 'Рейтинг' },
-    { id: 'friends', label: 'Друзья' },
+    { id: 'profile', label: en ? 'Profile' : 'Профиль' },
+    { id: 'history', label: `${en ? 'History' : 'История'} (${(profile.history || []).length})` },
+    { id: 'achievements', label: `${en ? 'Achievements' : 'Ачивки'} (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
+    { id: 'leaderboard', label: en ? 'Ranking' : 'Рейтинг' },
+    { id: 'friends', label: en ? 'Friends' : 'Друзья' },
   ]
 
   return (
@@ -604,19 +604,19 @@ export default function Profile({ viewUsername, onClose }) {
           <div className="profile-stats-grid">
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{profile.gamesPlayed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Партий</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Games' : 'Партий'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#3dd68c' }}>{winRate}%</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Винрейт</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#f0654a' }}>{profile.bestStreak}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Лучшая серия</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{profile.goldenClosed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>Золотых</div>
+              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
           </div>
 
@@ -716,7 +716,7 @@ export default function Profile({ viewUsername, onClose }) {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: h.won ? '#3dd68c' : '#ff6066' }}>
-                          {h.won ? 'Победа' : 'Поражение'} · {h.score}
+                          {h.won ? (en ? 'Win' : 'Победа') : (en ? 'Loss' : 'Поражение')} · {h.score}
                         </div>
                         <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>
                           {timeStr}
@@ -791,10 +791,10 @@ export default function Profile({ viewUsername, onClose }) {
       {/* ─── Лидерборд ─── */}
       {tab === 'leaderboard' && (
         <div className="dash-card">
-          <h3>Рейтинг игроков</h3>
+          <h3>{en ? 'Leaderboard' : 'Рейтинг игроков'}</h3>
           <table className="dash-table" style={{ marginTop: 8, fontSize: 12 }}>
             <thead>
-              <tr><th>#</th><th>Игрок</th><th>Рейтинг</th><th>Побед</th><th>Партий</th><th>WR</th></tr>
+              <tr><th>#</th><th>{en ? 'Player' : 'Игрок'}</th><th>{en ? 'Rating' : 'Рейтинг'}</th><th>{en ? 'Wins' : 'Побед'}</th><th>{en ? 'Games' : 'Партий'}</th><th>WR</th></tr>
             </thead>
             <tbody>
               {leaderboard.map((p, i) => (
@@ -821,7 +821,7 @@ export default function Profile({ viewUsername, onClose }) {
             </tbody>
           </table>
           <p style={{ fontSize: 10, color: '#6b6880', marginTop: 8, textAlign: 'center' }}>
-            {serverOnline ? `${leaderboard.length} игроков` : 'Оффлайн — демо-данные'}
+            {serverOnline ? `${leaderboard.length} ${en ? 'players' : 'игроков'}` : (en ? 'Offline — demo data' : 'Оффлайн — демо-данные')}
           </p>
         </div>
       )}

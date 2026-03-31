@@ -356,7 +356,7 @@ export default function Online() {
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
           
           <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
-          <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>Играй с другом по ссылке — без регистрации</p>
+          <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
 
           {error && <div style={{ color: '#ff6066', fontSize: 12, marginBottom: 10 }}>{error}</div>}
 
@@ -364,7 +364,7 @@ export default function Online() {
             onChange={e => setPlayerName(e.target.value)} style={inputStyle} />
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[['single', '1 партия'], ['tournament3', 'Серия 3'], ['tournament5', 'Серия 5']].map(([m, l]) => (
+            {[['single', en ? '1 game' : '1 партия'], ['tournament3', en ? 'Best of 3' : 'Серия 3'], ['tournament5', en ? 'Best of 5' : 'Серия 5']].map(([m, l]) => (
               <button key={m} className={`btn ${mode === m ? 'primary' : ''}`}
                 onClick={() => setMode(m)} style={{ flex: 1, fontSize: 11, padding: '8px 6px', justifyContent: 'center' }}>
                 {l}
@@ -384,7 +384,7 @@ export default function Online() {
           </button>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
-            <p style={{ color: '#6e6a82', fontSize: 11, marginBottom: 8 }}>Или введите код друга:</p>
+            <p style={{ color: '#6e6a82', fontSize: 11, marginBottom: 8 }}>{en ? 'Or enter friend\'s code:' : 'Или введите код друга:'}</p>
             <div style={{ display: 'flex', gap: 8 }}>
               <input type="text" placeholder="КОД" value={joinCode} maxLength={6}
                 onChange={e => setJoinCode(e.target.value.toUpperCase())}
@@ -476,10 +476,10 @@ export default function Online() {
       <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
         <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
-          Комната {roomId}
+          {en ? 'Room' : 'Комната'} {roomId}
         </h3>
         <p style={{ color: '#a8a4b8', fontSize: 13, marginBottom: 16 }}>
-          {mode === 'tournament3' ? 'Турнир: серия из 3' : mode === 'tournament5' ? 'Турнир: серия из 5' : 'Одна партия'}
+          {mode === 'tournament3' ? (en ? 'Tournament: best of 3' : 'Турнир: серия из 3') : mode === 'tournament5' ? (en ? 'Tournament: best of 5' : 'Турнир: серия из 5') : (en ? 'Single game' : 'Одна партия')}
         </p>
 
         {/* Код */}
