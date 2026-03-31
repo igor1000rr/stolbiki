@@ -51,5 +51,20 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Принудительное обновление SW для всех пользователей (одноразовый фикс)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(r) { r.update() })
+        })
+        // Если SW сломан — удаляем кеши и перерегистрируем
+        if (!sessionStorage.getItem('sw_fixed')) {
+          caches.keys().then(function(keys) {
+            keys.forEach(function(k) { caches.delete(k) })
+          })
+          sessionStorage.setItem('sw_fixed', '1')
+        }
+      }
+    </script>
   </body>
 </html>
