@@ -13,6 +13,8 @@ import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
+
+const isNative = !!window.Capacitor?.isNativePlatform?.()
 import { startTitleBlink, sp, st, sc, sw, sl, ss, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 
 const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
@@ -73,6 +75,7 @@ export default function Game() {
   // Replay — история ходов для повтора
   const moveHistoryRef = useRef([]) // [{ action, player }]
   const [showReplay, setShowReplay] = useState(false)
+  const [showMobileSettings, setShowMobileSettings] = useState(false)
   // Онлайн мультиплеер
   const [onlineRoom, setOnlineRoom] = useState(null)
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
@@ -880,7 +883,7 @@ export default function Game() {
         </div>
       )}
 
-      {mode !== 'online' && mode !== 'spectate-online' && (
+      {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
       <div className="game-settings">
         <label>{t('game.modeLabel')}
           <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
@@ -927,6 +930,95 @@ export default function Game() {
           </div>
         )}
       </div>
+      )}
+
+      {/* ═══ NATIVE: компактный хедер + gear кнопка ═══ */}
+      {mode !== 'online' && mode !== 'spectate-online' && isNative && (
+        <div className="m-game-bar">
+          <div className="m-game-bar-info">
+            <span className="m-diff-badge">
+              {difficulty >= 800 ? '🔥' : difficulty >= 400 ? '💪' : difficulty >= 150 ? '⚔️' : '😊'}
+              {' '}{difficulty >= 800 ? 'Экстрим' : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
+              {isGpuReady() && <span style={{ fontSize: 8, color: '#3dd68c', marginLeft: 3 }}>GPU</span>}
+            </span>
+            {mode === 'ai' && <span className="m-side-badge">{humanPlayer === 0 ? '🔵' : '🔴'}</span>}
+          </div>
+          <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)}>⚙️</button>
+        </div>
+      )}
+
+      {/* Mobile settings sheet */}
+      {showMobileSettings && isNative && (
+        <div className="m-sheet-overlay" onClick={() => setShowMobileSettings(false)}>
+          <div className="m-sheet" onClick={e => e.stopPropagation()}>
+            <div className="m-sheet-handle" />
+            <div className="m-sheet-title">Настройки игры</div>
+
+            <div className="m-setting-row">
+              <span className="m-setting-label">Режим</span>
+              <select value={mode} onChange={e => { newGame(humanPlayer, difficulty, e.target.value); setShowMobileSettings(false) }}>
+                <option value="ai">Против AI</option>
+                <option value="pvp">PvP</option>
+                <option value="spectate">AI vs AI</option>
+              </select>
+            </div>
+
+            {mode === 'ai' && (
+              <div className="m-setting-row">
+                <span className="m-setting-label">Сложность</span>
+                <div className="m-difficulty-grid">
+                  {[{v:50,l:'😊 Лёгкая'},{v:150,l:'⚔️ Средняя'},{v:400,l:'💪 Сложная'},{v:800,l:'🔥 Экстрим'}].map(d => (
+                    <button key={d.v} className={`m-diff-opt ${difficulty === d.v ? 'active' : ''}`}
+                      onClick={() => { newGame(humanPlayer, d.v, mode); setShowMobileSettings(false) }}>
+                      {d.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mode === 'ai' && (
+              <div className="m-setting-row">
+                <span className="m-setting-label">Сторона</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className={`m-diff-opt ${humanPlayer === 0 ? 'active' : ''}`}
+                    onClick={() => { newGame(0, difficulty, mode); setShowMobileSettings(false) }}>
+                    🔵 Синие (первый ход)
+                  </button>
+                  <button className={`m-diff-opt ${humanPlayer === 1 ? 'active' : ''}`}
+                    onClick={() => { newGame(1, difficulty, mode); setShowMobileSettings(false) }}>
+                    🔴 Красные (swap)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mode === 'ai' && (
+              <>
+                <div className="m-setting-row m-toggle-row" onClick={() => { setHintMode(!hintMode); setHint(null) }}>
+                  <span className="m-setting-label">💡 Подсказки</span>
+                  <div className={`m-toggle ${hintMode ? 'on' : ''}`}><div className="m-toggle-thumb" /></div>
+                </div>
+                <div className="m-setting-row m-toggle-row" onClick={() => { setTrainerMode(!trainerMode); setPosEval(null) }}>
+                  <span className="m-setting-label">📊 Тренер</span>
+                  <div className={`m-toggle ${trainerMode ? 'on' : ''}`}><div className="m-toggle-thumb" /></div>
+                </div>
+              </>
+            )}
+
+            {mode === 'ai' && !tournament && (
+              <div className="m-setting-row">
+                <span className="m-setting-label">Серия</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="m-diff-opt" onClick={() => { startTournament(3); setShowMobileSettings(false) }}>Серия 3</button>
+                  <button className="m-diff-opt" onClick={() => { startTournament(5); setShowMobileSettings(false) }}>Серия 5</button>
+                </div>
+              </div>
+            )}
+
+            <button className="m-sheet-close" onClick={() => setShowMobileSettings(false)}>Готово</button>
+          </div>
+        </div>
       )}
 
       {/* Турнирный прогресс */}
@@ -1198,7 +1290,7 @@ export default function Game() {
         )}
       </div>
 
-      {isMyTurn && !gs.gameOver && (
+      {isMyTurn && !gs.gameOver && !isNative && (
         <div style={{ textAlign: 'center', fontSize: 9, color: '#444', marginTop: 4 }}>
           Enter — подтвердить · Esc — отмена переноса · N — новая игра
         </div>

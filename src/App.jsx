@@ -481,15 +481,19 @@ export default function App() {
       {isNative && (
         <nav className="native-tabs" role="tablist">
           {[
-            { id: 'game', icon: '🎮', label: en ? 'Play' : 'Играть' },
-            { id: 'online', icon: '🌐', label: en ? 'Online' : 'Онлайн' },
-            { id: 'puzzles', icon: '🧩', label: en ? 'Puzzles' : 'Задачи' },
-            { id: 'profile', icon: '👤', label: en ? 'Profile' : 'Профиль' },
+            { id: 'game', label: en ? 'Play' : 'Играть',
+              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg> },
+            { id: 'online', label: en ? 'Online' : 'Онлайн',
+              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 010 18M12 3a15 15 0 000 18M3 12h18"/></svg> },
+            { id: 'puzzles', label: en ? 'Puzzles' : 'Задачи',
+              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h3a2 2 0 012 2v0a2 2 0 012-2h3v3a2 2 0 01-2 2v0a2 2 0 012 2v3H4V7z"/><path d="M14 7h3a2 2 0 012 2v0a2 2 0 012-2h0v3a2 2 0 01-2 2v0a2 2 0 012 2v3h-7V7z"/></svg> },
+            { id: 'profile', label: en ? 'Profile' : 'Профиль',
+              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 3.6-7 7-7s7 3 7 7"/></svg> },
           ].map(n => (
             <button key={n.id} role="tab" aria-selected={tab === n.id}
               className={`native-tab ${tab === n.id ? 'active' : ''}`}
               onClick={() => go(n.id)}>
-              <span className="native-tab-icon">{n.icon}</span>
+              <span className="native-tab-icon">{n.svg}</span>
               <span className="native-tab-label">{n.label}</span>
             </button>
           ))}
