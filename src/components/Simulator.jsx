@@ -12,7 +12,7 @@ const PRESETS = [
 ]
 
 // ─── Компоненты ───
-function ProgressRing({ pct, size = 64, stroke = 5, color = '#f0654a' }) {
+function ProgressRing({ pct, size = 64, stroke = 5, color = '#3bb8a8' }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
   return (
@@ -225,7 +225,7 @@ export default function Simulator() {
             Стоек
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min={5} max={16} value={numStands} onChange={e => setNumStands(+e.target.value)}
-                style={{ flex: 1, accentColor: '#f0654a' }} />
+                style={{ flex: 1, accentColor: '#3bb8a8' }} />
               <b style={{ color: '#e8e6f0', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{numStands}</b>
             </div>
           </label>
@@ -233,7 +233,7 @@ export default function Simulator() {
             Высота
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min={5} max={17} value={maxChips} onChange={e => setMaxChips(+e.target.value)}
-                style={{ flex: 1, accentColor: '#f0654a' }} />
+                style={{ flex: 1, accentColor: '#3bb8a8' }} />
               <b style={{ color: '#e8e6f0', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxChips}</b>
             </div>
           </label>

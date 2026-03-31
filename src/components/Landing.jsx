@@ -164,7 +164,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <div className="l-extras">
             {[
               { icon: 'trainer', c: '#9b59b6', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move. Position strength bar in real-time.' : 'AI оценивает каждый ход. Шкала силы позиции.' },
-              { icon: 'chart', c: '#f06040', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
+              { icon: 'chart', c: '#3bb8a8', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
               { icon: 'theme', c: '#00bcd4', t: en ? '4 themes + PWA' : '4 темы + PWA', d: en ? 'Dark, neon, wood, light. Works offline. Home screen.' : 'Тёмная, неон, дерево, светлая. Оффлайн.' },
             ].map((f, i) => (
               <div key={i} className="l-extra" style={{ '--i': i }}>

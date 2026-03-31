@@ -154,7 +154,7 @@ export default function Dashboard() {
           <HeroMetric value={`${(d.random.p1_wr*100).toFixed(1)}%`} label="P1 баланс" color="#3dd68c" sub="70K рандом" />
           <HeroMetric value="97%" label="лучший WR" color="#9b59b6" sub="GPU ResNet 840K" />
           <HeroMetric value={`${(d.random.decisive_golden*100).toFixed(0)}%`} label="золотая 5:5" color="#ffc145" />
-          <HeroMetric value={`${totalIter + (d.gpu_run3?.iterations || 0)}`} label="self-play итер" color="#f0654a" sub="CPU + GPU" />
+          <HeroMetric value={`${totalIter + (d.gpu_run3?.iterations || 0)}`} label="self-play итер" color="#3bb8a8" sub="CPU + GPU" />
         </div>
       </div>
 
@@ -294,7 +294,7 @@ function TrainingPanel() {
           <div style={{ fontSize: 10, color: '#6b6880' }}>vs AI</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(240,101,74,0.06)', borderRadius: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#f0654a' }}>{stats.pvpGames}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#3bb8a8' }}>{stats.pvpGames}</div>
           <div style={{ fontSize: 10, color: '#6b6880' }}>PvP</div>
         </div>
       </div>

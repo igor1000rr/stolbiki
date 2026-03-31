@@ -1,7 +1,7 @@
 {
   "name": "Snatch Highrise — Strategy Board Game",
   "short_name": "Snatch Highrise",
-  "description": "Strategy board game with AlphaZero AI. Play online, solve puzzles, compete.",
+  "description": "Strategy board game with AlphaZero AI. AI game review, Puzzle Rush, Arena tournaments, daily missions. Free.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0c12",

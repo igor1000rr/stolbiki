@@ -491,7 +491,7 @@ export default function Online() {
         </p>
 
         {/* Код */}
-        <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#f06040', marginBottom: 16,
+        <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#ffc145', marginBottom: 16,
           fontFamily: 'DM Serif Display, serif' }}>
           {roomId}
         </div>

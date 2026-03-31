@@ -6,7 +6,7 @@ const TAG_STYLE = {
   feature: { bg: '#4a9eff20', color: '#4a9eff', label: { ru: 'Фича', en: 'Feature' } },
   ai: { bg: '#9b59b620', color: '#9b59b6', label: { ru: 'AI', en: 'AI' } },
   update: { bg: '#ffc14520', color: '#ffc145', label: { ru: 'Обновление', en: 'Update' } },
-  roadmap: { bg: '#f0604020', color: '#f06040', label: { ru: 'Планы', en: 'Roadmap' } },
+  roadmap: { bg: '#3bb8a820', color: '#3bb8a8', label: { ru: 'Планы', en: 'Roadmap' } },
 }
 
 function formatDate(dateStr, lang) {

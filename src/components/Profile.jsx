@@ -481,7 +481,7 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#f0654a' }}>{pp.bestStreak}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{pp.bestStreak}</div>
               <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Streak' : 'Серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
@@ -708,7 +708,7 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#f0654a' }}>{profile.bestStreak}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{profile.bestStreak}</div>
               <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
@@ -863,7 +863,7 @@ export default function Profile({ viewUsername, onClose }) {
             <div style={{ fontSize: 12, color: '#6b6880' }}>из {ALL_ACHIEVEMENTS.length} ачивок</div>
             <div style={{ width: '100%', height: 6, background: '#2a2a38', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
               <div style={{ width: `${unlockedAch.length / ALL_ACHIEVEMENTS.length * 100}%`, height: '100%',
-                background: 'linear-gradient(90deg, #ffc145, #f0654a)', borderRadius: 3 }} />
+                background: 'linear-gradient(90deg, #ffc145, #3bb8a8)', borderRadius: 3 }} />
             </div>
           </div>
 

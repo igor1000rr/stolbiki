@@ -584,7 +584,7 @@ app.post('/api/arena/leave', auth, (req, res) => {
 })
 
 // Старт турнира (admin или авто при 4+ участниках)
-app.post('/api/arena/start', auth, (req, res) => {
+app.post('/api/arena/start', auth, rateLimit(60000, 5), (req, res) => {
   const t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
   if (!t) return res.status(404).json({ error: 'No waiting tournament' })
   const parts = db.prepare('SELECT * FROM arena_participants WHERE tournament_id=?').all(t.id)
@@ -610,7 +610,7 @@ app.post('/api/arena/start', auth, (req, res) => {
 })
 
 // Записать результат матча
-app.post('/api/arena/result', auth, (req, res) => {
+app.post('/api/arena/result', auth, rateLimit(60000, 30), (req, res) => {
   const { match_id, winner_id, result } = req.body
   if (!match_id) return res.status(400).json({ error: 'match_id required' })
   const match = db.prepare('SELECT * FROM arena_matches WHERE id=?').get(match_id)
