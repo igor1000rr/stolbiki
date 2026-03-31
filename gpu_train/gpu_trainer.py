@@ -23,7 +23,7 @@ from game import GameState, apply_action, get_valid_transfers
 from train import sample_random_action_fast
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-NUM_CPU = max(1, min(4, mp.cpu_count() // 2))  # Макс 4 воркера
+NUM_CPU = max(1, min(8, mp.cpu_count() // 2))  # Макс 8 воркеров для warmup
 
 def print_gpu_info():
     print(f'Устройство: {DEVICE}')
@@ -488,15 +488,15 @@ if __name__ == '__main__':
         'hidden': 256,
         'num_blocks': 6,
         'lr': 0.001,
-        'batch_size': 1024,
+        'batch_size': 4096 if args.parallel >= 40 else 1024,  # RTX 5090 = 4096
         'epochs': 20,
         'parallel': args.parallel,
-        'rounds_per_iter': 3,
-        'num_candidates': 8,
-        'eval_games': 40,
+        'rounds_per_iter': 5 if args.parallel >= 40 else 3,  # RTX 5090 = 5 раундов
+        'num_candidates': 12 if args.parallel >= 40 else 8,  # Больше кандидатов = точнее ходы
+        'eval_games': 60 if args.parallel >= 40 else 40,     # Точнее WR оценка
         'num_iterations': args.iterations,
-        'buffer_size': 300000,
-        'warmup_games': 500,
+        'buffer_size': 500000 if args.parallel >= 40 else 300000,  # Больше буфер
+        'warmup_games': 1000 if args.parallel >= 40 else 500,
         'checkpoint_dir': 'gpu_checkpoint',
     }
 

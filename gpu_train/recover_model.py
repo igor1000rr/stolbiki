@@ -68,7 +68,7 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     torch.save({
         'model': net.state_dict(),
-        'version': 623,
+        'version': 643,  # Текущая версия из gpu_weights.json
         'history': [{'note': 'recovered from gpu_weights.json'}],
     }, out_path)
     print(f'  ✅ Сохранено: {out_path}')
