@@ -6,6 +6,32 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '3.9',
+    date: '2026-03-31',
+    title_ru: 'Retention: стрики, миссии, XP, auto-difficulty',
+    title_en: 'Retention: streaks, missions, XP, auto-difficulty',
+    changes_ru: [
+      { type: 'new', text: 'Login streak — серия входов с календарём (30 дней), streak freeze 1/мес' },
+      { type: 'new', text: 'Daily missions — 3 задания в день из пула 8, XP за выполнение + бонус 100 XP за все 3' },
+      { type: 'new', text: 'XP / Level system — 20 XP за победу, 5 за поражение, level * 100 XP до следующего' },
+      { type: 'new', text: 'AI auto-difficulty — после 3 поражений подряд кнопка «Попробовать полегче?»' },
+      { type: 'new', text: 'First Win celebration — fullscreen popup со звездой при первой победе в жизни' },
+      { type: 'new', text: 'Missions auto-tracking — прогресс миссий обновляется автоматически (Game + Puzzles)' },
+      { type: 'new', text: 'Streak popup — toast при входе с текущей серией и рекордом' },
+      { type: 'fix', text: 'Блог — принудительное обновление дат, хронологический порядок (12 постов)' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Login streak — daily streak with calendar (30 days), streak freeze 1/month' },
+      { type: 'new', text: 'Daily missions — 3 per day from pool of 8, XP rewards + 100 XP bonus for all 3' },
+      { type: 'new', text: 'XP / Level system — 20 XP per win, 5 per loss, level * 100 XP to next' },
+      { type: 'new', text: 'AI auto-difficulty — after 3 losses suggests easier level' },
+      { type: 'new', text: 'First Win celebration — fullscreen star popup on first ever victory' },
+      { type: 'new', text: 'Missions auto-tracking — progress updates automatically (Game + Puzzles)' },
+      { type: 'new', text: 'Streak popup — toast on login showing current streak and best' },
+      { type: 'fix', text: 'Blog — forced date update, chronological order (12 posts)' },
+    ],
+  },
+  {
     version: '3.8',
     date: '2026-03-31',
     title_ru: 'Аудит, безопасность, полный i18n',
