@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
 import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
@@ -13,6 +13,7 @@ import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
+const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
 import { startTitleBlink, sp, st, sc, sw, sl, ss, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
@@ -77,6 +78,7 @@ export default function Game() {
   // Replay — история ходов для повтора
   const moveHistoryRef = useRef([]) // [{ action, player }]
   const [showReplay, setShowReplay] = useState(false)
+  const [showReview, setShowReview] = useState(false)
   const [showMobileSettings, setShowMobileSettings] = useState(false)
   // Онлайн мультиплеер
   const [onlineRoom, setOnlineRoom] = useState(null)
@@ -1497,6 +1499,14 @@ export default function Game() {
                   {t('game.replay')}
                 </button>
               )}
+              {moveHistoryRef.current.length > 2 && (
+                <button className="btn" onClick={() => setShowReview(true)} style={{
+                  fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px',
+                  borderColor: '#9b59b6', color: '#9b59b6', justifyContent: 'center',
+                }}>
+                  {lang === 'en' ? 'AI Analysis' : 'AI Анализ'}
+                </button>
+              )}
             </div>
             {sessionStats.streak > 1 && won && (
               <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>
@@ -1634,6 +1644,11 @@ export default function Game() {
       {/* Анимированный повтор */}
       {showReplay && moveHistoryRef.current.length > 0 && (
         <ReplayViewer moves={moveHistoryRef.current} onClose={() => setShowReplay(false)} />
+      )}
+      {showReview && moveHistoryRef.current.length > 0 && (
+        <Suspense fallback={null}>
+          <GameReview moveHistory={moveHistoryRef.current} humanPlayer={humanPlayer} onClose={() => setShowReview(false)} />
+        </Suspense>
       )}
     </div>
   )
