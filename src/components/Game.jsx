@@ -285,7 +285,7 @@ export default function Game() {
       moveHistoryRef.current = []
       setShowReplay(false); setPosEval(null)
       setInfo(`${(players || []).join(' vs ')} — ${t('game.watching')}`)
-      setLog([{ text: `👁 ${(players || []).join(' vs ')}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setLog([{ text: `⊙ ${(players || []).join(' vs ')}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
     }
 
     // Спектатор получает ходы обоих игроков

@@ -424,7 +424,7 @@ export default function Online() {
                     <span style={{ fontSize: 13, color: '#eae8f2', fontWeight: 600 }}>{r.players.join(' vs ')}</span>
                     <span style={{ fontSize: 11, color: '#6e6a82', marginLeft: 8 }}>
                       {r.scores[0]}:{r.scores[1]} · {en ? 'turn' : 'ход'} {r.turn}
-                      {r.spectators > 0 && ` · 👁 ${r.spectators}`}
+                      {r.spectators > 0 && ` · ${r.spectators} ${en ? 'watching' : 'зрит.'}`}
                     </span>
                   </div>
                   <button className="btn" onClick={() => startSpectate(r.id)}
@@ -567,8 +567,9 @@ export default function Online() {
       <div>
         <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
           background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
-          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600 }}>
-            👁 {en ? 'Spectating' : 'Наблюдение'} — {players.join(' vs ')}
+          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="#c8a4e8" strokeWidth="2"><circle cx="10" cy="10" r="3"/><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/></svg>
+            {en ? 'Spectating' : 'Наблюдение'} — {players.join(' vs ')}
           </span>
           <span style={{ fontSize: 14, fontWeight: 700, margin: '0 10px', color: '#eae8f2' }}>
             {scores[0]}:{scores[1]}
