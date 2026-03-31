@@ -1,6 +1,7 @@
 // Утилиты настроек — общий модуль для Game.jsx и Settings.jsx
 const DEFAULTS = {
   chipStyle: 'classic',
+  standStyle: 'classic',
   boardDensity: 'normal',
   animSpeed: 'normal',
   soundPack: 'classic',
@@ -35,6 +36,14 @@ export function applySettings(s) {
   root.classList.toggle('chip-candy', s.chipStyle === 'candy')
   root.classList.toggle('chip-pixel', s.chipStyle === 'pixel')
   root.classList.toggle('chip-glow', s.chipStyle === 'glow')
+  root.classList.toggle('stand-marble', s.standStyle === 'marble')
+  root.classList.toggle('stand-concrete', s.standStyle === 'concrete')
+  root.classList.toggle('stand-bamboo', s.standStyle === 'bamboo')
+  root.classList.toggle('stand-obsidian', s.standStyle === 'obsidian')
+  root.classList.toggle('stand-crystal', s.standStyle === 'crystal')
+  root.classList.toggle('stand-rust', s.standStyle === 'rust')
+  root.classList.toggle('stand-void', s.standStyle === 'void')
+  root.classList.toggle('stand-ice', s.standStyle === 'ice')
   root.classList.toggle('board-compact', s.boardDensity === 'compact')
   root.classList.toggle('board-wide', s.boardDensity === 'wide')
   root.classList.toggle('anim-slow', s.animSpeed === 'slow')

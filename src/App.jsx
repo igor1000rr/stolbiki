@@ -22,6 +22,7 @@ const Landing = lazy(() => import('./components/Landing'))
 const Tutorial = lazy(() => import('./components/Tutorial'))
 const Lessons = lazy(() => import('./components/Lessons'))
 const Arena = lazy(() => import('./components/Arena'))
+const SkinShop = lazy(() => import('./components/SkinShop'))
 const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
 const Admin = lazy(() => import('./components/Admin'))
@@ -82,6 +83,7 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false)
   const [showLessons, setShowLessons] = useState(false)
   const [showArena, setShowArena] = useState(false)
+  const [showSkinShop, setShowSkinShop] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
 
@@ -201,12 +203,15 @@ export default function App() {
     window.addEventListener('stolbiki-view-profile', viewProfileHandler)
     const openArena = () => setShowArena(true)
     window.addEventListener('stolbiki-open-arena', openArena)
+    const openSkinShop = () => setShowSkinShop(true)
+    window.addEventListener('stolbiki-open-skinshop', openSkinShop)
     return () => {
       window.removeEventListener('stolbiki-online-start', handler)
       window.removeEventListener('stolbiki-daily-start', handler)
       window.removeEventListener('stolbiki-back-to-lobby', backToLobby)
       window.removeEventListener('stolbiki-view-profile', viewProfileHandler)
       window.removeEventListener('stolbiki-open-arena', openArena)
+      window.removeEventListener('stolbiki-open-skinshop', openSkinShop)
     }
   }, [])
 
@@ -556,6 +561,11 @@ export default function App() {
                 <span>{en ? 'Lessons' : 'Уроки'}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
               </button>
+              <button className="m-more-item" onClick={() => { setShowSkinShop(true) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <span>{en ? 'Skin Shop' : 'Магазин скинов'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
               <button className="m-more-item" onClick={() => go('openings')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M3 20l4-8 4 4 4-12 6 16"/></svg>
                 <span>{en ? 'Analytics' : 'Аналитика'}</span>
@@ -613,6 +623,7 @@ export default function App() {
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => setShowLessons(false)} /></Suspense>}
       {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} /></Suspense>}
+      {showSkinShop && <Suspense fallback={<LazyFallback />}><SkinShop onClose={() => setShowSkinShop(false)} userLevel={authUser?.level || 1} /></Suspense>}
 
       {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">

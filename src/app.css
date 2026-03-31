@@ -1503,6 +1503,37 @@ body::before {
 .chip-glow .chip.p0 { background: var(--p1); box-shadow: 0 0 8px var(--p1-glow), 0 0 16px var(--p1-glow), inset 0 0 4px rgba(255,255,255,0.2); }
 .chip-glow .chip.p1 { background: var(--p2); box-shadow: 0 0 8px var(--p2-glow), 0 0 16px var(--p2-glow), inset 0 0 4px rgba(255,255,255,0.2); }
 
+/* ═══ Stand skins ═══ */
+/* Marble */
+.stand-marble .stand { background: linear-gradient(170deg, #2a2a3a 0%, #1e1e2e 40%, #2a2840 60%, #1a1a28 100%); border-color: rgba(255,255,255,0.1); }
+.stand-marble .stand::after { background: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 16px); }
+
+/* Concrete */
+.stand-concrete .stand { background: linear-gradient(180deg, #3a3a42, #2e2e36); border-color: rgba(255,255,255,0.06); border-radius: 4px 4px 0 0; }
+.stand-concrete .stand::after { background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.03), transparent 40%); }
+
+/* Bamboo */
+.stand-bamboo .stand { background: linear-gradient(180deg, #3a5a30, #2a4820, #1e3a16); border-color: rgba(100,180,60,0.15); }
+.stand-bamboo .stand::after { background: repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(255,255,255,0.04) 12px, rgba(255,255,255,0.04) 13px); }
+
+/* Obsidian */
+.stand-obsidian .stand { background: linear-gradient(180deg, #1a1a22, #0e0e14, #1a1a22); border-color: rgba(100,100,140,0.15); }
+.stand-obsidian .stand.golden { box-shadow: 0 0 20px rgba(255,193,69,0.2), inset 0 0 10px rgba(255,193,69,0.05); }
+
+/* Crystal */
+.stand-crystal .stand { background: linear-gradient(180deg, rgba(60,80,120,0.4), rgba(30,40,60,0.6)); border-color: rgba(100,160,255,0.15); backdrop-filter: blur(4px); }
+
+/* Rust */
+.stand-rust .stand { background: linear-gradient(180deg, #4a3028, #3a2018, #2a1810); border-color: rgba(180,100,60,0.2); }
+.stand-rust .stand::after { background: radial-gradient(ellipse at 60% 30%, rgba(200,120,60,0.08), transparent 60%); }
+
+/* Void */
+.stand-void .stand { background: linear-gradient(180deg, #0a0a14, #050508, #0a0a14); border-color: rgba(80,60,120,0.2); }
+.stand-void .stand.golden { border-color: rgba(255,193,69,0.5); box-shadow: 0 0 16px rgba(255,193,69,0.15); }
+
+/* Ice */
+.stand-ice .stand { background: linear-gradient(180deg, rgba(180,220,255,0.15), rgba(120,180,240,0.08), rgba(180,220,255,0.12)); border-color: rgba(120,180,240,0.2); }
+
 /* Board density */
 .board-compact .stand { min-height: 130px; width: 44px; }
 .board-compact .chip { width: 34px; height: 9px; }

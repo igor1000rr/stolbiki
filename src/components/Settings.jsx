@@ -94,17 +94,12 @@ export default function Settings() {
           {en ? 'Appearance' : 'Внешний вид'}
         </h3>
 
-        <SettingRow label={en ? 'Chip style' : 'Стиль фишек'}>
-          <SegmentControl value={s.chipStyle} onChange={v => update('chipStyle', v)} options={[
-            { value: 'classic', label: en ? 'Classic' : 'Классика' },
-            { value: 'flat', label: en ? 'Flat' : 'Плоские' },
-            { value: 'rounded', label: en ? 'Round' : 'Круглые' },
-            { value: 'glass', label: en ? 'Glass' : 'Стекло' },
-            { value: 'metal', label: en ? 'Metal' : 'Металл' },
-            { value: 'candy', label: en ? 'Candy' : 'Candy' },
-            { value: 'pixel', label: en ? 'Pixel' : 'Пиксель' },
-            { value: 'glow', label: en ? 'Glow' : 'Свечение' },
-          ]} />
+        <SettingRow label={en ? 'Skins' : 'Скины'}>
+          <button className="btn" onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-skinshop'))}
+            style={{ fontSize: 12, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14 }}>🎨</span>
+            {en ? `Chips: ${s.chipStyle} · Stands: ${s.standStyle}` : `Фишки: ${s.chipStyle} · Стойки: ${s.standStyle}`}
+          </button>
         </SettingRow>
 
         <SettingRow label={en ? 'Board density' : 'Плотность доски'}>
