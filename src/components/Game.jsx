@@ -545,7 +545,7 @@ export default function Game() {
     setShowReplay(false)
     const state = new GameState()
     gsRef.current = state
-    setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
+    setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setRatingDelta(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); difficultyRef.current = d; setMode(m)
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording()
@@ -555,7 +555,7 @@ export default function Game() {
     if (timerLimit) setPlayerTime([timerLimit, timerLimit])
     setUndoStack([])
     if (m === 'pvp') {
-      setLog([{ text: 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      setLog([{ text: lang === 'en' ? 'New game: player vs player' : 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(t('game.place1'))
     } else if (m === 'spectate') {
       setLog([{ text: 'AI vs AI — наблюдение', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
@@ -576,6 +576,12 @@ export default function Game() {
   }
 
   useEffect(() => { newGame(0, 50) }, []) // eslint-disable-line
+
+  // ELO дельта — получаем от Profile через global callback
+  useEffect(() => {
+    window.stolbikiOnRatingDelta = (d) => setRatingDelta(d)
+    return () => { delete window.stolbikiOnRatingDelta }
+  }, [])
 
   // Горячие клавиши
   useEffect(() => {
@@ -1329,6 +1335,11 @@ export default function Game() {
           </button>
         )}
         <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
+        {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
+          <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: '#ffc145', borderColor: '#ffc14540' }} aria-label="Undo move">
+            ↩ Undo
+          </button>
+        )}
         {!gs.gameOver && mode !== 'pvp' && mode !== 'spectate-online' && (
           <button className="btn" onClick={resign} style={{ fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
             {t('game.resign')}
@@ -1341,9 +1352,6 @@ export default function Game() {
           }} style={{ fontSize: 11, opacity: 0.6 }}>
             {t('game.offerDraw')}
           </button>
-        )}
-        {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
-          <button className="btn" onClick={undoMove} style={{ fontSize: 11 }}>{t('game.undo')}</button>
         )}
       </div>
 
@@ -1367,8 +1375,8 @@ export default function Game() {
         const goldenOwned = (0 in gs.closed)
         const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
         const accentColor = isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'
-        const iconSize = isNative ? 48 : 32
-        return (
+        const iconSize = isNative ? 56 : 32
+        const inner = (
           <div className="game-result" style={{ ...(isNative ? {} : { borderLeft: `3px solid ${accentColor}` }), textAlign: 'center' }}>
             {isNative && <div style={{ width: 60, height: 3, borderRadius: 2, background: accentColor, margin: '0 auto 16px', opacity: 0.8 }} />}
             <div style={{ marginBottom: isNative ? 8 : 4, display: 'flex', justifyContent: 'center' }}>
@@ -1393,6 +1401,15 @@ export default function Game() {
               <span>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
               {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {lang === 'en' ? 'Golden' : 'Золотая'}</span>}
             </div>
+            {ratingDelta && (
+              <div style={{
+                marginTop: isNative ? 12 : 8, fontSize: isNative ? 20 : 16, fontWeight: 700,
+                color: ratingDelta > 0 ? '#3dd68c' : '#ff6066',
+                animation: 'fadeIn 0.5s ease',
+              }}>
+                {ratingDelta > 0 ? '+' : ''}{ratingDelta} ELO
+              </div>
+            )}
             <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>
               {!tournament && (
                 <button className="btn primary" onClick={() => {
@@ -1416,7 +1433,7 @@ export default function Game() {
               )}
               {mode === 'ai' && !tournament && (
                 <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 20px' : '8px 14px', justifyContent: 'center' }}>
-                  Switch side
+                  {lang === 'en' ? 'Switch side' : 'Сменить сторону'}
                 </button>
               )}
               <button className="btn" onClick={async () => {
@@ -1505,6 +1522,16 @@ export default function Game() {
             })()}
           </div>
         )
+        return isNative ? (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 1500,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px', animation: 'fadeIn 0.3s ease',
+          }}>
+            <div style={{ width: '100%', maxWidth: 360 }}>{inner}</div>
+          </div>
+        ) : inner
       })()}
 
       <div className="game-log" ref={logRef}>
