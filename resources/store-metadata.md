@@ -1,62 +1,51 @@
-# Snatch Highrise — Метаданные для App Store / Google Play
+# Snatch Highrise — Store Metadata
 
-## Основная информация
-- **App ID (Android):** com.snatchhighrise.app  
-- **Bundle ID (iOS):** com.snatchhighrise.app
-- **Версия:** 3.5.0
-- **Категория:** Настольные игры / Strategy / Board Games
-- **Возрастной рейтинг:** 4+ (нет насилия, рекламы, покупок)
+## App Name
+Snatch Highrise
 
-## Русское описание
+## Short Description (80 chars)
+Strategy board game with neural network AI. Play online, solve puzzles, compete!
 
-### Название
-Snatch Highrise — Стратегическая настольная игра
+## Full Description
+Snatch Highrise is an original strategy board game for 2 players powered by AI trained on 239,000+ games.
 
-### Краткое описание (80 символов)
-Стратегическая настольная игра с AI-противником на базе нейросети
+🎯 SIMPLE TO LEARN, DEEP TO MASTER
+10 stands, 11 chips each. Place your chips, transfer between stands, and close them to claim ownership. First to close 6 stands wins! The golden ★ stand breaks 5:5 ties.
 
-### Полное описание
-Snatch Highrise — оригинальная стратегическая настольная игра для 2 игроков.
+🤖 NEURAL NETWORK AI
+Play against an AlphaZero-style AI with 4 difficulty levels. The neural network (840K parameters) was trained through self-play and uses Monte Carlo Tree Search.
 
-10 стоек, 11 фишек на каждой, бесконечная глубина. Закрывайте стойки, перехватывайте контроль у противника, боритесь за золотую стойку.
+🌐 ONLINE MULTIPLAYER
+Create a room, share the code, and play with friends. Tournament mode, spectator mode, in-game chat, and rematch.
 
-Особенности:
-• AI на базе нейросети (840K параметров, обучен методом AlphaZero)
-• 4 уровня сложности — от лёгкой до экстрим
-• Онлайн мультиплеер — играйте с друзьями по ссылке
-• 200 головоломок с лидербордами
-• Ежедневные и еженедельные задачи
-• 26 ачивок и рейтинговая система
-• Наблюдение за чужими партиями в реальном времени
-• Полностью бесплатно, без рекламы
+🧩 200+ PUZZLES
+Daily and weekly challenges. Puzzle bank with easy, medium, and hard levels. Leaderboards.
 
-### Ключевые слова
-настольная игра, стратегия, AI, нейросеть, мультиплеер, головоломки, board game
+🏆 PROFILE & ACHIEVEMENTS
+Track your rating, win streaks, and stats. Unlock 26 achievements.
 
----
+⚡ FEATURES
+• Haptic feedback for every action
+• Offline play — AI works without internet
+• Hint system and position trainer
+• Customizable themes, sounds, board styles
+• Swap rule for balanced gameplay
+• Game replay viewer
+• Print & Play PDF
 
-## English description
+🔒 No ads, no trackers, no data selling.
 
-### Name
-Snatch Highrise — Strategy Board Game
+## Category
+Board Games / Strategy
 
-### Short description (80 chars)
-Strategy board game with a neural network AI opponent
+## Tags
+board game, strategy, AI, neural network, puzzle, multiplayer
 
-### Full description
-Snatch Highrise is an original strategy board game for 2 players.
+## Content Rating
+Everyone
 
-10 stands, 11 chips each, infinite depth. Close stands, snatch control from your opponent, fight for the golden stand.
+## Privacy Policy URL
+https://snatch-highrise.com/#privacy
 
-Features:
-• Neural network AI (840K parameters, trained via AlphaZero method)
-• 4 difficulty levels — from easy to extreme
-• Online multiplayer — play with friends via link
-• 200 puzzles with leaderboards
-• Daily and weekly challenges
-• 26 achievements and rating system
-• Watch live games in real-time
-• Completely free, no ads
-
-### Keywords
-board game, strategy, AI, neural network, multiplayer, puzzles, tabletop
+## Contact
+https://t.me/igor1000rr
