@@ -453,7 +453,7 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ fontSize: 10, color: '#6b6880' }}>ELO</div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div className="profile-stats-grid">
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{pp.gamesPlayed}</div>
               <div style={{ fontSize: 10, color: '#6b6880' }}>Партий</div>
@@ -597,7 +597,7 @@ export default function Profile({ viewUsername, onClose }) {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div className="profile-stats-grid">
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{profile.gamesPlayed}</div>
               <div style={{ fontSize: 10, color: '#6b6880' }}>Партий</div>
