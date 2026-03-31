@@ -9,17 +9,17 @@
   --ink: #eae8f2;
   --ink2: #a8a4b8;
   --ink3: #6e6a82;
-  --accent: #f06040;
-  --accent2: #d44e32;
-  --accent-glow: rgba(240, 96, 64, 0.25);
+  --accent: #3bb8a8;
+  --accent2: #2ea898;
+  --accent-glow: rgba(59, 184, 168, 0.25);
   --p1: #4a9eff;
   --p1-light: #72b8ff;
   --p1-glow: rgba(74, 158, 255, 0.35);
   --p2: #ff6066;
   --p2-light: #ff8a8e;
   --p2-glow: rgba(255, 96, 102, 0.35);
-  --gold: #ffbe30;
-  --gold-glow: rgba(255, 190, 48, 0.35);
+  --gold: #ffc145;
+  --gold-glow: rgba(255, 193, 69, 0.35);
   --green: #3dd68c;
   --green-glow: rgba(61, 214, 140, 0.3);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -35,7 +35,7 @@
 ::-webkit-scrollbar-thumb:hover { background: #4a4a60; }
 
 /* Выделение */
-::selection { background: rgba(240,96,64,0.25); color: #fff; }
+::selection { background: rgba(59,184,168,0.25); color: #fff; }
 
 /* Focus ring для accessibility */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
@@ -61,7 +61,7 @@ body::before {
   inset: 0;
   background:
     radial-gradient(ellipse 50% 30% at 20% 10%, rgba(74,158,255,0.06), transparent 60%),
-    radial-gradient(ellipse 40% 40% at 80% 90%, rgba(240,96,64,0.05), transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 90%, rgba(59,184,168,0.05), transparent 60%),
     radial-gradient(ellipse 30% 30% at 50% 50%, rgba(255,190,48,0.03), transparent 60%);
   pointer-events: none;
   z-index: 0;
@@ -347,7 +347,7 @@ body::before {
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, rgba(240,96,64,0.08), rgba(74,158,255,0.08), transparent);
+  background: linear-gradient(90deg, transparent, rgba(59,184,168,0.08), rgba(74,158,255,0.08), transparent);
   background-size: 300% 100%;
   animation: thinkShimmer 2s ease-in-out infinite;
   pointer-events: none;
@@ -838,7 +838,7 @@ body::before {
 .btn:active { transform: scale(0.95); transition-duration: 0.1s; }
 
 .btn.primary {
-  background: linear-gradient(135deg, var(--accent), #e04828);
+  background: linear-gradient(135deg, var(--accent), #2a9a8c);
   color: #fff;
   border-color: transparent;
   box-shadow: 0 4px 20px var(--accent-glow);
@@ -864,7 +864,7 @@ body::before {
 
 @keyframes primaryPulse {
   0%, 100% { box-shadow: 0 4px 16px var(--accent-glow); }
-  50% { box-shadow: 0 4px 28px var(--accent-glow), 0 0 40px rgba(240,96,64,0.1); }
+  50% { box-shadow: 0 4px 28px var(--accent-glow), 0 0 40px rgba(59,184,168,0.1); }
 }
 
 /* ═══════════════════════════════════════════
@@ -978,7 +978,7 @@ body::before {
   content: '';
   position: absolute;
   inset: -50%;
-  background: conic-gradient(from 0deg, transparent, rgba(255,190,48,0.12), transparent, rgba(74,158,255,0.1), transparent, rgba(240,96,64,0.08), transparent);
+  background: conic-gradient(from 0deg, transparent, rgba(255,190,48,0.12), transparent, rgba(74,158,255,0.1), transparent, rgba(59,184,168,0.08), transparent);
   animation: resultSpin 6s linear infinite;
 }
 
@@ -1224,7 +1224,7 @@ body::before {
 .transport-btn.play {
   width: 52px;
   height: 52px;
-  background: linear-gradient(135deg, var(--accent), #e04828);
+  background: linear-gradient(135deg, var(--accent), #2a9a8c);
   color: #fff;
   border: none;
   box-shadow: 0 4px 24px var(--accent-glow);
@@ -1548,7 +1548,7 @@ body::before {
 .l-hero-glow {
   position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
   width: 600px; height: 300px; border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(240,96,64,0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(59,184,168,0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 .l-hero-visual { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 80px; margin-bottom: 32px; }
@@ -1686,10 +1686,10 @@ body::before {
 .l-print-banner {
   display: block; text-decoration: none; color: inherit;
   border-radius: 16px; overflow: hidden; position: relative;
-  background: linear-gradient(135deg, var(--accent), #d44e32);
+  background: linear-gradient(135deg, var(--accent), #2ea898);
   transition: transform 0.2s, box-shadow 0.3s;
 }
-.l-print-banner:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(240,96,64,0.2); }
+.l-print-banner:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59,184,168,0.2); }
 .l-print-bg {
   position: absolute; inset: 0;
   background: repeating-linear-gradient(135deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px);
@@ -1738,7 +1738,7 @@ body::before {
 .l-final-glow {
   position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%);
   width: 500px; height: 250px; border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(240,96,64,0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(59,184,168,0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 .l-final h2 { font-size: 32px; font-weight: 700; color: var(--ink); margin-bottom: 10px; position: relative; }
