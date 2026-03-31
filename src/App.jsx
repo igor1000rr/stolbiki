@@ -340,6 +340,7 @@ export default function App() {
             </div>
             <div style={{ fontSize: 11, color: '#a09cb0' }}>
               {lang === 'en' ? `Best: ${streakPopup.best}` : `Рекорд: ${streakPopup.best}`}
+              {streakPopup.streakXP && <span style={{ color: '#3dd68c', marginLeft: 8 }}>+{streakPopup.streakXP} XP</span>}
               {streakPopup.freeze > 0 && ` · ${lang === 'en' ? 'Freeze: ' : 'Защита: '}${streakPopup.freeze}`}
             </div>
           </div>

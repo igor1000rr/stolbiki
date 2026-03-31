@@ -516,8 +516,12 @@ app.post('/api/streak/checkin', auth, (req, res) => {
     .run(streak, best, today, freeze, req.user.id)
   try { db.prepare('INSERT OR IGNORE INTO daily_logins (user_id, date) VALUES (?, ?)').run(req.user.id, today) } catch {}
 
+  // XP за streak
+  const streakXP = streak >= 30 ? 50 : streak >= 7 ? 20 : streak >= 3 ? 10 : 5
+  addXP(req.user.id, streakXP)
+
   const calendar = db.prepare('SELECT date FROM daily_logins WHERE user_id=? ORDER BY date DESC LIMIT 30').all(req.user.id)
-  res.json({ streak, best, today: false, isNew: true, freeze, calendar: calendar.map(r => r.date) })
+  res.json({ streak, best, today: false, isNew: true, freeze, streakXP, calendar: calendar.map(r => r.date) })
 })
 
 app.get('/api/streak', auth, (req, res) => {
@@ -967,6 +971,11 @@ addPost('v38-audit', 'v3.8: Аудит, безопасность, retention', 'v
   'Полный аудит проекта + новые механики удержания:\n\n**Безопасность**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: все изображения -80% трафика.\n**i18n**: полный перевод Game, Online, Profile, 26 ачивок.\n**AI auto-difficulty**: после 3 поражений подряд — предложение понизить сложность.\n**First Win**: специальное celebration при первой победе.\n**ELO дельта**: +12/-8 отображается после каждой партии.\n**PvP Undo**: кнопка отмены хода.\n**Яндекс.Метрика**: вебвизор + карта кликов.',
   'Full project audit + new retention mechanics:\n\n**Security**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: all images -80% traffic.\n**i18n**: full translation Game, Online, Profile, 26 achievements.\n**AI auto-difficulty**: after 3 losses in a row — suggest easier level.\n**First Win**: special celebration on first victory.\n**ELO delta**: +12/-8 shown after each game.\n**PvP Undo**: undo move button.\n**Yandex Metrika**: webvisor + click map.',
   'release', '2026-03-31 22:00:00')
+
+addPost('v39-retention', 'v3.9: Стрики, миссии, XP, уровни', 'v3.9: Streaks, missions, XP, levels',
+  'Пять новых систем удержания:\n\n**Login streak** — серия ежедневных входов с календарём 30 дней. Streak freeze 1 раз в месяц. XP за каждый день (5-50).\n**Daily missions** — 3 задания в день из пула 8 (сыграй, победи, реши). XP за каждое + бонус 100 XP за все три.\n**XP / Level** — уровни 1-50. Прогресс-бар в профиле. XP за победы (20), поражения (5), миссии, стрики.\n**AI auto-difficulty** — после 3 поражений кнопка «Попробовать полегче?».\n**First Win** — celebration при первой победе в жизни.\n\nLayout расширен до 1200px для больших мониторов.',
+  'Five new retention systems:\n\n**Login streak** — daily login streak with 30-day calendar. Streak freeze 1/month. XP for each day (5-50).\n**Daily missions** — 3 per day from pool of 8 (play, win, solve). XP each + 100 XP bonus for all three.\n**XP / Level** — levels 1-50. Progress bar in profile. XP for wins (20), losses (5), missions, streaks.\n**AI auto-difficulty** — after 3 losses suggests easier level.\n**First Win** — celebration on first ever victory.\n\nLayout widened to 1200px for large monitors.',
+  'release', '2026-03-31 23:00:00')
 
 // Удаляем устаревший roadmap и дубли
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
