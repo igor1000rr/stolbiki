@@ -704,8 +704,11 @@ export default function Profile({ viewUsername, onClose }) {
                       background: h.won ? 'rgba(61,214,140,0.04)' : 'rgba(255,96,102,0.04)',
                       borderRadius: 8, border: `1px solid ${h.won ? 'rgba(61,214,140,0.12)' : 'rgba(255,96,102,0.12)'}`,
                     }}>
-                      <div style={{ fontSize: 18, width: 28, textAlign: 'center' }}>
-                        {h.won ? '✅' : '❌'}
+                      <div style={{ width: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {h.won
+                          ? <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#3dd68c" strokeWidth="2.5"><path d="M4 10l4 4L16 6"/></svg>
+                          : <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#ff6066" strokeWidth="2.5"><path d="M5 5l10 10M15 5L5 15"/></svg>
+                        }
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: h.won ? '#3dd68c' : '#ff6066' }}>
@@ -714,7 +717,7 @@ export default function Profile({ viewUsername, onClose }) {
                         <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>
                           {timeStr}
                           {h.vsHardAi && ' · Сложная'}
-                          {h.closedGolden && ' · ⭐ Золотая'}
+                          {h.closedGolden && ' · Золотая'}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>

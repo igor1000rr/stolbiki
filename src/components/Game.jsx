@@ -851,8 +851,12 @@ export default function Game() {
           <div style={{ maxWidth: 420, background: 'var(--surface)', borderRadius: 16, padding: '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}></div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Как играть в Snatch Highrise</div>
+              <svg width="40" height="40" viewBox="0 0 28 28" fill="none" style={{ marginBottom: 8 }}>
+                <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
+                <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
+                <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
+              </svg>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{lang === 'en' ? 'How to play Snatch Highrise' : 'Как играть в Snatch Highrise'}</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
               <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
@@ -879,7 +883,10 @@ export default function Game() {
       {mode === 'spectate-online' && (
         <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
           background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
-          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600 }}>👁 {onlinePlayers.join(' vs ')}</span>
+          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600 }}>
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="#c8a4e8" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 4 }}><circle cx="10" cy="10" r="3"/><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/></svg>
+            {onlinePlayers.join(' vs ')}
+          </span>
         </div>
       )}
 
@@ -1322,7 +1329,14 @@ export default function Game() {
         const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
         return (
           <div className="game-result" style={{ borderLeft: `3px solid ${isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>{isDraw ? '=' : won ? '\o/' : '—'}</div>
+            <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'center' }}>
+              {isDraw
+                ? <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#9b59b6" strokeWidth="2"><path d="M6 13h20M6 19h20"/></svg>
+                : won
+                ? <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#3dd68c" strokeWidth="2.5"><path d="M6 17l7 7L26 8"/></svg>
+                : <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#ff6066" strokeWidth="2.5"><path d="M8 8l16 16M24 8L8 24"/></svg>
+              }
+            </div>
             <span style={{ fontSize: 20 }}>{isDraw
               ? (t('game.draw'))
               : mode === 'pvp'
@@ -1332,10 +1346,10 @@ export default function Game() {
               : (won ? t('game.victory') : t('game.aiWins'))
             }</span>
             <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: 'var(--ink)' }}>{s0} : {s1}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <span>Ходов: {gs.turn}</span>
-              <span>⏱ {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
-              {goldenOwned && <span>⭐ Золотая: П{gs.closed[0] + 1}</span>}
+            <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+              <span>{lang === 'en' ? 'Moves' : 'Ходов'}: {gs.turn}</span>
+              <span>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
+              {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {lang === 'en' ? 'Golden' : 'Золотая'}</span>}
             </div>
             <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               {!tournament && (
