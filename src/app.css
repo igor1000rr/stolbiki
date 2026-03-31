@@ -1919,3 +1919,157 @@ body::before {
   .header-login-btn span { display: none; }
   .header-login-btn { padding: 5px 8px; }
 }
+
+/* ═══════════════════════════════════════════ */
+/*           NATIVE APP (Capacitor)            */
+/* ═══════════════════════════════════════════ */
+
+.native-app {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Top bar */
+.native-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 48px;
+  padding-top: env(safe-area-inset-top);
+  background: rgba(13, 13, 20, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.native-topbar-user {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  border-radius: 16px;
+  padding: 4px 10px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Bottom tab bar */
+.native-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 56px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(13, 13, 20, 0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.native-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.native-tab-icon {
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0.45;
+  transition: all 0.15s ease;
+}
+
+.native-tab-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink3);
+  transition: all 0.15s ease;
+  letter-spacing: 0.01em;
+}
+
+.native-tab.active .native-tab-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.native-tab.active .native-tab-label {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Content spacing for native */
+.native-app .site-content {
+  padding-top: calc(48px + env(safe-area-inset-top));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  min-height: calc(100vh - 48px - 56px);
+}
+
+/* Hide desktop elements in native */
+.native-app .site-header,
+.native-app .site-footer {
+  display: none !important;
+}
+
+/* Disable overscroll bounce */
+.native-app,
+.native-app body {
+  overscroll-behavior: none;
+  overflow: hidden;
+}
+
+.native-app .site-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 48px - 56px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+/* Bigger touch targets */
+.native-app .btn,
+.native-app button,
+.native-app select {
+  min-height: 40px;
+}
+
+.native-app select {
+  font-size: 15px;
+}
+
+/* Game controls: compact layout for mobile */
+.native-app .game-controls {
+  gap: 6px;
+}
+
+.native-app .game-controls label {
+  font-size: 13px;
+}
+
+/* Active state haptic-feel */
+.native-tab:active {
+  transform: scale(0.92);
+}
+
+.native-app .btn:active {
+  transform: scale(0.96);
+}

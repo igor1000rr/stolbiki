@@ -53,11 +53,14 @@ export default function App() {
   const i18n = useI18nProvider()
   const { t, lang, setLang } = i18n
 
+  const isNative = !!window.Capacitor?.isNativePlatform?.()
+
   const [tab, setTab] = useState(() => {
+    if (isNative) return 'game' // В приложении — сразу в игру
     const params = new URLSearchParams(location.search)
     if (params.get('room')) return 'online'
     const hash = location.hash.replace('#', '')
-    if (hash.startsWith('blog')) return 'blog' // handles #blog and #blog/slug
+    if (hash.startsWith('blog')) return 'blog'
     if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay','admin','changelog'].includes(hash)) return hash
     return 'landing'
   })
@@ -215,9 +218,9 @@ export default function App() {
 
   return (
     <I18nContext.Provider value={i18n}>
-    <div className="app">
+    <div className={`app ${isNative ? 'native-app' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
-      <header className="site-header" role="banner">
+      {!isNative && <header className="site-header" role="banner">
         <div className="site-header-inner">
           {/* Лого */}
           <div className="site-logo" onClick={() => go('landing')}>
@@ -365,7 +368,66 @@ export default function App() {
             </div>
           </nav>
         )}
-      </header>
+      </header>}
+
+      {/* Native: минимальный top bar */}
+      {isNative && (
+        <div className="native-topbar">
+          <div className="site-logo" onClick={() => go('game')} style={{ gap: 6 }}>
+            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+              <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
+              <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
+              <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
+            </svg>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+              {t('header.title')}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {authUser ? (
+              <button className="native-topbar-user" onClick={() => go('profile')}>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>{authUser.name}</span>
+                {authUser.rating > 0 && <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>{authUser.rating}</span>}
+              </button>
+            ) : (
+              <button className="native-topbar-user" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
+                <Icon name="profile" size={16} />
+              </button>
+            )}
+            {LANGS.map(l => (
+              <button key={l.code} onClick={() => setLang(l.code)}
+                className={`lang-btn ${lang === l.code ? 'active' : ''}`} style={{ fontSize: 10, padding: '3px 6px' }}>
+                {l.label}
+              </button>
+            ))}
+          </div>
+          {/* Auth dropdown — reuse same logic */}
+          {authOpen && !authUser && (
+            <div className="header-auth-dropdown" style={{ top: 44, right: 8 }}>
+              <div style={{ padding: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>
+                  {authMode === 'login' ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}
+                </div>
+                {authError && <div style={{ fontSize: 11, color: '#ff6066', marginBottom: 8 }}>{authError}</div>}
+                <input type="text" placeholder={en ? 'Username' : 'Никнейм'} value={authName}
+                  onChange={e => setAuthName(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
+                  className="header-auth-input" autoFocus />
+                <input type="password" placeholder={en ? 'Password' : 'Пароль'} value={authPass}
+                  onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
+                  className="header-auth-input" />
+                <button className="btn primary" onClick={doAuth} disabled={authLoading}
+                  style={{ width: '100%', fontSize: 12, padding: '8px 0' }}>
+                  {authLoading ? '...' : authMode === 'login' ? (en ? 'Login' : 'Войти') : (en ? 'Register' : 'Создать')}
+                </button>
+                <button onClick={() => { setAuthMode(m => m === 'login' ? 'register' : 'login'); setAuthError('') }}
+                  style={{ width: '100%', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 11, padding: '8px 0', cursor: 'pointer' }}>
+                  {authMode === 'login' ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация') : (en ? 'Have account? Login' : 'Есть аккаунт? Войти')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
@@ -392,7 +454,7 @@ export default function App() {
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
 
-      <footer className="site-footer" role="contentinfo">
+      {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
           <div className="site-footer-brand">
             <span style={{ opacity: 0.6 }}>Snatch Highrise</span>
@@ -413,7 +475,26 @@ export default function App() {
             <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print & Play</a>
           </div>
         </div>
-      </footer>
+      </footer>}
+
+      {/* Native bottom tab bar */}
+      {isNative && (
+        <nav className="native-tabs" role="tablist">
+          {[
+            { id: 'game', icon: '🎮', label: en ? 'Play' : 'Играть' },
+            { id: 'online', icon: '🌐', label: en ? 'Online' : 'Онлайн' },
+            { id: 'puzzles', icon: '🧩', label: en ? 'Puzzles' : 'Задачи' },
+            { id: 'profile', icon: '👤', label: en ? 'Profile' : 'Профиль' },
+          ].map(n => (
+            <button key={n.id} role="tab" aria-selected={tab === n.id}
+              className={`native-tab ${tab === n.id ? 'active' : ''}`}
+              onClick={() => go(n.id)}>
+              <span className="native-tab-icon">{n.icon}</span>
+              <span className="native-tab-label">{n.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
     </I18nContext.Provider>
   )
