@@ -6,6 +6,8 @@ import Icon from './Icon'
 // Ежедневный челлендж
 function DailyChallenge() {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
+  const { lang } = useI18n()
+  const en = lang === 'en'
   const [daily, setDaily] = useState(null)
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
@@ -26,7 +28,7 @@ function DailyChallenge() {
     window.dispatchEvent(new CustomEvent('stolbiki-daily-start', { detail: daily }))
   }
 
-  if (loading) return <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 12, padding: 20 }}>Загрузка...</div>
+  if (loading) return <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 12, padding: 20 }}>{en ? 'Loading...' : 'Загрузка...'}</div>
   if (!daily) return null
 
   const dateStr = daily.date || daily.seed
@@ -36,25 +38,25 @@ function DailyChallenge() {
         <span style={{ fontSize: 24, opacity: 0.5 }}>Daily</span>
         <div>
           <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
-            Ежедневный челлендж
+            {en ? 'Daily Challenge' : 'Ежедневный челлендж'}
           </h3>
-          <span style={{ fontSize: 11, color: '#6e6a82' }}>#{dateStr} · Одинаковый для всех</span>
+          <span style={{ fontSize: 11, color: '#6e6a82' }}>#{dateStr} · {en ? 'Same for everyone' : 'Одинаковый для всех'}</span>
         </div>
       </div>
 
       <p style={{ fontSize: 12, color: '#a09cb0', marginBottom: 12, lineHeight: 1.6 }}>
-        У всех одинаковая начальная позиция. Победите AI за минимум ходов!
+        {en ? 'Same starting position for all. Beat AI in minimum moves!' : 'У всех одинаковая начальная позиция. Победите AI за минимум ходов!'}
       </p>
 
       <button className="btn primary" onClick={startDaily}
         style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 12 }}>
-        Играть
+        {en ? 'Play' : 'Играть'}
       </button>
 
       {leaderboard.length > 0 && (
         <div>
           <div style={{ fontSize: 11, color: '#6e6a82', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Таблица лидеров
+            {en ? 'Leaderboard' : 'Таблица лидеров'}
           </div>
           <div style={{ maxHeight: 180, overflowY: 'auto' }}>
             {leaderboard.map((r, i) => (
@@ -67,7 +69,7 @@ function DailyChallenge() {
                   {i + 1}
                 </span>
                 <span style={{ flex: 1, color: '#e8e6f0' }}>{r.username}</span>
-                <span style={{ color: '#a09cb0', fontSize: 11 }}>{r.turns} ходов</span>
+                <span style={{ color: '#a09cb0', fontSize: 11 }}>{r.turns} {en ? 'moves' : 'ходов'}</span>
                 <span style={{ color: '#6e6a82', fontSize: 10 }}>
                   {r.duration ? `${Math.floor(r.duration/60)}:${String(r.duration%60).padStart(2,'0')}` : ''}
                 </span>
@@ -79,7 +81,7 @@ function DailyChallenge() {
 
       {leaderboard.length === 0 && (
         <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 11, padding: '8px 0' }}>
-          Пока никто не играл сегодня — будьте первым!
+          {en ? 'Nobody played today yet — be the first!' : 'Пока никто не играл сегодня — будьте первым!'}
         </div>
       )}
     </div>
@@ -146,7 +148,7 @@ export default function Online() {
         setMode(msg.mode || 'single')
         setTotalGames(msg.totalGames || 1)
         setScreen('waiting')
-        setStatus('Ждём второго игрока...')
+        setStatus(en ? 'Waiting for opponent...' : 'Ждём второго игрока...')
         break
       case 'waiting':
         setPlayers(msg.players)
@@ -213,7 +215,7 @@ export default function Online() {
         }))
         break
       case 'disconnected':
-        if (msg.playerIdx !== playerIdxRef.current) setStatus('Противник отключился... ждём реконнект')
+        if (msg.playerIdx !== playerIdxRef.current) setStatus(en ? 'Opponent disconnected... waiting' : 'Противник отключился... ждём реконнект')
         break
       case 'error':
         setError(msg.msg)
@@ -256,12 +258,12 @@ export default function Online() {
       const id = await MP.createRoom(mode)
       setRoomId(id)
       MP.connect(id, playerName.trim(), handleWS)
-    } catch { setError('Ошибка создания комнаты') }
+    } catch { setError(en ? 'Failed to create room' : 'Ошибка создания комнаты') }
   }
 
   async function joinRoom() {
     if (!playerName.trim()) { setError(en ? 'Enter name' : 'Введите имя'); return }
-    if (!joinCode.trim()) { setError('Введите код комнаты'); return }
+    if (!joinCode.trim()) { setError(en ? 'Enter room code' : 'Введите код комнаты'); return }
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
     const code = joinCode.trim().toUpperCase()
@@ -397,9 +399,9 @@ export default function Online() {
         {/* QR код сайта — только для десктопа */}
         {!isNative && (
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto', textAlign: 'center' }}>
-          <h3 style={{ marginBottom: 12 }}>QR — открой с телефона</h3>
+          <h3 style={{ marginBottom: 12 }}>{en ? 'QR — open on phone' : 'QR — открой с телефона'}</h3>
           <QRCode text={location.origin} size={180} />
-          <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10 }}>Отсканируй чтобы играть на телефоне</p>
+          <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10 }}>{en ? 'Scan to play on mobile' : 'Отсканируй чтобы играть на телефоне'}</p>
         </div>
         )}
 
@@ -492,20 +494,20 @@ export default function Online() {
         <QRCode text={roomUrl} size={160} />
 
         <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10, marginBottom: 8 }}>
-          Отправь ссылку или код другу
+          {en ? 'Send link or code to a friend' : 'Отправь ссылку или код другу'}
         </p>
 
         <button className="btn" onClick={() => {
-          if (navigator.share) navigator.share({ text: `Играем в Snatch Highrise! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
+          if (navigator.share) navigator.share({ text: en ? `Play Snatch Highrise! Room: ${roomId}` : `Играем в Snatch Highrise! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
           else navigator.clipboard?.writeText(roomUrl)
         }} style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }}>
-          Поделиться ссылкой
+          {en ? 'Share link' : 'Поделиться ссылкой'}
         </button>
 
-        <div className="thinking-dots" style={{ color: '#6e6a82', fontSize: 13 }}>Ждём второго игрока</div>
+        <div className="thinking-dots" style={{ color: '#6e6a82', fontSize: 13 }}>{en ? 'Waiting for opponent' : 'Ждём второго игрока'}</div>
 
         <button className="btn" onClick={backToLobby} style={{ marginTop: 16, width: '100%', justifyContent: 'center', fontSize: 12 }}>
-          ← Назад
+          {en ? '← Back' : '← Назад'}
         </button>
       </div>
     )
@@ -519,7 +521,7 @@ export default function Online() {
         {totalGames > 1 && (
           <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
             background: 'rgba(240,96,64,0.06)', borderRadius: 12, border: '1px solid rgba(240,96,64,0.1)' }}>
-            <span style={{ fontSize: 11, color: '#a8a4b8' }}>Партия {currentGame}/{totalGames}</span>
+            <span style={{ fontSize: 11, color: '#a8a4b8' }}>{en ? 'Game' : 'Партия'} {currentGame}/{totalGames}</span>
             <span style={{ fontSize: 16, fontWeight: 700, margin: '0 12px', color: '#eae8f2' }}>
               {scores[0]} : {scores[1]}
             </span>
@@ -610,10 +612,10 @@ export default function Online() {
           <span style={{ color: !won || draw ? '#3dd68c' : '#ff6066' }}>{tournamentResult.scores[1 - playerIdx]}</span>
         </div>
         <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>
-          {players[0]} vs {players[1]} • {totalGames} партий
+          {players[0]} vs {players[1]} • {totalGames} {en ? 'games' : 'партий'}
         </p>
         <button className="btn primary" onClick={backToLobby} style={{ width: '100%', justifyContent: 'center' }}>
-          Новый матч
+          {en ? 'New match' : 'Новый матч'}
         </button>
       </div>
     )

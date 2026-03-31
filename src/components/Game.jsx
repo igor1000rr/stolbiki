@@ -372,7 +372,7 @@ export default function Game() {
 
       const seedLabel = (daily.seed || daily.date || '').toString().slice(-4)
       setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-      setInfo(`Челлендж #${seedLabel} — победите AI за минимум ходов!`)
+      setInfo(lang === 'en' ? `Challenge #${seedLabel} — beat AI in minimum moves!` : `Челлендж #${seedLabel} — победите AI за минимум ходов!`)
     }
     window.addEventListener('stolbiki-daily-start', handleDailyStart)
     return () => window.removeEventListener('stolbiki-daily-start', handleDailyStart)
@@ -407,14 +407,14 @@ export default function Game() {
     setDailySeed(getDailySeed())
     setDailyMode(true)
     newGame(0, 100, 'ai')
-    setInfo(`Ежедневный челлендж #${getDailySeed() % 10000} — победите AI!`)
+    setInfo(lang === 'en' ? `Daily challenge #${getDailySeed() % 10000} — beat AI!` : `Ежедневный челлендж #${getDailySeed() % 10000} — победите AI!`)
   }
 
   // ─── Турнирный режим ───
   function startTournament(total = 3) {
     setTournament({ total, games: [], currentGame: 1 })
     newGame(0, difficulty, 'ai')
-    setInfo(`Турнир: партия 1 из ${total}`)
+    setInfo(lang === 'en' ? `Tournament: game 1 of ${total}` : `Турнир: партия 1 из ${total}`)
   }
 
   function tournamentNextGame() {
@@ -423,7 +423,7 @@ export default function Game() {
     if (next > tournament.total) return
     setTournament(prev => ({ ...prev, currentGame: next }))
     newGame((next - 1) % 2, difficulty, 'ai')
-    setInfo(`Турнир: партия ${next} из ${tournament.total}`)
+    setInfo(lang === 'en' ? `Tournament: game ${next} of ${tournament.total}` : `Турнир: партия ${next} из ${tournament.total}`)
   }
 
   // Слушаем новые ачивки
@@ -639,7 +639,7 @@ export default function Game() {
       if (ts > 0) {
         setSelected(i)
         setPhase('transfer-dst')
-        setInfo(`Куда перенести фишки со стойки ${SL(i)}?`)
+        setInfo(lang === 'en' ? `Where to transfer chips from stand ${SL(i)}?` : `Куда перенести фишки со стойки ${SL(i)}?`)
       }
       return
     }
@@ -651,10 +651,10 @@ export default function Game() {
         setSelected(null)
         setPhase('place')
         st()
-        addLog(`Перенос: ${SL(selected)} → ${SL(i)}`, humanPlayer)
+        addLog(`${lang === 'en' ? 'Transfer' : 'Перенос'}: ${SL(selected)} → ${SL(i)}`, humanPlayer)
         setInfo(t('game.transferSelected'))
       } else {
-        setInfo(`Нельзя перенести сюда`)
+        setInfo(lang === 'en' ? 'Cannot transfer here' : 'Нельзя перенести сюда')
       }
       return
     }
@@ -674,7 +674,7 @@ export default function Game() {
         if (i === dst) space -= grpSize   // фишки пришли — стало меньше места
       }
       if (!canClose) space = Math.max(0, space - 1)
-      if (space <= 0) { setInfo(`Стойка ${SL(i)} заполнена`); return }
+      if (space <= 0) { setInfo(lang === 'en' ? `Stand ${SL(i)} is full` : `Стойка ${SL(i)} заполнена`); return }
 
       if (i in placement) {
         const current = placement[i]
@@ -686,14 +686,14 @@ export default function Game() {
           setPlacement(newPlacement)
           sp()
           const newTotal = currentTotal + 1
-          setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
+          setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'chips' : 'фишек'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
         } else {
           // Достигнут макс — убираем с этой стойки
           const newPlacement = { ...placement }
           delete newPlacement[i]
           setPlacement(newPlacement)
           const newTotal = currentTotal - current
-          setInfo(`Убрано. ${newTotal}/${maxTotal}`)
+          setInfo(`${lang === 'en' ? 'Removed' : 'Убрано'}. ${newTotal}/${maxTotal}`)
         }
         return
       }
@@ -706,7 +706,7 @@ export default function Game() {
       setPlacement(newPlacement)
       sp()
       const newTotal = currentTotal + 1
-      setInfo(`${newTotal}/${maxTotal} фишек${newTotal >= maxTotal ? ' — подтвердите' : ''}`)
+      setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'chips' : 'фишек'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
     }
   }
 
@@ -778,7 +778,7 @@ export default function Game() {
     } else if (mode === 'pvp') {
       setPhase('place')
       const name = ns.currentPlayer === 0 ? t('game.blue') : t('game.red')
-      setInfo(ns.isFirstTurn() ? `${name}: поставьте 1 фишку` : `${name}: расставьте фишки`)
+      setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 chip' : 'поставьте 1 фишку'}` : `${name}: ${lang === 'en' ? 'place chips' : 'расставьте фишки'}`)
     } else {
       setLocked(true)
       evaluatePosition(ns)
@@ -855,11 +855,19 @@ export default function Game() {
               <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{lang === 'en' ? 'How to play' : 'Как играть'}</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
-              <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
-              <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
-              <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
-              <p><b style={{ color: '#ffc145' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
-              <p><b style={{ color: '#3dd68c' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
+              {lang === 'en' ? <>
+                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Click stands</b> to place chips (up to 3 on 2 stands)</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — move top group from one stand to another</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Closing</b> — stand with 11 chips closes. Top group color = owner</p>
+                <p><b style={{ color: '#ffc145' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
+                <p><b style={{ color: '#3dd68c' }}></b> Close <b>6+ stands</b> out of 10 to win</p>
+              </> : <>
+                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
+                <p><b style={{ color: '#ffc145' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
+                <p><b style={{ color: '#3dd68c' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
+              </>}
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
               {lang === 'en' ? 'Got it, let\'s play!' : 'Понятно, играем!'}
@@ -917,18 +925,18 @@ export default function Game() {
         {mode === 'ai' && (
           <label style={{ cursor: 'pointer' }}>
             <input type="checkbox" checked={hintMode} onChange={e => { setHintMode(e.target.checked); setHint(null) }} style={{ marginRight: 4 }} />
-            Подсказки
+            {lang === 'en' ? 'Hints' : 'Подсказки'}
           </label>
         )}
         {mode === 'ai' && (
           <label style={{ cursor: 'pointer' }}>
             <input type="checkbox" checked={trainerMode} onChange={e => { setTrainerMode(e.target.checked); setPosEval(null) }} style={{ marginRight: 4 }} />
-            Тренер
+            {lang === 'en' ? 'Trainer' : 'Тренер'}
           </label>
         )}
         {mode === 'ai' && !tournament && (
           <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>Серия 3</button>
+            <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>{lang === 'en' ? 'Best of 3' : 'Серия 3'}</button>
             <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>x5</button>
           </div>
         )}
@@ -1075,7 +1083,7 @@ export default function Game() {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
           <span>{lang === 'en' ? 'Wins' : 'Побед'}: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
           <span>{lang === 'en' ? 'Losses' : 'Поражений'}: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
-          {sessionStats.streak > 1 && <span>Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
+          {sessionStats.streak > 1 && <span>{lang === 'en' ? 'Streak' : 'Серия'}: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
         </div>
       )}
 
@@ -1162,7 +1170,7 @@ export default function Game() {
           })}
         </div>
         <div style={{ textAlign: 'center', fontSize: 10, color: '#555', marginBottom: 6 }}>
-          Ход {gs.turn} · Открыто: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+          {lang === 'en' ? 'Turn' : 'Ход'} {gs.turn} · {lang === 'en' ? 'Open' : 'Открыто'}: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
         </div>
         </>
       )}
@@ -1210,7 +1218,7 @@ export default function Game() {
               if (mode === 'online') MP.sendMove(action)
               recordMove(gs, action, gs.currentPlayer)
               moveHistoryRef.current.push({ action, player: gs.currentPlayer })
-              addLog('Swap — цвета поменялись!', gs.currentPlayer)
+              addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
               ss()
               const ns = applyAction(gs, action)
               setGs(ns)
@@ -1328,7 +1336,7 @@ export default function Game() {
 
       {isMyTurn && !gs.gameOver && !isNative && (
         <div style={{ textAlign: 'center', fontSize: 9, color: '#444', marginTop: 4 }}>
-          Enter — подтвердить · Esc — отмена переноса · N — новая игра
+          {lang === 'en' ? 'Enter — confirm · Esc — cancel transfer · N — new game' : 'Enter — подтвердить · Esc — отмена переноса · N — новая игра'}
         </div>
       )}
 
@@ -1474,10 +1482,10 @@ export default function Game() {
               return (
                 <div style={{ marginTop: 12, padding: '10px 16px', background: 'rgba(74,158,255,0.06)', borderRadius: 12, border: '1px solid rgba(74,158,255,0.1)' }}>
                   <div style={{ fontSize: 12, color: '#a8a4b8', marginBottom: 6 }}>
-                    Турнир: {tWins} : {tLosses} · Партия {tournament.games.length} из {tournament.total}
+                    {lang === 'en' ? 'Tournament' : 'Турнир'}: {tWins} : {tLosses} · {lang === 'en' ? 'Game' : 'Партия'} {tournament.games.length} {lang === 'en' ? 'of' : 'из'} {tournament.total}
                   </div>
                   <button className="btn primary" onClick={tournamentNextGame} style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '10px 0' }}>
-                    ▶ Следующая партия
+                    ▶ {lang === 'en' ? 'Next game' : 'Следующая партия'}
                   </button>
                 </div>
               )
