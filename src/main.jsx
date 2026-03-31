@@ -30,6 +30,9 @@ const isNative = !!window.Capacitor?.isNativePlatform?.()
 if (isNative) {
   const SERVER = import.meta.env.VITE_SERVER_URL || 'https://snatch-highrise.com'
 
+  // Класс на body для CSS оптимизаций
+  document.body.classList.add('native-body')
+
   // Fetch interceptor: /api/ → сервер
   const _fetch = window.fetch.bind(window)
   window.fetch = (url, opts) => {
