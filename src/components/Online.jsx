@@ -37,7 +37,7 @@ function DailyChallenge() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <span style={{ fontSize: 24, opacity: 0.5 }}>Daily</span>
         <div>
-          <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
+          <h3 style={{ fontSize: 16, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
             {en ? 'Daily Challenge' : 'Ежедневный челлендж'}
           </h3>
           <span style={{ fontSize: 11, color: 'var(--ink3)' }}>#{dateStr} · {en ? 'Same for everyone' : 'Одинаковый для всех'}</span>
@@ -65,7 +65,7 @@ function DailyChallenge() {
                 borderRadius: 6, background: i === 0 ? 'rgba(255,193,69,0.06)' : 'transparent',
                 fontSize: 12,
               }}>
-                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)' }}>
+                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? 'var(--silver)' : i === 2 ? 'var(--bronze)' : 'var(--ink3)' }}>
                   {i + 1}
                 </span>
                 <span style={{ flex: 1, color: 'var(--ink)' }}>{r.username}</span>
@@ -347,7 +347,7 @@ export default function Online() {
 
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(20,20,32,0.8)', color: '#eae8f2', fontSize: 14, boxSizing: 'border-box', marginBottom: 10,
+    background: 'rgba(20,20,32,0.8)', color: 'var(--ink)', fontSize: 14, boxSizing: 'border-box', marginBottom: 10,
     fontFamily: 'Outfit, sans-serif',
   }
 
@@ -357,7 +357,7 @@ export default function Online() {
       <div>
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
           
-          <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
+          <h3 style={{ fontSize: 18, marginBottom: 4, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
 
           {error && <div style={{ color: 'var(--p2)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
@@ -417,7 +417,7 @@ export default function Online() {
         {/* Наблюдение за играми */}
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ fontSize: 14, color: '#eae8f2', marginBottom: 0 }}>{en ? 'Live games' : 'Живые партии'}</h3>
+            <h3 style={{ fontSize: 14, color: 'var(--ink)', marginBottom: 0 }}>{en ? 'Live games' : 'Живые партии'}</h3>
             <button className="btn" onClick={loadActiveRooms} disabled={loadingRooms}
               style={{ fontSize: 10, padding: '4px 10px' }}>
               {loadingRooms ? '...' : (en ? 'Refresh' : 'Обновить')}
@@ -433,7 +433,7 @@ export default function Online() {
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div>
-                    <span style={{ fontSize: 13, color: '#eae8f2', fontWeight: 600 }}>{r.players.join(' vs ')}</span>
+                    <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{r.players.join(' vs ')}</span>
                     <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 8 }}>
                       {r.scores[0]}:{r.scores[1]} · {en ? 'turn' : 'ход'} {r.turn}
                       {r.spectators > 0 && ` · ${r.spectators} ${en ? 'watching' : 'зрит.'}`}
@@ -483,10 +483,10 @@ export default function Online() {
     return (
       <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
-        <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
+        <h3 style={{ fontSize: 16, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
           {en ? 'Room' : 'Комната'} {roomId}
         </h3>
-        <p style={{ color: '#a8a4b8', fontSize: 13, marginBottom: 16 }}>
+        <p style={{ color: 'var(--ink2)', fontSize: 13, marginBottom: 16 }}>
           {mode === 'tournament3' ? (en ? 'Tournament: best of 3' : 'Турнир: серия из 3') : mode === 'tournament5' ? (en ? 'Tournament: best of 5' : 'Турнир: серия из 5') : (en ? 'Single game' : 'Одна партия')}
         </p>
 
@@ -527,8 +527,8 @@ export default function Online() {
         {totalGames > 1 && (
           <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
             background: 'rgba(240,96,64,0.06)', borderRadius: 12, border: '1px solid rgba(240,96,64,0.1)' }}>
-            <span style={{ fontSize: 11, color: '#a8a4b8' }}>{en ? 'Game' : 'Партия'} {currentGame}/{totalGames}</span>
-            <span style={{ fontSize: 16, fontWeight: 700, margin: '0 12px', color: '#eae8f2' }}>
+            <span style={{ fontSize: 11, color: 'var(--ink2)' }}>{en ? 'Game' : 'Партия'} {currentGame}/{totalGames}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, margin: '0 12px', color: 'var(--ink)' }}>
               {scores[0]} : {scores[1]}
             </span>
             <span style={{ fontSize: 11, color: 'var(--ink3)' }}>
@@ -579,11 +579,11 @@ export default function Online() {
       <div>
         <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
           background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
-          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, color: 'var(--purple)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="#c8a4e8" strokeWidth="2"><circle cx="10" cy="10" r="3"/><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/></svg>
             {en ? 'Spectating' : 'Наблюдение'} — {players.join(' vs ')}
           </span>
-          <span style={{ fontSize: 14, fontWeight: 700, margin: '0 10px', color: '#eae8f2' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, margin: '0 10px', color: 'var(--ink)' }}>
             {scores[0]}:{scores[1]}
           </span>
         </div>
@@ -609,12 +609,12 @@ export default function Online() {
     return (
       <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>{draw ? '=' : won ? '+' : '-'}</div>
-        <h3 style={{ fontSize: 20, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
+        <h3 style={{ fontSize: 20, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
           {draw ? 'Ничья!' : won ? 'Вы победили в турнире!' : 'Противник победил'}
         </h3>
-        <div style={{ fontSize: 36, fontWeight: 700, color: '#eae8f2', margin: '12px 0' }}>
+        <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--ink)', margin: '12px 0' }}>
           <span style={{ color: won || draw ? 'var(--green)' : 'var(--p2)' }}>{tournamentResult.scores[playerIdx]}</span>
-          <span style={{ color: '#32324a', margin: '0 8px' }}>:</span>
+          <span style={{ color: 'var(--surface3)', margin: '0 8px' }}>:</span>
           <span style={{ color: !won || draw ? 'var(--green)' : 'var(--p2)' }}>{tournamentResult.scores[1 - playerIdx]}</span>
         </div>
         <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>

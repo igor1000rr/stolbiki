@@ -55,7 +55,7 @@ function defaultProfile(name) {
 
 // ─── Ачивки ───
 const ACH_COLORS = {
-  bronze: '#cd7f32', silver: '#c0c0c0', gold: 'var(--gold)', diamond: '#b9f2ff', ruby: '#e0115f', emerald: '#50c878',
+  bronze: 'var(--bronze)', silver: 'var(--silver)', gold: 'var(--gold)', diamond: 'var(--p1-light)', ruby: 'var(--p2)', emerald: 'var(--green)',
 }
 const ALL_ACHIEVEMENTS = [
   // Победы
@@ -108,9 +108,9 @@ const FAKE_LEADERBOARD = [
 function RatingBadge({ rating, en }) {
   let color, label
   if (rating >= 1500) { color = 'var(--gold)'; label = en ? 'Master' : 'Мастер' }
-  else if (rating >= 1200) { color = '#9b59b6'; label = en ? 'Expert' : 'Опытный' }
-  else if (rating >= 1000) { color = '#3498db'; label = en ? 'Novice' : 'Новичок' }
-  else { color = '#95a5a6'; label = en ? 'Beginner' : 'Начинающий' }
+  else if (rating >= 1200) { color = 'var(--purple)'; label = en ? 'Expert' : 'Опытный' }
+  else if (rating >= 1000) { color = 'var(--p1)'; label = en ? 'Novice' : 'Новичок' }
+  else { color = 'var(--ink3)'; label = en ? 'Beginner' : 'Начинающий' }
   return (
     <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 600,
       color, border: `1px solid ${color}33`, background: `${color}11` }}>{label}</span>
@@ -509,7 +509,7 @@ export default function Profile({ viewUsername, onClose }) {
   // Не залогинен
   if (!profile) {
     const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
-      background: '#1e1e28', color: 'var(--ink)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
+      background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
     return (
       <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 130px)' } : undefined}>
         <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
@@ -778,7 +778,7 @@ export default function Profile({ viewUsername, onClose }) {
             </div>
           )}
 
-          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: '#36364a' }}>
+          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)' }}>
             {en ? 'Logout' : 'Выйти из профиля'}
           </button>
         </>
@@ -933,7 +933,7 @@ export default function Profile({ viewUsername, onClose }) {
                 onChange={e => setFriendSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doSearchFriends()}
                 style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #36364a',
-                  background: '#1e1e28', color: 'var(--ink)', fontSize: 13 }} />
+                  background: 'var(--surface)', color: 'var(--ink)', fontSize: 13 }} />
               <button className="btn primary" style={{ padding: '8px 16px' }} onClick={doSearchFriends}>Найти</button>
             </div>
             {!serverOnline && <p style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8 }}>Поиск доступен при подключённом сервере</p>}

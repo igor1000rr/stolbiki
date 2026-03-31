@@ -93,7 +93,7 @@ export default function Arena({ onClose, onJoinMatch }) {
               background: i < 3 ? 'rgba(255,193,69,0.04)' : 'transparent',
               borderBottom: '1px solid var(--surface)',
             }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)', minWidth: 24 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? 'var(--silver)' : i === 2 ? 'var(--bronze)' : 'var(--ink3)', minWidth: 24 }}>
                 {i + 1}.
               </span>
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{p.username}</span>

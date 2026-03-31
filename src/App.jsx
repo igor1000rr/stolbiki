@@ -43,8 +43,13 @@ function LazyFallback() {
 const ADMIN_NAMES = ['admin']
 const THEMES = [
   { id: 'default', label: 'Dark' },
+  { id: 'ocean', label: 'Ocean' },
+  { id: 'sunset', label: 'Sunset' },
+  { id: 'forest', label: 'Forest' },
+  { id: 'royal', label: 'Royal' },
   { id: 'neon', label: 'Neon' },
   { id: 'wood', label: 'Wood' },
+  { id: 'arctic', label: 'Arctic' },
   { id: 'minimal', label: 'Light' },
 ]
 
@@ -487,7 +492,7 @@ export default function App() {
               </button>
             ))}
             <div className="nav-more-divider" />
-            <div style={{ display: 'flex', gap: 4, padding: '8px 16px' }}>
+            <div style={{ display: 'flex', gap: 4, padding: '8px 16px', flexWrap: 'wrap' }}>
               {THEMES.map(th => (
                 <button key={th.id} onClick={() => { setTheme(th.id); setMobileMenu(false) }}
                   className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>

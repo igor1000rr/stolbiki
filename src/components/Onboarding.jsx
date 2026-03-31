@@ -37,7 +37,7 @@ const SLIDES = [
       <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
         {Array.from({ length: 10 }, (_, i) => (
           <rect key={i} x={4 + i * 7.4} y="50" width="6" height="3" rx="1"
-            fill={i < 6 ? 'var(--p1)' : i < 9 ? '#ff6b6b' : 'var(--gold)'} opacity={0.9} />
+            fill={i < 6 ? 'var(--p1)' : i < 9 ? 'var(--p2)' : 'var(--gold)'} opacity={0.9} />
         ))}
         <text x="40" y="38" textAnchor="middle" fill="#3dd68c" fontSize="28" fontWeight="800">6:4</text>
         <text x="40" y="72" textAnchor="middle" fill="#3dd68c" fontSize="11" fontWeight="600">Victory!</text>
@@ -67,7 +67,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 3000,
-      background: '#0d0d14',
+      background: 'var(--bg)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       padding: '40px 24px',

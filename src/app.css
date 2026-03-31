@@ -22,6 +22,10 @@
   --gold-glow: rgba(255, 193, 69, 0.35);
   --green: #3dd68c;
   --green-glow: rgba(61, 214, 140, 0.3);
+  --purple: #9b59b6;
+  --coral: #f0654a;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -217,7 +221,7 @@ body::before {
 .nav-more-menu button:hover { background: var(--surface2); color: var(--ink); }
 .nav-more-menu button.active { color: var(--accent); font-weight: 600; background: transparent; box-shadow: none; }
 .nav-more-divider { height: 1px; background: var(--surface2); margin: 4px 8px; }
-.nav-more-row { display: flex; align-items: center; padding: 6px 14px; gap: 4px; }
+.nav-more-row { display: flex; align-items: center; padding: 6px 14px; gap: 4px; flex-wrap: wrap; }
 .nav-more-theme {
   font-size: 10px; padding: 3px 8px; border-radius: 4px; border: none; cursor: pointer;
   background: var(--surface2); color: var(--ink3); font-family: 'Outfit', sans-serif;
@@ -1478,6 +1482,27 @@ body::before {
 .chip-flat .chip { border-radius: 2px; box-shadow: none; }
 .chip-rounded .chip { border-radius: 50%; width: 14px; height: 14px; margin: 1px auto; }
 
+/* Glass chips */
+.chip-glass .chip.p0 { background: linear-gradient(180deg, rgba(74,158,255,0.7), rgba(74,158,255,0.3)); box-shadow: 0 2px 8px rgba(74,158,255,0.2), inset 0 1px 0 rgba(255,255,255,0.5); backdrop-filter: blur(4px); }
+.chip-glass .chip.p1 { background: linear-gradient(180deg, rgba(255,96,102,0.7), rgba(255,96,102,0.3)); box-shadow: 0 2px 8px rgba(255,96,102,0.2), inset 0 1px 0 rgba(255,255,255,0.5); backdrop-filter: blur(4px); }
+
+/* Metal chips */
+.chip-metal .chip.p0 { background: linear-gradient(180deg, #b8d4f0, #6a9cc8, #4a7ca8, #6a9cc8); box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.6); }
+.chip-metal .chip.p1 { background: linear-gradient(180deg, #f0b8b8, #c86a6a, #a84a4a, #c86a6a); box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.6); }
+
+/* Candy chips */
+.chip-candy .chip.p0 { background: linear-gradient(180deg, #a0e0ff, #60c0ff, #40a0e0); border-radius: 10px; box-shadow: 0 3px 0 #3090c0, inset 0 2px 0 rgba(255,255,255,0.4); }
+.chip-candy .chip.p1 { background: linear-gradient(180deg, #ffa0c0, #ff6090, #e04070); border-radius: 10px; box-shadow: 0 3px 0 #c03060, inset 0 2px 0 rgba(255,255,255,0.4); }
+
+/* Pixel chips */
+.chip-pixel .chip { border-radius: 0 !important; image-rendering: pixelated; }
+.chip-pixel .chip.p0 { background: #4a9eff; box-shadow: 2px 2px 0 #2060a0; }
+.chip-pixel .chip.p1 { background: #ff6066; box-shadow: 2px 2px 0 #a03040; }
+
+/* Neon glow chips */
+.chip-glow .chip.p0 { background: var(--p1); box-shadow: 0 0 8px var(--p1-glow), 0 0 16px var(--p1-glow), inset 0 0 4px rgba(255,255,255,0.2); }
+.chip-glow .chip.p1 { background: var(--p2); box-shadow: 0 0 8px var(--p2-glow), 0 0 16px var(--p2-glow), inset 0 0 4px rgba(255,255,255,0.2); }
+
 /* Board density */
 .board-compact .stand { min-height: 130px; width: 44px; }
 .board-compact .chip { width: 34px; height: 9px; }
@@ -1780,6 +1805,7 @@ body::before {
   --p2: #ff3090; --p2-light: #ff70b0; --p2-glow: rgba(255,48,144,0.4);
   --gold: #ffe040; --gold-glow: rgba(255,224,64,0.4);
   --green: #39ff14; --green-glow: rgba(57,255,20,0.4);
+  --purple: #bf40ff; --coral: #ff4060; --silver: #d0d0e0; --bronze: #e0a030;
 }
 [data-theme="neon"] .stand { border-color: rgba(128,0,255,0.25); box-shadow: 0 0 12px rgba(128,0,255,0.15); }
 [data-theme="neon"] .chip.p0 { box-shadow: 0 0 8px var(--p1-glow); }
@@ -1796,6 +1822,7 @@ body::before {
   --p2: #2a2018; --p2-light: #4a3828; --p2-glow: rgba(42,32,24,0.3);
   --gold: #daa520; --gold-glow: rgba(218,165,32,0.35);
   --green: #6ab04c; --green-glow: rgba(106,176,76,0.3);
+  --purple: #8e6aad; --coral: #c86040; --silver: #b8a890; --bronze: #a07838;
 }
 [data-theme="wood"] body::before {
   background:
@@ -1870,6 +1897,7 @@ body::before {
   --p2: #ff3b30; --p2-light: #ff6961; --p2-glow: rgba(255,59,48,0.2);
   --gold: #ff9500; --gold-glow: rgba(255,149,0,0.2);
   --green: #34c759; --green-glow: rgba(52,199,89,0.2);
+  --purple: #af52de; --coral: #ff6259; --silver: #8e8e93; --bronze: #a2845e;
 }
 [data-theme="minimal"] body::before { display: none; }
 [data-theme="minimal"] .site-header { background: rgba(245,245,247,0.85); backdrop-filter: blur(20px); border-bottom-color: var(--surface2); }
@@ -1909,6 +1937,105 @@ body::before {
 [data-theme="minimal"] .l-hero-glow { display: none; }
 [data-theme="minimal"] .l-cta-glow, [data-theme="minimal"] .l-final-glow { display: none; }
 [data-theme="minimal"] .l-print { background: var(--surface); border-color: var(--surface2); }
+
+/* ═══ Ocean — глубокое море ═══ */
+[data-theme="ocean"] {
+  --bg: #0a1628; --bg2: #0e1f36; --surface: #132840; --surface2: #1a3652; --surface3: #234668;
+  --ink: #dce8f5; --ink2: #8eacc8; --ink3: #5a7d9e;
+  --accent: #00bcd4; --accent2: #0097a7; --accent-glow: rgba(0,188,212,0.25);
+  --p1: #4fc3f7; --p1-light: #81d4fa; --p1-glow: rgba(79,195,247,0.35);
+  --p2: #ef5350; --p2-light: #ef9a9a; --p2-glow: rgba(239,83,80,0.3);
+  --gold: #ffca28; --gold-glow: rgba(255,202,40,0.35);
+  --green: #26a69a; --green-glow: rgba(38,166,154,0.3);
+}
+[data-theme="ocean"] body::before {
+  background: radial-gradient(ellipse at 30% 80%, rgba(0,188,212,0.06), transparent 60%),
+    radial-gradient(ellipse at 70% 20%, rgba(79,195,247,0.04), transparent 50%);
+}
+[data-theme="ocean"] .board { border-color: rgba(79,195,247,0.12); }
+[data-theme="ocean"] .stand { border-color: rgba(79,195,247,0.1); }
+[data-theme="ocean"] .stand.golden { border-color: rgba(255,202,40,0.3); }
+
+/* ═══ Sunset — тёплый закат ═══ */
+[data-theme="sunset"] {
+  --bg: #1a0e1e; --bg2: #241428; --surface: #2e1a32; --surface2: #3d2442; --surface3: #4e3055;
+  --ink: #f5e0f0; --ink2: #c8a0b8; --ink3: #8a6a80;
+  --accent: #ff7043; --accent2: #f4511e; --accent-glow: rgba(255,112,67,0.25);
+  --p1: #ffa726; --p1-light: #ffcc80; --p1-glow: rgba(255,167,38,0.35);
+  --p2: #ab47bc; --p2-light: #ce93d8; --p2-glow: rgba(171,71,188,0.35);
+  --gold: #ffd54f; --gold-glow: rgba(255,213,79,0.35);
+  --green: #66bb6a; --green-glow: rgba(102,187,106,0.3);
+}
+[data-theme="sunset"] body::before {
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,112,67,0.08), transparent 60%),
+    radial-gradient(ellipse at 80% 30%, rgba(171,71,188,0.05), transparent 50%);
+}
+[data-theme="sunset"] .board { border-color: rgba(255,112,67,0.12); }
+[data-theme="sunset"] .stand { border-color: rgba(255,112,67,0.08); }
+[data-theme="sunset"] .btn.primary { background: linear-gradient(135deg, #ff7043, #f4511e); }
+
+/* ═══ Forest — лесная тема ═══ */
+[data-theme="forest"] {
+  --bg: #0c1a0f; --bg2: #122018; --surface: #1a2e1f; --surface2: #243d2a; --surface3: #305038;
+  --ink: #d8f0dc; --ink2: #98c8a0; --ink3: #608868;
+  --accent: #4caf50; --accent2: #388e3c; --accent-glow: rgba(76,175,80,0.25);
+  --p1: #81c784; --p1-light: #a5d6a7; --p1-glow: rgba(129,199,132,0.3);
+  --p2: #e57373; --p2-light: #ef9a9a; --p2-glow: rgba(229,115,115,0.3);
+  --gold: #ffd54f; --gold-glow: rgba(255,213,79,0.35);
+  --green: #66bb6a; --green-glow: rgba(102,187,106,0.3);
+}
+[data-theme="forest"] body::before {
+  background: radial-gradient(ellipse at 20% 70%, rgba(76,175,80,0.06), transparent 60%),
+    radial-gradient(ellipse at 80% 30%, rgba(129,199,132,0.04), transparent 50%);
+}
+[data-theme="forest"] .board { border-color: rgba(76,175,80,0.12); }
+[data-theme="forest"] .stand { border-color: rgba(76,175,80,0.08); }
+[data-theme="forest"] .btn.primary { background: linear-gradient(135deg, #4caf50, #388e3c); }
+
+/* ═══ Royal — королевская роскошь ═══ */
+[data-theme="royal"] {
+  --bg: #0e0a18; --bg2: #161028; --surface: #1e1638; --surface2: #2a2048; --surface3: #382c5a;
+  --ink: #e8e0f8; --ink2: #b0a0d0; --ink3: #7868a0;
+  --accent: #9c27b0; --accent2: #7b1fa2; --accent-glow: rgba(156,39,176,0.25);
+  --p1: #ce93d8; --p1-light: #e1bee7; --p1-glow: rgba(206,147,216,0.3);
+  --p2: #ef5350; --p2-light: #ef9a9a; --p2-glow: rgba(239,83,80,0.3);
+  --gold: #ffc107; --gold-glow: rgba(255,193,7,0.4);
+  --green: #66bb6a; --green-glow: rgba(102,187,106,0.3);
+}
+[data-theme="royal"] body::before {
+  background: radial-gradient(ellipse at 50% 30%, rgba(156,39,176,0.08), transparent 60%),
+    radial-gradient(ellipse at 30% 80%, rgba(255,193,7,0.04), transparent 50%);
+}
+[data-theme="royal"] .board { border-color: rgba(156,39,176,0.15); }
+[data-theme="royal"] .stand { border-color: rgba(156,39,176,0.1); }
+[data-theme="royal"] .stand.golden { border-color: rgba(255,193,7,0.4); box-shadow: 0 0 12px rgba(255,193,7,0.15); }
+[data-theme="royal"] .btn.primary { background: linear-gradient(135deg, #9c27b0, #7b1fa2); }
+[data-theme="royal"] .chip.p0 { box-shadow: 0 0 6px var(--p1-glow); }
+[data-theme="royal"] .chip.p1 { box-shadow: 0 0 6px var(--p2-glow); }
+
+/* ═══ Arctic — ледяная тема ═══ */
+[data-theme="arctic"] {
+  --bg: #e8f0f8; --bg2: #dce8f2; --surface: #f0f6fc; --surface2: #d0dcea; --surface3: #b0c4d8;
+  --ink: #1a2a3a; --ink2: #4a6278; --ink3: #7a92a8;
+  --accent: #0288d1; --accent2: #0277bd; --accent-glow: rgba(2,136,209,0.2);
+  --p1: #0288d1; --p1-light: #4fc3f7; --p1-glow: rgba(2,136,209,0.2);
+  --p2: #d32f2f; --p2-light: #ef5350; --p2-glow: rgba(211,47,47,0.2);
+  --gold: #f57f17; --gold-glow: rgba(245,127,23,0.25);
+  --green: #2e7d32; --green-glow: rgba(46,125,50,0.2);
+}
+[data-theme="arctic"] body::before { display: none; }
+[data-theme="arctic"] .site-header { background: rgba(232,240,248,0.85); backdrop-filter: blur(20px); }
+[data-theme="arctic"] .board { background: var(--surface); border-color: var(--surface2); }
+[data-theme="arctic"] .stand { border-color: var(--surface3); background: var(--bg); }
+[data-theme="arctic"] .btn { border-color: var(--surface2); color: var(--ink2); background: var(--surface); }
+[data-theme="arctic"] .btn:hover { border-color: var(--surface3); }
+[data-theme="arctic"] .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+[data-theme="arctic"] .dash-card { background: var(--surface); border-color: var(--surface2); }
+[data-theme="arctic"] .game-result { background: var(--surface); border-color: var(--surface2); }
+[data-theme="arctic"] .nav-more-menu { background: var(--surface); border-color: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+[data-theme="arctic"] ::selection { background: rgba(2,136,209,0.15); }
+[data-theme="arctic"] .l-hero-glow { display: none; }
+[data-theme="arctic"] .beta-badge { background: var(--accent); color: #fff; }
 
 /* Mobile: hide username text, show only avatar */
 @media (max-width: 480px) {

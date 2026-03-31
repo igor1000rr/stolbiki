@@ -13,7 +13,7 @@ export default function SplashScreen({ onDone }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
-      background: '#0d0d14',
+      background: 'var(--bg)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       opacity: phase === 'exit' ? 0 : 1,
@@ -33,7 +33,7 @@ export default function SplashScreen({ onDone }) {
       <div style={{
         marginTop: 24,
         fontSize: 12,
-        color: '#4a4a5a',
+        color: 'var(--ink3)',
         fontWeight: 500,
         letterSpacing: 2,
         textTransform: 'uppercase',

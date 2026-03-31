@@ -751,9 +751,9 @@ function AchievementsTab() {
     beat_hard: 'Победил Hard AI', online_win: 'Онлайн победа', online_10: '10 онлайн', puzzle_10: '10 пазлов',
   }
   const TIERS = {
-    first_win: '#cd7f32', streak_3: '#cd7f32', golden_1: '#cd7f32', comeback: '#cd7f32', games_10: '#cd7f32',
-    perfect: '#c0c0c0', streak_5: '#c0c0c0', golden_10: '#c0c0c0', games_50: '#c0c0c0', fast_win: '#c0c0c0',
-    rating_1200: '#c0c0c0', beat_hard: '#c0c0c0', online_win: '#c0c0c0',
+    first_win: 'var(--bronze)', streak_3: 'var(--bronze)', golden_1: 'var(--bronze)', comeback: 'var(--bronze)', games_10: 'var(--bronze)',
+    perfect: 'var(--silver)', streak_5: 'var(--silver)', golden_10: 'var(--silver)', games_50: 'var(--silver)', fast_win: 'var(--silver)',
+    rating_1200: 'var(--silver)', beat_hard: 'var(--silver)', online_win: 'var(--silver)',
     streak_10: 'var(--gold)', perfect_3: 'var(--gold)', golden_50: 'var(--gold)', comeback_5: 'var(--gold)', games_100: 'var(--gold)',
     rating_1500: 'var(--gold)', fast_win_5: 'var(--gold)', online_10: 'var(--gold)', puzzle_10: 'var(--gold)',
     streak_20: '#b9f2ff', games_500: '#b9f2ff', rating_1800: '#b9f2ff', rating_2000: '#b9f2ff',

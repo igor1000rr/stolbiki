@@ -115,7 +115,7 @@ function StrategyChart() {
     type: 'bar',
     data: {
       labels: ['Ранний (0-15)', 'Средний (16-35)', 'Поздний (36+)'],
-      datasets: [{ data: [st.transfer_early, st.transfer_mid, st.transfer_late], backgroundColor: ['rgba(74,158,255,0.6)', 'rgba(78,203,113,0.6)', 'rgba(240,101,74,0.6)'], borderColor: ['var(--p1)', '#4ecb71', '#f0654a'], borderWidth: 1, borderRadius: 6 }],
+      datasets: [{ data: [st.transfer_early, st.transfer_mid, st.transfer_late], backgroundColor: ['rgba(74,158,255,0.6)', 'rgba(78,203,113,0.6)', 'rgba(240,101,74,0.6)'], borderColor: ['#4a9eff', '#4ecb71', '#f0654a'], borderWidth: 1, borderRadius: 6 }],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 70, grid: { color: 'rgba(255,255,255,0.04)' } }, x: { grid: { display: false } } } },
   })
@@ -185,7 +185,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div style={{ padding: 14, background: 'rgba(155,89,182,0.04)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.1)' }}>
-              <div style={{ fontSize: 12, color: '#9b59b6', fontWeight: 600, marginBottom: 8 }}>GPU (PyTorch ResNet)</div>
+              <div style={{ fontSize: 12, color: 'var(--purple)', fontWeight: 600, marginBottom: 8 }}>GPU (PyTorch ResNet)</div>
               <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.8 }}>
                 Параметров: <b style={{ color: 'var(--ink)' }}>840K</b><br/>
                 Итераций: <b style={{ color: 'var(--ink)' }}>1,146 (146 стар + 500×2 нов)</b><br/>
@@ -216,7 +216,7 @@ export default function Dashboard() {
                 </div>
                 <div style={{ fontSize: 28, color: '#36364a', alignSelf: 'center' }}>:</div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#ff6b6b' }}>{d.trained_mm.p2}</div>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--p2)' }}>{d.trained_mm.p2}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Игрок 2</div>
                 </div>
               </div>
@@ -282,7 +282,7 @@ function TrainingPanel() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(155,89,182,0.06)', borderRadius: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#9b59b6' }}>{stats.games}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--purple)' }}>{stats.games}</div>
           <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Партий</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(74,158,255,0.06)', borderRadius: 8 }}>
@@ -303,7 +303,7 @@ function TrainingPanel() {
         <button className="btn primary" onClick={doExport} style={{ fontSize: 11 }} disabled={stats.games === 0}>
           Экспорт JSON ({stats.moves} ходов)
         </button>
-        <button className="btn" onClick={doClear} style={{ fontSize: 11, borderColor: '#ff6b6b33', color: '#ff6b6b' }}>
+        <button className="btn" onClick={doClear} style={{ fontSize: 11, borderColor: '#ff6b6b33', color: 'var(--p2)' }}>
           Очистить
         </button>
       </div>

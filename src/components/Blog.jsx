@@ -4,7 +4,7 @@ import { useI18n } from '../engine/i18n'
 const TAG_STYLE = {
   release: { bg: '#3dd68c20', color: 'var(--green)', label: { ru: 'Релиз', en: 'Release' } },
   feature: { bg: '#4a9eff20', color: 'var(--p1)', label: { ru: 'Фича', en: 'Feature' } },
-  ai: { bg: '#9b59b620', color: '#9b59b6', label: { ru: 'AI', en: 'AI' } },
+  ai: { bg: '#9b59b620', color: 'var(--purple)', label: { ru: 'AI', en: 'AI' } },
   update: { bg: '#ffc14520', color: 'var(--gold)', label: { ru: 'Обновление', en: 'Update' } },
   roadmap: { bg: '#3bb8a820', color: 'var(--accent)', label: { ru: 'Планы', en: 'Roadmap' } },
 }

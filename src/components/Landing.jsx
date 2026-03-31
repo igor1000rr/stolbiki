@@ -163,9 +163,9 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           {/* Three extras — plain text rows */}
           <div className="l-extras">
             {[
-              { icon: 'trainer', c: '#9b59b6', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move. Position strength bar in real-time.' : 'AI оценивает каждый ход. Шкала силы позиции.' },
+              { icon: 'trainer', c: 'var(--purple)', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move. Position strength bar in real-time.' : 'AI оценивает каждый ход. Шкала силы позиции.' },
               { icon: 'chart', c: 'var(--accent)', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
-              { icon: 'theme', c: '#00bcd4', t: en ? '4 themes + PWA' : '4 темы + PWA', d: en ? 'Dark, neon, wood, light. Works offline. Home screen.' : 'Тёмная, неон, дерево, светлая. Оффлайн.' },
+              { icon: 'theme', c: 'var(--accent)', t: en ? '4 themes + PWA' : '4 темы + PWA', d: en ? 'Dark, neon, wood, light. Works offline. Home screen.' : 'Тёмная, неон, дерево, светлая. Оффлайн.' },
             ].map((f, i) => (
               <div key={i} className="l-extra" style={{ '--i': i }}>
                 <div className="l-extra-dot" style={{ background: f.c, boxShadow: f.c + '40 0 0 6px' }} />

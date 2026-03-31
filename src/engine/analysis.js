@@ -18,11 +18,11 @@ function classifyMove(delta) {
 }
 
 const LABELS = {
-  excellent:  { ru: 'Отличный', en: 'Excellent', color: '#3dd68c', icon: '!!' },
-  good:       { ru: 'Хороший', en: 'Good', color: '#6db4ff', icon: '' },
-  inaccuracy: { ru: 'Неточность', en: 'Inaccuracy', color: '#ffc145', icon: '?!' },
-  mistake:    { ru: 'Ошибка', en: 'Mistake', color: '#f0654a', icon: '?' },
-  blunder:    { ru: 'Грубая ошибка', en: 'Blunder', color: '#ff3b3b', icon: '??' },
+  excellent:  { ru: 'Отличный', en: 'Excellent', color: 'var(--green)', icon: '!!' },
+  good:       { ru: 'Хороший', en: 'Good', color: 'var(--p1-light)', icon: '' },
+  inaccuracy: { ru: 'Неточность', en: 'Inaccuracy', color: 'var(--gold)', icon: '?!' },
+  mistake:    { ru: 'Ошибка', en: 'Mistake', color: 'var(--coral)', icon: '?' },
+  blunder:    { ru: 'Грубая ошибка', en: 'Blunder', color: 'var(--p2)', icon: '??' },
 }
 
 /**

@@ -407,7 +407,7 @@ const VERSIONS = [
 
 const TYPE_STYLE = {
   new: { label: 'NEW', color: 'var(--green)', bg: 'rgba(61,214,140,0.1)' },
-  fix: { label: 'FIX', color: '#f0654a', bg: 'rgba(240,101,74,0.1)' },
+  fix: { label: 'FIX', color: 'var(--coral)', bg: 'rgba(240,101,74,0.1)' },
   perf: { label: 'PERF', color: 'var(--p1)', bg: 'rgba(74,158,255,0.1)' },
 }
 

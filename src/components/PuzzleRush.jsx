@@ -162,7 +162,7 @@ export default function PuzzleRush({ onClose }) {
 
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
-  const timerColor = timeLeft <= 10 ? '#ff3b3b' : timeLeft <= 30 ? 'var(--gold)' : 'var(--green)'
+  const timerColor = timeLeft <= 10 ? 'var(--p2)' : timeLeft <= 30 ? 'var(--gold)' : 'var(--green)'
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)',

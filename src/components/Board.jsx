@@ -59,7 +59,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
       if ((i in state.closed) && !(i in prev.closed)) {
         fl.add(i)
         const owner = state.closed[i]
-        const baseColor = owner === 0 ? ['var(--p1)', 'var(--p1-light)', '#a0d0ff'] : ['#ff6b6b', '#ff8888', '#ffb0b0']
+        const baseColor = owner === 0 ? ['var(--p1)', 'var(--p1-light)', 'var(--p1-light)'] : ['var(--p2)', 'var(--p2-light)', 'var(--p2-light)']
         const sparkColors = ['var(--gold)', '#fff', ...baseColor]
         newParticles[i] = Array.from({ length: 14 }, (_, j) => ({
           id: j,
@@ -132,7 +132,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
             {showChipCount && !isClosed && (
               <div style={{
                 position: 'absolute', bottom: -20, fontSize: 11, fontWeight: 600,
-                color: chips.length >= 9 ? '#ff6b6b' : chips.length >= 7 ? 'var(--gold)' : 'var(--ink3)',
+                color: chips.length >= 9 ? 'var(--p2)' : chips.length >= 7 ? 'var(--gold)' : 'var(--ink3)',
                 opacity: chips.length > 0 ? 1 : 0.4,
               }}>
                 {chips.length}
@@ -147,7 +147,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
               }}>
                 <div style={{
                   width: `${chips.length / (state.maxChips || 11) * 100}%`, height: '100%',
-                  background: chips.length >= 9 ? '#ff6b6b' : chips.length >= 7 ? 'var(--gold)' : 'var(--p1)',
+                  background: chips.length >= 9 ? 'var(--p2)' : chips.length >= 7 ? 'var(--gold)' : 'var(--p1)',
                   borderRadius: 1, transition: 'width 0.3s',
                 }} />
               </div>
