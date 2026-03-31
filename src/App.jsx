@@ -20,6 +20,7 @@ const Puzzles = lazy(() => import('./components/Puzzles'))
 const Openings = lazy(() => import('./components/Openings'))
 const Landing = lazy(() => import('./components/Landing'))
 const Tutorial = lazy(() => import('./components/Tutorial'))
+const Lessons = lazy(() => import('./components/Lessons'))
 const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
 const Admin = lazy(() => import('./components/Admin'))
@@ -73,6 +74,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
+  const [showLessons, setShowLessons] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
 
@@ -496,7 +498,7 @@ export default function App() {
 
       <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
-          {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
+          {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowLessons(true)} publicStats={publicStats} />}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
@@ -537,6 +539,11 @@ export default function App() {
               <button className="m-more-item" onClick={() => go('rules')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h6M8 16h4"/></svg>
                 <span>{en ? 'Rules' : 'Правила'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button className="m-more-item" onClick={() => { setShowLessons(true) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                <span>{en ? 'Lessons' : 'Уроки'}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
               </button>
               <button className="m-more-item" onClick={() => go('openings')}>
@@ -594,6 +601,7 @@ export default function App() {
       </main>
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
+      {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => setShowLessons(false)} /></Suspense>}
 
       {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
