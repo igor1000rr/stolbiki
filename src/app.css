@@ -76,9 +76,9 @@ body::before {
 }
 
 .app {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 24px 80px;
+  padding: 20px 32px 80px;
   position: relative;
   z-index: 1;
 }
@@ -91,7 +91,7 @@ body::before {
   background: var(--bg);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--surface2);
-  margin: 0 -24px; padding: 0 24px;
+  margin: 0 -32px; padding: 0 32px;
   animation: fadeDown 0.4s var(--ease-smooth);
 }
 @supports (color: color-mix(in srgb, red, blue)) {
@@ -99,7 +99,7 @@ body::before {
 }
 .site-header-inner {
   display: flex; align-items: center; justify-content: space-between;
-  height: 56px; max-width: 1100px; margin: 0 auto;
+  height: 56px; max-width: 1200px; margin: 0 auto;
 }
 .site-logo {
   display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -1527,7 +1527,7 @@ body::before {
 /* ═══════════════════════════════════════════
    LANDING PAGE — animations + bento grid
    ═══════════════════════════════════════════ */
-.landing { max-width: 960px; margin: 0 auto; }
+.landing { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
 .l-section { padding: 0 0 56px; }
 .l-title { font-size: 22px; font-weight: 700; color: var(--ink); text-align: center; margin-bottom: 32px; letter-spacing: -0.3px; }
 .l-btn-lg { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; padding: 14px 32px; }
@@ -1557,12 +1557,12 @@ body::before {
 .l-hero-title {
   font-size: 40px; font-weight: 700; color: var(--ink); line-height: 1.12;
   margin-bottom: 16px; font-family: 'DM Serif Display', serif;
-  max-width: 560px; margin-left: auto; margin-right: auto;
+  max-width: 640px; margin-left: auto; margin-right: auto;
   opacity: 0; transform: translateY(20px); transition: all 0.7s ease 0.4s;
 }
 .l-hero.in .l-hero-title { opacity: 1; transform: translateY(0); }
 .l-hero-sub {
-  font-size: 16px; color: var(--ink2); line-height: 1.75; max-width: 520px; margin: 0 auto 14px;
+  font-size: 16px; color: var(--ink2); line-height: 1.75; max-width: 600px; margin: 0 auto 14px;
   opacity: 0; transform: translateY(16px); transition: all 0.7s ease 0.55s;
 }
 .l-hero.in .l-hero-sub { opacity: 1; transform: translateY(0); }
@@ -1592,7 +1592,7 @@ body::before {
 .l-num-sep { width: 1px; height: 36px; background: var(--surface3); flex-shrink: 0; }
 
 /* ═══ STEPS ═══ */
-.l-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 760px; margin: 0 auto; position: relative; }
+.l-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 900px; margin: 0 auto; position: relative; }
 .l-steps-line {
   position: absolute; top: 19px; left: 16%; right: 16%; height: 2px;
   background: var(--surface3); transform: scaleX(0); transition: transform 0.8s ease 0.3s; transform-origin: left;
