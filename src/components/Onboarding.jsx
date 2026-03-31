@@ -37,7 +37,7 @@ const SLIDES = [
       <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
         {Array.from({ length: 10 }, (_, i) => (
           <rect key={i} x={4 + i * 7.4} y="50" width="6" height="3" rx="1"
-            fill={i < 6 ? '#4a9eff' : i < 9 ? '#ff6b6b' : '#ffc145'} opacity={0.9} />
+            fill={i < 6 ? 'var(--p1)' : i < 9 ? '#ff6b6b' : 'var(--gold)'} opacity={0.9} />
         ))}
         <text x="40" y="38" textAnchor="middle" fill="#3dd68c" fontSize="28" fontWeight="800">6:4</text>
         <text x="40" y="72" textAnchor="middle" fill="#3dd68c" fontSize="11" fontWeight="600">Victory!</text>
@@ -90,7 +90,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
         {SLIDES.map((_, i) => (
           <div key={i} style={{
             width: i === slide ? 24 : 8, height: 8, borderRadius: 4,
-            background: i === slide ? '#4a9eff' : 'var(--surface2)',
+            background: i === slide ? 'var(--p1)' : 'var(--surface2)',
             transition: 'all 0.3s',
           }} />
         ))}
@@ -112,8 +112,8 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
           else setSlide(slide + 1)
         }} style={{
           flex: 2, padding: '14px 0', borderRadius: 12,
-          border: 'none', background: isLast ? '#4a9eff' : 'rgba(74,158,255,0.15)',
-          color: isLast ? '#fff' : '#4a9eff', fontSize: 15, fontWeight: 600,
+          border: 'none', background: isLast ? 'var(--p1)' : 'rgba(74,158,255,0.15)',
+          color: isLast ? '#fff' : 'var(--p1)', fontSize: 15, fontWeight: 600,
           fontFamily: 'inherit', cursor: 'pointer',
         }}>
           {isLast ? (en ? 'Start playing!' : 'Начать играть!') : (en ? 'Next' : 'Далее')}

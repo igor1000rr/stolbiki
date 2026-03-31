@@ -62,10 +62,10 @@ export default function Arena({ onClose, onJoinMatch }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#ffc145' }}>Arena</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--gold)' }}>Arena</span>
           {t && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8,
             background: t.status === 'waiting' ? 'rgba(74,158,255,0.1)' : t.status === 'playing' ? 'rgba(61,214,140,0.1)' : 'rgba(255,255,255,0.05)',
-            color: t.status === 'waiting' ? '#4a9eff' : t.status === 'playing' ? '#3dd68c' : 'var(--ink3)',
+            color: t.status === 'waiting' ? 'var(--p1)' : t.status === 'playing' ? 'var(--green)' : 'var(--ink3)',
           }}>{t.status === 'waiting' ? (en ? 'Waiting' : 'Ожидание') : t.status === 'playing' ? `${en ? 'Round' : 'Раунд'} ${t.current_round}/${t.rounds}` : (en ? 'Finished' : 'Завершён')}</span>}
         </div>
         <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '6px 12px' }}>
@@ -93,12 +93,12 @@ export default function Arena({ onClose, onJoinMatch }) {
               background: i < 3 ? 'rgba(255,193,69,0.04)' : 'transparent',
               borderBottom: '1px solid var(--surface)',
             }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)', minWidth: 24 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)', minWidth: 24 }}>
                 {i + 1}.
               </span>
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{p.username}</span>
               <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{p.rating}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#3dd68c', minWidth: 30, textAlign: 'right' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', minWidth: 30, textAlign: 'right' }}>
                 {p.score}
               </span>
               <span style={{ fontSize: 10, color: 'var(--ink3)' }}>
@@ -116,7 +116,7 @@ export default function Arena({ onClose, onJoinMatch }) {
             )}
             {t?.status === 'waiting' && joined && (
               <>
-                <button className="btn" onClick={leave} style={{ fontSize: 12, color: '#ff6066', borderColor: '#ff606640' }}>
+                <button className="btn" onClick={leave} style={{ fontSize: 12, color: 'var(--p2)', borderColor: '#ff606640' }}>
                   {en ? 'Leave' : 'Покинуть'}
                 </button>
                 {parts.length >= 2 && (
@@ -137,7 +137,7 @@ export default function Arena({ onClose, onJoinMatch }) {
           {myMatch && (
             <div style={{ marginTop: 20, padding: 16, background: 'rgba(74,158,255,0.06)', borderRadius: 12,
               border: '1px solid rgba(74,158,255,0.15)', textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: '#4a9eff', marginBottom: 8 }}>
+              <div style={{ fontSize: 13, color: 'var(--p1)', marginBottom: 8 }}>
                 {en ? 'Your match is ready!' : 'Ваш матч готов!'}
               </div>
               <button className="btn primary" onClick={() => onJoinMatch?.(myMatch)}
@@ -157,7 +157,7 @@ export default function Arena({ onClose, onJoinMatch }) {
             const rm = matches.filter(m => m.round === round)
             return (
               <div key={round} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#4a9eff', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--p1)', marginBottom: 6 }}>
                   {en ? 'Round' : 'Раунд'} {round}
                 </div>
                 {rm.map(m => {
@@ -172,12 +172,12 @@ export default function Arena({ onClose, onJoinMatch }) {
                       borderRadius: 6, marginBottom: 3,
                     }}>
                       <span style={{ flex: 1, fontWeight: m.winner_id === m.player1_id ? 600 : 400,
-                        color: m.winner_id === m.player1_id ? '#3dd68c' : undefined }}>
+                        color: m.winner_id === m.player1_id ? 'var(--green)' : undefined }}>
                         {p1?.username || '?'}
                       </span>
                       <span style={{ color: 'var(--ink3)', fontSize: 10 }}>vs</span>
                       <span style={{ flex: 1, textAlign: 'right', fontWeight: m.winner_id === m.player2_id ? 600 : 400,
-                        color: m.winner_id === m.player2_id ? '#3dd68c' : m.result === 'bye' ? 'var(--ink3)' : undefined }}>
+                        color: m.winner_id === m.player2_id ? 'var(--green)' : m.result === 'bye' ? 'var(--ink3)' : undefined }}>
                         {m.result === 'bye' ? 'bye' : p2?.username || '?'}
                       </span>
                     </div>

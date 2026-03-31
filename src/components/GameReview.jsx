@@ -129,7 +129,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
 
           {/* Stats */}
           <div style={{ padding: 14, borderBottom: '1px solid var(--surface2)' }}>
-            <div style={{ fontSize: 36, fontWeight: 700, color: stats.accuracy >= 80 ? '#3dd68c' : stats.accuracy >= 60 ? '#ffc145' : '#ff6066',
+            <div style={{ fontSize: 36, fontWeight: 700, color: stats.accuracy >= 80 ? 'var(--green)' : stats.accuracy >= 60 ? 'var(--gold)' : 'var(--p2)',
               textAlign: 'center', lineHeight: 1 }}>
               {stats.accuracy}%
             </div>

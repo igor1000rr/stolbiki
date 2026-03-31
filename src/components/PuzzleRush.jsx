@@ -162,7 +162,7 @@ export default function PuzzleRush({ onClose }) {
 
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
-  const timerColor = timeLeft <= 10 ? '#ff3b3b' : timeLeft <= 30 ? '#ffc145' : '#3dd68c'
+  const timerColor = timeLeft <= 10 ? '#ff3b3b' : timeLeft <= 30 ? 'var(--gold)' : 'var(--green)'
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)',
@@ -179,8 +179,8 @@ export default function PuzzleRush({ onClose }) {
             <span style={{ fontSize: 28, fontWeight: 700, color: timerColor, fontFamily: 'monospace' }}>
               {minutes}:{String(seconds).padStart(2, '0')}
             </span>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#ffc145' }}>{score}</span>
-            {streak > 1 && <span style={{ fontSize: 12, color: '#3dd68c' }}>x{streak}</span>}
+            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--gold)' }}>{score}</span>
+            {streak > 1 && <span style={{ fontSize: 12, color: 'var(--green)' }}>x{streak}</span>}
           </div>
         )}
         <button className="btn" onClick={() => { clearInterval(timerRef.current); onClose() }}
@@ -190,7 +190,7 @@ export default function PuzzleRush({ onClose }) {
       {/* Ready screen */}
       {phase === 'ready' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <div style={{ fontSize: 48, fontWeight: 800, color: '#ffc145' }}>Puzzle Rush</div>
+          <div style={{ fontSize: 48, fontWeight: 800, color: 'var(--gold)' }}>Puzzle Rush</div>
           <div style={{ fontSize: 14, color: 'var(--ink2)', textAlign: 'center', maxWidth: 360, lineHeight: 1.7 }}>
             {en ? 'Solve as many puzzles as you can in 3 minutes. +10 sec for correct, -15 sec for wrong.' :
               'Решите максимум головоломок за 3 минуты. +10 сек за правильную, -15 сек за ошибку.'}
@@ -209,11 +209,11 @@ export default function PuzzleRush({ onClose }) {
               {leaderboard.slice(0, 10).map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
                   borderBottom: '1px solid var(--surface)' }}>
-                  <span style={{ fontSize: 12, color: i < 3 ? '#ffc145' : 'var(--ink3)', fontWeight: 600, minWidth: 20 }}>
+                  <span style={{ fontSize: 12, color: i < 3 ? 'var(--gold)' : 'var(--ink3)', fontWeight: 600, minWidth: 20 }}>
                     {i + 1}.
                   </span>
                   <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{r.username}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#3dd68c' }}>{r.score}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)' }}>{r.score}</span>
                 </div>
               ))}
             </div>
@@ -235,7 +235,7 @@ export default function PuzzleRush({ onClose }) {
               onFailed={handleFailed}
             />
           </div>
-          <button className="btn" onClick={handleFailed} style={{ marginTop: 12, fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
+          <button className="btn" onClick={handleFailed} style={{ marginTop: 12, fontSize: 11, color: 'var(--p2)', borderColor: '#ff606640' }}>
             {en ? 'Skip (-15s)' : 'Пропустить (-15с)'}
           </button>
         </div>
@@ -243,7 +243,7 @@ export default function PuzzleRush({ onClose }) {
 
       {phase === 'playing' && !puzzles[currentIdx] && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: 18, color: '#3dd68c' }}>{en ? 'All puzzles solved!' : 'Все головоломки решены!'}</div>
+          <div style={{ fontSize: 18, color: 'var(--green)' }}>{en ? 'All puzzles solved!' : 'Все головоломки решены!'}</div>
         </div>
       )}
 
@@ -251,12 +251,12 @@ export default function PuzzleRush({ onClose }) {
       {phase === 'done' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <div style={{ fontSize: 14, color: 'var(--ink3)' }}>{en ? 'Time\'s up!' : 'Время вышло!'}</div>
-          <div style={{ fontSize: 64, fontWeight: 800, color: '#ffc145' }}>{score}</div>
+          <div style={{ fontSize: 64, fontWeight: 800, color: 'var(--gold)' }}>{score}</div>
           <div style={{ fontSize: 14, color: 'var(--ink2)' }}>
             {en ? 'puzzles solved' : 'головоломок решено'}
           </div>
           {bestStreak > 1 && (
-            <div style={{ fontSize: 13, color: '#3dd68c' }}>
+            <div style={{ fontSize: 13, color: 'var(--green)' }}>
               {en ? `Best streak: ${bestStreak}` : `Лучшая серия: ${bestStreak}`}
             </div>
           )}

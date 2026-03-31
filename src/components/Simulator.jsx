@@ -12,7 +12,7 @@ const PRESETS = [
 ]
 
 // ─── Компоненты ───
-function ProgressRing({ pct, size = 64, stroke = 5, color = '#3bb8a8' }) {
+function ProgressRing({ pct, size = 64, stroke = 5, color = 'var(--accent)' }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
   return (
@@ -51,10 +51,10 @@ function Verdict({ p1Wr, total }) {
   const se = Math.sqrt(0.25 / total) * 100  // standard error
   const z = diff / se
   let verdict, color, icon
-  if (diff < 2) { verdict = 'Идеально сбалансировано'; color = '#3dd68c'; icon = '✅' }
+  if (diff < 2) { verdict = 'Идеально сбалансировано'; color = 'var(--green)'; icon = '✅' }
   else if (diff < 4) { verdict = 'Хороший баланс'; color = '#4ecb71'; icon = 'OK' }
   else if (diff < 7) { verdict = 'Небольшой перекос'; color = '#f0a030'; icon = '⚠️' }
-  else { verdict = 'Существенный дисбаланс'; color = '#ff6066'; icon = '❌' }
+  else { verdict = 'Существенный дисбаланс'; color = 'var(--p2)'; icon = '❌' }
 
   const significant = z > 1.96
   return (
@@ -71,7 +71,7 @@ function Verdict({ p1Wr, total }) {
   )
 }
 
-function Histogram({ data, bins = 15, title, color = '#6db4ff' }) {
+function Histogram({ data, bins = 15, title, color = 'var(--p1-light)' }) {
   if (!data?.length) return null
   const min = Math.min(...data), max = Math.max(...data)
   const step = Math.max(1, Math.ceil((max - min) / bins))
@@ -118,7 +118,7 @@ function WinrateTimeline({ snapshots }) {
           <polyline points={points} fill="none" stroke="#4a9eff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
         </svg>
         <div style={{ position: 'absolute', left: 0, top: h/2 - 6, fontSize: 9, color: 'var(--ink3)' }}>50%</div>
-        <div style={{ position: 'absolute', right: 4, top: 0, fontSize: 9, color: '#4a9eff' }}>
+        <div style={{ position: 'absolute', right: 4, top: 0, fontSize: 9, color: 'var(--p1)' }}>
           {snapshots[snapshots.length - 1]?.p1Wr.toFixed(1)}%
         </div>
       </div>
@@ -225,7 +225,7 @@ export default function Simulator() {
             Стоек
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min={5} max={16} value={numStands} onChange={e => setNumStands(+e.target.value)}
-                style={{ flex: 1, accentColor: '#3bb8a8' }} />
+                style={{ flex: 1, accentColor: 'var(--accent)' }} />
               <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{numStands}</b>
             </div>
           </label>
@@ -233,7 +233,7 @@ export default function Simulator() {
             Высота
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min={5} max={17} value={maxChips} onChange={e => setMaxChips(+e.target.value)}
-                style={{ flex: 1, accentColor: '#3bb8a8' }} />
+                style={{ flex: 1, accentColor: 'var(--accent)' }} />
               <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxChips}</b>
             </div>
           </label>
@@ -389,7 +389,7 @@ export default function Simulator() {
                 {history.map((h, i) => (
                   <tr key={i}>
                     <td>{h.numStands}</td><td>{h.maxChips}</td><td>{h.numGames}</td>
-                    <td style={{ fontWeight: 600, color: Math.abs(parseFloat(h.p1Wr)-50) < 3 ? '#3dd68c' : Math.abs(parseFloat(h.p1Wr)-50) < 6 ? '#f0a030' : '#ff6066' }}>
+                    <td style={{ fontWeight: 600, color: Math.abs(parseFloat(h.p1Wr)-50) < 3 ? 'var(--green)' : Math.abs(parseFloat(h.p1Wr)-50) < 6 ? '#f0a030' : 'var(--p2)' }}>
                       {h.p1Wr}%
                     </td>
                     <td>{h.avgTurns}</td><td>{h.goldenPct}%</td>

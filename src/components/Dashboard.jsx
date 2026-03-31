@@ -115,7 +115,7 @@ function StrategyChart() {
     type: 'bar',
     data: {
       labels: ['Ранний (0-15)', 'Средний (16-35)', 'Поздний (36+)'],
-      datasets: [{ data: [st.transfer_early, st.transfer_mid, st.transfer_late], backgroundColor: ['rgba(74,158,255,0.6)', 'rgba(78,203,113,0.6)', 'rgba(240,101,74,0.6)'], borderColor: ['#4a9eff', '#4ecb71', '#f0654a'], borderWidth: 1, borderRadius: 6 }],
+      datasets: [{ data: [st.transfer_early, st.transfer_mid, st.transfer_late], backgroundColor: ['rgba(74,158,255,0.6)', 'rgba(78,203,113,0.6)', 'rgba(240,101,74,0.6)'], borderColor: ['var(--p1)', '#4ecb71', '#f0654a'], borderWidth: 1, borderRadius: 6 }],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 70, grid: { color: 'rgba(255,255,255,0.04)' } }, x: { grid: { display: false } } } },
   })
@@ -130,7 +130,7 @@ function VariantsTable({ data, headers }) {
         {Object.entries(data).sort((a,b) => +a[0] - +b[0]).map(([k, v]) => (
           <tr key={k}>
             <td>{k}</td>
-            <td style={{ color: Math.abs(v.p1_wr*100-50) < 3 ? '#3dd68c' : 'var(--ink)' }}>{(v.p1_wr*100).toFixed(1)}%</td>
+            <td style={{ color: Math.abs(v.p1_wr*100-50) < 3 ? 'var(--green)' : 'var(--ink)' }}>{(v.p1_wr*100).toFixed(1)}%</td>
             <td>{Math.round(v.avg_turns)}</td>
             <td>{v.decisive_golden > 0 ? `${(v.decisive_golden*100).toFixed(1)}%` : '—'}</td>
           </tr>
@@ -175,13 +175,13 @@ export default function Dashboard() {
           <h3>CPU vs GPU обучение</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 8 }}>
             <div style={{ padding: 14, background: 'rgba(74,158,255,0.04)', borderRadius: 10, border: '1px solid rgba(74,158,255,0.1)' }}>
-              <div style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600, marginBottom: 8 }}>CPU (numpy MLP)</div>
+              <div style={{ fontSize: 12, color: 'var(--p1)', fontWeight: 600, marginBottom: 8 }}>CPU (numpy MLP)</div>
               <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.8 }}>
                 Параметров: <b style={{ color: 'var(--ink)' }}>~8K</b><br/>
                 Итераций: <b style={{ color: 'var(--ink)' }}>500 (стар) + 1,000 (нов)</b><br/>
                 Loss min: <b style={{ color: 'var(--ink)' }}>0.72</b><br/>
                 WR: <b style={{ color: 'var(--ink)' }}>~90%</b><br/>
-                Баланс: <b style={{ color: '#3dd68c' }}>50:50</b>
+                Баланс: <b style={{ color: 'var(--green)' }}>50:50</b>
               </div>
             </div>
             <div style={{ padding: 14, background: 'rgba(155,89,182,0.04)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.1)' }}>
@@ -211,7 +211,7 @@ export default function Dashboard() {
               <h3>Self-Play баланс (v{totalIter})</h3>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 12 }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#4a9eff' }}>{d.trained_mm.p1}</div>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--p1)' }}>{d.trained_mm.p1}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Игрок 1</div>
                 </div>
                 <div style={{ fontSize: 28, color: '#36364a', alignSelf: 'center' }}>:</div>
@@ -227,7 +227,7 @@ export default function Dashboard() {
             <div style={{ textAlign: 'center', marginTop: 12 }}>
               <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--ink)' }}>{(d.mcts_vs_mcts.p1_wr*100).toFixed(0)}%</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>MCTS vs MCTS, {d.mcts_vs_mcts.games} партий</div>
-              <div style={{ fontSize: 11, color: '#3dd68c', marginTop: 4 }}>Swap rule компенсирует</div>
+              <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 4 }}>Swap rule компенсирует</div>
             </div>
           </div>
         </div>
@@ -286,7 +286,7 @@ function TrainingPanel() {
           <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Партий</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(74,158,255,0.06)', borderRadius: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#4a9eff' }}>{stats.moves}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--p1)' }}>{stats.moves}</div>
           <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Ходов</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(78,203,113,0.06)', borderRadius: 8 }}>
@@ -294,7 +294,7 @@ function TrainingPanel() {
           <div style={{ fontSize: 10, color: 'var(--ink3)' }}>vs AI</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(240,101,74,0.06)', borderRadius: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#3bb8a8' }}>{stats.pvpGames}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)' }}>{stats.pvpGames}</div>
           <div style={{ fontSize: 10, color: 'var(--ink3)' }}>PvP</div>
         </div>
       </div>
@@ -308,7 +308,7 @@ function TrainingPanel() {
         </button>
       </div>
       {exported !== null && (
-        <div style={{ fontSize: 11, color: '#3dd68c', marginTop: 8 }}>✓ Экспортировано {exported} сэмплов</div>
+        <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 8 }}>✓ Экспортировано {exported} сэмплов</div>
       )}
       <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8 }}>
         Формат: {"{ state, action, value: ±1 }"} • Совместим с Python train.py • Макс {200} партий в localStorage

@@ -7,7 +7,7 @@ const PuzzleRush = lazy(() => import('./PuzzleRush'))
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
 const DIFF_LABELS = { 1: { ru: 'Лёгкая', en: 'Easy' }, 2: { ru: 'Средняя', en: 'Medium' }, 3: { ru: 'Сложная', en: 'Hard' } }
-const DIFF_COLORS = { 1: '#3dd68c', 2: '#ffc145', 3: '#ff6066' }
+const DIFF_COLORS = { 1: 'var(--green)', 2: 'var(--gold)', 3: 'var(--p2)' }
 
 function Countdown({ label, targetDate }) {
   const [left, setLeft] = useState('')
@@ -43,7 +43,7 @@ function PuzzleLeaderboard({ data, lang }) {
       </div>
       {data.slice(0, 5).map((r, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 11, color: 'var(--ink2)' }}>
-          <span style={{ width: 16, color: i === 0 ? '#ffc145' : 'var(--ink3)', fontWeight: 700 }}>{i + 1}</span>
+          <span style={{ width: 16, color: i === 0 ? 'var(--gold)' : 'var(--ink3)', fontWeight: 700 }}>{i + 1}</span>
           <span style={{ flex: 1 }}>{r.username}</span>
           <span style={{ color: 'var(--ink3)' }}>{r.moves_used} {t('puzzle.movesShort')}</span>
         </div>
@@ -335,7 +335,7 @@ export default function Puzzles() {
           </button>
         ))}
         <button className="btn" onClick={() => setShowRush(true)}
-          style={{ fontSize: 12, padding: '7px 16px', borderColor: '#ffc145', color: '#ffc145' }}>
+          style={{ fontSize: 12, padding: '7px 16px', borderColor: 'var(--gold)', color: 'var(--gold)' }}>
           ⚡ Puzzle Rush
         </button>
       </div>

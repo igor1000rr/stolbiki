@@ -406,9 +406,9 @@ const VERSIONS = [
 ]
 
 const TYPE_STYLE = {
-  new: { label: 'NEW', color: '#3dd68c', bg: 'rgba(61,214,140,0.1)' },
+  new: { label: 'NEW', color: 'var(--green)', bg: 'rgba(61,214,140,0.1)' },
   fix: { label: 'FIX', color: '#f0654a', bg: 'rgba(240,101,74,0.1)' },
-  perf: { label: 'PERF', color: '#4a9eff', bg: 'rgba(74,158,255,0.1)' },
+  perf: { label: 'PERF', color: 'var(--p1)', bg: 'rgba(74,158,255,0.1)' },
 }
 
 function formatDate(dateStr, lang) {

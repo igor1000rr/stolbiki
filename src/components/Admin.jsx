@@ -754,8 +754,8 @@ function AchievementsTab() {
     first_win: '#cd7f32', streak_3: '#cd7f32', golden_1: '#cd7f32', comeback: '#cd7f32', games_10: '#cd7f32',
     perfect: '#c0c0c0', streak_5: '#c0c0c0', golden_10: '#c0c0c0', games_50: '#c0c0c0', fast_win: '#c0c0c0',
     rating_1200: '#c0c0c0', beat_hard: '#c0c0c0', online_win: '#c0c0c0',
-    streak_10: '#ffc145', perfect_3: '#ffc145', golden_50: '#ffc145', comeback_5: '#ffc145', games_100: '#ffc145',
-    rating_1500: '#ffc145', fast_win_5: '#ffc145', online_10: '#ffc145', puzzle_10: '#ffc145',
+    streak_10: 'var(--gold)', perfect_3: 'var(--gold)', golden_50: 'var(--gold)', comeback_5: 'var(--gold)', games_100: 'var(--gold)',
+    rating_1500: 'var(--gold)', fast_win_5: 'var(--gold)', online_10: 'var(--gold)', puzzle_10: 'var(--gold)',
     streak_20: '#b9f2ff', games_500: '#b9f2ff', rating_1800: '#b9f2ff', rating_2000: '#b9f2ff',
   }
 
@@ -1019,7 +1019,7 @@ function ContentTab() {
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.label || item.key}</span>
               {isChanged && (
                 <button onClick={() => saveItem(item.key)} disabled={saving === item.key}
-                  style={{ padding: '4px 14px', borderRadius: 6, background: '#3dd68c', color: '#000', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ padding: '4px 14px', borderRadius: 6, background: 'var(--green)', color: '#000', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                   {saving === item.key ? '...' : 'Сохранить'}
                 </button>
               )}

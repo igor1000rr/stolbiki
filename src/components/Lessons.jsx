@@ -199,7 +199,7 @@ export default function Lessons({ onClose }) {
           {LESSONS.map((l, i) => (
             <div key={i} onClick={() => setLessonIdx(i)} style={{
               width: 10, height: 10, borderRadius: '50%', cursor: 'pointer',
-              background: completed.includes(l.id) ? '#3dd68c' : i === lessonIdx ? '#4a9eff' : 'var(--surface2)',
+              background: completed.includes(l.id) ? 'var(--green)' : i === lessonIdx ? 'var(--p1)' : 'var(--surface2)',
               border: i === lessonIdx ? '2px solid #4a9eff' : '2px solid transparent',
             }} />
           ))}
@@ -223,7 +223,7 @@ export default function Lessons({ onClose }) {
           {status === 'correct' && (
             <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 10,
               background: 'rgba(61,214,140,0.08)', border: '1px solid rgba(61,214,140,0.2)' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#3dd68c', marginBottom: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--green)', marginBottom: 4 }}>
                 {en ? 'Correct!' : 'Правильно!'} +{lesson.xp} XP
               </div>
               <button className="btn primary" onClick={next} style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
@@ -235,7 +235,7 @@ export default function Lessons({ onClose }) {
           {status === 'wrong' && (
             <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 10,
               background: 'rgba(255,96,102,0.08)', border: '1px solid rgba(255,96,102,0.2)' }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#ff6066', marginBottom: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--p2)', marginBottom: 4 }}>
                 {en ? 'Not quite — try again!' : 'Не совсем — попробуйте ещё!'}
               </div>
               <button className="btn" onClick={retry} style={{ marginTop: 8 }}>
@@ -247,7 +247,7 @@ export default function Lessons({ onClose }) {
           {allDone && status !== 'correct' && (
             <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 10,
               background: 'rgba(255,193,69,0.08)', border: '1px solid rgba(255,193,69,0.2)' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#ffc145' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--gold)' }}>
                 {en ? 'All lessons completed!' : 'Все уроки пройдены!'}
               </div>
             </div>

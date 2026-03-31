@@ -65,7 +65,7 @@ function DailyChallenge() {
                 borderRadius: 6, background: i === 0 ? 'rgba(255,193,69,0.06)' : 'transparent',
                 fontSize: 12,
               }}>
-                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)' }}>
+                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)' }}>
                   {i + 1}
                 </span>
                 <span style={{ flex: 1, color: 'var(--ink)' }}>{r.username}</span>
@@ -360,7 +360,7 @@ export default function Online() {
           <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
 
-          {error && <div style={{ color: '#ff6066', fontSize: 12, marginBottom: 10 }}>{error}</div>}
+          {error && <div style={{ color: 'var(--p2)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
 
           <input type="text" placeholder={en ? 'Your name' : 'Ваше имя'} value={playerName}
             onChange={e => setPlayerName(e.target.value)} style={inputStyle} />
@@ -381,13 +381,13 @@ export default function Online() {
 
           <button className="btn" onClick={findMatch}
             style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 10,
-              borderColor: '#3dd68c40', color: '#3dd68c' }}>
+              borderColor: '#3dd68c40', color: 'var(--green)' }}>
             {en ? 'Find random opponent' : 'Найти случайного соперника'}
           </button>
 
           <button className="btn" onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-arena'))}
             style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16,
-              borderColor: '#ffc14540', color: '#ffc145' }}>
+              borderColor: '#ffc14540', color: 'var(--gold)' }}>
             {en ? 'Arena Tournament' : 'Турнир Arena'}
           </button>
 
@@ -460,7 +460,7 @@ export default function Online() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'inline-flex', gap: 4 }}>
               {[0, 0.2, 0.4].map((d, i) => (
-                <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#3dd68c', animation: `pulse 1s ease ${d}s infinite` }} />
+                <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', animation: `pulse 1s ease ${d}s infinite` }} />
               ))}
             </div>
           </div>
@@ -491,7 +491,7 @@ export default function Online() {
         </p>
 
         {/* Код */}
-        <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 8, color: '#ffc145', marginBottom: 16,
+        <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 8, color: 'var(--gold)', marginBottom: 16,
           fontFamily: 'DM Serif Display, serif' }}>
           {roomId}
         </div>
@@ -538,7 +538,7 @@ export default function Online() {
         )}
 
         {status && (
-          <div style={{ textAlign: 'center', padding: 8, color: '#ffc145', fontSize: 12, marginBottom: 8 }}>
+          <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>
             {status}
           </div>
         )}
@@ -548,7 +548,7 @@ export default function Online() {
           <div style={{ maxHeight: 80, overflowY: 'auto', padding: '6px 10px', marginBottom: 8,
             background: 'rgba(26,26,42,0.5)', borderRadius: 8, fontSize: 11 }}>
             {messages.slice(-5).map((m, i) => (
-              <div key={i} style={{ color: m.from === playerIdx ? '#4a9eff' : '#ff6066' }}>
+              <div key={i} style={{ color: m.from === playerIdx ? 'var(--p1)' : 'var(--p2)' }}>
                 <b>{players[m.from] || '?'}:</b> {m.text}
               </div>
             ))}
@@ -588,7 +588,7 @@ export default function Online() {
           </span>
         </div>
         {status && (
-          <div style={{ textAlign: 'center', padding: 8, color: '#ffc145', fontSize: 12, marginBottom: 8 }}>
+          <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>
             {status}
           </div>
         )}
@@ -613,9 +613,9 @@ export default function Online() {
           {draw ? 'Ничья!' : won ? 'Вы победили в турнире!' : 'Противник победил'}
         </h3>
         <div style={{ fontSize: 36, fontWeight: 700, color: '#eae8f2', margin: '12px 0' }}>
-          <span style={{ color: won || draw ? '#3dd68c' : '#ff6066' }}>{tournamentResult.scores[playerIdx]}</span>
+          <span style={{ color: won || draw ? 'var(--green)' : 'var(--p2)' }}>{tournamentResult.scores[playerIdx]}</span>
           <span style={{ color: '#32324a', margin: '0 8px' }}>:</span>
-          <span style={{ color: !won || draw ? '#3dd68c' : '#ff6066' }}>{tournamentResult.scores[1 - playerIdx]}</span>
+          <span style={{ color: !won || draw ? 'var(--green)' : 'var(--p2)' }}>{tournamentResult.scores[1 - playerIdx]}</span>
         </div>
         <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>
           {players[0]} vs {players[1]} • {totalGames} {en ? 'games' : 'партий'}

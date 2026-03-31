@@ -391,11 +391,11 @@ export default function Game() {
         const score = result.bestValue || 0
         const ps = state.currentPlayer === humanPlayer ? score : -score
         let label, color
-        if (ps > 0.3) { label = t('trainer.strong'); color = '#3dd68c' }
+        if (ps > 0.3) { label = t('trainer.strong'); color = 'var(--green)' }
         else if (ps > 0.1) { label = t('trainer.slight'); color = '#89d68c' }
         else if (ps > -0.1) { label = t('trainer.equal'); color = 'var(--ink2)' }
-        else if (ps > -0.3) { label = t('trainer.weak'); color = '#ffc145' }
-        else { label = t('trainer.bad'); color = '#ff6066' }
+        else if (ps > -0.3) { label = t('trainer.weak'); color = 'var(--gold)' }
+        else { label = t('trainer.bad'); color = 'var(--p2)' }
         setPosEval({ score: ps, label, color })
       } catch { setPosEval(null) }
     }, 50)
@@ -891,14 +891,14 @@ export default function Game() {
                 <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Click stands</b> to place chips (up to 3 on 2 stands)</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — move top group from one stand to another</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Closing</b> — stand with 11 chips closes. Top group color = owner</p>
-                <p><b style={{ color: '#ffc145' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
-                <p><b style={{ color: '#3dd68c' }}></b> Close <b>6+ stands</b> out of 10 to win</p>
+                <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
+                <p><b style={{ color: 'var(--green)' }}></b> Close <b>6+ stands</b> out of 10 to win</p>
               </> : <>
                 <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
-                <p><b style={{ color: '#ffc145' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
-                <p><b style={{ color: '#3dd68c' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
+                <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
+                <p><b style={{ color: 'var(--green)' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
               </>}
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
@@ -913,7 +913,7 @@ export default function Game() {
       {mode === 'online' && (
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
           background: 'rgba(61,214,140,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(61,214,140,0.15)' }}>
-          <span style={{ fontSize: isNative ? 11 : 12, color: '#3dd68c', fontWeight: 600 }}>{lang === 'en' ? 'Online' : 'Онлайн'} — {onlinePlayers.join(' vs ')}</span>
+          <span style={{ fontSize: isNative ? 11 : 12, color: 'var(--green)', fontWeight: 600 }}>{lang === 'en' ? 'Online' : 'Онлайн'} — {onlinePlayers.join(' vs ')}</span>
         </div>
       )}
       {mode === 'spectate-online' && (
@@ -951,7 +951,7 @@ export default function Game() {
               <option value={400}>{t('game.hard')}</option>
               <option value={800}>{t('game.extreme')}</option>
             </select>
-            {isGpuReady() && <span style={{ fontSize: 8, color: '#3dd68c', marginLeft: 4 }}>GPU</span>}
+            {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 4 }}>GPU</span>}
           </label>
         )}
         {mode === 'ai' && (
@@ -987,7 +987,7 @@ export default function Game() {
                  <circle cx="12" cy="12" r="9"/>}
               </svg>
               {difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
-              {isGpuReady() && <span style={{ fontSize: 8, color: '#3dd68c', marginLeft: 3 }}>GPU</span>}
+              {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 3 }}>GPU</span>}
             </span>
             {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
           </div>
@@ -1093,7 +1093,7 @@ export default function Game() {
                     (i + 1 === tournament.currentGame ? 'rgba(74,158,255,0.15)' : 'rgba(42,42,56,0.5)'),
                   border: `1px solid ${game ? (game.won ? '#3dd68c33' : '#ff606633') :
                     (i + 1 === tournament.currentGame ? '#4a9eff33' : '#2a2a3833')}`,
-                  color: game ? (game.won ? '#3dd68c' : '#ff6066') : (i + 1 === tournament.currentGame ? '#4a9eff' : 'var(--ink3)'),
+                  color: game ? (game.won ? 'var(--green)' : 'var(--p2)') : (i + 1 === tournament.currentGame ? 'var(--p1)' : 'var(--ink3)'),
                 }}>
                   {game ? (game.won ? '✓' : '✕') : (i + 1)}
                 </div>
@@ -1113,9 +1113,9 @@ export default function Game() {
       {/* Сессионная статистика */}
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
-          <span>{lang === 'en' ? 'Wins' : 'Побед'}: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
-          <span>{lang === 'en' ? 'Losses' : 'Поражений'}: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
-          {sessionStats.streak > 1 && <span>{lang === 'en' ? 'Streak' : 'Серия'}: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
+          <span>{lang === 'en' ? 'Wins' : 'Побед'}: <b style={{ color: 'var(--green)' }}>{sessionStats.wins}</b></span>
+          <span>{lang === 'en' ? 'Losses' : 'Поражений'}: <b style={{ color: 'var(--p2)' }}>{sessionStats.losses}</b></span>
+          {sessionStats.streak > 1 && <span>{lang === 'en' ? 'Streak' : 'Серия'}: <b style={{ color: 'var(--gold)' }}>{sessionStats.streak}</b></span>}
         </div>
       )}
 
@@ -1288,7 +1288,7 @@ export default function Game() {
               setResult(-1); setPhase('done'); setLocked(false)
               setInfo(t('game.drawAgreed'))
               setDrawOffered(false)
-            }} style={{ borderColor: '#3dd68c', color: '#3dd68c' }}>
+            }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
               {t('game.accept')}
             </button>
             <button className="btn" onClick={() => {
@@ -1311,7 +1311,7 @@ export default function Game() {
             <button className="btn" onClick={() => {
               MP.sendRematchResponse(true)
               setRematchOffered(false)
-            }} style={{ borderColor: '#3dd68c', color: '#3dd68c' }}>
+            }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
               {t('game.accept')}
             </button>
             <button className="btn" onClick={() => {
@@ -1332,7 +1332,7 @@ export default function Game() {
           <button className="btn" onClick={cancelTransfer}>{t('game.cancelTransfer')}</button>
         )}
         {isMyTurn && transfer && phase === 'place' && (
-          <span style={{ fontSize: 12, color: '#3dd68c', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+          <span style={{ fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
             ✓ {SL(transfer[0])} → {SL(transfer[1])}
           </span>
         )}
@@ -1361,12 +1361,12 @@ export default function Game() {
         )}
         <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
-          <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: '#ffc145', borderColor: '#ffc14540' }} aria-label="Undo move">
+          <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">
             ↩ Undo
           </button>
         )}
         {!gs.gameOver && mode !== 'pvp' && mode !== 'spectate-online' && (
-          <button className="btn" onClick={resign} style={{ fontSize: 11, color: '#ff6066', borderColor: '#ff606640' }}>
+          <button className="btn" onClick={resign} style={{ fontSize: 11, color: 'var(--p2)', borderColor: '#ff606640' }}>
             {t('game.resign')}
           </button>
         )}
@@ -1399,7 +1399,7 @@ export default function Game() {
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
         const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
-        const accentColor = isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'
+        const accentColor = isDraw ? '#9b59b6' : won ? 'var(--green)' : 'var(--p2)'
         const iconSize = isNative ? 56 : 32
         const inner = (
           <div className="game-result" style={{ ...(isNative ? {} : { borderLeft: `3px solid ${accentColor}` }), textAlign: 'center' }}>
@@ -1429,7 +1429,7 @@ export default function Game() {
             {ratingDelta && (
               <div style={{
                 marginTop: isNative ? 12 : 8, fontSize: isNative ? 20 : 16, fontWeight: 700,
-                color: ratingDelta > 0 ? '#3dd68c' : '#ff6066',
+                color: ratingDelta > 0 ? 'var(--green)' : 'var(--p2)',
                 animation: 'fadeIn 0.5s ease',
               }}>
                 {ratingDelta > 0 ? '+' : ''}{ratingDelta} ELO
@@ -1449,7 +1449,7 @@ export default function Game() {
                   MP.sendRematchOffer()
                   setRematchPending(true)
                   setInfo(t('game.rematchWaiting'))
-                }} style={{ fontSize: isNative ? 15 : 12, padding: isNative ? '12px 20px' : '8px 16px', borderColor: '#3dd68c', color: '#3dd68c', justifyContent: 'center' }}>
+                }} style={{ fontSize: isNative ? 15 : 12, padding: isNative ? '12px 20px' : '8px 16px', borderColor: 'var(--green)', color: 'var(--green)', justifyContent: 'center' }}>
                   {t('game.rematch')}
                 </button>
               )}
@@ -1467,7 +1467,7 @@ export default function Game() {
                   newGame(humanPlayer, easier, mode)
                 }} style={{
                   fontSize: isNative ? 14 : 12, padding: isNative ? '12px 20px' : '8px 14px',
-                  justifyContent: 'center', borderColor: '#ffc145', color: '#ffc145',
+                  justifyContent: 'center', borderColor: 'var(--gold)', color: 'var(--gold)',
                   animation: 'fadeIn 0.5s ease',
                 }}>
                   {lang === 'en' ? 'Try easier?' : 'Попробовать полегче?'}
@@ -1509,7 +1509,7 @@ export default function Game() {
               )}
             </div>
             {sessionStats.streak > 1 && won && (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--gold)' }}>
                 {lang === 'en' ? 'Win streak' : 'Серия побед'}: {sessionStats.streak}
               </div>
             )}
@@ -1536,7 +1536,7 @@ export default function Game() {
                       {tournament.games.map((g, i) => (
                         <div key={i} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4,
                           background: g.won ? 'rgba(61,214,140,0.15)' : 'rgba(255,96,102,0.15)',
-                          color: g.won ? '#3dd68c' : '#ff6066' }}>
+                          color: g.won ? 'var(--green)' : 'var(--p2)' }}>
                           {g.score}
                         </div>
                       ))}
@@ -1594,7 +1594,7 @@ export default function Game() {
           {Array.from({ length: 40 }).map((_, i) => (
             <div key={i} className="confetti" style={{
               left: `${Math.random() * 100}%`,
-              background: ['#ffc145', '#6db4ff', '#ff6b6b', '#3dd68c', '#9b59b6', '#f0654a'][i % 6],
+              background: ['var(--gold)', 'var(--p1-light)', '#ff6b6b', 'var(--green)', '#9b59b6', '#f0654a'][i % 6],
               width: `${6 + Math.random() * 8}px`,
               height: `${6 + Math.random() * 8}px`,
               borderRadius: Math.random() > 0.5 ? '50%' : '2px',
@@ -1628,7 +1628,7 @@ export default function Game() {
             <div style={{ fontSize: 64, marginBottom: 16 }}>
               <svg viewBox="0 0 64 64" width="80" height="80"><path d="M32 4l8 16 18 3-13 13 3 18-16-8-16 8 3-18L6 23l18-3z" fill="#ffc145" stroke="#ffc145" strokeWidth="1"/></svg>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#ffc145', marginBottom: 8 }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)', marginBottom: 8 }}>
               {lang === 'en' ? 'First Victory!' : 'Первая победа!'}
             </div>
             <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 20 }}>

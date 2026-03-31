@@ -144,7 +144,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           {/* Online + Puzzles — split by vertical divider */}
           <div className="l-split">
             <div className="l-split-item">
-              <div className="l-split-bar" style={{ background: '#3dd68c' }} />
+              <div className="l-split-bar" style={{ background: 'var(--green)' }} />
               <div>
                 <div className="l-split-head"><Icon name="online" size={18} color="#3dd68c" /><h4>{c('landing.online_title', en ? 'Online multiplayer' : 'Онлайн мультиплеер')}</h4></div>
                 <p>{c('landing.online_desc', en ? 'Send a link to a friend — start playing in seconds. No signup. Best-of-3 and best-of-5 series.' : 'Ссылка другу — играйте через секунды. Без регистрации. Серии 3/5.')}</p>
@@ -152,7 +152,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             </div>
             <div className="l-split-line" />
             <div className="l-split-item">
-              <div className="l-split-bar" style={{ background: '#ffc145' }} />
+              <div className="l-split-bar" style={{ background: 'var(--gold)' }} />
               <div>
                 <div className="l-split-head"><Icon name="puzzle" size={18} color="#ffc145" /><h4>{c('landing.puzzles_title', en ? 'Daily puzzles' : 'Головоломки')}</h4></div>
                 <p>{c('landing.puzzles_desc', en ? 'New challenge every day. Harder one weekly. Bank of 50 with leaderboards.' : 'Новая задача каждый день. Сложная — каждую неделю. 50 штук с лидербордами.')}</p>
@@ -164,7 +164,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <div className="l-extras">
             {[
               { icon: 'trainer', c: '#9b59b6', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move. Position strength bar in real-time.' : 'AI оценивает каждый ход. Шкала силы позиции.' },
-              { icon: 'chart', c: '#3bb8a8', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
+              { icon: 'chart', c: 'var(--accent)', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
               { icon: 'theme', c: '#00bcd4', t: en ? '4 themes + PWA' : '4 темы + PWA', d: en ? 'Dark, neon, wood, light. Works offline. Home screen.' : 'Тёмная, неон, дерево, светлая. Оффлайн.' },
             ].map((f, i) => (
               <div key={i} className="l-extra" style={{ '--i': i }}>
@@ -183,13 +183,13 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       <section className="l-section">
         <div className={`l-who ${audVis ? 'in' : ''}`} ref={audRef}>
           {[
-            { c: '#ffc145', bg: 'rgba(255,193,69,0.06)', border: 'rgba(255,193,69,0.15)',
+            { c: 'var(--gold)', bg: 'rgba(255,193,69,0.06)', border: 'rgba(255,193,69,0.15)',
               icon: 'star', num: '8+', t: en ? 'Families' : 'Семьи',
               d: en ? 'Simple rules, deep strategy. Perfect for game nights with kids.' : 'Простые правила, глубокая стратегия. Идеально для вечеров с детьми.' },
-            { c: '#3dd68c', bg: 'rgba(61,214,140,0.06)', border: 'rgba(61,214,140,0.15)',
+            { c: 'var(--green)', bg: 'rgba(61,214,140,0.06)', border: 'rgba(61,214,140,0.15)',
               icon: 'trophy', num: '50:50', t: en ? 'Board gamers' : 'Настольщики',
               d: en ? 'Original mechanics. Mathematically verified balance on 239K games.' : 'Оригинальная механика. Баланс математически проверен на 239K партиях.' },
-            { c: '#4a9eff', bg: 'rgba(74,158,255,0.06)', border: 'rgba(74,158,255,0.15)',
+            { c: 'var(--p1)', bg: 'rgba(74,158,255,0.06)', border: 'rgba(74,158,255,0.15)',
               icon: 'online', num: '0s', t: en ? 'Online players' : 'Онлайн',
               d: en ? 'No signup needed. Share a link and play instantly from any device.' : 'Без регистрации. Отправьте ссылку — играйте с любого устройства.' },
           ].map((a, i) => (
