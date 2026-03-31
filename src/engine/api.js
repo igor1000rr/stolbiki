@@ -17,11 +17,15 @@ async function api(path, options = {}) {
 
   try {
     const res = await fetch(`${API_URL}${path}`, { ...options, headers: { ...headers, ...options.headers } })
+    if (res.status === 401 && _token) {
+      setToken(null)
+      localStorage.removeItem('stolbiki_profile')
+      window.dispatchEvent(new CustomEvent('stolbiki-auth-expired'))
+    }
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
     return data
   } catch (err) {
-    console.warn(`API error ${path}:`, err.message)
     throw err
   }
 }

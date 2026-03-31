@@ -108,7 +108,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
           </button>
         )}
         <button onClick={() => {
-          if (isLast) { localStorage.setItem('stolbiki_onboarding_done', '1'); onDone() }
+          if (isLast) { localStorage.setItem('stolbiki_onboarding_done', '1'); localStorage.setItem('stolbiki_tutorial_seen', '1'); onDone() }
           else setSlide(slide + 1)
         }} style={{
           flex: 2, padding: '14px 0', borderRadius: 12,
@@ -122,7 +122,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
 
       {/* Пропустить */}
       {!isLast && (
-        <button onClick={() => { localStorage.setItem('stolbiki_onboarding_done', '1'); onDone() }}
+        <button onClick={() => { localStorage.setItem('stolbiki_onboarding_done', '1'); localStorage.setItem('stolbiki_tutorial_seen', '1'); onDone() }}
           style={{ background: 'none', border: 'none', color: '#555', fontSize: 12, marginTop: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
           {en ? 'Skip' : 'Пропустить'}
         </button>
