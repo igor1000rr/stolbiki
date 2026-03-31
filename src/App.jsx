@@ -377,7 +377,7 @@ export default function App() {
           {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowTutorial(true)} publicStats={publicStats} />}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
-          <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
+          <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
           <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><Online /></div>
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
