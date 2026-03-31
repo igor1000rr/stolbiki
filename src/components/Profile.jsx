@@ -420,7 +420,13 @@ export default function Profile({ viewUsername, onClose }) {
       })
       // Отправляем на сервер
       if (serverOnline && API.isLoggedIn()) {
-        API.recordGame({ won, score, difficulty: vsHardAi ? 400 : 150, closedGolden, isComeback, isOnline: !!isOnline }).catch(() => {})
+        API.recordGame({ won, score, difficulty: vsHardAi ? 400 : 150, closedGolden, isComeback, isOnline: !!isOnline })
+          .then(res => {
+            if (res?.ratingDelta && typeof window.stolbikiOnRatingDelta === 'function') {
+              window.stolbikiOnRatingDelta(res.ratingDelta)
+            }
+          })
+          .catch(() => {})
       }
     }
     return () => { delete window.stolbikiRecordGame }

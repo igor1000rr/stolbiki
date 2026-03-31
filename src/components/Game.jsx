@@ -59,6 +59,7 @@ export default function Game() {
   const [scoreBump, setScoreBump] = useState(null)
   const [locked, setLocked] = useState(false)
   const [confetti, setConfetti] = useState(false)
+  const [ratingDelta, setRatingDelta] = useState(null)
   const [newAch, setNewAch] = useState(null)
   const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0 })
   const [gameStartTime, setGameStartTime] = useState(Date.now())
@@ -1303,6 +1304,18 @@ export default function Game() {
           <span style={{ fontSize: 12, color: '#3dd68c', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
             ✓ {SL(transfer[0])} → {SL(transfer[1])}
           </span>
+        )}
+        {isMyTurn && phase === 'place' && totalPlaced > 0 && (
+          <button className="btn" onClick={() => {
+            // Убрать 1 фишку с последней стойки
+            const keys = Object.keys(placement).map(Number)
+            if (keys.length === 0) return
+            const last = keys[keys.length - 1]
+            const newP = { ...placement }
+            if (newP[last] <= 1) delete newP[last]
+            else newP[last]--
+            setPlacement(newP)
+          }} aria-label="Undo last chip">↩</button>
         )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
           <button className="btn" onClick={() => setPlacement({})}>{t('game.reset')}</button>
