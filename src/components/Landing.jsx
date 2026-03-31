@@ -57,7 +57,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       <section className={`l-hero ${heroVis ? 'in' : ''}`} ref={heroRef}>
         <div className="l-hero-glow" />
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <img src="/logo-full.png" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
+          <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
         </div>
         <h1 className="l-hero-title">
           {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}

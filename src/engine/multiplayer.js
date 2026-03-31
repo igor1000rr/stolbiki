@@ -144,7 +144,7 @@ export function spectateRoom(roomId, callback) {
 if (typeof window !== 'undefined') {
   window.addEventListener('stolbiki-app-resume', () => {
     if (ws && ws.readyState !== 1 && onMessage && !intentionalClose) {
-      console.log('WS reconnect on resume')
+      // WS reconnect on resume
       reconnectAttempts = 0
       try {
         const newWs = new WebSocket(getWsUrl())

@@ -1953,16 +1953,6 @@ body.native-body { animation: none !important; }
 .native-app *:not(.chip) {
   box-shadow: none !important;
 }
-/* Фишки — border вместо тяжёлого box-shadow */
-.native-app .chip {
-  box-shadow: none !important;
-}
-.native-app .chip.p0 {
-  border: 1px solid rgba(74,158,255,0.4);
-}
-.native-app .chip.p1 {
-  border: 1px solid rgba(255,96,102,0.4);
-}
 
 /* Убиваем бесконечные анимации (glow, pulse), но оставляем одноразовые (chipDrop, scoreBump) */
 .native-app .stand.golden { animation: none !important; }
@@ -1970,13 +1960,6 @@ body.native-body { animation: none !important; }
 .native-app .score-num.p1 { animation: none !important; text-shadow: none !important; }
 /* Ускоряем transitions */
 .native-app * { transition-duration: 0.08s !important; }
-
-/* GPU acceleration для скролла */
-.native-app .site-content {
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: scroll-position;
-}
 
 /* ═══ BOTTOM TAB BAR ═══ */
 .native-tabs {
@@ -2038,10 +2021,12 @@ body.native-body { animation: none !important; }
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  transform: translateZ(0);
 }
 
 /* Hide desktop chrome */
@@ -2244,9 +2229,9 @@ body.native-body { animation: none !important; }
   max-width: none;
   width: auto;
   min-height: 140px;
-  /* высота определяется align-items:stretch от board */
   padding: 4px 2px 3px;
   border-radius: 8px 8px 0 0;
+  margin-bottom: 16px;
 }
 .native-app .chip {
   width: calc(100% - 4px);
@@ -2254,7 +2239,10 @@ body.native-body { animation: none !important; }
   height: clamp(9px, 1.8vh, 16px);
   border-radius: 5px;
   margin: 1px 0;
+  box-shadow: none !important;
 }
+.native-app .chip.p0 { border: 1px solid rgba(74,158,255,0.4); }
+.native-app .chip.p1 { border: 1px solid rgba(255,96,102,0.4); }
 .native-app .stand-label { font-size: clamp(8px, 2.2vw, 11px); top: -16px; }
 .native-app .stand-owner { font-size: 9px; }
 
@@ -2446,11 +2434,6 @@ body.native-body { animation: none !important; }
 .native-app .m-more-item:active,
 .native-app .puzzle-card .btn:active { opacity: 0.6; }
 
-.native-app .site-content {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-
 /* Tournament progress - compact */
 .native-app .tournament-progress {
   font-size: 11px;
@@ -2597,11 +2580,6 @@ body.native-body { animation: none !important; }
     border-left: 1px solid rgba(255,255,255,0.08);
     border-right: 1px solid rgba(255,255,255,0.08);
   }
-}
-
-/* ═══ NATIVE: Board chip count — не обрезается ═══ */
-.native-app .stand {
-  margin-bottom: 16px; /* место для chip count под стойкой */
 }
 
 /* ═══ NATIVE: Планшет — доска не слишком широкая ═══ */

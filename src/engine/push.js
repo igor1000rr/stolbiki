@@ -13,7 +13,7 @@ export async function initPush() {
     // Запрашиваем разрешение
     const perm = await PushNotifications.requestPermissions()
     if (perm.receive !== 'granted') {
-      console.log('Push: разрешение не получено')
+      // Push denied
       return
     }
 
@@ -22,7 +22,7 @@ export async function initPush() {
 
     // Получаем токен
     PushNotifications.addListener('registration', (token) => {
-      console.log('Push token:', token.value)
+      // Push registered
       // Отправляем токен на сервер
       const authToken = localStorage.getItem('stolbiki_token')
       if (authToken) {
@@ -41,13 +41,13 @@ export async function initPush() {
 
     // Уведомление получено (приложение на переднем плане)
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('Push received:', notification)
+      // Push foreground
       // Можно показать in-app banner
     })
 
     // Пользователь нажал на уведомление
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('Push action:', action)
+      // Push tap
       const data = action.notification.data
       // Навигация по типу уведомления
       if (data?.room) {
@@ -58,6 +58,6 @@ export async function initPush() {
     })
 
   } catch (err) {
-    console.log('Push: не доступен', err)
+    // Push unavailable
   }
 }

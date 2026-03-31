@@ -31,8 +31,8 @@ export async function loadWeights() {
   if (!gpuWeights && !loadingGpu) {
     loadingGpu = fetch(new URL('./gpu_weights.json', import.meta.url))
       .then(r => r.json())
-      .then(data => { gpuWeights = data; useGpu = true; console.log('GPU нейросеть: 840K params ✅') })
-      .catch(() => console.log('GPU нейросеть недоступна, CPU fallback'))
+      .then(data => { gpuWeights = data; useGpu = true })
+      .catch(() => {})
   }
   await loadingGpu
   return gpuWeights || cpuWeights

@@ -20,7 +20,7 @@ export default function SplashScreen({ onDone }) {
       transition: 'opacity 0.6s ease-out',
     }}>
       <img
-        src="/logo-full.png"
+        src="/logo-full.webp"
         alt="Snatch Highrise"
         style={{
           width: 'min(220px, 55vw)',

@@ -80,7 +80,7 @@ if (isNative) {
     }
   })
 
-  console.log('Capacitor native: API →', SERVER)
+  // Native mode
 }
 
 createRoot(document.getElementById('root')).render(

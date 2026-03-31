@@ -6,7 +6,7 @@ const SLIDES = [
     title_en: 'Welcome!',
     desc_ru: 'Snatch Highrise — стратегическая настольная игра для двоих с AI на нейросетях',
     desc_en: 'Snatch Highrise — a strategy board game for two with neural network AI',
-    icon: <img src="/logo-full.png" alt="Snatch Highrise" style={{ width: 200, height: 'auto' }} />,
+    icon: <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 200, height: 'auto' }} />,
   },
   {
     title_ru: 'Ставьте фишки',

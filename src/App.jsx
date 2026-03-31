@@ -310,7 +310,7 @@ export default function App() {
         <div className="site-header-inner">
           {/* Лого */}
           <div className="site-logo" onClick={() => go('landing')}>
-            <img src="/logo-text.png" alt="Snatch Highrise" style={{ height: 28, width: 'auto' }} />
+            <img src="/logo-text.webp" alt="Snatch Highrise" style={{ height: 28, width: 'auto' }} />
             <span className="beta-badge">beta</span>
           </div>
 
