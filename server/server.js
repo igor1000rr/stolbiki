@@ -394,6 +394,58 @@ app.get('/api/users/search', auth, (req, res) => {
   res.json(users)
 })
 
+// ═══ LOGIN STREAK ═══
+app.post('/api/streak/checkin', auth, (req, res) => {
+  const user = db.prepare('SELECT login_streak, best_login_streak, last_login_date, streak_freeze FROM users WHERE id=?').get(req.user.id)
+  if (!user) return res.status(404).json({ error: 'User not found' })
+
+  const today = new Date().toISOString().split('T')[0]
+  if (user.last_login_date === today) {
+    // Уже заходил сегодня
+    const calendar = db.prepare('SELECT date FROM daily_logins WHERE user_id=? ORDER BY date DESC LIMIT 30').all(req.user.id)
+    return res.json({ streak: user.login_streak, best: user.best_login_streak, today: true, freeze: user.streak_freeze, calendar: calendar.map(r => r.date) })
+  }
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+  let streak = user.login_streak || 0
+  let freeze = user.streak_freeze ?? 1
+
+  if (user.last_login_date === yesterday) {
+    streak += 1 // Продолжаем серию
+  } else if (user.last_login_date && user.last_login_date < yesterday) {
+    // Пропуск: проверяем streak freeze
+    const daysBefore = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
+    if (user.last_login_date === daysBefore && freeze > 0) {
+      streak += 1 // Freeze спасает
+      freeze -= 1
+    } else {
+      streak = 1 // Серия сброшена
+    }
+  } else {
+    streak = 1 // Первый вход
+  }
+
+  const best = Math.max(streak, user.best_login_streak || 0)
+  // Новый freeze каждый месяц
+  const lastMonth = user.last_login_date ? user.last_login_date.slice(0, 7) : ''
+  const thisMonth = today.slice(0, 7)
+  if (lastMonth !== thisMonth) freeze = 1
+
+  db.prepare('UPDATE users SET login_streak=?, best_login_streak=?, last_login_date=?, streak_freeze=? WHERE id=?')
+    .run(streak, best, today, freeze, req.user.id)
+  try { db.prepare('INSERT OR IGNORE INTO daily_logins (user_id, date) VALUES (?, ?)').run(req.user.id, today) } catch {}
+
+  const calendar = db.prepare('SELECT date FROM daily_logins WHERE user_id=? ORDER BY date DESC LIMIT 30').all(req.user.id)
+  res.json({ streak, best, today: false, isNew: true, freeze, calendar: calendar.map(r => r.date) })
+})
+
+app.get('/api/streak', auth, (req, res) => {
+  const user = db.prepare('SELECT login_streak, best_login_streak, last_login_date, streak_freeze FROM users WHERE id=?').get(req.user.id)
+  if (!user) return res.json({ streak: 0, best: 0, calendar: [] })
+  const calendar = db.prepare('SELECT date FROM daily_logins WHERE user_id=? ORDER BY date DESC LIMIT 30').all(req.user.id)
+  res.json({ streak: user.login_streak || 0, best: user.best_login_streak || 0, freeze: user.streak_freeze ?? 1, calendar: calendar.map(r => r.date) })
+})
+
 // ═══ PUSH NOTIFICATIONS ═══
 app.post('/api/push/register', auth, (req, res) => {
   const { token, platform } = req.body

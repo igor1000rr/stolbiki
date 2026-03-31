@@ -118,6 +118,15 @@ export async function updateAvatar(avatar) {
   return await api('/profile/avatar', { method: 'PUT', body: JSON.stringify({ avatar }) })
 }
 
+// ═══ Login streak ═══
+export async function streakCheckin() {
+  return await api('/streak/checkin', { method: 'POST' })
+}
+
+export async function getStreak() {
+  return await api('/streak')
+}
+
 // ═══ Health check ═══
 export async function checkServer() {
   try {

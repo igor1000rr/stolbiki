@@ -201,6 +201,21 @@ try { db.exec('ALTER TABLE users ADD COLUMN puzzles_solved INTEGER DEFAULT 0') }
 try { db.exec('ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT "default"') } catch {}
 try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
 
+// Login streak
+try { db.exec('ALTER TABLE users ADD COLUMN login_streak INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN best_login_streak INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN last_login_date TEXT') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN streak_freeze INTEGER DEFAULT 1') } catch {}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS daily_logins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    UNIQUE(user_id, date)
+  )
+`)
+
 // Push-токены
 db.exec(`
   CREATE TABLE IF NOT EXISTS push_tokens (

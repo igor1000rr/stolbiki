@@ -268,6 +268,7 @@ export default function Profile({ viewUsername, onClose }) {
   const [seasonData, setSeasonData] = useState(null)
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [openingStats, setOpeningStats] = useState(null)
+  const [streakData, setStreakData] = useState(null)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
@@ -299,6 +300,8 @@ export default function Profile({ viewUsername, onClose }) {
     // Opening stats
     API.getOpeningStats()
       .then(setOpeningStats).catch(() => {})
+    // Login streak
+    API.getStreak().then(setStreakData).catch(() => {})
   }, [serverOnline]) // eslint-disable-line
 
   async function loadFriends() {
@@ -588,6 +591,33 @@ export default function Profile({ viewUsername, onClose }) {
                 <div style={{ fontSize: 10, color: '#6b6880' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
               </div>
             </div>
+            {streakData && streakData.streak > 0 && (
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,193,69,0.06)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 2c.7 5.5-2.8 7-2.8 11a5.6 5.6 0 0011.2 0c0-4-3.5-5.5-2.8-11" stroke="#ffc145" strokeWidth="1.5" fill="rgba(255,193,69,0.15)"/></svg>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#ffc145' }}>{streakData.streak}</span>
+                  <span style={{ fontSize: 11, color: '#a09cb0', marginLeft: 6 }}>{en ? 'day streak' : (streakData.streak >= 5 ? 'дней подряд' : streakData.streak >= 2 ? 'дня подряд' : 'день')}</span>
+                </div>
+                <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Best' : 'Рекорд'}: {streakData.best}</div>
+                {streakData.freeze > 0 && <div style={{ fontSize: 9, color: '#4a9eff', padding: '2px 6px', background: 'rgba(74,158,255,0.1)', borderRadius: 4 }}>{en ? 'Freeze' : 'Защита'}: {streakData.freeze}</div>}
+              </div>
+            )}
+            {streakData && streakData.calendar && streakData.calendar.length > 0 && (
+              <div style={{ marginTop: 10, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                {Array.from({ length: 30 }).map((_, i) => {
+                  const d = new Date(Date.now() - (29 - i) * 86400000)
+                  const dateStr = d.toISOString().split('T')[0]
+                  const active = streakData.calendar.includes(dateStr)
+                  const isToday = dateStr === new Date().toISOString().split('T')[0]
+                  return <div key={i} title={dateStr} style={{
+                    width: 14, height: 14, borderRadius: 3,
+                    background: active ? '#3dd68c' : 'rgba(255,255,255,0.04)',
+                    border: isToday ? '1.5px solid #ffc145' : '1px solid rgba(255,255,255,0.06)',
+                    opacity: active ? 1 : 0.4,
+                  }} />
+                })}
+              </div>
+            )}
           </div>
 
           {/* Avatar picker */}
