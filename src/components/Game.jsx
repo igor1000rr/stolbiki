@@ -875,15 +875,15 @@ export default function Game() {
         </div>
       )}
       {mode === 'online' && (
-        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
-          background: 'rgba(61,214,140,0.08)', borderRadius: 12, border: '1px solid rgba(61,214,140,0.15)' }}>
-          <span style={{ fontSize: 12, color: '#3dd68c', fontWeight: 600 }}>Онлайн — {onlinePlayers.join(' vs ')}</span>
+        <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
+          background: 'rgba(61,214,140,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(61,214,140,0.15)' }}>
+          <span style={{ fontSize: isNative ? 11 : 12, color: '#3dd68c', fontWeight: 600 }}>Онлайн — {onlinePlayers.join(' vs ')}</span>
         </div>
       )}
       {mode === 'spectate-online' && (
-        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
-          background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
-          <span style={{ fontSize: 12, color: '#c8a4e8', fontWeight: 600 }}>
+        <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
+          background: 'rgba(155,89,182,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(155,89,182,0.15)' }}>
+          <span style={{ fontSize: isNative ? 11 : 12, color: '#c8a4e8', fontWeight: 600 }}>
             <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="#c8a4e8" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 4 }}><circle cx="10" cy="10" r="3"/><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/></svg>
             {onlinePlayers.join(' vs ')}
           </span>
@@ -1132,22 +1132,44 @@ export default function Game() {
       )}
 
       {/* Прогресс закрытия стоек */}
-      <div style={{ display: 'flex', gap: 2, margin: '8px 0', padding: '0 4px' }}>
-        {Array.from({ length: 10 }).map((_, i) => {
-          const owner = gs.closed[i]
-          return (
-            <div key={i} style={{
-              flex: 1, height: 4, borderRadius: 2,
-              background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : '#2a2a38',
-              opacity: owner !== undefined ? 0.9 : 0.3,
-              transition: 'all 0.3s',
-            }} />
-          )
-        })}
-      </div>
-      <div style={{ textAlign: 'center', fontSize: 10, color: '#555', marginBottom: 6 }}>
-        Ход {gs.turn} · Открыто: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
-      </div>
+      {isNative ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 8px', padding: '0' }}>
+          <div style={{ display: 'flex', gap: 1, flex: 1 }}>
+            {Array.from({ length: 10 }).map((_, i) => {
+              const owner = gs.closed[i]
+              return (
+                <div key={i} style={{
+                  flex: 1, height: 3, borderRadius: 1.5,
+                  background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : '#2a2a38',
+                  opacity: owner !== undefined ? 0.9 : 0.3,
+                }} />
+              )
+            })}
+          </div>
+          <span style={{ fontSize: 9, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {lang === 'en' ? 'Move' : 'Ход'} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+          </span>
+        </div>
+      ) : (
+        <>
+        <div style={{ display: 'flex', gap: 2, margin: '8px 0', padding: '0 4px' }}>
+          {Array.from({ length: 10 }).map((_, i) => {
+            const owner = gs.closed[i]
+            return (
+              <div key={i} style={{
+                flex: 1, height: 4, borderRadius: 2,
+                background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : '#2a2a38',
+                opacity: owner !== undefined ? 0.9 : 0.3,
+                transition: 'all 0.3s',
+              }} />
+            )
+          })}
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 10, color: '#555', marginBottom: 6 }}>
+          Ход {gs.turn} · Открыто: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+        </div>
+        </>
+      )}
 
       {/* Тренер — оценка позиции */}
       {trainerMode && posEval && mode === 'ai' && !gs.gameOver && (
@@ -1327,17 +1349,20 @@ export default function Game() {
         const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
         const goldenOwned = (0 in gs.closed)
         const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
+        const accentColor = isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'
+        const iconSize = isNative ? 48 : 32
         return (
-          <div className="game-result" style={{ borderLeft: `3px solid ${isDraw ? '#9b59b6' : won ? '#3dd68c' : '#ff6066'}`, textAlign: 'center' }}>
-            <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'center' }}>
+          <div className="game-result" style={{ ...(isNative ? {} : { borderLeft: `3px solid ${accentColor}` }), textAlign: 'center' }}>
+            {isNative && <div style={{ width: 60, height: 3, borderRadius: 2, background: accentColor, margin: '0 auto 16px', opacity: 0.8 }} />}
+            <div style={{ marginBottom: isNative ? 8 : 4, display: 'flex', justifyContent: 'center' }}>
               {isDraw
-                ? <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#9b59b6" strokeWidth="2"><path d="M6 13h20M6 19h20"/></svg>
+                ? <svg viewBox="0 0 32 32" width={iconSize} height={iconSize} fill="none" stroke="#9b59b6" strokeWidth="2"><path d="M6 13h20M6 19h20"/></svg>
                 : won
-                ? <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#3dd68c" strokeWidth="2.5"><path d="M6 17l7 7L26 8"/></svg>
-                : <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#ff6066" strokeWidth="2.5"><path d="M8 8l16 16M24 8L8 24"/></svg>
+                ? <svg viewBox="0 0 32 32" width={iconSize} height={iconSize} fill="none" stroke="#3dd68c" strokeWidth="2.5"><path d="M6 17l7 7L26 8"/></svg>
+                : <svg viewBox="0 0 32 32" width={iconSize} height={iconSize} fill="none" stroke="#ff6066" strokeWidth="2.5"><path d="M8 8l16 16M24 8L8 24"/></svg>
               }
             </div>
-            <span style={{ fontSize: 20 }}>{isDraw
+            <span style={{ fontSize: isNative ? 24 : 20, fontWeight: isNative ? 700 : 400 }}>{isDraw
               ? (t('game.draw'))
               : mode === 'pvp'
               ? `${result === 0 ? t('game.blueWin') : t('game.redWin')}`
@@ -1345,18 +1370,18 @@ export default function Game() {
               ? (won ? t('game.victory') : t('game.defeat'))
               : (won ? t('game.victory') : t('game.aiWins'))
             }</span>
-            <div style={{ fontSize: 32, fontWeight: 700, margin: '6px 0', color: 'var(--ink)' }}>{s0} : {s1}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ fontSize: isNative ? 44 : 32, fontWeight: 700, margin: isNative ? '12px 0' : '6px 0', color: 'var(--ink)' }}>{s0} : {s1}</div>
+            <div style={{ fontSize: isNative ? 12 : 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
               <span>{lang === 'en' ? 'Moves' : 'Ходов'}: {gs.turn}</span>
               <span>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
               {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {lang === 'en' ? 'Golden' : 'Золотая'}</span>}
             </div>
-            <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', maxWidth: 280, margin: '24px auto 0' } : {}) }}>
               {!tournament && (
                 <button className="btn primary" onClick={() => {
                   if (mode === 'online' || mode === 'spectate-online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))
                   else newGame()
-                }} style={{ fontSize: 12, padding: '8px 16px' }}>
+                }} style={{ fontSize: isNative ? 16 : 12, padding: isNative ? '14px 24px' : '8px 16px', justifyContent: 'center' }}>
                   {(mode === 'online' || mode === 'spectate-online') ? (t('game.backToLobby')) : (t('game.anotherGame'))}
                 </button>
               )}
@@ -1365,7 +1390,7 @@ export default function Game() {
                   MP.sendRematchOffer()
                   setRematchPending(true)
                   setInfo(t('game.rematchWaiting'))
-                }} style={{ fontSize: 12, padding: '8px 16px', borderColor: '#3dd68c', color: '#3dd68c' }}>
+                }} style={{ fontSize: isNative ? 15 : 12, padding: isNative ? '12px 20px' : '8px 16px', borderColor: '#3dd68c', color: '#3dd68c', justifyContent: 'center' }}>
                   {t('game.rematch')}
                 </button>
               )}
@@ -1373,7 +1398,7 @@ export default function Game() {
                 <span style={{ fontSize: 11, color: 'var(--ink3)', padding: '8px 12px' }}>{t('game.rematchWaiting')}</span>
               )}
               {mode === 'ai' && !tournament && (
-                <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: 12, padding: '8px 14px' }}>
+                <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 20px' : '8px 14px', justifyContent: 'center' }}>
                   Switch side
                 </button>
               )}
@@ -1395,7 +1420,7 @@ export default function Game() {
                 } catch {
                   navigator.clipboard?.writeText(shareText)
                 }
-              }} style={{ fontSize: 12, padding: '8px 12px' }}>
+              }} style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center' }}>
                 {t('game.share')}
               </button>
               {moveHistoryRef.current.length > 0 && (

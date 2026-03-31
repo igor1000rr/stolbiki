@@ -2031,13 +2031,6 @@ body.native-body *::after {
 .native-app .site-header,
 .native-app .site-footer { display: none !important; }
 
-/* Bigger touch targets */
-.native-app .btn,
-.native-app button { min-height: 38px; }
-.native-app select { font-size: 15px; min-height: 38px; }
-.native-app .game-controls label { font-size: 13px; }
-.native-app .game-controls { gap: 6px; }
-
 /* ═══ Mobile Game Bar ═══ */
 .m-game-bar {
   display: flex;
@@ -2204,97 +2197,115 @@ body.native-body *::after {
 
 /* ═══ Native game adjustments ═══ */
 .native-app .game-settings { display: none; }
-.native-app .scoreboard { margin-bottom: 4px; }
-.native-app .game-info { font-size: 12px; margin-bottom: 4px; }
-.native-app .actions { gap: 6px; flex-wrap: wrap; justify-content: center; padding: 4px 8px; }
-.native-app .actions .btn { font-size: 13px; padding: 10px 14px; border-radius: 10px; }
-.native-app .actions .btn.primary { min-width: 120px; font-size: 14px; }
-.native-app .game-result { margin: 8px 4px; padding: 16px; border-radius: 14px; }
-.native-app .hint-panel { margin: 4px; border-radius: 10px; }
-.native-app .place-controls { font-size: 12px; }
 
-/* Compact session stats */
-.native-app .game-container { padding: 0 4px; }
+/* ═══ NATIVE: Game container — без лишних отступов ═══ */
+.native-app .game-container { padding: 0; }
 
-/* ═══ NATIVE: Board — максимум экрана ═══ */
+/* ═══ NATIVE: Board — edge-to-edge, адаптивные стойки ═══ */
 .native-app .board {
-  margin: 0 -4px;
+  margin: 0;
   border-radius: 0;
-  padding: 8px 2px 12px;
+  padding: 10px 4px 14px;
+  gap: clamp(1px, 0.5vw, 4px);
+  border-left: none;
+  border-right: none;
+  margin-bottom: 6px;
 }
-.native-app .stand-label { font-size: 9px; }
+.native-app .stand {
+  flex: 1;
+  max-width: none;
+  width: auto;
+  min-height: clamp(115px, 22vh, 190px);
+  padding: 4px 2px 3px;
+  border-radius: 8px 8px 0 0;
+}
+.native-app .chip {
+  width: calc(100% - 4px);
+  max-width: clamp(22px, 7vw, 40px);
+  height: clamp(8px, 1.6vh, 12px);
+  border-radius: 5px;
+}
+.native-app .stand-label { font-size: clamp(8px, 2.2vw, 11px); top: -16px; }
+.native-app .stand-owner { font-size: 9px; }
 
 /* ═══ NATIVE: Scoreboard — компактная строка ═══ */
 .native-app .scoreboard {
-  gap: 16px;
-  margin-bottom: 2px;
-  padding: 4px 0;
+  gap: 20px;
+  margin-bottom: 0;
+  padding: 6px 0 2px;
 }
-.native-app .score-num { font-size: 28px; }
-.native-app .score-label { font-size: 10px; }
-.native-app .score-sep { font-size: 16px; }
+.native-app .score-num { font-size: 32px; }
+.native-app .score-label { font-size: 9px; letter-spacing: 1.5px; }
+.native-app .score-sep { font-size: 16px; padding-bottom: 6px; }
 
-/* ═══ NATIVE: Info + Log ═══ */
+/* ═══ NATIVE: Info ═══ */
 .native-app .game-info {
   font-size: 12px;
   margin-bottom: 2px;
-  padding: 4px 8px;
-}
-.native-app .game-log {
-  max-height: 60px;
-  font-size: 10px;
-  padding: 6px 8px;
-  margin: 0 0 4px;
-  border-radius: 8px;
+  padding: 2px 8px;
+  min-height: 16px;
 }
 
-/* ═══ NATIVE: Action buttons — большие, удобные ═══ */
+/* ═══ NATIVE: Action buttons — горизонтальный скролл ═══ */
 .native-app .actions {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 6px 8px 2px;
-  margin-bottom: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 12px 6px;
+  margin-bottom: 2px;
+  justify-content: flex-start;
 }
+.native-app .actions::-webkit-scrollbar { display: none; }
 .native-app .actions .btn {
-  font-size: 14px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  min-height: 44px;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  min-height: 42px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .native-app .actions .btn.primary {
-  min-width: 140px;
-  font-size: 15px;
-  padding: 12px 20px;
+  min-width: 110px;
+  font-size: 14px;
+  padding: 10px 20px;
 }
 
-/* ═══ NATIVE: Game result — чистый modal ═══ */
+/* ═══ NATIVE: Game result — overlay fullscreen ═══ */
 .native-app .game-result {
-  margin: 6px 0;
-  padding: 20px 16px;
-  border-radius: 16px;
-  border-left-width: 4px;
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  border-left: none;
+  background: rgba(13,13,20,0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: env(safe-area-inset-top, 20px) 20px calc(60px + env(safe-area-inset-bottom)) 20px;
 }
 .native-app .game-result .btn {
-  font-size: 14px;
-  padding: 12px 18px;
+  font-size: 15px;
+  padding: 14px 20px;
   border-radius: 12px;
-  min-height: 44px;
+  min-height: 48px;
 }
 .native-app .game-result .btn.primary {
-  min-width: 140px;
+  min-width: 160px;
 }
 
 /* ═══ NATIVE: Place controls ═══ */
 .native-app .place-controls {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 4px 12px;
+  font-size: 11px;
 }
-
-/* ═══ NATIVE: Progress bar (стойки) ═══ */
-.native-app .stand-progress { margin: 4px 0; }
 
 /* ═══ NATIVE: Hint panel ═══ */
 .native-app .hint-panel {
@@ -2304,11 +2315,14 @@ body.native-body *::after {
   font-size: 12px;
 }
 
+/* ═══ NATIVE: Log hidden ═══ */
+.native-app .game-log { display: none; }
+
 /* ═══ NATIVE: Online lobby ═══ */
 .native-app .dash-card {
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 16px;
-  margin: 8px 8px;
+  margin: 8px 12px;
 }
 .native-app .dash-card h3 { font-size: 17px; }
 .native-app .dash-card .btn {
@@ -2339,48 +2353,39 @@ body.native-body *::after {
 /* ═══ NATIVE: Profile ═══ */
 .native-app .profile-card {
   border-radius: 16px;
-  margin: 8px;
+  margin: 8px 12px;
 }
-.native-app .profile-stat {
-  font-size: 13px;
-}
+.native-app .profile-stat { font-size: 13px; }
 
 /* ═══ NATIVE: Rules / Blog / Changelog ═══ */
-.native-app article {
-  padding: 0 12px;
-}
+.native-app article { padding: 0 12px; }
 .native-app article h1 { font-size: 22px; }
 .native-app article h2 { font-size: 18px; }
 
 /* ═══ NATIVE: Общие улучшения ═══ */
-/* Убираем user-select на всех интерактивных элементах */
 .native-app button,
 .native-app a,
 .native-app input,
 .native-app select { -webkit-user-select: none; user-select: none; }
 
-/* Inputs — крупнее */
 .native-app input[type="text"],
 .native-app input[type="password"] {
-  font-size: 16px; /* Предотвращает zoom на iOS */
+  font-size: 16px;
   padding: 12px;
   border-radius: 10px;
   min-height: 44px;
 }
 
-/* Cards */
 .native-app .dash-card,
 .native-app .puzzle-card,
 .native-app .profile-card {
   border: 1px solid rgba(255,255,255,0.05);
 }
 
-/* Active states */
 .native-app .dash-card .btn:active,
 .native-app .m-more-item:active,
 .native-app .puzzle-card .btn:active { opacity: 0.6; }
 
-/* Smooth scrolling inside content */
 .native-app .site-content {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -2389,12 +2394,12 @@ body.native-body *::after {
 /* Tournament progress - compact */
 .native-app .tournament-progress {
   font-size: 11px;
-  padding: 8px 12px;
-  margin-bottom: 6px;
+  padding: 6px 12px;
+  margin-bottom: 4px;
 }
 
 /* Session stats - inline compact */
-.native-app .session-stats { font-size: 11px; margin-bottom: 4px; }
+.native-app .session-stats { font-size: 11px; margin-bottom: 2px; }
 .m-more-page { padding: 16px; }
 .m-more-user {
   display: flex;
@@ -2468,14 +2473,35 @@ body.native-body *::after {
   vertical-align: middle;
 }
 
-/* ═══ NATIVE: Hide game log (takes up space, not useful on phone) ═══ */
-.native-app .game-log { display: none; }
-
-/* ═══ NATIVE: Confetti — reduce count via opacity for performance ═══ */
+/* ═══ NATIVE: Confetti — reduce count for performance ═══ */
 .native-app .confetti-container { opacity: 0.7; }
 .native-app .confetti:nth-child(n+20) { display: none; }
 
 /* ═══ NATIVE: Tutorial popup ═══ */
 .native-app .tutorial-modal {
   padding: 12px;
+}
+
+/* ═══ NATIVE: Bigger touch targets globally ═══ */
+.native-app .btn,
+.native-app button { min-height: 38px; }
+.native-app select { font-size: 15px; min-height: 38px; }
+.native-app .game-controls label { font-size: 13px; }
+.native-app .game-controls { gap: 6px; }
+
+/* ═══ NATIVE: Stand fill indicator — скрываем ghost arrows на маленьких экранах ═══ */
+@media (max-width: 380px) {
+  .native-app .stand-ghost-from::after,
+  .native-app .stand-ghost-to::after { display: none; }
+}
+
+/* ═══ NATIVE: Landscape optimization ═══ */
+@media (max-height: 600px) and (orientation: landscape) {
+  .native-app .board { min-height: auto; }
+  .native-app .stand { min-height: 90px !important; }
+  .native-app .scoreboard { padding: 2px 0; }
+  .native-app .score-num { font-size: 24px; }
+  .native-app .native-tabs { height: 40px; }
+  .native-app .native-tab-label { display: none; }
+  .native-app .site-content { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 }
