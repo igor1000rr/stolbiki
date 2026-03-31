@@ -35,9 +35,10 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghos
 
 export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null }) {
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
-  const [newChipMap, setNewChipMap] = useState({}) // { standIdx: { from, count } }
+  const [newChipMap, setNewChipMap] = useState({})
   const [flashSet, setFlashSet] = useState(new Set())
-  const [particles, setParticles] = useState({}) // { standIdx: [{ id, x, y, color, dx, dy }] }
+  const [particles, setParticles] = useState({})
+  const [shaking, setShaking] = useState(false)
 
   useEffect(() => {
     const prev = prevRef.current
@@ -83,7 +84,9 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
 
     if (fl.size > 0) {
       setFlashSet(fl)
+      setShaking(true)
       timers.push(setTimeout(() => setFlashSet(new Set()), 1000))
+      timers.push(setTimeout(() => setShaking(false), 600))
     }
 
     if (Object.keys(newParticles).length > 0) {
@@ -97,7 +100,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
   const standOrder = flip ? [...Array(state.numStands).keys()].reverse() : [...Array(state.numStands).keys()]
 
   return (
-    <div className={`board ${aiThinking ? 'board-thinking' : ''} ${flip ? 'board-flipped' : ''}`}>
+    <div className={`board board-3d ${aiThinking ? 'board-thinking' : ''} ${flip ? 'board-flipped' : ''} ${shaking ? 'board-shake' : ''}`}>
       {standOrder.map((i) => {
         const chips = state.stands[i]
         const isClosed = i in state.closed
@@ -113,7 +116,7 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
         if (isClosed) cls += ' closed'
         if (isSelected) cls += ' selected'
         if (isTarget) cls += ' target'
-        if (isFlashing) cls += ' stand-flash'
+        if (isFlashing) cls += ' stand-flash stand-closing'
         if (ghostTransfer && ghostTransfer.from === i) cls += ' stand-ghost-from'
         if (ghostTransfer && ghostTransfer.to === i) cls += ' stand-ghost-to'
 
