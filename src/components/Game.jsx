@@ -1376,7 +1376,7 @@ export default function Game() {
               <span>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
               {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {lang === 'en' ? 'Golden' : 'Золотая'}</span>}
             </div>
-            <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', maxWidth: 280, margin: '24px auto 0' } : {}) }}>
+            <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>
               {!tournament && (
                 <button className="btn primary" onClick={() => {
                   if (mode === 'online' || mode === 'spectate-online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))

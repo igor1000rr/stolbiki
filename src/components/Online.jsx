@@ -5,6 +5,7 @@ import Icon from './Icon'
 
 // Ежедневный челлендж
 function DailyChallenge() {
+  const isNative = !!window.Capacitor?.isNativePlatform?.()
   const [daily, setDaily] = useState(null)
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,7 +31,7 @@ function DailyChallenge() {
 
   const dateStr = daily.date || daily.seed
   return (
-    <div className="dash-card" style={{ maxWidth: 560, margin: '16px auto' }}>
+    <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <span style={{ fontSize: 24, opacity: 0.5 }}>Daily</span>
         <div>
@@ -352,7 +353,7 @@ export default function Online() {
   if (screen === 'lobby') {
     return (
       <div>
-        <div className="dash-card" style={{ maxWidth: 560, margin: '20px auto', textAlign: 'center' }}>
+        <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
           
           <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>Играй с другом по ссылке — без регистрации</p>
@@ -395,7 +396,7 @@ export default function Online() {
 
         {/* QR код сайта — только для десктопа */}
         {!isNative && (
-        <div className="dash-card" style={{ maxWidth: 560, margin: '16px auto', textAlign: 'center' }}>
+        <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto', textAlign: 'center' }}>
           <h3 style={{ marginBottom: 12 }}>QR — открой с телефона</h3>
           <QRCode text={location.origin} size={180} />
           <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10 }}>Отсканируй чтобы играть на телефоне</p>
@@ -406,7 +407,7 @@ export default function Online() {
         <DailyChallenge />
 
         {/* Наблюдение за играми */}
-        <div className="dash-card" style={{ maxWidth: 560, margin: '16px auto' }}>
+        <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{ fontSize: 14, color: '#eae8f2', marginBottom: 0 }}>{en ? 'Live games' : 'Живые партии'}</h3>
             <button className="btn" onClick={loadActiveRooms} disabled={loadingRooms}
@@ -447,7 +448,7 @@ export default function Online() {
   if (screen === 'searching') {
     return (
       <div>
-        <div className="dash-card" style={{ maxWidth: 400, margin: '40px auto', textAlign: 'center' }}>
+        <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '16px auto' : '40px auto', textAlign: 'center' }}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'inline-flex', gap: 4 }}>
               {[0, 0.2, 0.4].map((d, i) => (
@@ -472,7 +473,7 @@ export default function Online() {
   // ─── WAITING ───
   if (screen === 'waiting') {
     return (
-      <div className="dash-card" style={{ maxWidth: 560, margin: '20px auto', textAlign: 'center' }}>
+      <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
         <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
           Комната {roomId}
@@ -598,7 +599,7 @@ export default function Online() {
     const won = w === playerIdx
     const draw = w === -1
     return (
-      <div className="dash-card" style={{ maxWidth: 560, margin: '20px auto', textAlign: 'center' }}>
+      <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>{draw ? '=' : won ? '+' : '-'}</div>
         <h3 style={{ fontSize: 20, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
           {draw ? 'Ничья!' : won ? 'Вы победили в турнире!' : 'Противник победил'}

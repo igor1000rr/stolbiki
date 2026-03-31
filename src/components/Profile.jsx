@@ -243,6 +243,7 @@ const loadProfile = loadLocal
 const saveProfile = saveLocal
 
 export default function Profile({ viewUsername, onClose }) {
+  const isNative = !!window.Capacitor?.isNativePlatform?.()
   const [profile, setProfile] = useState(loadLocal)
   const [publicProfile, setPublicProfile] = useState(null)
   const [publicLoading, setPublicLoading] = useState(false)
@@ -423,12 +424,12 @@ export default function Profile({ viewUsername, onClose }) {
   // ─── Публичный профиль (просмотр чужого) ───
   if (viewUsername) {
     if (publicLoading) return (
-      <div className="dash-card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center', padding: 40 }}>
+      <div className="dash-card" style={{ maxWidth: 500, margin: isNative ? '12px auto' : '40px auto', textAlign: 'center', padding: isNative ? 24 : 40 }}>
         <div style={{ fontSize: 14, color: 'var(--ink3)' }}>Загрузка...</div>
       </div>
     )
     if (!publicProfile) return (
-      <div className="dash-card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center', padding: 40 }}>
+      <div className="dash-card" style={{ maxWidth: 500, margin: isNative ? '12px auto' : '40px auto', textAlign: 'center', padding: isNative ? 24 : 40 }}>
         <div style={{ fontSize: 14, color: '#ff6066' }}>Пользователь не найден</div>
         {onClose && <button className="btn" onClick={onClose} style={{ marginTop: 12 }}>← Назад</button>}
       </div>
@@ -494,7 +495,7 @@ export default function Profile({ viewUsername, onClose }) {
       background: '#1e1e28', color: '#e8e6f0', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
     return (
       <div>
-        <div className="dash-card" style={{ maxWidth: 400, margin: '40px auto', textAlign: 'center' }}>
+        <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '16px auto' : '40px auto', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}></div>
           <h3>{loginMode ? 'Вход' : 'Регистрация'}</h3>
           {serverOnline && (
@@ -547,10 +548,10 @@ export default function Profile({ viewUsername, onClose }) {
   return (
     <div>
       {/* Мини-навигация */}
-      <div className="profile-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="profile-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', flexWrap: 'nowrap', padding: '0 2px' }}>
         {tabs.map(t => (
           <button key={t.id} className={`btn ${tab === t.id ? 'primary' : ''}`}
-            onClick={() => setTab(t.id)} style={{ fontSize: 12, padding: '6px 12px' }}>{t.label}</button>
+            onClick={() => setTab(t.id)} style={{ fontSize: 12, padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0 }}>{t.label}</button>
         ))}
       </div>
 

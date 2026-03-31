@@ -2510,6 +2510,10 @@ body.native-body *::after {
 .native-app h2 { font-size: 20px; }
 .native-app .dash-card h3 { line-height: 1.3; }
 
+/* Profile tabs — скрыть scrollbar */
+.profile-tabs::-webkit-scrollbar { display: none; }
+.profile-tabs { scrollbar-width: none; }
+
 /* ═══ Profile stats grid — responsive ═══ */
 .profile-stats-grid {
   display: grid;
@@ -2521,5 +2525,42 @@ body.native-body *::after {
   .profile-stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+  }
+}
+
+/* ═══ NATIVE: Tab bar — ограничить ширину на планшетах ═══ */
+@media (min-width: 600px) {
+  .native-tabs {
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 16px 16px 0 0;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+}
+
+/* ═══ NATIVE: Board chip count — не обрезается ═══ */
+.native-app .stand {
+  margin-bottom: 16px; /* место для chip count под стойкой */
+}
+
+/* ═══ NATIVE: Планшет — доска не слишком широкая ═══ */
+@media (min-width: 600px) {
+  .native-app .board {
+    max-width: 560px;
+    margin: 0 auto;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .native-app .stand {
+    max-width: 52px;
+  }
+  .native-app .chip {
+    max-width: 38px;
+    height: 12px;
+  }
+  /* Game result кнопки шире на планшете */
+  .native-app .game-result .btn {
+    min-width: 200px;
   }
 }

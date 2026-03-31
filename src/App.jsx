@@ -378,20 +378,20 @@ export default function App() {
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? 'block' : 'none' }}><Game /></div>
-          <div style={{ display: tab === 'online' ? 'block' : 'none' }}><Online /></div>
+          <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><Online /></div>
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
-          {tab === 'puzzles' && <Puzzles />}
-          {tab === 'openings' && <Openings />}
-          {tab === 'blog' && <Blog />}
-          {tab === 'settings' && <Settings />}
-          {tab === 'profile' && <Profile viewUsername={viewProfile} onClose={viewProfile ? () => setViewProfile(null) : null} />}
+          {tab === 'puzzles' && <div style={isNative ? { padding: '0 8px' } : undefined}><Puzzles /></div>}
+          {tab === 'openings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
+          {tab === 'blog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
+          {tab === 'settings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
+          {tab === 'profile' && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
           {tab === 'sim' && isAdmin && <Simulator />}
           {tab === 'dash' && isAdmin && <Dashboard />}
           {tab === 'replay' && isAdmin && <Replay />}
           {tab === 'admin' && isAdmin && <Admin />}
-          {tab === 'changelog' && <Changelog />}
-          {tab === 'rules' && <Rules />}
+          {tab === 'changelog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
+          {tab === 'rules' && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
           {tab === 'more' && isNative && (
             <div className="m-more-page">
               {authUser && (

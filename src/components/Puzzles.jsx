@@ -333,7 +333,7 @@ export default function Puzzles() {
 
       {/* ═══ FEATURED: daily + weekly ═══ */}
       {tab === 'featured' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
           {/* Daily */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -427,7 +427,7 @@ export default function Puzzles() {
           </div>
 
           {/* Список */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 10 }}>
             {bank?.puzzles?.map(p => (
               <PuzzleCard key={p.id} puzzle={p} lang={lang}
                 userSolved={solvedSet.has(`bank:${p.id}`)}
