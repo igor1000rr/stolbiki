@@ -61,7 +61,8 @@ export default function Game() {
   const [confetti, setConfetti] = useState(false)
   const [ratingDelta, setRatingDelta] = useState(null)
   const [newAch, setNewAch] = useState(null)
-  const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0 })
+  const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0, loseStreak: 0 })
+  const [firstWinCelebration, setFirstWinCelebration] = useState(false)
   const [gameStartTime, setGameStartTime] = useState(Date.now())
   const [elapsed, setElapsed] = useState(0)
   const [undoStack, setUndoStack] = useState([])
@@ -445,7 +446,13 @@ export default function Game() {
       wins: prev.wins + (won ? 1 : 0),
       losses: prev.losses + (won ? 0 : 1),
       streak: won ? prev.streak + 1 : 0,
+      loseStreak: won ? 0 : prev.loseStreak + 1,
     }))
+    // First win celebration — один раз в жизни
+    if (won && !localStorage.getItem('stolbiki_first_win')) {
+      localStorage.setItem('stolbiki_first_win', '1')
+      setTimeout(() => { setFirstWinCelebration(true); setTimeout(() => setFirstWinCelebration(false), 5000) }, 800)
+    }
   }, [result]) // eslint-disable-line
 
   useEffect(() => {
@@ -1436,6 +1443,18 @@ export default function Game() {
                   {lang === 'en' ? 'Switch side' : 'Сменить сторону'}
                 </button>
               )}
+              {mode === 'ai' && !won && !isDraw && sessionStats.loseStreak >= 3 && difficulty > 50 && (
+                <button className="btn" onClick={() => {
+                  const easier = difficulty >= 400 ? 200 : difficulty >= 200 ? 100 : 50
+                  newGame(humanPlayer, easier, mode)
+                }} style={{
+                  fontSize: isNative ? 14 : 12, padding: isNative ? '12px 20px' : '8px 14px',
+                  justifyContent: 'center', borderColor: '#ffc145', color: '#ffc145',
+                  animation: 'fadeIn 0.5s ease',
+                }}>
+                  {lang === 'en' ? 'Try easier?' : 'Попробовать полегче?'}
+                </button>
+              )}
               <button className="btn" onClick={async () => {
                 try {
                   const c = generateShareImage(gs, won, isDraw, s0, s1)
@@ -1567,6 +1586,31 @@ export default function Game() {
           <div>
             <div className="ach-label">{lang === 'en' ? 'Achievement unlocked!' : 'Ачивка разблокирована!'}</div>
             <div className="ach-name">{lang === 'en' && newAch.nameEn ? newAch.nameEn : newAch.name}</div>
+          </div>
+        </div>
+      )}
+
+      {/* First win celebration — один раз */}
+      {firstWinCelebration && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 3000,
+          background: 'rgba(0,0,0,0.8)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.5s ease',
+        }} onClick={() => setFirstWinCelebration(false)}>
+          <div style={{ textAlign: 'center', padding: 32, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>
+              <svg viewBox="0 0 64 64" width="80" height="80"><path d="M32 4l8 16 18 3-13 13 3 18-16-8-16 8 3-18L6 23l18-3z" fill="#ffc145" stroke="#ffc145" strokeWidth="1"/></svg>
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: '#ffc145', marginBottom: 8 }}>
+              {lang === 'en' ? 'First Victory!' : 'Первая победа!'}
+            </div>
+            <div style={{ fontSize: 14, color: '#a09cb0', lineHeight: 1.6, marginBottom: 20 }}>
+              {lang === 'en' ? 'You beat the AI! Keep playing to unlock achievements and climb the leaderboard.' : 'Вы победили AI! Продолжайте играть чтобы открыть ачивки и подняться в рейтинге.'}
+            </div>
+            <button className="btn primary" onClick={() => setFirstWinCelebration(false)} style={{ width: '100%', padding: '14px 0', fontSize: 16, justifyContent: 'center' }}>
+              {lang === 'en' ? 'Awesome!' : 'Отлично!'}
+            </button>
           </div>
         </div>
       )}

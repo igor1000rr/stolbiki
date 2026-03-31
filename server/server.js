@@ -830,8 +830,34 @@ addPost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
   '✅ Android app\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n\nNext:\n→ Google Play\n→ AI training on RTX 5090\n→ Push notifications\n→ iOS\n→ Tournaments',
   'roadmap', '2026-03-31 18:00:00')
 
+addPost('v38-audit', 'v3.8: Аудит, безопасность, retention', 'v3.8: Audit, security, retention',
+  'Полный аудит проекта + новые механики удержания:\n\n**Безопасность**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: все изображения -80% трафика.\n**i18n**: полный перевод Game, Online, Profile, 26 ачивок.\n**AI auto-difficulty**: после 3 поражений подряд — предложение понизить сложность.\n**First Win**: специальное celebration при первой победе.\n**ELO дельта**: +12/-8 отображается после каждой партии.\n**PvP Undo**: кнопка отмены хода.\n**Яндекс.Метрика**: вебвизор + карта кликов.',
+  'Full project audit + new retention mechanics:\n\n**Security**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: all images -80% traffic.\n**i18n**: full translation Game, Online, Profile, 26 achievements.\n**AI auto-difficulty**: after 3 losses in a row — suggest easier level.\n**First Win**: special celebration on first victory.\n**ELO delta**: +12/-8 shown after each game.\n**PvP Undo**: undo move button.\n**Yandex Metrika**: webvisor + click map.',
+  'release', '2026-03-31 22:00:00')
+
 // Удаляем устаревший roadmap и дубли
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
+
+// Принудительное обновление всех постов (даты, заголовки, тексты)
+const updatePost = (slug, tru, ten, bru, ben, tag, date) => {
+  const existing = db.prepare('SELECT id FROM blog_posts WHERE slug=?').get(slug)
+  if (existing) {
+    db.prepare('UPDATE blog_posts SET title_ru=?, title_en=?, body_ru=?, body_en=?, tag=?, created_at=?, updated_at=datetime(?) WHERE slug=?')
+      .run(tru, ten, bru, ben, tag, date, date, slug)
+  }
+}
+updatePost('launch', 'Запуск открытой беты', 'Open beta launch',
+  'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\n- Игра против AI (3 уровня)\n- Онлайн мультиплеер\n- Головоломки дня/недели\n- Режим «Тренер»\n- 4 темы\n- Print & Play PDF',
+  'Snatch Highrise enters open beta! Original strategy board game with AlphaZero AI.\n\n- Play vs AI (3 levels)\n- Online multiplayer\n- Daily/weekly puzzles\n- Trainer mode\n- 4 themes\n- Print & Play PDF',
+  'release', '2026-02-15 10:00:00')
+updatePost('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
+  'Нейросеть прошла 3 прогона GPU-обучения:\n\n- 1146 итераций self-play\n- Loss: 0.098\n- Winrate: 97%\n- Баланс P1/P2: 50/50',
+  'Neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss: 0.098\n- Win rate: 97%\n- P1/P2 balance: 50/50',
+  'ai', '2026-02-20 14:00:00')
+updatePost('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
+  'Тактические головоломки:\n\n- Головоломка дня\n- Задача недели\n- Банк из 50 задач\n- Лидерборды',
+  'Tactical puzzles:\n\n- Daily puzzle\n- Weekly challenge\n- 50 puzzle bank\n- Leaderboards',
+  'feature', '2026-03-01 12:00:00')
 
 // Получить посты
 app.get('/api/blog', (req, res) => {
