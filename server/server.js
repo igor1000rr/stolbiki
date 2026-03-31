@@ -1000,6 +1000,10 @@ updatePost('puzzles-launch', 'Запуск головоломок', 'Puzzles lau
   'Тактические головоломки:\n\n- Головоломка дня\n- Задача недели\n- Банк из 50 задач\n- Лидерборды',
   'Tactical puzzles:\n\n- Daily puzzle\n- Weekly challenge\n- 50 puzzle bank\n- Leaderboards',
   'feature', '2026-03-01 12:00:00')
+updatePost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
+  '✅ Android-приложение (Capacitor)\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 26 ачивок\n✅ Login streak + календарь\n✅ Daily missions (3/день)\n✅ XP / Level система\n✅ AI auto-difficulty\n✅ Полный i18n RU/EN\n\nДалее:\n→ Google Play публикация\n→ Push-уведомления (Firebase)\n→ Обучение AI на RTX 5090\n→ Puzzle Rush\n→ Weekly tournaments\n→ iOS',
+  '✅ Android app (Capacitor)\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n✅ Login streak + calendar\n✅ Daily missions (3/day)\n✅ XP / Level system\n✅ AI auto-difficulty\n✅ Full i18n RU/EN\n\nNext:\n→ Google Play release\n→ Push notifications (Firebase)\n→ AI training on RTX 5090\n→ Puzzle Rush\n→ Weekly tournaments\n→ iOS',
+  'roadmap', '2026-03-31 18:00:00')
 
 // Получить посты
 app.get('/api/blog', (req, res) => {
