@@ -30,6 +30,11 @@ export function applySettings(s) {
   const root = document.documentElement
   root.classList.toggle('chip-flat', s.chipStyle === 'flat')
   root.classList.toggle('chip-rounded', s.chipStyle === 'rounded')
+  root.classList.toggle('chip-glass', s.chipStyle === 'glass')
+  root.classList.toggle('chip-metal', s.chipStyle === 'metal')
+  root.classList.toggle('chip-candy', s.chipStyle === 'candy')
+  root.classList.toggle('chip-pixel', s.chipStyle === 'pixel')
+  root.classList.toggle('chip-glow', s.chipStyle === 'glow')
   root.classList.toggle('board-compact', s.boardDensity === 'compact')
   root.classList.toggle('board-wide', s.boardDensity === 'wide')
   root.classList.toggle('anim-slow', s.animSpeed === 'slow')

@@ -1452,7 +1452,7 @@ body::before {
 .setting-control { flex-shrink: 0; }
 
 .segment-control {
-  display: flex; gap: 2px; background: var(--surface2); border-radius: 8px; padding: 2px;
+  display: flex; gap: 2px; background: var(--surface2); border-radius: 8px; padding: 2px; flex-wrap: wrap;
 }
 .segment-control button {
   font-size: 11px; font-weight: 500; padding: 5px 10px; border: none;

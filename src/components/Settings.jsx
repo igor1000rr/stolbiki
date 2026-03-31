@@ -99,6 +99,11 @@ export default function Settings() {
             { value: 'classic', label: en ? 'Classic' : 'Классика' },
             { value: 'flat', label: en ? 'Flat' : 'Плоские' },
             { value: 'rounded', label: en ? 'Round' : 'Круглые' },
+            { value: 'glass', label: en ? 'Glass' : 'Стекло' },
+            { value: 'metal', label: en ? 'Metal' : 'Металл' },
+            { value: 'candy', label: en ? 'Candy' : 'Candy' },
+            { value: 'pixel', label: en ? 'Pixel' : 'Пиксель' },
+            { value: 'glow', label: en ? 'Glow' : 'Свечение' },
           ]} />
         </SettingRow>
 
