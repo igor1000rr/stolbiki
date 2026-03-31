@@ -201,6 +201,17 @@ try { db.exec('ALTER TABLE users ADD COLUMN puzzles_solved INTEGER DEFAULT 0') }
 try { db.exec('ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT "default"') } catch {}
 try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
 
+// Push-токены
+db.exec(`
+  CREATE TABLE IF NOT EXISTS push_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    token TEXT UNIQUE NOT NULL,
+    platform TEXT DEFAULT 'android',
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
 // ─── Сид контента CMS ───
 const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
 if (contentCount === 0) {

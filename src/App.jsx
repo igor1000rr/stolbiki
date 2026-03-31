@@ -5,6 +5,7 @@ import Icon from './components/Icon'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
+import { initPush } from './engine/push'
 import './app.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
@@ -25,6 +26,7 @@ const Admin = lazy(() => import('./components/Admin'))
 const Changelog = lazy(() => import('./components/Changelog'))
 const Onboarding = lazy(() => import('./components/Onboarding'))
 const Privacy = lazy(() => import('./components/Privacy'))
+import SplashScreen from './components/SplashScreen'
 
 function LazyFallback() {
   return <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>
@@ -76,6 +78,7 @@ export default function App() {
 
   // Native-only states
   const [showOnboarding, setShowOnboarding] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
+  const [showSplash, setShowSplash] = useState(() => isNative && !!localStorage.getItem('stolbiki_onboarding_done'))
   const [showRatePopup, setShowRatePopup] = useState(false)
   const online = useNetworkStatus()
 
@@ -157,6 +160,7 @@ export default function App() {
 
   // Применяем сохранённые настройки кастомизации при загрузке
   useEffect(() => { applySettings(getSettings()) }, [])
+  useEffect(() => { if (isNative) initPush() }, [])
 
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
@@ -237,6 +241,9 @@ export default function App() {
     <I18nContext.Provider value={i18n}>
     <div className={`app ${isNative ? 'native-app' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
+
+      {/* Animated splash — каждый запуск (если не onboarding) */}
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
       {/* Native onboarding — первый запуск */}
       {showOnboarding && isNative && (

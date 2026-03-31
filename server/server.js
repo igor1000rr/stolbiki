@@ -393,6 +393,23 @@ app.get('/api/users/search', auth, (req, res) => {
   res.json(users)
 })
 
+// ═══ PUSH NOTIFICATIONS ═══
+app.post('/api/push/register', auth, (req, res) => {
+  const { token, platform } = req.body
+  if (!token) return res.status(400).json({ error: 'token required' })
+  try {
+    db.prepare('INSERT OR REPLACE INTO push_tokens (user_id, token, platform) VALUES (?, ?, ?)').run(req.user.id, token, platform || 'android')
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/push/unregister', auth, (req, res) => {
+  const { token } = req.body
+  if (token) db.prepare('DELETE FROM push_tokens WHERE token=?').run(token)
+  else db.prepare('DELETE FROM push_tokens WHERE user_id=?').run(req.user.id)
+  res.json({ ok: true })
+})
+
 // ═══ STATS (public) ═══
 app.get('/api/stats', (req, res) => {
   const totalUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c

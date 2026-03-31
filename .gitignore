@@ -55,3 +55,8 @@ ios/DerivedData/
 public/report.pdf
 public/stolbiki-report.docx
 stolbiki-report.docx
+-e 
+# Signing
+android/keystore.properties
+*.keystore
+*.jks
