@@ -393,7 +393,7 @@ export default function Game() {
         let label, color
         if (ps > 0.3) { label = t('trainer.strong'); color = '#3dd68c' }
         else if (ps > 0.1) { label = t('trainer.slight'); color = '#89d68c' }
-        else if (ps > -0.1) { label = t('trainer.equal'); color = '#a09cb0' }
+        else if (ps > -0.1) { label = t('trainer.equal'); color = 'var(--ink2)' }
         else if (ps > -0.3) { label = t('trainer.weak'); color = '#ffc145' }
         else { label = t('trainer.bad'); color = '#ff6066' }
         setPosEval({ score: ps, label, color })
@@ -904,7 +904,7 @@ export default function Game() {
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
               {lang === 'en' ? 'Got it, let\'s play!' : 'Понятно, играем!'}
             </button>
-            <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: '#555' }}>
+            <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: 'var(--ink3)' }}>
               {lang === 'en' ? 'Detailed rules — Rules tab' : 'Подробные правила — вкладка «Правила»'}
             </div>
           </div>
@@ -1093,7 +1093,7 @@ export default function Game() {
                     (i + 1 === tournament.currentGame ? 'rgba(74,158,255,0.15)' : 'rgba(42,42,56,0.5)'),
                   border: `1px solid ${game ? (game.won ? '#3dd68c33' : '#ff606633') :
                     (i + 1 === tournament.currentGame ? '#4a9eff33' : '#2a2a3833')}`,
-                  color: game ? (game.won ? '#3dd68c' : '#ff6066') : (i + 1 === tournament.currentGame ? '#4a9eff' : '#555'),
+                  color: game ? (game.won ? '#3dd68c' : '#ff6066') : (i + 1 === tournament.currentGame ? '#4a9eff' : 'var(--ink3)'),
                 }}>
                   {game ? (game.won ? '✓' : '✕') : (i + 1)}
                 </div>
@@ -1182,7 +1182,7 @@ export default function Game() {
               )
             })}
           </div>
-          <span style={{ fontSize: 9, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <span style={{ fontSize: 9, color: 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {lang === 'en' ? 'Move' : 'Ход'} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
           </span>
         </div>
@@ -1201,7 +1201,7 @@ export default function Game() {
             )
           })}
         </div>
-        <div style={{ textAlign: 'center', fontSize: 10, color: '#555', marginBottom: 6 }}>
+        <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink3)', marginBottom: 6 }}>
           {lang === 'en' ? 'Turn' : 'Ход'} {gs.turn} · {lang === 'en' ? 'Open' : 'Открыто'}: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
         </div>
         </>
@@ -1381,7 +1381,7 @@ export default function Game() {
       </div>
 
       {isMyTurn && !gs.gameOver && !isNative && (
-        <div style={{ textAlign: 'center', fontSize: 9, color: '#444', marginTop: 4 }}>
+        <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--ink3)', marginTop: 4 }}>
           {lang === 'en' ? 'Enter — confirm · Esc — cancel transfer · N — new game' : 'Enter — подтвердить · Esc — отмена переноса · N — новая игра'}
         </div>
       )}

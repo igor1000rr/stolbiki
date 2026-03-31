@@ -82,7 +82,7 @@ export default function Arena({ onClose, onJoinMatch }) {
           </div>
 
           {parts.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#555' }}>
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>
               {en ? 'No participants yet. Be the first!' : 'Пока нет участников. Будь первым!'}
             </div>
           )}
@@ -93,7 +93,7 @@ export default function Arena({ onClose, onJoinMatch }) {
               background: i < 3 ? 'rgba(255,193,69,0.04)' : 'transparent',
               borderBottom: '1px solid var(--surface)',
             }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#555', minWidth: 24 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)', minWidth: 24 }}>
                 {i + 1}.
               </span>
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{p.username}</span>
@@ -101,7 +101,7 @@ export default function Arena({ onClose, onJoinMatch }) {
               <span style={{ fontSize: 14, fontWeight: 700, color: '#3dd68c', minWidth: 30, textAlign: 'right' }}>
                 {p.score}
               </span>
-              <span style={{ fontSize: 10, color: '#555' }}>
+              <span style={{ fontSize: 10, color: 'var(--ink3)' }}>
                 {p.wins}W {p.losses}L {p.draws}D
               </span>
             </div>
@@ -175,7 +175,7 @@ export default function Arena({ onClose, onJoinMatch }) {
                         color: m.winner_id === m.player1_id ? '#3dd68c' : undefined }}>
                         {p1?.username || '?'}
                       </span>
-                      <span style={{ color: '#555', fontSize: 10 }}>vs</span>
+                      <span style={{ color: 'var(--ink3)', fontSize: 10 }}>vs</span>
                       <span style={{ flex: 1, textAlign: 'right', fontWeight: m.winner_id === m.player2_id ? 600 : 400,
                         color: m.winner_id === m.player2_id ? '#3dd68c' : m.result === 'bye' ? '#555' : undefined }}>
                         {m.result === 'bye' ? 'bye' : p2?.username || '?'}
@@ -187,7 +187,7 @@ export default function Arena({ onClose, onJoinMatch }) {
             )
           })}
           {(!t || t.current_round === 0) && (
-            <div style={{ color: '#555', fontSize: 12, textAlign: 'center', padding: 20 }}>
+            <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', padding: 20 }}>
               {en ? 'Tournament not started yet' : 'Турнир ещё не начался'}
             </div>
           )}

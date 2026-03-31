@@ -148,7 +148,7 @@ export default function Replay() {
       </div>
 
       {/* Подсказки */}
-      <div style={{ textAlign: 'center', fontSize: 9, color: '#444', marginTop: 8 }}>
+      <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--ink3)', marginTop: 8 }}>
         ← → навигация · Пробел — пуск/пауза · Home/End — начало/конец
       </div>
     </div>

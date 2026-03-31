@@ -209,7 +209,7 @@ export default function PuzzleRush({ onClose }) {
               {leaderboard.slice(0, 10).map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
                   borderBottom: '1px solid var(--surface)' }}>
-                  <span style={{ fontSize: 12, color: i < 3 ? '#ffc145' : '#555', fontWeight: 600, minWidth: 20 }}>
+                  <span style={{ fontSize: 12, color: i < 3 ? '#ffc145' : 'var(--ink3)', fontWeight: 600, minWidth: 20 }}>
                     {i + 1}.
                   </span>
                   <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{r.username}</span>

@@ -141,7 +141,7 @@ function AchievementCard({ ach, unlocked, profile, en }) {
       opacity: unlocked ? 1 : 0.6,
     }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: unlocked ? `${ach.color}20` : 'var(--surface)', border: `2px solid ${unlocked ? ach.color : '#333'}`,
+        background: unlocked ? `${ach.color}20` : 'var(--surface)', border: `2px solid ${unlocked ? ach.color : 'var(--surface3)'}`,
         fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : '#444' }}>
         {name[0]}
       </div>
@@ -155,7 +155,7 @@ function AchievementCard({ ach, unlocked, profile, en }) {
                 background: pct > 0.7 ? 'linear-gradient(90deg, #3dd68c, #2ecc71)' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
                 transition: 'width 0.3s' }} />
             </div>
-            <span style={{ fontSize: 9, color: '#555', minWidth: 30 }}>{Math.min(cur, target)}/{target}</span>
+            <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 30 }}>{Math.min(cur, target)}/{target}</span>
           </div>
         )}
       </div>
@@ -659,7 +659,7 @@ export default function Profile({ viewUsername, onClose }) {
                       border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : 'var(--surface2)'}`,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? '#3dd68c' : '#e8e6f0' }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? 'var(--green)' : 'var(--ink)' }}>
                           {m.completed ? '✓ ' : ''}{en ? m.name_en : m.name_ru}
                         </span>
                         <span style={{ fontSize: 10, color: m.completed ? '#3dd68c' : '#ffc145' }}>+{m.xp_reward} XP</span>
@@ -670,7 +670,7 @@ export default function Profile({ viewUsername, onClose }) {
                             background: m.completed ? '#3dd68c' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
                             transition: 'width 0.3s' }} />
                         </div>
-                        <span style={{ fontSize: 9, color: '#555', minWidth: 28 }}>{m.progress}/{m.target}</span>
+                        <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 28 }}>{m.progress}/{m.target}</span>
                       </div>
                     </div>
                   )
@@ -825,7 +825,7 @@ export default function Profile({ viewUsername, onClose }) {
                         <div style={{ fontSize: 14, fontWeight: 700, color: h.ratingDelta > 0 ? '#3dd68c' : '#ff6066' }}>
                           {h.ratingDelta > 0 ? '+' : ''}{h.ratingDelta}
                         </div>
-                        <div style={{ fontSize: 9, color: '#555' }}>{h.ratingAfter}</div>
+                        <div style={{ fontSize: 9, color: 'var(--ink3)' }}>{h.ratingAfter}</div>
                       </div>
                     </div>
                   )
@@ -899,7 +899,7 @@ export default function Profile({ viewUsername, onClose }) {
                   <td style={{ fontWeight: 600, color: i < 3 ? 'var(--gold)' : 'var(--ink3)' }}>
                     {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1}
                   </td>
-                  <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? '#6db4ff' : '#e8e6f0' }}>
+                  <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? 'var(--p1-light)' : 'var(--ink)' }}>
                     {!p.isMe && serverOnline ? (
                       <span style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.15)' }}
                         onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-view-profile', { detail: { username: p.name || p.username } }))}>

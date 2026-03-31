@@ -288,7 +288,7 @@ export default function Simulator() {
                 <div style={{ fontSize: 10, color: '#6b6880' }}>{data.p1Wins} побед</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 12, color: '#444' }}>VS</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>VS</div>
                 <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{avgTurns} ходов</div>
               </div>
               <div style={{ textAlign: 'center' }}>

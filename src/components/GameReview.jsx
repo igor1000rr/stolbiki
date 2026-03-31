@@ -162,7 +162,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
                   cursor: 'pointer', background: active ? 'rgba(74,158,255,0.08)' : 'transparent',
                   borderLeft: active ? '3px solid #4a9eff' : '3px solid transparent',
                 }}>
-                  <span style={{ fontSize: 10, color: '#555', minWidth: 20 }}>{i + 1}</span>
+                  <span style={{ fontSize: 10, color: 'var(--ink3)', minWidth: 20 }}>{i + 1}</span>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.label.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 11, color: active ? '#e8e6f0' : '#a09cb0', flex: 1 }}>
                     {m.action.transfer ? `↗ ${m.action.transfer[0]}→${m.action.transfer[1]}` :

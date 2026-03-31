@@ -322,7 +322,7 @@ body::before {
   justify-content: center;
   gap: 6px;
   padding: 24px 16px 32px;
-  background: linear-gradient(180deg, rgba(26,26,42,0.9) 0%, rgba(20,20,32,0.95) 100%);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-radius: 20px;
@@ -376,7 +376,7 @@ body::before {
   padding: 4px 4px 6px;
   position: relative;
   border-radius: 12px 12px 0 0;
-  background: linear-gradient(0deg, rgba(20,20,32,0.9) 0%, rgba(20,20,32,0.6) 100%);
+  background: color-mix(in srgb, var(--bg2) 90%, transparent);
   border: 1.5px solid rgba(255,255,255,0.06);
   border-bottom: none;
   cursor: pointer;
@@ -429,7 +429,7 @@ body::before {
   opacity: 0.35;
   cursor: default;
   filter: saturate(0.4) brightness(0.75);
-  background: rgba(20,20,32,0.4);
+  background: color-mix(in srgb, var(--bg2) 50%, transparent);
 }
 .stand.closed:hover { transform: none; box-shadow: none; }
 .stand.closed:active { transform: none; }
@@ -922,7 +922,7 @@ body::before {
   max-height: 150px;
   overflow-y: auto;
   padding: 14px 18px;
-  background: rgba(26,26,42,0.6);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.04);
   border-left: 3px solid var(--surface3);
@@ -1065,7 +1065,7 @@ body::before {
 }
 
 .dash-card {
-  background: rgba(26,26,42,0.7);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.05);
