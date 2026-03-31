@@ -299,10 +299,10 @@ export default function App() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>
               <svg viewBox="0 0 24 24" width="48" height="48" fill="#ffc145"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0', marginBottom: 8 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
               {en ? 'Enjoying Snatch Highrise?' : 'Нравится Snatch Highrise?'}
             </h3>
-            <p style={{ fontSize: 13, color: '#a09cb0', marginBottom: 20, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.5 }}>
               {en ? 'Rate us on Google Play! It helps a lot.' : 'Оцените нас в Google Play! Это очень помогает.'}
             </p>
             <button onClick={() => {
@@ -319,7 +319,7 @@ export default function App() {
             <button onClick={() => { markRatingAsked(); setShowRatePopup(false) }} style={{
               width: '100%', padding: '12px 0', borderRadius: 12,
               border: '1px solid rgba(255,255,255,0.08)', background: 'none',
-              color: '#6b6880', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+              color: 'var(--ink3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
             }}>
               {en ? 'Maybe later' : 'Позже'}
             </button>
@@ -345,7 +345,7 @@ export default function App() {
             <div style={{ fontSize: 18, fontWeight: 700, color: '#ffc145' }}>
               {streakPopup.streak} {lang === 'en' ? 'day streak!' : (streakPopup.streak >= 5 ? 'дней подряд!' : streakPopup.streak >= 2 ? 'дня подряд!' : 'день подряд!')}
             </div>
-            <div style={{ fontSize: 11, color: '#a09cb0' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink2)' }}>
               {lang === 'en' ? `Best: ${streakPopup.best}` : `Рекорд: ${streakPopup.best}`}
               {streakPopup.streakXP && <span style={{ color: '#3dd68c', marginLeft: 8 }}>+{streakPopup.streakXP} XP</span>}
               {streakPopup.freeze > 0 && ` · ${lang === 'en' ? 'Freeze: ' : 'Защита: '}${streakPopup.freeze}`}

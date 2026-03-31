@@ -78,10 +78,10 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
       <div style={{ marginBottom: 32, opacity: 0.9 }}>{s.icon}</div>
 
       {/* Текст */}
-      <h2 style={{ fontSize: 24, fontWeight: 700, color: '#e8e6f0', marginBottom: 12, textAlign: 'center' }}>
+      <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, textAlign: 'center' }}>
         {en ? s.title_en : s.title_ru}
       </h2>
-      <p style={{ fontSize: 15, color: '#a09cb0', textAlign: 'center', lineHeight: 1.6, maxWidth: 320 }}>
+      <p style={{ fontSize: 15, color: 'var(--ink2)', textAlign: 'center', lineHeight: 1.6, maxWidth: 320 }}>
         {en ? s.desc_en : s.desc_ru}
       </p>
 
@@ -102,7 +102,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
           <button onClick={() => setSlide(slide - 1)} style={{
             flex: 1, padding: '14px 0', borderRadius: 12,
             border: '1px solid rgba(255,255,255,0.1)', background: 'none',
-            color: '#a09cb0', fontSize: 15, fontFamily: 'inherit', cursor: 'pointer',
+            color: 'var(--ink2)', fontSize: 15, fontFamily: 'inherit', cursor: 'pointer',
           }}>
             {en ? 'Back' : 'Назад'}
           </button>

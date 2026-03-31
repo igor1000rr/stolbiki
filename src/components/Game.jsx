@@ -1582,7 +1582,7 @@ export default function Game() {
       <div className="game-log" ref={logRef}>
         {log.map((e, i) => (
           <div key={i}>
-            <span style={{ color: '#6e6a82', fontSize: 10, marginRight: 6 }}>{e.time}</span>
+            <span style={{ color: 'var(--ink3)', fontSize: 10, marginRight: 6 }}>{e.time}</span>
             <span className={e.player >= 0 ? `log-p${e.player}` : ''}>{e.text}</span>
           </div>
         ))}
@@ -1631,7 +1631,7 @@ export default function Game() {
             <div style={{ fontSize: 24, fontWeight: 700, color: '#ffc145', marginBottom: 8 }}>
               {lang === 'en' ? 'First Victory!' : 'Первая победа!'}
             </div>
-            <div style={{ fontSize: 14, color: '#a09cb0', lineHeight: 1.6, marginBottom: 20 }}>
+            <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.6, marginBottom: 20 }}>
               {lang === 'en' ? 'You beat the AI! Keep playing to unlock achievements and climb the leaderboard.' : 'Вы победили AI! Продолжайте играть чтобы открыть ачивки и подняться в рейтинге.'}
             </div>
             <button className="btn primary" onClick={() => setFirstWinCelebration(false)} style={{ width: '100%', padding: '14px 0', fontSize: 16, justifyContent: 'center' }}>

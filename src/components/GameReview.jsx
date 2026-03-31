@@ -48,14 +48,14 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.85)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 18, color: '#e8e6f0', fontWeight: 600 }}>
+        <div style={{ fontSize: 18, color: 'var(--ink)', fontWeight: 600 }}>
           {en ? 'Analyzing game...' : 'Анализ партии...'}
         </div>
-        <div style={{ width: 240, height: 6, borderRadius: 3, background: '#1a1a2a', overflow: 'hidden' }}>
+        <div style={{ width: 240, height: 6, borderRadius: 3, background: 'var(--surface)', overflow: 'hidden' }}>
           <div style={{ width: `${progress}%`, height: '100%', borderRadius: 3,
             background: 'linear-gradient(90deg, #4a9eff, #3dd68c)', transition: 'width 0.3s' }} />
         </div>
-        <div style={{ fontSize: 12, color: '#6b6880' }}>{progress}%</div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{progress}%</div>
         <button className="btn" onClick={onClose} style={{ marginTop: 8, fontSize: 12 }}>
           {en ? 'Cancel' : 'Отмена'}
         </button>
@@ -72,8 +72,8 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', borderBottom: '1px solid #2a2a38', flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: '#e8e6f0' }}>
+        padding: '12px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
           {en ? 'Game review' : 'Анализ партии'}
         </div>
         <button className="btn" onClick={onClose} style={{ fontSize: 12, padding: '6px 14px' }}>
@@ -97,7 +97,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
               style={{ padding: '6px 12px', fontSize: 12 }}>⏮</button>
             <button className="btn" onClick={() => goToMove(Math.max(-1, currentMove - 1))}
               disabled={currentMove <= -1} style={{ padding: '6px 12px', fontSize: 12 }}>◀</button>
-            <span style={{ padding: '6px 12px', fontSize: 12, color: '#a09cb0' }}>
+            <span style={{ padding: '6px 12px', fontSize: 12, color: 'var(--ink2)' }}>
               {currentMove + 1} / {moves.length}
             </span>
             <button className="btn" onClick={() => goToMove(Math.min(moves.length - 1, currentMove + 1))}
@@ -115,7 +115,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
                 {current.label.icon} {en ? current.label.en : current.label.ru}
               </span>
               {current.delta > 0.05 && current.bestAction && (
-                <div style={{ fontSize: 11, color: '#a09cb0', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--ink2)', marginTop: 4 }}>
                   {en ? 'Eval loss' : 'Потеря оценки'}: -{(current.delta * 100).toFixed(0)}%
                 </div>
               )}
@@ -124,16 +124,16 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
         </div>
 
         {/* Right: Move list + Stats */}
-        <div style={{ width: 260, borderLeft: '1px solid #2a2a38', display: 'flex',
+        <div style={{ width: 260, borderLeft: '1px solid var(--surface2)', display: 'flex',
           flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
 
           {/* Stats */}
-          <div style={{ padding: 14, borderBottom: '1px solid #2a2a38' }}>
+          <div style={{ padding: 14, borderBottom: '1px solid var(--surface2)' }}>
             <div style={{ fontSize: 36, fontWeight: 700, color: stats.accuracy >= 80 ? '#3dd68c' : stats.accuracy >= 60 ? '#ffc145' : '#ff6066',
               textAlign: 'center', lineHeight: 1 }}>
               {stats.accuracy}%
             </div>
-            <div style={{ fontSize: 11, color: '#6b6880', textAlign: 'center', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'center', marginBottom: 10 }}>
               {en ? 'accuracy' : 'точность'}
             </div>
             <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>

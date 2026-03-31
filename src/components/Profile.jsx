@@ -137,20 +137,20 @@ function AchievementCard({ ach, unlocked, profile, en }) {
     <div style={{
       padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
       background: unlocked ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${unlocked ? 'rgba(61,214,140,0.2)' : '#2a2a38'}`,
+      border: `1px solid ${unlocked ? 'rgba(61,214,140,0.2)' : 'var(--surface2)'}`,
       opacity: unlocked ? 1 : 0.6,
     }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: unlocked ? `${ach.color}20` : '#1a1a2a', border: `2px solid ${unlocked ? ach.color : '#333'}`,
+        background: unlocked ? `${ach.color}20` : 'var(--surface)', border: `2px solid ${unlocked ? ach.color : '#333'}`,
         fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : '#444' }}>
         {name[0]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? '#e8e6f0' : '#6b6880' }}>{name}</div>
-        <div style={{ fontSize: 10, color: '#6b6880' }}>{desc}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? 'var(--ink)' : 'var(--ink3)' }}>{name}</div>
+        <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{desc}</div>
         {!unlocked && (
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#2a2a38', overflow: 'hidden' }}>
+            <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--surface2)', overflow: 'hidden' }}>
               <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2,
                 background: pct > 0.7 ? 'linear-gradient(90deg, #3dd68c, #2ecc71)' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
                 transition: 'width 0.3s' }} />
@@ -463,30 +463,30 @@ export default function Profile({ viewUsername, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
             <AvatarCircle avatar={pp.avatar || 'default'} name={pp.username} size={56} />
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>{pp.username}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{pp.username}</div>
               <RatingBadge rating={pp.rating} en={en} />
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#ffc145' }}>{pp.rating}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>ELO</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>ELO</div>
             </div>
           </div>
           <div className="profile-stats-grid">
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{pp.gamesPlayed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Games' : 'Партий'}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{pp.gamesPlayed}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Games' : 'Партий'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#3dd68c' }}>{ppWinRate}%</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Win rate' : 'Винрейт'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{pp.bestStreak}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Streak' : 'Серия'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Streak' : 'Серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{pp.goldenClosed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Golden' : 'Золотых'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
           </div>
           {ppAchievements.length > 0 && (
@@ -509,7 +509,7 @@ export default function Profile({ viewUsername, onClose }) {
   // Не залогинен
   if (!profile) {
     const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
-      background: '#1e1e28', color: '#e8e6f0', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
+      background: '#1e1e28', color: 'var(--ink)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
     return (
       <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 130px)' } : undefined}>
         <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
@@ -537,7 +537,7 @@ export default function Profile({ viewUsername, onClose }) {
             </button>
           )}
           {!serverOnline && (
-            <p style={{ color: '#6b6880', fontSize: 10, marginTop: 12 }}>
+            <p style={{ color: 'var(--ink3)', fontSize: 10, marginTop: 12 }}>
               {en ? 'Offline mode: data saved locally' : 'Оффлайн-режим: данные сохраняются локально'}
             </p>
           )}
@@ -586,12 +586,12 @@ export default function Profile({ viewUsername, onClose }) {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0' }}>{profile.name}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{profile.name}</div>
                 <RatingBadge rating={profile.rating} en={en} />
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#ffc145' }}>{profile.rating}</div>
-                <div style={{ fontSize: 10, color: '#6b6880' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
               </div>
             </div>
             {streakData && streakData.streak > 0 && (
@@ -599,9 +599,9 @@ export default function Profile({ viewUsername, onClose }) {
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 2c.7 5.5-2.8 7-2.8 11a5.6 5.6 0 0011.2 0c0-4-3.5-5.5-2.8-11" stroke="#ffc145" strokeWidth="1.5" fill="rgba(255,193,69,0.15)"/></svg>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: '#ffc145' }}>{streakData.streak}</span>
-                  <span style={{ fontSize: 11, color: '#a09cb0', marginLeft: 6 }}>{en ? 'day streak' : (streakData.streak >= 5 ? 'дней подряд' : streakData.streak >= 2 ? 'дня подряд' : 'день')}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink2)', marginLeft: 6 }}>{en ? 'day streak' : (streakData.streak >= 5 ? 'дней подряд' : streakData.streak >= 2 ? 'дня подряд' : 'день')}</span>
                 </div>
-                <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Best' : 'Рекорд'}: {streakData.best}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Best' : 'Рекорд'}: {streakData.best}</div>
                 {streakData.freeze > 0 && <div style={{ fontSize: 9, color: '#4a9eff', padding: '2px 6px', background: 'rgba(74,158,255,0.1)', borderRadius: 4 }}>{en ? 'Freeze' : 'Защита'}: {streakData.freeze}</div>}
               </div>
             )}
@@ -629,11 +629,11 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#4a9eff' }}>Lv.{missionsData.level}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#6b6880', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>
                     <span>XP</span>
                     <span>{missionsData.xp} / {missionsData.xpForNext}</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: '#1a1a2a', overflow: 'hidden' }}>
+                  <div style={{ height: 6, borderRadius: 3, background: 'var(--surface)', overflow: 'hidden' }}>
                     <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 3,
                       background: 'linear-gradient(90deg, #4a9eff, #6db4ff)', transition: 'width 0.5s' }} />
                   </div>
@@ -656,7 +656,7 @@ export default function Profile({ viewUsername, onClose }) {
                     <div key={m.mission_id} style={{
                       padding: '10px 12px', borderRadius: 8,
                       background: m.completed ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : '#2a2a38'}`,
+                      border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : 'var(--surface2)'}`,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                         <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? '#3dd68c' : '#e8e6f0' }}>
@@ -665,7 +665,7 @@ export default function Profile({ viewUsername, onClose }) {
                         <span style={{ fontSize: 10, color: m.completed ? '#3dd68c' : '#ffc145' }}>+{m.xp_reward} XP</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#1a1a2a', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
                           <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2,
                             background: m.completed ? '#3dd68c' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
                             transition: 'width 0.3s' }} />
@@ -700,20 +700,20 @@ export default function Profile({ viewUsername, onClose }) {
 
           <div className="profile-stats-grid">
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#e8e6f0' }}>{profile.gamesPlayed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Games' : 'Партий'}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{profile.gamesPlayed}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Games' : 'Партий'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#3dd68c' }}>{winRate}%</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Win rate' : 'Винрейт'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{profile.bestStreak}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ffc145' }}>{profile.goldenClosed}</div>
-              <div style={{ fontSize: 10, color: '#6b6880' }}>{en ? 'Golden' : 'Золотых'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
           </div>
 
@@ -778,7 +778,7 @@ export default function Profile({ viewUsername, onClose }) {
             </div>
           )}
 
-          <button className="btn" onClick={logout} style={{ fontSize: 11, color: '#6b6880', borderColor: '#36364a' }}>
+          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: '#36364a' }}>
             {en ? 'Logout' : 'Выйти из профиля'}
           </button>
         </>
@@ -790,7 +790,7 @@ export default function Profile({ viewUsername, onClose }) {
           {(profile.history || []).length === 0 ? (
             <div className="dash-card" style={{ textAlign: 'center', padding: 32 }}>
               
-              <div style={{ fontSize: 14, color: '#6b6880' }}>{en ? 'No games yet. Play your first!' : 'Пока нет партий. Сыграйте свою первую!'}</div>
+              <div style={{ fontSize: 14, color: 'var(--ink3)' }}>{en ? 'No games yet. Play your first!' : 'Пока нет партий. Сыграйте свою первую!'}</div>
             </div>
           ) : (
             <div className="dash-card">
@@ -815,7 +815,7 @@ export default function Profile({ viewUsername, onClose }) {
                         <div style={{ fontSize: 13, fontWeight: 600, color: h.won ? '#3dd68c' : '#ff6066' }}>
                           {h.won ? (en ? 'Win' : 'Победа') : (en ? 'Loss' : 'Поражение')} · {h.score}
                         </div>
-                        <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>
+                        <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>
                           {timeStr}
                           {h.vsHardAi && ' · Сложная'}
                           {h.closedGolden && ' · Золотая'}
@@ -834,7 +834,7 @@ export default function Profile({ viewUsername, onClose }) {
               {/* Мини-график рейтинга */}
               {(profile.history || []).length >= 3 && (
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>{en ? 'Rating history' : 'Динамика рейтинга'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 6, fontWeight: 600 }}>{en ? 'Rating history' : 'Динамика рейтинга'}</div>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 50 }}>
                     {[...(profile.history || [])].reverse().slice(-30).map((h, i) => {
                       const min = 900, max = 1500
@@ -860,8 +860,8 @@ export default function Profile({ viewUsername, onClose }) {
         <div>
           <div className="dash-card" style={{ marginBottom: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 36, fontWeight: 700, color: '#ffc145' }}>{unlockedAch.length}</div>
-            <div style={{ fontSize: 12, color: '#6b6880' }}>из {ALL_ACHIEVEMENTS.length} ачивок</div>
-            <div style={{ width: '100%', height: 6, background: '#2a2a38', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
+            <div style={{ fontSize: 12, color: 'var(--ink3)' }}>из {ALL_ACHIEVEMENTS.length} ачивок</div>
+            <div style={{ width: '100%', height: 6, background: 'var(--surface2)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
               <div style={{ width: `${unlockedAch.length / ALL_ACHIEVEMENTS.length * 100}%`, height: '100%',
                 background: 'linear-gradient(90deg, #ffc145, #3bb8a8)', borderRadius: 3 }} />
             </div>
@@ -896,7 +896,7 @@ export default function Profile({ viewUsername, onClose }) {
             <tbody>
               {leaderboard.map((p, i) => (
                 <tr key={i} style={p.isMe ? { background: 'rgba(74,158,255,0.08)' } : {}}>
-                  <td style={{ fontWeight: 600, color: i < 3 ? '#ffc145' : '#6b6880' }}>
+                  <td style={{ fontWeight: 600, color: i < 3 ? 'var(--gold)' : 'var(--ink3)' }}>
                     {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1}
                   </td>
                   <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? '#6db4ff' : '#e8e6f0' }}>
@@ -906,7 +906,7 @@ export default function Profile({ viewUsername, onClose }) {
                         {p.name || p.username}
                       </span>
                     ) : (
-                      <>{p.name || p.username} {p.isMe && <span style={{ fontSize: 9, color: '#6b6880' }}>(вы)</span>}</>
+                      <>{p.name || p.username} {p.isMe && <span style={{ fontSize: 9, color: 'var(--ink3)' }}>(вы)</span>}</>
                     )}
                   </td>
                   <td style={{ fontWeight: 600 }}>{p.rating}</td>
@@ -917,7 +917,7 @@ export default function Profile({ viewUsername, onClose }) {
               ))}
             </tbody>
           </table>
-          <p style={{ fontSize: 10, color: '#6b6880', marginTop: 8, textAlign: 'center' }}>
+          <p style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8, textAlign: 'center' }}>
             {serverOnline ? `${leaderboard.length} ${en ? 'players' : 'игроков'}` : (en ? 'Offline — demo data' : 'Оффлайн — демо-данные')}
           </p>
         </div>
@@ -933,10 +933,10 @@ export default function Profile({ viewUsername, onClose }) {
                 onChange={e => setFriendSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doSearchFriends()}
                 style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #36364a',
-                  background: '#1e1e28', color: '#e8e6f0', fontSize: 13 }} />
+                  background: '#1e1e28', color: 'var(--ink)', fontSize: 13 }} />
               <button className="btn primary" style={{ padding: '8px 16px' }} onClick={doSearchFriends}>Найти</button>
             </div>
-            {!serverOnline && <p style={{ fontSize: 10, color: '#6b6880', marginTop: 8 }}>Поиск доступен при подключённом сервере</p>}
+            {!serverOnline && <p style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8 }}>Поиск доступен при подключённом сервере</p>}
             {searchResults.length > 0 && (
               <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
                 {searchResults.map(u => (
@@ -946,8 +946,8 @@ export default function Profile({ viewUsername, onClose }) {
                       {u.username.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: '#e8e6f0', fontWeight: 500 }}>{u.username}</div>
-                      <div style={{ fontSize: 10, color: '#6b6880' }}>Рейтинг: {u.rating}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{u.username}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Рейтинг: {u.rating}</div>
                     </div>
                     <button className="btn" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
                       onClick={() => doAddFriend(u.username)}>+ Добавить</button>
@@ -965,11 +965,11 @@ export default function Profile({ viewUsername, onClose }) {
                 {pendingFriends.map(u => (
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
                     background: 'rgba(61,214,140,0.04)', borderRadius: 8, border: '1px solid rgba(61,214,140,0.1)' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#2a2a38',
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--surface2)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
                       {u.username.charAt(0).toUpperCase()}
                     </div>
-                    <span style={{ flex: 1, fontSize: 13, color: '#e8e6f0' }}>{u.username}</span>
+                    <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{u.username}</span>
                     <button className="btn primary" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
                       onClick={() => doAcceptFriend(u.id)}>Принять</button>
                   </div>
@@ -981,7 +981,7 @@ export default function Profile({ viewUsername, onClose }) {
           <div className="dash-card">
             <h3>Мои друзья ({friendsList.length})</h3>
             {friendsList.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 24, color: '#6b6880' }}>
+              <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink3)' }}>
                 
                 <div style={{ fontSize: 13 }}>{en ? 'No friends yet. Search by username!' : 'Пока нет друзей. Найдите игроков по нику!'}</div>
               </div>
@@ -994,8 +994,8 @@ export default function Profile({ viewUsername, onClose }) {
                       {f.username.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: '#e8e6f0' }}>{f.username}</div>
-                      <div style={{ fontSize: 10, color: '#6b6880' }}>⭐ {f.rating}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)' }}>{f.username}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink3)' }}>⭐ {f.rating}</div>
                     </div>
                   </div>
                 ))}

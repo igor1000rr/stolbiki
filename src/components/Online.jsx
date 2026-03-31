@@ -28,7 +28,7 @@ function DailyChallenge() {
     window.dispatchEvent(new CustomEvent('stolbiki-daily-start', { detail: daily }))
   }
 
-  if (loading) return <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 12, padding: 20 }}>{en ? 'Loading...' : 'Загрузка...'}</div>
+  if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 20 }}>{en ? 'Loading...' : 'Загрузка...'}</div>
   if (!daily) return null
 
   const dateStr = daily.date || daily.seed
@@ -40,11 +40,11 @@ function DailyChallenge() {
           <h3 style={{ fontSize: 16, color: '#eae8f2', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
             {en ? 'Daily Challenge' : 'Ежедневный челлендж'}
           </h3>
-          <span style={{ fontSize: 11, color: '#6e6a82' }}>#{dateStr} · {en ? 'Same for everyone' : 'Одинаковый для всех'}</span>
+          <span style={{ fontSize: 11, color: 'var(--ink3)' }}>#{dateStr} · {en ? 'Same for everyone' : 'Одинаковый для всех'}</span>
         </div>
       </div>
 
-      <p style={{ fontSize: 12, color: '#a09cb0', marginBottom: 12, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 12, lineHeight: 1.6 }}>
         {en ? 'Same starting position for all. Beat AI in minimum moves!' : 'У всех одинаковая начальная позиция. Победите AI за минимум ходов!'}
       </p>
 
@@ -55,7 +55,7 @@ function DailyChallenge() {
 
       {leaderboard.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, color: '#6e6a82', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
             {en ? 'Leaderboard' : 'Таблица лидеров'}
           </div>
           <div style={{ maxHeight: 180, overflowY: 'auto' }}>
@@ -68,9 +68,9 @@ function DailyChallenge() {
                 <span style={{ width: 20, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#6e6a82' }}>
                   {i + 1}
                 </span>
-                <span style={{ flex: 1, color: '#e8e6f0' }}>{r.username}</span>
-                <span style={{ color: '#a09cb0', fontSize: 11 }}>{r.turns} {en ? 'moves' : 'ходов'}</span>
-                <span style={{ color: '#6e6a82', fontSize: 10 }}>
+                <span style={{ flex: 1, color: 'var(--ink)' }}>{r.username}</span>
+                <span style={{ color: 'var(--ink2)', fontSize: 11 }}>{r.turns} {en ? 'moves' : 'ходов'}</span>
+                <span style={{ color: 'var(--ink3)', fontSize: 10 }}>
                   {r.duration ? `${Math.floor(r.duration/60)}:${String(r.duration%60).padStart(2,'0')}` : ''}
                 </span>
               </div>
@@ -80,7 +80,7 @@ function DailyChallenge() {
       )}
 
       {leaderboard.length === 0 && (
-        <div style={{ textAlign: 'center', color: '#6e6a82', fontSize: 11, padding: '8px 0' }}>
+        <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 11, padding: '8px 0' }}>
           {en ? 'Nobody played today yet — be the first!' : 'Пока никто не играл сегодня — будьте первым!'}
         </div>
       )}
@@ -358,7 +358,7 @@ export default function Online() {
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
           
           <h3 style={{ fontSize: 18, marginBottom: 4, color: '#eae8f2', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
-          <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
+          <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
 
           {error && <div style={{ color: '#ff6066', fontSize: 12, marginBottom: 10 }}>{error}</div>}
 
@@ -392,7 +392,7 @@ export default function Online() {
           </button>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
-            <p style={{ color: '#6e6a82', fontSize: 11, marginBottom: 8 }}>{en ? 'Or enter friend\'s code:' : 'Или введите код друга:'}</p>
+            <p style={{ color: 'var(--ink3)', fontSize: 11, marginBottom: 8 }}>{en ? 'Or enter friend\'s code:' : 'Или введите код друга:'}</p>
             <div style={{ display: 'flex', gap: 8 }}>
               <input type="text" placeholder="КОД" value={joinCode} maxLength={6}
                 onChange={e => setJoinCode(e.target.value.toUpperCase())}
@@ -407,7 +407,7 @@ export default function Online() {
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto', textAlign: 'center' }}>
           <h3 style={{ marginBottom: 12 }}>{en ? 'QR — open on phone' : 'QR — открой с телефона'}</h3>
           <QRCode text={location.origin} size={180} />
-          <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10 }}>{en ? 'Scan to play on mobile' : 'Отсканируй чтобы играть на телефоне'}</p>
+          <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10 }}>{en ? 'Scan to play on mobile' : 'Отсканируй чтобы играть на телефоне'}</p>
         </div>
         )}
 
@@ -424,7 +424,7 @@ export default function Online() {
             </button>
           </div>
           {activeRooms.length === 0 ? (
-            <p style={{ color: '#6e6a82', fontSize: 12 }}>
+            <p style={{ color: 'var(--ink3)', fontSize: 12 }}>
               {en ? 'No active games right now' : 'Сейчас нет активных игр'}
             </p>
           ) : (
@@ -434,7 +434,7 @@ export default function Online() {
                   padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div>
                     <span style={{ fontSize: 13, color: '#eae8f2', fontWeight: 600 }}>{r.players.join(' vs ')}</span>
-                    <span style={{ fontSize: 11, color: '#6e6a82', marginLeft: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 8 }}>
                       {r.scores[0]}:{r.scores[1]} · {en ? 'turn' : 'ход'} {r.turn}
                       {r.spectators > 0 && ` · ${r.spectators} ${en ? 'watching' : 'зрит.'}`}
                     </span>
@@ -499,7 +499,7 @@ export default function Online() {
         {/* QR ссылки на комнату */}
         <QRCode text={roomUrl} size={160} />
 
-        <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10, marginBottom: 8 }}>
+        <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10, marginBottom: 8 }}>
           {en ? 'Send link or code to a friend' : 'Отправь ссылку или код другу'}
         </p>
 
@@ -510,7 +510,7 @@ export default function Online() {
           {en ? 'Share link' : 'Поделиться ссылкой'}
         </button>
 
-        <div className="thinking-dots" style={{ color: '#6e6a82', fontSize: 13 }}>{en ? 'Waiting for opponent' : 'Ждём второго игрока'}</div>
+        <div className="thinking-dots" style={{ color: 'var(--ink3)', fontSize: 13 }}>{en ? 'Waiting for opponent' : 'Ждём второго игрока'}</div>
 
         <button className="btn" onClick={backToLobby} style={{ marginTop: 16, width: '100%', justifyContent: 'center', fontSize: 12 }}>
           {en ? '← Back' : '← Назад'}
@@ -531,7 +531,7 @@ export default function Online() {
             <span style={{ fontSize: 16, fontWeight: 700, margin: '0 12px', color: '#eae8f2' }}>
               {scores[0]} : {scores[1]}
             </span>
-            <span style={{ fontSize: 11, color: '#6e6a82' }}>
+            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>
               {players[0]} vs {players[1]}
             </span>
           </div>
@@ -617,7 +617,7 @@ export default function Online() {
           <span style={{ color: '#32324a', margin: '0 8px' }}>:</span>
           <span style={{ color: !won || draw ? '#3dd68c' : '#ff6066' }}>{tournamentResult.scores[1 - playerIdx]}</span>
         </div>
-        <p style={{ color: '#6e6a82', fontSize: 12, marginBottom: 16 }}>
+        <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>
           {players[0]} vs {players[1]} • {totalGames} {en ? 'games' : 'партий'}
         </p>
         <button className="btn primary" onClick={backToLobby} style={{ width: '100%', justifyContent: 'center' }}>

@@ -44,7 +44,7 @@ export default function Arena({ onClose, onJoinMatch }) {
   if (loading) return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)',
       display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#a09cb0' }}>{en ? 'Loading...' : 'Загрузка...'}</div>
+      <div style={{ color: 'var(--ink2)' }}>{en ? 'Loading...' : 'Загрузка...'}</div>
     </div>
   )
 
@@ -60,7 +60,7 @@ export default function Arena({ onClose, onJoinMatch }) {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 16px', borderBottom: '1px solid #2a2a38', flexShrink: 0 }}>
+        padding: '10px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: '#ffc145' }}>Arena</span>
           {t && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8,
@@ -77,7 +77,7 @@ export default function Arena({ onClose, onJoinMatch }) {
 
         {/* Left: standings */}
         <div style={{ flex: 1, padding: 16, overflow: 'auto' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#6b6880', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', marginBottom: 10 }}>
             {en ? 'Standings' : 'Таблица'} ({parts.length}/{t?.max_players || 16})
           </div>
 
@@ -91,13 +91,13 @@ export default function Arena({ onClose, onJoinMatch }) {
             <div key={p.user_id} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
               background: i < 3 ? 'rgba(255,193,69,0.04)' : 'transparent',
-              borderBottom: '1px solid #1a1a2a',
+              borderBottom: '1px solid var(--surface)',
             }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#555', minWidth: 24 }}>
                 {i + 1}.
               </span>
-              <span style={{ fontSize: 13, color: '#e8e6f0', flex: 1 }}>{p.username}</span>
-              <span style={{ fontSize: 11, color: '#6b6880' }}>{p.rating}</span>
+              <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{p.username}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{p.rating}</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: '#3dd68c', minWidth: 30, textAlign: 'right' }}>
                 {p.score}
               </span>
@@ -127,7 +127,7 @@ export default function Arena({ onClose, onJoinMatch }) {
               </>
             )}
             {!API.isLoggedIn() && (
-              <div style={{ fontSize: 12, color: '#6b6880' }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
                 {en ? 'Login to join' : 'Войдите чтобы участвовать'}
               </div>
             )}
@@ -149,8 +149,8 @@ export default function Arena({ onClose, onJoinMatch }) {
         </div>
 
         {/* Right: rounds */}
-        <div style={{ width: 280, borderLeft: '1px solid #2a2a38', padding: 16, overflow: 'auto', flexShrink: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#6b6880', marginBottom: 10 }}>
+        <div style={{ width: 280, borderLeft: '1px solid var(--surface2)', padding: 16, overflow: 'auto', flexShrink: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', marginBottom: 10 }}>
             {en ? 'Matches' : 'Матчи'}
           </div>
           {Array.from({ length: t?.current_round || 0 }, (_, r) => r + 1).reverse().map(round => {

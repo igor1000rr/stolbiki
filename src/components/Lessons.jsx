@@ -190,8 +190,8 @@ export default function Lessons({ onClose }) {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 16px', borderBottom: '1px solid #2a2a38', flexShrink: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#e8e6f0' }}>
+        padding: '10px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
           {en ? 'Lesson' : 'Урок'} {lessonIdx + 1} / {LESSONS.length}
         </div>
         {/* Progress dots */}
@@ -213,10 +213,10 @@ export default function Lessons({ onClose }) {
       <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
         {/* Left: lesson text */}
         <div style={{ width: 300, padding: 20, borderRight: '1px solid #2a2a38', overflow: 'auto', flexShrink: 0 }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0', margin: '0 0 12px' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 12px' }}>
             {en ? lesson.title_en : lesson.title_ru}
           </h3>
-          <div style={{ fontSize: 13, color: '#a09cb0', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
             {en ? lesson.desc_en : lesson.desc_ru}
           </div>
 
