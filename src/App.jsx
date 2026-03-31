@@ -370,64 +370,7 @@ export default function App() {
         )}
       </header>}
 
-      {/* Native: минимальный top bar */}
-      {isNative && (
-        <div className="native-topbar">
-          <div className="site-logo" onClick={() => go('game')} style={{ gap: 6 }}>
-            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-              <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
-              <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
-              <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
-            </svg>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-              {t('header.title')}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {authUser ? (
-              <button className="native-topbar-user" onClick={() => go('profile')}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>{authUser.name}</span>
-                {authUser.rating > 0 && <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>{authUser.rating}</span>}
-              </button>
-            ) : (
-              <button className="native-topbar-user" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
-                <Icon name="profile" size={16} />
-              </button>
-            )}
-            {LANGS.map(l => (
-              <button key={l.code} onClick={() => setLang(l.code)}
-                className={`lang-btn ${lang === l.code ? 'active' : ''}`} style={{ fontSize: 10, padding: '3px 6px' }}>
-                {l.label}
-              </button>
-            ))}
-          </div>
-          {/* Auth dropdown — reuse same logic */}
-          {authOpen && !authUser && (
-            <div className="header-auth-dropdown" style={{ top: 44, right: 8 }}>
-              <div style={{ padding: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>
-                  {authMode === 'login' ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}
-                </div>
-                {authError && <div style={{ fontSize: 11, color: '#ff6066', marginBottom: 8 }}>{authError}</div>}
-                <input type="text" placeholder={en ? 'Username' : 'Никнейм'} value={authName}
-                  onChange={e => setAuthName(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
-                  className="header-auth-input" autoFocus />
-                <input type="password" placeholder={en ? 'Password' : 'Пароль'} value={authPass}
-                  onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
-                  className="header-auth-input" />
-                <button className="btn primary" onClick={doAuth} disabled={authLoading}
-                  style={{ width: '100%', fontSize: 12, padding: '8px 0' }}>
-                  {authLoading ? '...' : authMode === 'login' ? (en ? 'Login' : 'Войти') : (en ? 'Register' : 'Создать')}
-                </button>
-                <button onClick={() => { setAuthMode(m => m === 'login' ? 'register' : 'login'); setAuthError('') }}
-                  style={{ width: '100%', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 11, padding: '8px 0', cursor: 'pointer' }}>
-                  {authMode === 'login' ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация') : (en ? 'Have account? Login' : 'Есть аккаунт? Войти')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Native: no top bar — всё через tab bar и контекстные элементы */}
 
       <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
@@ -449,6 +392,69 @@ export default function App() {
           {tab === 'admin' && isAdmin && <Admin />}
           {tab === 'changelog' && <Changelog />}
           {tab === 'rules' && <Rules />}
+          {tab === 'more' && isNative && (
+            <div className="m-more-page">
+              {authUser && (
+                <div className="m-more-user">
+                  <div className="m-more-avatar">{authUser.name.charAt(0).toUpperCase()}</div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{authUser.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000}</div>
+                  </div>
+                </div>
+              )}
+              {!authUser && (
+                <button className="m-more-item" onClick={() => { setAuthOpen(true); /* показать auth */ }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 3.6-7 7-7s7 3 7 7"/></svg>
+                  <span>{en ? 'Login / Register' : 'Вход / Регистрация'}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+              )}
+              <div className="m-more-section">{en ? 'Game' : 'Игра'}</div>
+              <button className="m-more-item" onClick={() => go('rules')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h6M8 16h4"/></svg>
+                <span>{en ? 'Rules' : 'Правила'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button className="m-more-item" onClick={() => go('openings')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M3 20l4-8 4 4 4-12 6 16"/></svg>
+                <span>{en ? 'Analytics' : 'Аналитика'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button className="m-more-item" onClick={() => go('blog')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 4h16v16H4z"/><path d="M8 2v4M16 2v4M4 10h16"/></svg>
+                <span>{en ? 'Blog' : 'Блог'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+
+              <div className="m-more-section">{en ? 'Settings' : 'Настройки'}</div>
+              <button className="m-more-item" onClick={() => go('settings')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8"/></svg>
+                <span>{en ? 'Customization' : 'Кастомизация'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <div className="m-more-item" onClick={() => setLang(lang === 'ru' ? 'en' : 'ru')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 010 18M12 3a15 15 0 000 18M3 12h18"/></svg>
+                <span>{en ? 'Language' : 'Язык'}</span>
+                <span className="m-more-value">{lang === 'ru' ? 'RU' : 'EN'}</span>
+              </div>
+              <button className="m-more-item" onClick={() => go('changelog')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+                <span>Changelog</span>
+                <span className="m-more-value">v3.5</span>
+              </button>
+
+              {authUser && (
+                <>
+                  <div className="m-more-section" />
+                  <button className="m-more-item m-more-danger" onClick={doLogout}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    <span>{en ? 'Logout' : 'Выйти'}</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </Suspense>
       </main>
 
@@ -486,12 +492,14 @@ export default function App() {
             { id: 'online', label: en ? 'Online' : 'Онлайн',
               svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 010 18M12 3a15 15 0 000 18M3 12h18"/></svg> },
             { id: 'puzzles', label: en ? 'Puzzles' : 'Задачи',
-              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h3a2 2 0 012 2v0a2 2 0 012-2h3v3a2 2 0 01-2 2v0a2 2 0 012 2v3H4V7z"/><path d="M14 7h3a2 2 0 012 2v0a2 2 0 012-2h0v3a2 2 0 01-2 2v0a2 2 0 012 2v3h-7V7z"/></svg> },
+              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg> },
             { id: 'profile', label: en ? 'Profile' : 'Профиль',
               svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 3.6-7 7-7s7 3 7 7"/></svg> },
+            { id: 'more', label: en ? 'More' : 'Ещё',
+              svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg> },
           ].map(n => (
-            <button key={n.id} role="tab" aria-selected={tab === n.id}
-              className={`native-tab ${tab === n.id ? 'active' : ''}`}
+            <button key={n.id} role="tab" aria-selected={tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog'].includes(tab))}
+              className={`native-tab ${tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog'].includes(tab)) ? 'active' : ''}`}
               onClick={() => go(n.id)}>
               <span className="native-tab-icon">{n.svg}</span>
               <span className="native-tab-label">{n.label}</span>

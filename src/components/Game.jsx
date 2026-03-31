@@ -932,18 +932,27 @@ export default function Game() {
       </div>
       )}
 
-      {/* ═══ NATIVE: компактный хедер + gear кнопка ═══ */}
+      {/* ═══ NATIVE: компактный game bar ═══ */}
       {mode !== 'online' && mode !== 'spectate-online' && isNative && (
         <div className="m-game-bar">
           <div className="m-game-bar-info">
             <span className="m-diff-badge">
-              {difficulty >= 800 ? '🔥' : difficulty >= 400 ? '💪' : difficulty >= 150 ? '⚔️' : '😊'}
-              {' '}{difficulty >= 800 ? 'Экстрим' : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                {difficulty >= 800 ? <path d="M12 2c-4 6-8 9-8 13a8 8 0 0016 0c0-4-4-7-8-13z"/> :
+                 difficulty >= 400 ? <><path d="M12 22V2"/><path d="M4 12l4-4 4 4 4-4 4 4"/></> :
+                 difficulty >= 150 ? <><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></> :
+                 <circle cx="12" cy="12" r="9"/>}
+              </svg>
+              {difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
               {isGpuReady() && <span style={{ fontSize: 8, color: '#3dd68c', marginLeft: 3 }}>GPU</span>}
             </span>
-            {mode === 'ai' && <span className="m-side-badge">{humanPlayer === 0 ? '🔵' : '🔴'}</span>}
+            {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
           </div>
-          <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)}>⚙️</button>
+          <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8"/>
+            </svg>
+          </button>
         </div>
       )}
 
@@ -967,7 +976,7 @@ export default function Game() {
               <div className="m-setting-row">
                 <span className="m-setting-label">Сложность</span>
                 <div className="m-difficulty-grid">
-                  {[{v:50,l:'😊 Лёгкая'},{v:150,l:'⚔️ Средняя'},{v:400,l:'💪 Сложная'},{v:800,l:'🔥 Экстрим'}].map(d => (
+                  {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'}].map(d => (
                     <button key={d.v} className={`m-diff-opt ${difficulty === d.v ? 'active' : ''}`}
                       onClick={() => { newGame(humanPlayer, d.v, mode); setShowMobileSettings(false) }}>
                       {d.l}
@@ -979,15 +988,17 @@ export default function Game() {
 
             {mode === 'ai' && (
               <div className="m-setting-row">
-                <span className="m-setting-label">Сторона</span>
+                <span className="m-setting-label">{lang === 'en' ? 'Side' : 'Сторона'}</span>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className={`m-diff-opt ${humanPlayer === 0 ? 'active' : ''}`}
+                  <button className={`m-diff-opt ${humanPlayer === 0 ? 'active' : ''}`} style={{ flex: 1 }}
                     onClick={() => { newGame(0, difficulty, mode); setShowMobileSettings(false) }}>
-                    🔵 Синие (первый ход)
+                    <span className="m-color-dot" style={{ background: 'var(--p1)' }} />
+                    {lang === 'en' ? 'Blue (first)' : 'Синие (первый ход)'}
                   </button>
-                  <button className={`m-diff-opt ${humanPlayer === 1 ? 'active' : ''}`}
+                  <button className={`m-diff-opt ${humanPlayer === 1 ? 'active' : ''}`} style={{ flex: 1 }}
                     onClick={() => { newGame(1, difficulty, mode); setShowMobileSettings(false) }}>
-                    🔴 Красные (swap)
+                    <span className="m-color-dot" style={{ background: 'var(--p2)' }} />
+                    {lang === 'en' ? 'Red (swap)' : 'Красные (swap)'}
                   </button>
                 </div>
               </div>
@@ -996,11 +1007,11 @@ export default function Game() {
             {mode === 'ai' && (
               <>
                 <div className="m-setting-row m-toggle-row" onClick={() => { setHintMode(!hintMode); setHint(null) }}>
-                  <span className="m-setting-label">💡 Подсказки</span>
+                  <span className="m-setting-label">{lang === 'en' ? 'Hints' : 'Подсказки'}</span>
                   <div className={`m-toggle ${hintMode ? 'on' : ''}`}><div className="m-toggle-thumb" /></div>
                 </div>
                 <div className="m-setting-row m-toggle-row" onClick={() => { setTrainerMode(!trainerMode); setPosEval(null) }}>
-                  <span className="m-setting-label">📊 Тренер</span>
+                  <span className="m-setting-label">{lang === 'en' ? 'Trainer' : 'Тренер'}</span>
                   <div className={`m-toggle ${trainerMode ? 'on' : ''}`}><div className="m-toggle-thumb" /></div>
                 </div>
               </>
@@ -1008,15 +1019,15 @@ export default function Game() {
 
             {mode === 'ai' && !tournament && (
               <div className="m-setting-row">
-                <span className="m-setting-label">Серия</span>
+                <span className="m-setting-label">{lang === 'en' ? 'Series' : 'Серия'}</span>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="m-diff-opt" onClick={() => { startTournament(3); setShowMobileSettings(false) }}>Серия 3</button>
-                  <button className="m-diff-opt" onClick={() => { startTournament(5); setShowMobileSettings(false) }}>Серия 5</button>
+                  <button className="m-diff-opt" style={{ flex: 1 }} onClick={() => { startTournament(3); setShowMobileSettings(false) }}>3 {lang === 'en' ? 'games' : 'партии'}</button>
+                  <button className="m-diff-opt" style={{ flex: 1 }} onClick={() => { startTournament(5); setShowMobileSettings(false) }}>5 {lang === 'en' ? 'games' : 'партий'}</button>
                 </div>
               </div>
             )}
 
-            <button className="m-sheet-close" onClick={() => setShowMobileSettings(false)}>Готово</button>
+            <button className="m-sheet-close" onClick={() => setShowMobileSettings(false)}>{lang === 'en' ? 'Done' : 'Готово'}</button>
           </div>
         </div>
       )}
