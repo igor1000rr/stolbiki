@@ -851,12 +851,8 @@ export default function Game() {
           <div style={{ maxWidth: 420, width: '100%', background: 'var(--surface)', borderRadius: 16, padding: isNative ? '20px 16px' : '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', margin: 'auto' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: isNative ? 10 : 16 }}>
-              <svg width="40" height="40" viewBox="0 0 28 28" fill="none" style={{ marginBottom: 8 }}>
-                <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
-                <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
-                <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
-              </svg>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{lang === 'en' ? 'How to play Snatch Highrise' : 'Как играть в Snatch Highrise'}</div>
+              <img src="/logo-text.png" alt="Snatch Highrise" style={{ width: 180, height: 'auto', marginBottom: 8 }} />
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{lang === 'en' ? 'How to play' : 'Как играть'}</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
               <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>

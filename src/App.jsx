@@ -303,12 +303,7 @@ export default function App() {
         <div className="site-header-inner">
           {/* Лого */}
           <div className="site-logo" onClick={() => go('landing')}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
-              <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
-              <rect x="20" y="8" width="6" height="16" rx="2" fill="var(--p2)" opacity="0.7"/>
-            </svg>
-            <span className="site-logo-text">{t('header.title')}</span>
+            <img src="/logo-text.png" alt="Snatch Highrise" style={{ height: 28, width: 'auto' }} />
             <span className="beta-badge">beta</span>
           </div>
 

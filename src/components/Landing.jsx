@@ -56,14 +56,8 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       {/* ═══ HERO — animated bars grow in ═══ */}
       <section className={`l-hero ${heroVis ? 'in' : ''}`} ref={heroRef}>
         <div className="l-hero-glow" />
-        <div className="l-hero-visual">
-          {[7, 11, 9, 11, 6, 8, 10, 11, 5, 7].map((h, i) => (
-            <div key={i} className="l-bar" style={{
-              '--h': `${h * 8}%`, '--delay': `${i * 0.06}s`,
-              background: i === 0 ? 'var(--gold)' : i % 3 === 0 ? 'var(--p2)' : 'var(--p1)',
-              opacity: h === 11 ? 0.9 : 0.25 + (h / 11) * 0.45,
-            }} />
-          ))}
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <img src="/logo-full.png" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
         </div>
         <h1 className="l-hero-title">
           {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
