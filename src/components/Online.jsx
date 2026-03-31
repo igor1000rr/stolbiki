@@ -107,6 +107,7 @@ function QRCode({ text, size = 160 }) {
 export default function Online() {
   const { lang } = useI18n()
   const en = lang === 'en'
+  const isNative = !!window.Capacitor?.isNativePlatform?.()
   const [screen, setScreen] = useState('lobby') // lobby | waiting | playing | result | searching
   const [roomId, setRoomId] = useState('')
   const [joinCode, setJoinCode] = useState('')
@@ -392,12 +393,14 @@ export default function Online() {
           </div>
         </div>
 
-        {/* QR код сайта */}
+        {/* QR код сайта — только для десктопа */}
+        {!isNative && (
         <div className="dash-card" style={{ maxWidth: 560, margin: '16px auto', textAlign: 'center' }}>
           <h3 style={{ marginBottom: 12 }}>QR — открой с телефона</h3>
           <QRCode text={location.origin} size={180} />
           <p style={{ color: '#6e6a82', fontSize: 11, marginTop: 10 }}>Отсканируй чтобы играть на телефоне</p>
         </div>
+        )}
 
         {/* Ежедневный челлендж */}
         <DailyChallenge />
