@@ -2198,10 +2198,18 @@ body.native-body *::after {
 /* ═══ Native game adjustments ═══ */
 .native-app .game-settings { display: none; }
 
+/* ═══ NATIVE: Game wrapper — заполняет весь экран ═══ */
+.native-game-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 52px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: calc(100dvh - 52px);
+}
+
 /* ═══ NATIVE: Game container — без лишних отступов ═══ */
 .native-app .game-container { padding: 0; }
 
-/* ═══ NATIVE: Board — edge-to-edge, адаптивные стойки ═══ */
+/* ═══ NATIVE: Board — edge-to-edge, РАСТЯГИВАЕТСЯ на весь экран ═══ */
 .native-app .board {
   margin: 0;
   border-radius: 0;
@@ -2210,12 +2218,14 @@ body.native-body *::after {
   border-left: none;
   border-right: none;
   margin-bottom: 6px;
+  flex: 1; /* Доска заполняет свободное место */
+  align-items: stretch; /* Стойки растягиваются по высоте */
 }
 .native-app .stand {
   flex: 1;
   max-width: none;
   width: auto;
-  min-height: clamp(115px, 22vh, 190px);
+  min-height: 120px; /* Минимум, но растянется через align-items: stretch */
   padding: 4px 2px 3px;
   border-radius: 8px 8px 0 0;
 }

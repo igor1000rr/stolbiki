@@ -447,8 +447,8 @@ export default function Online() {
   // ─── SEARCHING ───
   if (screen === 'searching') {
     return (
-      <div>
-        <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '16px auto' : '40px auto', textAlign: 'center' }}>
+      <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)' } : undefined}>
+        <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'inline-flex', gap: 4 }}>
               {[0, 0.2, 0.4].map((d, i) => (

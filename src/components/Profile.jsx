@@ -494,8 +494,8 @@ export default function Profile({ viewUsername, onClose }) {
     const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
       background: '#1e1e28', color: '#e8e6f0', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
     return (
-      <div>
-        <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '16px auto' : '40px auto', textAlign: 'center' }}>
+      <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)' } : undefined}>
+        <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}></div>
           <h3>{loginMode ? 'Вход' : 'Регистрация'}</h3>
           {serverOnline && (
