@@ -102,6 +102,7 @@ export default function SkinShop({ onClose, userLevel = 1 }) {
     setSettings(ns)
     saveSettings(ns)
     applySettings(ns)
+    window.dispatchEvent(new CustomEvent('stolbiki-settings-changed'))
   }
 
   const chipSkins = CHIP_SKINS

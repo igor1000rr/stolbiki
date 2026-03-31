@@ -54,6 +54,14 @@ export default function Settings() {
   // Применяем при загрузке
   useEffect(() => { applySettings(s) }, [])
 
+  // Обновляем при изменении из SkinShop
+  useEffect(() => {
+    const refresh = () => setS(load())
+    window.addEventListener('stolbiki-settings-changed', refresh)
+    window.addEventListener('focus', refresh)
+    return () => { window.removeEventListener('stolbiki-settings-changed', refresh); window.removeEventListener('focus', refresh) }
+  }, [])
+
   return (
     <div className="settings-page">
       <h2 className="settings-title">{en ? 'Settings' : 'Настройки'}</h2>

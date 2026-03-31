@@ -1140,6 +1140,11 @@ export default function Game() {
           <div className="score-label">{lang === 'en' ? 'Red' : 'Красные'}</div>
           <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
         </div>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-skinshop'))}
+          style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+            background: 'none', border: 'none', cursor: 'pointer', padding: 6, opacity: 0.4,
+            color: 'var(--ink3)', fontSize: 16, lineHeight: 1 }}
+          title={en ? 'Skin Shop' : 'Скины'}>🎨</button>
       </div>
 
       <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`} role="status" aria-live="polite">{info}</div>
