@@ -1189,9 +1189,9 @@ updatePost('puzzles-launch', 'Запуск головоломок', 'Puzzles lau
   'Tactical puzzles:\n\n- Daily puzzle\n- Weekly challenge\n- 50 puzzle bank\n- Leaderboards',
   'feature', '2026-03-01 12:00:00')
 updatePost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
-  '✅ Android-приложение (Capacitor)\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 26 ачивок\n✅ Login streak + календарь\n✅ Daily missions (3/день)\n✅ XP / Level система\n✅ AI auto-difficulty\n✅ Полный i18n RU/EN\n\nДалее:\n→ Google Play публикация\n→ Push-уведомления (Firebase)\n→ Обучение AI на RTX 5090\n→ Puzzle Rush\n→ Weekly tournaments\n→ iOS',
-  '✅ Android app (Capacitor)\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n✅ Login streak + calendar\n✅ Daily missions (3/day)\n✅ XP / Level system\n✅ AI auto-difficulty\n✅ Full i18n RU/EN\n\nNext:\n→ Google Play release\n→ Push notifications (Firebase)\n→ AI training on RTX 5090\n→ Puzzle Rush\n→ Weekly tournaments\n→ iOS',
-  'roadmap', '2026-03-31 18:00:00')
+  '✅ Android-приложение (Capacitor)\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 26 ачивок\n✅ Login streak + Daily missions + XP/Levels\n✅ AI Game Review (анализ каждого хода)\n✅ Puzzle Rush (3 мин тайм-аттак)\n✅ Live Arena (Swiss турниры)\n✅ 5 интерактивных уроков\n✅ Animated board (3D, shake, pulse)\n✅ Полный i18n RU/EN\n\nДалее:\n→ Google Play публикация\n→ Push-уведомления (Firebase)\n→ Обучение AI v4 (RTX 5090)\n→ iOS\n→ Seasonal cosmetics',
+  '✅ Android app (Capacitor)\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n✅ Login streak + Daily missions + XP/Levels\n✅ AI Game Review (move-by-move analysis)\n✅ Puzzle Rush (3min time attack)\n✅ Live Arena (Swiss tournaments)\n✅ 5 interactive lessons\n✅ Animated board (3D, shake, pulse)\n✅ Full i18n RU/EN\n\nNext:\n→ Google Play release\n→ Push notifications (Firebase)\n→ AI v4 training (RTX 5090)\n→ iOS\n→ Seasonal cosmetics',
+  'roadmap', '2026-04-01 00:00:00')
 
 // Получить посты
 app.get('/api/blog', (req, res) => {
