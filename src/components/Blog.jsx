@@ -35,7 +35,7 @@ function PostCard({ post, lang, onOpen }) {
           {formatDate(post.created_at, lang)}
         </span>
       </div>
-      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', marginBottom: 6, lineHeight: 1.4 }}>
+      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', marginBottom: 6, lineHeight: 1.4, textTransform: 'none', letterSpacing: 0 }}>
         {title}
       </h3>
       <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, margin: 0 }}>

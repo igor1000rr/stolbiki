@@ -1117,7 +1117,6 @@ body::before {
   margin-bottom: 12px;
   color: var(--ink3);
   letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
 .big-num {
