@@ -258,6 +258,47 @@ db.exec(`
   )
 `)
 
+// Live Arena
+db.exec(`
+  CREATE TABLE IF NOT EXISTS arena_tournaments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    status TEXT DEFAULT 'waiting',
+    rounds INTEGER DEFAULT 4,
+    current_round INTEGER DEFAULT 0,
+    max_players INTEGER DEFAULT 16,
+    created_at TEXT DEFAULT (datetime('now')),
+    started_at TEXT,
+    finished_at TEXT
+  )
+`)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS arena_participants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tournament_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    score REAL DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    draws INTEGER DEFAULT 0,
+    buchholz REAL DEFAULT 0,
+    UNIQUE(tournament_id, user_id)
+  )
+`)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS arena_matches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tournament_id INTEGER NOT NULL,
+    round INTEGER NOT NULL,
+    player1_id INTEGER NOT NULL,
+    player2_id INTEGER,
+    winner_id INTEGER,
+    result TEXT,
+    room_id TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
 // ─── Сид контента CMS ───
 const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
 if (contentCount === 0) {

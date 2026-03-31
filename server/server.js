@@ -548,6 +548,140 @@ app.delete('/api/push/unregister', auth, (req, res) => {
   res.json({ ok: true })
 })
 
+// ═══ LIVE ARENA ═══
+
+// Получить текущий/ближайший турнир
+app.get('/api/arena/current', (req, res) => {
+  let t = db.prepare("SELECT * FROM arena_tournaments WHERE status IN ('waiting','playing') ORDER BY created_at DESC LIMIT 1").get()
+  if (!t) {
+    // Автоматически создаём новый турнир каждую субботу или если нет активных
+    db.prepare("INSERT INTO arena_tournaments (status, rounds, max_players) VALUES ('waiting', 4, 16)").run()
+    t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
+  }
+  const participants = db.prepare('SELECT ap.*, u.rating, u.avatar FROM arena_participants ap JOIN users u ON u.id=ap.user_id WHERE ap.tournament_id=? ORDER BY ap.score DESC, ap.buchholz DESC').all(t.id)
+  const matches = db.prepare('SELECT * FROM arena_matches WHERE tournament_id=? ORDER BY round, id').all(t.id)
+  res.json({ tournament: t, participants, matches })
+})
+
+// Присоединиться
+app.post('/api/arena/join', auth, (req, res) => {
+  const t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
+  if (!t) return res.status(404).json({ error: 'No tournament available' })
+  if (db.prepare('SELECT id FROM arena_participants WHERE tournament_id=? AND user_id=?').get(t.id, req.user.id)) {
+    return res.json({ ok: true, already: true })
+  }
+  const count = db.prepare('SELECT COUNT(*) as c FROM arena_participants WHERE tournament_id=?').get(t.id).c
+  if (count >= t.max_players) return res.status(400).json({ error: 'Tournament full' })
+  db.prepare('INSERT INTO arena_participants (tournament_id, user_id, username) VALUES (?, ?, ?)').run(t.id, req.user.id, req.user.username)
+  res.json({ ok: true })
+})
+
+// Покинуть (до старта)
+app.post('/api/arena/leave', auth, (req, res) => {
+  const t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
+  if (t) db.prepare('DELETE FROM arena_participants WHERE tournament_id=? AND user_id=?').run(t.id, req.user.id)
+  res.json({ ok: true })
+})
+
+// Старт турнира (admin или авто при 4+ участниках)
+app.post('/api/arena/start', auth, (req, res) => {
+  const t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
+  if (!t) return res.status(404).json({ error: 'No waiting tournament' })
+  const parts = db.prepare('SELECT * FROM arena_participants WHERE tournament_id=?').all(t.id)
+  if (parts.length < 2) return res.status(400).json({ error: 'Need 2+ players' })
+
+  db.prepare("UPDATE arena_tournaments SET status='playing', started_at=datetime('now'), current_round=1 WHERE id=?").run(t.id)
+
+  // Swiss pairing: round 1 — случайный порядок
+  const shuffled = parts.sort(() => Math.random() - 0.5)
+  const ins = db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id) VALUES (?, 1, ?, ?)')
+  for (let i = 0; i < shuffled.length - 1; i += 2) {
+    ins.run(t.id, shuffled[i].user_id, shuffled[i + 1].user_id)
+  }
+  // Нечётный игрок получает bye
+  if (shuffled.length % 2 === 1) {
+    db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id, winner_id, result) VALUES (?, 1, ?, NULL, ?, ?)')
+      .run(t.id, shuffled[shuffled.length - 1].user_id, shuffled[shuffled.length - 1].user_id, 'bye')
+    db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?')
+      .run(t.id, shuffled[shuffled.length - 1].user_id)
+  }
+
+  res.json({ ok: true, round: 1, matches: shuffled.length >> 1 })
+})
+
+// Записать результат матча
+app.post('/api/arena/result', auth, (req, res) => {
+  const { match_id, winner_id, result } = req.body
+  if (!match_id) return res.status(400).json({ error: 'match_id required' })
+  const match = db.prepare('SELECT * FROM arena_matches WHERE id=?').get(match_id)
+  if (!match || match.winner_id) return res.status(400).json({ error: 'Invalid match or already recorded' })
+
+  db.prepare('UPDATE arena_matches SET winner_id=?, result=? WHERE id=?').run(winner_id, result || '', match_id)
+
+  // Обновляем score
+  if (winner_id === match.player1_id) {
+    db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player1_id)
+    db.prepare('UPDATE arena_participants SET losses=losses+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player2_id)
+  } else if (winner_id === match.player2_id) {
+    db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player2_id)
+    db.prepare('UPDATE arena_participants SET losses=losses+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player1_id)
+  } else {
+    // Ничья
+    db.prepare('UPDATE arena_participants SET score=score+0.5, draws=draws+1 WHERE tournament_id=? AND user_id IN (?,?)').run(match.tournament_id, match.player1_id, match.player2_id)
+  }
+
+  // Проверяем все матчи текущего раунда завершены → следующий раунд
+  const t = db.prepare('SELECT * FROM arena_tournaments WHERE id=?').get(match.tournament_id)
+  const roundMatches = db.prepare('SELECT * FROM arena_matches WHERE tournament_id=? AND round=?').all(t.id, t.current_round)
+  const allDone = roundMatches.every(m => m.winner_id || m.result === 'bye')
+
+  if (allDone && t.current_round < t.rounds) {
+    // Следующий раунд — Swiss pairing по score
+    const nextRound = t.current_round + 1
+    db.prepare('UPDATE arena_tournaments SET current_round=? WHERE id=?').run(nextRound, t.id)
+    const parts = db.prepare('SELECT * FROM arena_participants WHERE tournament_id=? ORDER BY score DESC, buchholz DESC').all(t.id)
+    const paired = new Set()
+    const ins2 = db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id) VALUES (?, ?, ?, ?)')
+    for (let i = 0; i < parts.length; i++) {
+      if (paired.has(parts[i].user_id)) continue
+      for (let j = i + 1; j < parts.length; j++) {
+        if (paired.has(parts[j].user_id)) continue
+        // Проверяем не играли ли уже друг с другом
+        const played = db.prepare('SELECT id FROM arena_matches WHERE tournament_id=? AND ((player1_id=? AND player2_id=?) OR (player1_id=? AND player2_id=?))').get(t.id, parts[i].user_id, parts[j].user_id, parts[j].user_id, parts[i].user_id)
+        if (!played) {
+          ins2.run(t.id, nextRound, parts[i].user_id, parts[j].user_id)
+          paired.add(parts[i].user_id); paired.add(parts[j].user_id)
+          break
+        }
+      }
+    }
+    // Bye для непарного
+    for (const p of parts) {
+      if (!paired.has(p.user_id)) {
+        db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id, winner_id, result) VALUES (?, ?, ?, NULL, ?, ?)')
+          .run(t.id, nextRound, p.user_id, p.user_id, 'bye')
+        db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(t.id, p.user_id)
+      }
+    }
+  } else if (allDone && t.current_round >= t.rounds) {
+    // Турнир завершён
+    db.prepare("UPDATE arena_tournaments SET status='finished', finished_at=datetime('now') WHERE id=?").run(t.id)
+    // XP для топ-3
+    const final = db.prepare('SELECT user_id FROM arena_participants WHERE tournament_id=? ORDER BY score DESC LIMIT 3').all(t.id)
+    if (final[0]) addXP(final[0].user_id, 200) // 1 место
+    if (final[1]) addXP(final[1].user_id, 100) // 2 место
+    if (final[2]) addXP(final[2].user_id, 50)  // 3 место
+  }
+
+  res.json({ ok: true, allRoundDone: allDone })
+})
+
+// История турниров
+app.get('/api/arena/history', (req, res) => {
+  const tournaments = db.prepare("SELECT * FROM arena_tournaments WHERE status='finished' ORDER BY finished_at DESC LIMIT 10").all()
+  res.json(tournaments)
+})
+
 // ═══ STATS (public) ═══
 app.get('/api/stats', (req, res) => {
   const totalUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c
@@ -1025,6 +1159,11 @@ addPost('v39-retention', 'v3.9: Стрики, миссии, XP, уровни', '
   'Пять новых систем удержания:\n\n**Login streak** — серия ежедневных входов с календарём 30 дней. Streak freeze 1 раз в месяц. XP за каждый день (5-50).\n**Daily missions** — 3 задания в день из пула 8 (сыграй, победи, реши). XP за каждое + бонус 100 XP за все три.\n**XP / Level** — уровни 1-50. Прогресс-бар в профиле. XP за победы (20), поражения (5), миссии, стрики.\n**AI auto-difficulty** — после 3 поражений кнопка «Попробовать полегче?».\n**First Win** — celebration при первой победе в жизни.\n\nLayout расширен до 1200px для больших мониторов.',
   'Five new retention systems:\n\n**Login streak** — daily login streak with 30-day calendar. Streak freeze 1/month. XP for each day (5-50).\n**Daily missions** — 3 per day from pool of 8 (play, win, solve). XP each + 100 XP bonus for all three.\n**XP / Level** — levels 1-50. Progress bar in profile. XP for wins (20), losses (5), missions, streaks.\n**AI auto-difficulty** — after 3 losses suggests easier level.\n**First Win** — celebration on first ever victory.\n\nLayout widened to 1200px for large monitors.',
   'release', '2026-03-31 23:00:00')
+
+addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
+  'Пять новых режимов превращают Snatch Highrise в полноценную игровую платформу:\n\n**AI Game Review** — после каждой партии AI анализирует все ходы: отличный / хороший / ошибка / грубая ошибка. Итоговая accuracy % и replay с цветовой подсветкой.\n**Puzzle Rush** — 3 минуты, максимум головоломок. +10 сек за правильную, -15 за ошибку. Leaderboard.\n**Live Arena** — турниры Swiss system: 4 раунда, автоматический pairing по очкам, live таблица, XP для топ-3.\n**5 интерактивных уроков** — от основ до стратегии. Интерактивная доска, XP за каждый пройденный.\n**Animated board** — screen shake при закрытии, 3D perspective, золотая пульсация.',
+  'Five new modes turn Snatch Highrise into a full competitive platform:\n\n**AI Game Review** — after every game, AI analyzes each move: excellent / good / mistake / blunder. Accuracy % and color-coded replay.\n**Puzzle Rush** — 3 minutes, max puzzles. +10 sec correct, -15 wrong. Leaderboard.\n**Live Arena** — Swiss system tournaments: 4 rounds, auto-pairing by score, live standings, XP for top 3.\n**5 interactive lessons** — from basics to strategy. Interactive board, XP for each completed.\n**Animated board** — screen shake on close, 3D perspective, golden pulse.',
+  'release', '2026-04-01 00:00:00')
 
 // Удаляем устаревший roadmap и дубли
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()

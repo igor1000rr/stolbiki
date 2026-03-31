@@ -51,6 +51,14 @@ export function isLoggedIn() {
   return !!_token
 }
 
+export function getUserId() {
+  if (!_token) return null
+  try {
+    const payload = JSON.parse(atob(_token.split('.')[1]))
+    return payload.id || null
+  } catch { return null }
+}
+
 // ═══ Profile ═══
 export async function getProfile() {
   return await api('/profile')

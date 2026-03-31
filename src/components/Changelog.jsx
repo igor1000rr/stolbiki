@@ -6,6 +6,28 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.0',
+    date: '2026-04-01',
+    title_ru: 'AI анализ, Puzzle Rush, Arena, уроки, анимации',
+    title_en: 'AI review, Puzzle Rush, Arena, lessons, animations',
+    changes_ru: [
+      { type: 'new', text: 'AI Game Review — анализ каждого хода: отличный/хороший/ошибка/грубая ошибка. Accuracy %, навигация по replay' },
+      { type: 'new', text: 'Puzzle Rush — реши максимум головоломок за 3 минуты. +10 сек за правильную, -15 за ошибку. Leaderboard' },
+      { type: 'new', text: 'Live Arena — турнирный режим Swiss system, 4 раунда, live таблица, XP для топ-3' },
+      { type: 'new', text: '5 интерактивных уроков: основы → перенос → золотая → закрытие → стратегия. XP за каждый' },
+      { type: 'new', text: 'Animated board — screen shake при закрытии, 3D perspective, golden pulse, chipSquish' },
+      { type: 'new', text: 'Score pop animation при закрытии стойки' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'AI Game Review — analyze every move: excellent/good/inaccuracy/mistake/blunder. Accuracy %, replay navigation' },
+      { type: 'new', text: 'Puzzle Rush — solve max puzzles in 3 minutes. +10 sec correct, -15 wrong. Leaderboard' },
+      { type: 'new', text: 'Live Arena — Swiss tournament system, 4 rounds, live standings, XP for top 3' },
+      { type: 'new', text: '5 interactive lessons: basics → transfer → golden → closing → strategy. XP for each' },
+      { type: 'new', text: 'Animated board — screen shake on close, 3D perspective, golden pulse, chipSquish' },
+      { type: 'new', text: 'Score pop animation on stand close' },
+    ],
+  },
+  {
     version: '3.9',
     date: '2026-03-31',
     title_ru: 'Retention: стрики, миссии, XP, auto-difficulty',

@@ -380,9 +380,15 @@ export default function Online() {
           </button>
 
           <button className="btn" onClick={findMatch}
-            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16,
+            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 10,
               borderColor: '#3dd68c40', color: '#3dd68c' }}>
             {en ? 'Find random opponent' : 'Найти случайного соперника'}
+          </button>
+
+          <button className="btn" onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-arena'))}
+            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16,
+              borderColor: '#ffc14540', color: '#ffc145' }}>
+            {en ? 'Arena Tournament' : 'Турнир Arena'}
           </button>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>

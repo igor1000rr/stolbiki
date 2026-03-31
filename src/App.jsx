@@ -21,6 +21,7 @@ const Openings = lazy(() => import('./components/Openings'))
 const Landing = lazy(() => import('./components/Landing'))
 const Tutorial = lazy(() => import('./components/Tutorial'))
 const Lessons = lazy(() => import('./components/Lessons'))
+const Arena = lazy(() => import('./components/Arena'))
 const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
 const Admin = lazy(() => import('./components/Admin'))
@@ -75,6 +76,7 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [showLessons, setShowLessons] = useState(false)
+  const [showArena, setShowArena] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
 
@@ -192,11 +194,14 @@ export default function App() {
     window.addEventListener('stolbiki-back-to-lobby', backToLobby)
     const viewProfileHandler = (e) => { setViewProfile(e.detail?.username || null); setTab('profile'); setMobileMenu(false) }
     window.addEventListener('stolbiki-view-profile', viewProfileHandler)
+    const openArena = () => setShowArena(true)
+    window.addEventListener('stolbiki-open-arena', openArena)
     return () => {
       window.removeEventListener('stolbiki-online-start', handler)
       window.removeEventListener('stolbiki-daily-start', handler)
       window.removeEventListener('stolbiki-back-to-lobby', backToLobby)
       window.removeEventListener('stolbiki-view-profile', viewProfileHandler)
+      window.removeEventListener('stolbiki-open-arena', openArena)
     }
   }, [])
 
@@ -602,6 +607,7 @@ export default function App() {
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => setShowLessons(false)} /></Suspense>}
+      {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} /></Suspense>}
 
       {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
