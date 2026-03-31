@@ -3,6 +3,8 @@ import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import * as API from './engine/api'
 import Icon from './components/Icon'
 import { getSettings, applySettings } from './engine/settings'
+import { useNetworkStatus } from './engine/network'
+import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
 import './app.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
@@ -21,6 +23,8 @@ const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
 const Admin = lazy(() => import('./components/Admin'))
 const Changelog = lazy(() => import('./components/Changelog'))
+const Onboarding = lazy(() => import('./components/Onboarding'))
+const Privacy = lazy(() => import('./components/Privacy'))
 
 function LazyFallback() {
   return <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>
@@ -61,7 +65,7 @@ export default function App() {
     if (params.get('room')) return 'online'
     const hash = location.hash.replace('#', '')
     if (hash.startsWith('blog')) return 'blog'
-    if (hash && ['game','online','puzzles','openings','profile','settings','rules','sim','dash','replay','admin','changelog'].includes(hash)) return hash
+    if (hash && ['game','online','puzzles','openings','profile','settings','rules','privacy','sim','dash','replay','admin','changelog'].includes(hash)) return hash
     return 'landing'
   })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
@@ -69,6 +73,11 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
+
+  // Native-only states
+  const [showOnboarding, setShowOnboarding] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
+  const [showRatePopup, setShowRatePopup] = useState(false)
+  const online = useNetworkStatus()
 
   // Ленивый mount для Game/Online — грузятся только при первом посещении таба
 
@@ -184,6 +193,14 @@ export default function App() {
 
   function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
+  // Rate popup — проверяем при возврате на главный экран
+  useEffect(() => {
+    if (isNative && tab === 'game' && shouldAskRating()) {
+      const timer = setTimeout(() => setShowRatePopup(true), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [tab])
+
   const [publicStats, setPublicStats] = useState(null)
   useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
 
@@ -220,6 +237,68 @@ export default function App() {
     <I18nContext.Provider value={i18n}>
     <div className={`app ${isNative ? 'native-app' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
+
+      {/* Native onboarding — первый запуск */}
+      {showOnboarding && isNative && (
+        <Suspense fallback={null}>
+          <Onboarding lang={lang} onDone={() => setShowOnboarding(false)} />
+        </Suspense>
+      )}
+
+      {/* Offline banner */}
+      {isNative && !online && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 500,
+          background: '#ff6066', color: '#fff', textAlign: 'center',
+          fontSize: 11, fontWeight: 600, padding: '4px 12px',
+          paddingTop: 'calc(4px + env(safe-area-inset-top, 0px))',
+        }}>
+          {en ? 'Offline — AI & puzzles available' : 'Нет сети — AI и головоломки доступны'}
+        </div>
+      )}
+
+      {/* Rate app popup */}
+      {showRatePopup && isNative && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2500,
+          background: 'rgba(0,0,0,0.7)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: 20,
+        }} onClick={() => { markRatingAsked(); setShowRatePopup(false) }}>
+          <div style={{
+            background: '#1a1a28', borderRadius: 20, padding: '28px 24px',
+            maxWidth: 340, width: '100%', textAlign: 'center',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="#ffc145"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#e8e6f0', marginBottom: 8 }}>
+              {en ? 'Enjoying Snatch Highrise?' : 'Нравится Snatch Highrise?'}
+            </h3>
+            <p style={{ fontSize: 13, color: '#a09cb0', marginBottom: 20, lineHeight: 1.5 }}>
+              {en ? 'Rate us on Google Play! It helps a lot.' : 'Оцените нас в Google Play! Это очень помогает.'}
+            </p>
+            <button onClick={() => {
+              markRatingAsked()
+              setShowRatePopup(false)
+              // TODO: открыть страницу в Google Play когда будет URL
+            }} style={{
+              width: '100%', padding: '14px 0', borderRadius: 12,
+              border: 'none', background: '#ffc145', color: '#0d0d14',
+              fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8,
+            }}>
+              {en ? 'Rate now' : 'Оценить'}
+            </button>
+            <button onClick={() => { markRatingAsked(); setShowRatePopup(false) }} style={{
+              width: '100%', padding: '12px 0', borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.08)', background: 'none',
+              color: '#6b6880', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              {en ? 'Maybe later' : 'Позже'}
+            </button>
+          </div>
+        </div>
+      )}
       {!isNative && <header className="site-header" role="banner">
         <div className="site-header-inner">
           {/* Лого */}
@@ -392,6 +471,7 @@ export default function App() {
           {tab === 'admin' && isAdmin && <Admin />}
           {tab === 'changelog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
           {tab === 'rules' && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
+          {tab === 'privacy' && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
           {tab === 'more' && isNative && (
             <div className="m-more-page">
               {authUser && (
@@ -441,7 +521,19 @@ export default function App() {
               <button className="m-more-item" onClick={() => go('changelog')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                 <span>Changelog</span>
-                <span className="m-more-value">v3.5</span>
+                <span className="m-more-value">v3.7</span>
+              </button>
+
+              <div className="m-more-section">{en ? 'About' : 'О приложении'}</div>
+              <button className="m-more-item" onClick={() => shareApp(lang)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+                <span>{en ? 'Share app' : 'Поделиться'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button className="m-more-item" onClick={() => go('privacy')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>{en ? 'Privacy Policy' : 'Конфиденциальность'}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
               </button>
 
               {authUser && (
@@ -498,8 +590,8 @@ export default function App() {
             { id: 'more', label: en ? 'More' : 'Ещё',
               svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg> },
           ].map(n => (
-            <button key={n.id} role="tab" aria-selected={tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog'].includes(tab))}
-              className={`native-tab ${tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog'].includes(tab)) ? 'active' : ''}`}
+            <button key={n.id} role="tab" aria-selected={tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog','privacy'].includes(tab))}
+              className={`native-tab ${tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog','privacy'].includes(tab)) ? 'active' : ''}`}
               onClick={() => go(n.id)}>
               <span className="native-tab-icon">{n.svg}</span>
               <span className="native-tab-label">{n.label}</span>

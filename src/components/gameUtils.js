@@ -4,6 +4,7 @@
  */
 
 import { soundPlace as _sp, soundTransfer as _st, soundClose as _sc, soundWin as _sw, soundLose as _sl, soundSwap as _ss } from '../engine/sounds'
+import * as haptics from '../engine/haptics'
 
 // ─── Title blink (таб мигает когда ваш ход) ───
 let _titleBlinkInterval = null
@@ -18,26 +19,23 @@ export function startTitleBlink(msg = 'Your turn!') {
   window.addEventListener('focus', stop, { once: true })
 }
 
-// ─── Haptic feedback ───
-export const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms) } catch {} }
-
-// ─── Звуковая система ───
+// ─── Haptic + Звуковая система ───
 let _soundPack = 'classic'
 export let _soundOn = true
 export function setSoundOn(v) { _soundOn = v }
 
-function playSound(fn, hap) {
-  if (!_soundOn || _soundPack === 'off') return
+function playSound(fn, hapticFn) {
+  if (!_soundOn || _soundPack === 'off') { hapticFn?.(); return }
   fn()
-  haptic(hap)
+  hapticFn?.()
 }
 
-export const sp = () => playSound(_sp, 5)       // place
-export const st = () => playSound(_st, 8)       // transfer
-export const sc = () => playSound(_sc, [15, 30, 15])  // close
-export const sw = () => playSound(_sw, [10, 20, 10, 20, 30])  // win
-export const sl = () => playSound(_sl, 20)      // lose
-export const ss = () => playSound(_ss, 12)      // swap
+export const sp = () => playSound(_sp, haptics.tapLight)       // place
+export const st = () => playSound(_st, haptics.tapMedium)      // transfer
+export const sc = () => playSound(_sc, haptics.tapHeavy)       // close
+export const sw = () => playSound(_sw, haptics.notifySuccess)  // win
+export const sl = () => playSound(_sl, haptics.notifyError)    // lose
+export const ss = () => playSound(_ss, haptics.notifyWarning)  // swap
 
 // ─── Генерация share-картинки результата ───
 export function generateShareImage(gs, won, isDraw, s0, s1) {
