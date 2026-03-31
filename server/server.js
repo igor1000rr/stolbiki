@@ -818,6 +818,55 @@ app.get('/api/puzzles/weekly', (req, res) => {
 
 // ─── Банк головоломок (50 штук, статичные) ───
 app.get('/api/puzzles/bank', (req, res) => {
+
+// ─── Puzzle Rush ───
+app.get('/api/puzzles/rush', (req, res) => {
+  // 30 случайных головоломок с нарастающей сложностью
+  const puzzles = []
+  for (let i = 0; i < 30; i++) {
+    const diff = i < 8 ? 1 : i < 20 ? 2 : 3
+    const seed = `rush-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`
+    const p = generatePuzzle(seed, diff)
+    p.rushIndex = i + 1
+    p.difficulty = diff
+    puzzles.push(p)
+  }
+  res.json({ puzzles })
+})
+
+app.get('/api/puzzles/rush/leaderboard', (req, res) => {
+  const rows = db.prepare(`
+    SELECT u.username, u.avatar, pr.score, pr.created_at
+    FROM puzzle_rush_scores pr JOIN users u ON u.id = pr.user_id
+    ORDER BY pr.score DESC LIMIT 20
+  `).all()
+  res.json(rows)
+})
+
+app.post('/api/puzzles/rush/submit', auth, (req, res) => {
+  const { score, solved, time } = req.body
+  if (!score && score !== 0) return res.status(400).json({ error: 'score required' })
+  db.prepare('INSERT INTO puzzle_rush_scores (user_id, score, solved, time_ms) VALUES (?, ?, ?, ?)')
+    .run(req.user.id, score, solved || 0, time || 180000)
+  // XP за puzzle rush
+  const xp = Math.min(score * 5, 200)
+  if (xp > 0) addXP(req.user.id, xp)
+  // Mission progress
+  if (solved > 0) {
+    const today = new Date().toISOString().split('T')[0]
+    getTodayMissions(req.user.id)
+    const m = db.prepare('SELECT * FROM daily_missions WHERE user_id=? AND date=? AND mission_id=? AND completed=0')
+      .get(req.user.id, today, 'solve_puzzle')
+    if (m) {
+      const np = Math.min(m.progress + solved, m.target)
+      db.prepare('UPDATE daily_missions SET progress=?, completed=? WHERE id=?').run(np, np >= m.target ? 1 : 0, m.id)
+      if (np >= m.target) addXP(req.user.id, m.xp_reward)
+    }
+  }
+  res.json({ ok: true, xp })
+})
+
+app.get('/api/puzzles/bank', (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1)
   const perPage = 12
   const diff = parseInt(req.query.difficulty) || 0

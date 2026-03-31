@@ -246,6 +246,18 @@ db.exec(`
 try { db.exec('ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0') } catch {}
 try { db.exec('ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1') } catch {}
 
+// Puzzle Rush scores
+db.exec(`
+  CREATE TABLE IF NOT EXISTS puzzle_rush_scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    score INTEGER NOT NULL,
+    solved INTEGER DEFAULT 0,
+    time_ms INTEGER DEFAULT 180000,
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
 // ─── Сид контента CMS ───
 const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
 if (contentCount === 0) {

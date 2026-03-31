@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { GameState, applyAction, getValidTransfers, MAX_PLACE, MAX_PLACE_STANDS, GOLDEN_STAND } from '../engine/game'
 import { useI18n } from '../engine/i18n'
 import * as API from '../engine/api'
 import Board from './Board'
+const PuzzleRush = lazy(() => import('./PuzzleRush'))
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
 const DIFF_LABELS = { 1: { ru: 'Лёгкая', en: 'Easy' }, 2: { ru: 'Средняя', en: 'Medium' }, 3: { ru: 'Сложная', en: 'Hard' } }
@@ -250,6 +251,7 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
 export default function Puzzles() {
   const { t, lang } = useI18n()
   const [tab, setTab] = useState('featured') // featured | bank
+  const [showRush, setShowRush] = useState(false)
   const [daily, setDaily] = useState(null)
   const [weekly, setWeekly] = useState(null)
   const [bank, setBank] = useState(null)
@@ -332,6 +334,10 @@ export default function Puzzles() {
             {label}
           </button>
         ))}
+        <button className="btn" onClick={() => setShowRush(true)}
+          style={{ fontSize: 12, padding: '7px 16px', borderColor: '#ffc145', color: '#ffc145' }}>
+          ⚡ Puzzle Rush
+        </button>
       </div>
 
       {/* ═══ FEATURED: daily + weekly ═══ */}
@@ -456,6 +462,12 @@ export default function Puzzles() {
             </div>
           )}
         </div>
+      )}
+
+      {showRush && (
+        <Suspense fallback={null}>
+          <PuzzleRush onClose={() => setShowRush(false)} />
+        </Suspense>
       )}
     </div>
   )
