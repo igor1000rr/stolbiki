@@ -167,8 +167,8 @@ export default function Game() {
       }
 
       // Обычный ход — звуки
-      if (action.transfer) st()
-      else sp()
+      if (action.transfer) { st() }
+      else { sp() }
 
       if (ns.gameOver) {
         setTimeout(() => {
@@ -296,9 +296,9 @@ export default function Game() {
       const ns = applyAction(prevState, action)
       setGs(ns)
       gsRef.current = ns
-      if (action.transfer) st()
-      else if (action.swap) ss()
-      else sp()
+      if (action.transfer) { st() }
+      else if (action.swap) { ss() }
+      else { sp() }
       addLog(describeAction(action, prevState.currentPlayer, t), prevState.currentPlayer)
       if (ns.gameOver) {
         setTimeout(() => {
