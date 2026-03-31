@@ -4,7 +4,7 @@ import dashData from '../data/dashboard.json'
 import { getTrainingStats, exportForTraining, clearTrainingData } from '../engine/collector'
 
 Chart.register(...registerables)
-Chart.defaults.color = '#6b6880'
+Chart.defaults.color = '#6e6a82'
 Chart.defaults.borderColor = 'rgba(255,255,255,0.06)'
 Chart.defaults.font.family = "'Outfit', sans-serif"
 
@@ -12,8 +12,8 @@ function HeroMetric({ value, label, color, sub }) {
   return (
     <div style={{ textAlign: 'center', padding: '14px 6px' }}>
       <div style={{ fontSize: 28, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 10, color: '#6b6880', marginTop: 4, fontWeight: 500 }}>{label}</div>
-      {sub && <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, fontWeight: 500 }}>{label}</div>
+      {sub && <div style={{ fontSize: 9, color: 'var(--ink3)', marginTop: 2 }}>{sub}</div>}
     </div>
   )
 }
@@ -92,7 +92,7 @@ function GpuChart() {
       labels: gpu.versions,
       datasets: [
         { label: 'Loss', data: gpu.losses, borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.08)', fill: true, tension: 0.3, yAxisID: 'y', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
-        { label: 'LR ×1000', data: gpu.lr.map(v => v * 1000), borderColor: '#555', borderDash: [4, 4], tension: 0.3, yAxisID: 'y1', borderWidth: 1, pointRadius: 0 },
+        { label: 'LR ×1000', data: gpu.lr.map(v => v * 1000), borderColor: '#6e6a82', borderDash: [4, 4], tension: 0.3, yAxisID: 'y1', borderWidth: 1, pointRadius: 0 },
       ],
     },
     options: {
@@ -130,7 +130,7 @@ function VariantsTable({ data, headers }) {
         {Object.entries(data).sort((a,b) => +a[0] - +b[0]).map(([k, v]) => (
           <tr key={k}>
             <td>{k}</td>
-            <td style={{ color: Math.abs(v.p1_wr*100-50) < 3 ? '#3dd68c' : '#e8e6f0' }}>{(v.p1_wr*100).toFixed(1)}%</td>
+            <td style={{ color: Math.abs(v.p1_wr*100-50) < 3 ? '#3dd68c' : 'var(--ink)' }}>{(v.p1_wr*100).toFixed(1)}%</td>
             <td>{Math.round(v.avg_turns)}</td>
             <td>{v.decisive_golden > 0 ? `${(v.decisive_golden*100).toFixed(1)}%` : '—'}</td>
           </tr>
@@ -165,7 +165,7 @@ export default function Dashboard() {
 
         <ChartWrap title="Эволюция баланса P1 vs P2 (новые правила)">
           <BalanceChart />
-          <div style={{ fontSize: 11, color: '#6b6880', marginTop: 8, textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8, textAlign: 'center' }}>
             Среднее: P1=50%, P2=50% • Осцилляция ±10% (нормально для 64-нейронной CPU сети)
           </div>
         </ChartWrap>
@@ -176,22 +176,22 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 8 }}>
             <div style={{ padding: 14, background: 'rgba(74,158,255,0.04)', borderRadius: 10, border: '1px solid rgba(74,158,255,0.1)' }}>
               <div style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600, marginBottom: 8 }}>CPU (numpy MLP)</div>
-              <div style={{ fontSize: 12, color: '#a09cb0', lineHeight: 1.8 }}>
-                Параметров: <b style={{ color: '#e8e6f0' }}>~8K</b><br/>
-                Итераций: <b style={{ color: '#e8e6f0' }}>500 (стар) + 1,000 (нов)</b><br/>
-                Loss min: <b style={{ color: '#e8e6f0' }}>0.72</b><br/>
-                WR: <b style={{ color: '#e8e6f0' }}>~90%</b><br/>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.8 }}>
+                Параметров: <b style={{ color: 'var(--ink)' }}>~8K</b><br/>
+                Итераций: <b style={{ color: 'var(--ink)' }}>500 (стар) + 1,000 (нов)</b><br/>
+                Loss min: <b style={{ color: 'var(--ink)' }}>0.72</b><br/>
+                WR: <b style={{ color: 'var(--ink)' }}>~90%</b><br/>
                 Баланс: <b style={{ color: '#3dd68c' }}>50:50</b>
               </div>
             </div>
             <div style={{ padding: 14, background: 'rgba(155,89,182,0.04)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.1)' }}>
               <div style={{ fontSize: 12, color: '#9b59b6', fontWeight: 600, marginBottom: 8 }}>GPU (PyTorch ResNet)</div>
-              <div style={{ fontSize: 12, color: '#a09cb0', lineHeight: 1.8 }}>
-                Параметров: <b style={{ color: '#e8e6f0' }}>840K</b><br/>
-                Итераций: <b style={{ color: '#e8e6f0' }}>1,146 (146 стар + 500×2 нов)</b><br/>
-                Loss min: <b style={{ color: '#e8e6f0' }}>0.098 / 0.128</b><br/>
-                WR best: <b style={{ color: '#e8e6f0' }}>97%</b><br/>
-                GPU: <b style={{ color: '#e8e6f0' }}>NVIDIA GPU</b>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.8 }}>
+                Параметров: <b style={{ color: 'var(--ink)' }}>840K</b><br/>
+                Итераций: <b style={{ color: 'var(--ink)' }}>1,146 (146 стар + 500×2 нов)</b><br/>
+                Loss min: <b style={{ color: 'var(--ink)' }}>0.098 / 0.128</b><br/>
+                WR best: <b style={{ color: 'var(--ink)' }}>97%</b><br/>
+                GPU: <b style={{ color: 'var(--ink)' }}>NVIDIA GPU</b>
               </div>
             </div>
           </div>
@@ -212,12 +212,12 @@ export default function Dashboard() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 12 }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 32, fontWeight: 700, color: '#4a9eff' }}>{d.trained_mm.p1}</div>
-                  <div style={{ fontSize: 11, color: '#6b6880' }}>Игрок 1</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Игрок 1</div>
                 </div>
                 <div style={{ fontSize: 28, color: '#36364a', alignSelf: 'center' }}>:</div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 32, fontWeight: 700, color: '#ff6b6b' }}>{d.trained_mm.p2}</div>
-                  <div style={{ fontSize: 11, color: '#6b6880' }}>Игрок 2</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Игрок 2</div>
                 </div>
               </div>
             </div>
@@ -225,8 +225,8 @@ export default function Dashboard() {
           <div className="dash-card">
             <h3>Преимущество 1-го хода</h3>
             <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <div style={{ fontSize: 32, fontWeight: 700, color: '#e8e6f0' }}>{(d.mcts_vs_mcts.p1_wr*100).toFixed(0)}%</div>
-              <div style={{ fontSize: 11, color: '#6b6880' }}>MCTS vs MCTS, {d.mcts_vs_mcts.games} партий</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--ink)' }}>{(d.mcts_vs_mcts.p1_wr*100).toFixed(0)}%</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>MCTS vs MCTS, {d.mcts_vs_mcts.games} партий</div>
               <div style={{ fontSize: 11, color: '#3dd68c', marginTop: 4 }}>Swap rule компенсирует</div>
             </div>
           </div>
@@ -277,25 +277,25 @@ function TrainingPanel() {
   return (
     <div className="dash-card dash-full">
       <h3>Данные для дообучения AI</h3>
-      <div style={{ fontSize: 12, color: '#a09cb0', marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 12 }}>
         Система собирает все партии реальных игроков. Данные используются для дообучения нейросети.
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(155,89,182,0.06)', borderRadius: 8 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#9b59b6' }}>{stats.games}</div>
-          <div style={{ fontSize: 10, color: '#6b6880' }}>Партий</div>
+          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Партий</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(74,158,255,0.06)', borderRadius: 8 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#4a9eff' }}>{stats.moves}</div>
-          <div style={{ fontSize: 10, color: '#6b6880' }}>Ходов</div>
+          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Ходов</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(78,203,113,0.06)', borderRadius: 8 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#4ecb71' }}>{stats.aiGames}</div>
-          <div style={{ fontSize: 10, color: '#6b6880' }}>vs AI</div>
+          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>vs AI</div>
         </div>
         <div style={{ textAlign: 'center', padding: 10, background: 'rgba(240,101,74,0.06)', borderRadius: 8 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#3bb8a8' }}>{stats.pvpGames}</div>
-          <div style={{ fontSize: 10, color: '#6b6880' }}>PvP</div>
+          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>PvP</div>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
@@ -310,7 +310,7 @@ function TrainingPanel() {
       {exported !== null && (
         <div style={{ fontSize: 11, color: '#3dd68c', marginTop: 8 }}>✓ Экспортировано {exported} сэмплов</div>
       )}
-      <div style={{ fontSize: 10, color: '#555', marginTop: 8 }}>
+      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8 }}>
         Формат: {"{ state, action, value: ±1 }"} • Совместим с Python train.py • Макс {200} партий в localStorage
       </div>
     </div>

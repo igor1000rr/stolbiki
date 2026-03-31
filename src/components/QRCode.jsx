@@ -22,7 +22,7 @@ export default function QRCode({ url, size = 140 }) {
         height={size}
         style={{ borderRadius: 8, border: '2px solid rgba(255,255,255,0.08)', background: '#fff', padding: 4 }}
       />
-      <div style={{ fontSize: 10, color: '#6b6880', marginTop: 6 }}>Отсканируй — играй с AI</div>
+      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 6 }}>Отсканируй — играй с AI</div>
     </div>
   )
 }

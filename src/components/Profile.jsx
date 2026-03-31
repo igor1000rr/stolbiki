@@ -142,7 +142,7 @@ function AchievementCard({ ach, unlocked, profile, en }) {
     }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: unlocked ? `${ach.color}20` : 'var(--surface)', border: `2px solid ${unlocked ? ach.color : 'var(--surface3)'}`,
-        fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : '#444' }}>
+        fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : 'var(--ink3)' }}>
         {name[0]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

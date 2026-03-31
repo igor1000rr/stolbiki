@@ -65,7 +65,7 @@ function DailyChallenge() {
                 borderRadius: 6, background: i === 0 ? 'rgba(255,193,69,0.06)' : 'transparent',
                 fontSize: 12,
               }}>
-                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#6e6a82' }}>
+                <span style={{ width: 20, fontWeight: 700, color: i === 0 ? '#ffc145' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--ink3)' }}>
                   {i + 1}
                 </span>
                 <span style={{ flex: 1, color: 'var(--ink)' }}>{r.username}</span>
@@ -99,7 +99,7 @@ function QRCode({ text, size = 160 }) {
     img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&bgcolor=1a1a2a&color=eae8f2`
     img.onload = () => {
       const ctx = ref.current.getContext('2d')
-      ctx.fillStyle = '#1a1a2a'
+      ctx.fillStyle = 'var(--surface)'
       ctx.fillRect(0, 0, size, size)
       ctx.drawImage(img, 0, 0, size, size)
     }

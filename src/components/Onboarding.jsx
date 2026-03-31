@@ -90,7 +90,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
         {SLIDES.map((_, i) => (
           <div key={i} style={{
             width: i === slide ? 24 : 8, height: 8, borderRadius: 4,
-            background: i === slide ? '#4a9eff' : '#2a2a38',
+            background: i === slide ? '#4a9eff' : 'var(--surface2)',
             transition: 'all 0.3s',
           }} />
         ))}
@@ -123,7 +123,7 @@ export default function Onboarding({ onDone, lang = 'ru' }) {
       {/* Пропустить */}
       {!isLast && (
         <button onClick={() => { localStorage.setItem('stolbiki_onboarding_done', '1'); localStorage.setItem('stolbiki_tutorial_seen', '1'); onDone() }}
-          style={{ background: 'none', border: 'none', color: '#555', fontSize: 12, marginTop: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+          style={{ background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, marginTop: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
           {en ? 'Skip' : 'Пропустить'}
         </button>
       )}

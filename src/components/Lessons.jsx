@@ -199,7 +199,7 @@ export default function Lessons({ onClose }) {
           {LESSONS.map((l, i) => (
             <div key={i} onClick={() => setLessonIdx(i)} style={{
               width: 10, height: 10, borderRadius: '50%', cursor: 'pointer',
-              background: completed.includes(l.id) ? '#3dd68c' : i === lessonIdx ? '#4a9eff' : '#2a2a38',
+              background: completed.includes(l.id) ? '#3dd68c' : i === lessonIdx ? '#4a9eff' : 'var(--surface2)',
               border: i === lessonIdx ? '2px solid #4a9eff' : '2px solid transparent',
             }} />
           ))}

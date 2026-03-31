@@ -1176,7 +1176,7 @@ export default function Game() {
               return (
                 <div key={i} style={{
                   flex: 1, height: 3, borderRadius: 1.5,
-                  background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : '#2a2a38',
+                  background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : 'var(--surface2)',
                   opacity: owner !== undefined ? 0.9 : 0.3,
                 }} />
               )
@@ -1194,7 +1194,7 @@ export default function Game() {
             return (
               <div key={i} style={{
                 flex: 1, height: 4, borderRadius: 2,
-                background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : '#2a2a38',
+                background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : 'var(--surface2)',
                 opacity: owner !== undefined ? 0.9 : 0.3,
                 transition: 'all 0.3s',
               }} />

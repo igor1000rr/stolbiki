@@ -65,7 +65,7 @@ export default function Arena({ onClose, onJoinMatch }) {
           <span style={{ fontSize: 16, fontWeight: 700, color: '#ffc145' }}>Arena</span>
           {t && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8,
             background: t.status === 'waiting' ? 'rgba(74,158,255,0.1)' : t.status === 'playing' ? 'rgba(61,214,140,0.1)' : 'rgba(255,255,255,0.05)',
-            color: t.status === 'waiting' ? '#4a9eff' : t.status === 'playing' ? '#3dd68c' : '#6b6880',
+            color: t.status === 'waiting' ? '#4a9eff' : t.status === 'playing' ? '#3dd68c' : 'var(--ink3)',
           }}>{t.status === 'waiting' ? (en ? 'Waiting' : 'Ожидание') : t.status === 'playing' ? `${en ? 'Round' : 'Раунд'} ${t.current_round}/${t.rounds}` : (en ? 'Finished' : 'Завершён')}</span>}
         </div>
         <button className="btn" onClick={onClose} style={{ fontSize: 11, padding: '6px 12px' }}>
@@ -167,7 +167,7 @@ export default function Arena({ onClose, onJoinMatch }) {
                   return (
                     <div key={m.id} style={{
                       display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px',
-                      fontSize: 11, color: done ? '#a09cb0' : '#e8e6f0',
+                      fontSize: 11, color: done ? 'var(--ink2)' : 'var(--ink)',
                       background: done ? 'transparent' : 'rgba(74,158,255,0.04)',
                       borderRadius: 6, marginBottom: 3,
                     }}>
@@ -177,7 +177,7 @@ export default function Arena({ onClose, onJoinMatch }) {
                       </span>
                       <span style={{ color: 'var(--ink3)', fontSize: 10 }}>vs</span>
                       <span style={{ flex: 1, textAlign: 'right', fontWeight: m.winner_id === m.player2_id ? 600 : 400,
-                        color: m.winner_id === m.player2_id ? '#3dd68c' : m.result === 'bye' ? '#555' : undefined }}>
+                        color: m.winner_id === m.player2_id ? '#3dd68c' : m.result === 'bye' ? 'var(--ink3)' : undefined }}>
                         {m.result === 'bye' ? 'bye' : p2?.username || '?'}
                       </span>
                     </div>

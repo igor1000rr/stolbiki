@@ -164,7 +164,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
                 }}>
                   <span style={{ fontSize: 10, color: 'var(--ink3)', minWidth: 20 }}>{i + 1}</span>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.label.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: active ? '#e8e6f0' : '#a09cb0', flex: 1 }}>
+                  <span style={{ fontSize: 11, color: active ? 'var(--ink)' : 'var(--ink2)', flex: 1 }}>
                     {m.action.transfer ? `↗ ${m.action.transfer[0]}→${m.action.transfer[1]}` :
                      m.action.swap ? 'Swap' :
                      `${Object.entries(m.action.placement || {}).map(([k, v]) => `${k}:${v}`).join(' ')}`}

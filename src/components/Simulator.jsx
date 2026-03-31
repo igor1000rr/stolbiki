@@ -29,7 +29,7 @@ function LiveBar({ p1, p2, height = 28 }) {
   const total = p1 + p2 || 1
   const p1pct = p1 / total * 100
   return (
-    <div style={{ position: 'relative', height, borderRadius: height/2, overflow: 'hidden', background: '#1a1a2a' }}>
+    <div style={{ position: 'relative', height, borderRadius: height/2, overflow: 'hidden', background: 'var(--surface)' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${p1pct}%`,
         background: 'linear-gradient(90deg, #4a9eff, #72b8ff)', borderRadius: `${height/2}px 0 0 ${height/2}px`,
         transition: 'width 0.4s ease' }} />
@@ -63,7 +63,7 @@ function Verdict({ p1Wr, total }) {
       <span style={{ fontSize: 24 }}>{icon}</span>
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color }}>{verdict}</div>
-        <div style={{ fontSize: 10, color: '#6b6880', marginTop: 2 }}>
+        <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>
           P1 = {p1Wr.toFixed(1)}% • Отклонение: {diff.toFixed(1)}% • {significant ? 'Статистически значимо (p<0.05)' : 'Статистически незначимо'}
         </div>
       </div>
@@ -83,7 +83,7 @@ function Histogram({ data, bins = 15, title, color = '#6db4ff' }) {
   const maxB = Math.max(...buckets, 1)
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>{title}</div>
+      <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 6, fontWeight: 600 }}>{title}</div>
       <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: 55 }}>
         {buckets.map((v, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -93,7 +93,7 @@ function Histogram({ data, bins = 15, title, color = '#6db4ff' }) {
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#555', marginTop: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--ink3)', marginTop: 2 }}>
         <span>{min}</span><span>{Math.round((min+max)/2)}</span><span>{max}</span>
       </div>
     </div>
@@ -111,13 +111,13 @@ function WinrateTimeline({ snapshots }) {
 
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>Винрейт P1 в реальном времени</div>
+      <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 6, fontWeight: 600 }}>Винрейт P1 в реальном времени</div>
       <div style={{ position: 'relative', height: h + 10 }}>
         <svg width="100%" height={h + 10} viewBox={`0 0 100 ${h + 10}`} preserveAspectRatio="none" style={{ display: 'block' }}>
           <line x1="0" y1={h/2} x2="100" y2={h/2} stroke="#333" strokeWidth="0.3" strokeDasharray="2,2" />
           <polyline points={points} fill="none" stroke="#4a9eff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
         </svg>
-        <div style={{ position: 'absolute', left: 0, top: h/2 - 6, fontSize: 9, color: '#555' }}>50%</div>
+        <div style={{ position: 'absolute', left: 0, top: h/2 - 6, fontSize: 9, color: 'var(--ink3)' }}>50%</div>
         <div style={{ position: 'absolute', right: 4, top: 0, fontSize: 9, color: '#4a9eff' }}>
           {snapshots[snapshots.length - 1]?.p1Wr.toFixed(1)}%
         </div>
@@ -221,26 +221,26 @@ export default function Simulator() {
       {/* Параметры */}
       <div className="dash-card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 16, alignItems: 'end' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#a09cb0' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>
             Стоек
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min={5} max={16} value={numStands} onChange={e => setNumStands(+e.target.value)}
                 style={{ flex: 1, accentColor: '#3bb8a8' }} />
-              <b style={{ color: '#e8e6f0', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{numStands}</b>
+              <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{numStands}</b>
             </div>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#a09cb0' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>
             Высота
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min={5} max={17} value={maxChips} onChange={e => setMaxChips(+e.target.value)}
                 style={{ flex: 1, accentColor: '#3bb8a8' }} />
-              <b style={{ color: '#e8e6f0', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxChips}</b>
+              <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxChips}</b>
             </div>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#a09cb0' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>
             Партий
             <select value={numGames} onChange={e => setNumGames(+e.target.value)}
-              style={{ fontSize: 13, padding: '8px 10px', border: '1px solid #36364a', borderRadius: 8, background: '#1e1e28', color: '#e8e6f0' }}>
+              style={{ fontSize: 13, padding: '8px 10px', border: '1px solid #36364a', borderRadius: 8, background: '#1e1e28', color: 'var(--ink)' }}>
               {[200, 500, 1000, 2000, 5000, 10000].map(n => (
                 <option key={n} value={n}>{n.toLocaleString()}</option>
               ))}
@@ -260,16 +260,16 @@ export default function Simulator() {
               <div style={{ position: 'relative', width: 48, height: 48 }}>
                 <ProgressRing pct={played / numGames} size={48} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: '#e8e6f0' }}>
+                  fontSize: 10, fontWeight: 700, color: 'var(--ink)' }}>
                   {Math.round(played / numGames * 100)}%
                 </div>
               </div>
               <div style={{ flex: 1 }}>
                 <LiveBar p1={data.p1Wins} p2={data.p2Wins} />
               </div>
-              <div style={{ textAlign: 'right', fontSize: 10, color: '#6b6880', minWidth: 70 }}>
+              <div style={{ textAlign: 'right', fontSize: 10, color: 'var(--ink3)', minWidth: 70 }}>
                 <div>{played.toLocaleString()} / {numGames.toLocaleString()}</div>
-                <div style={{ color: '#a09cb0', fontWeight: 600 }}>{speed} партий/с</div>
+                <div style={{ color: 'var(--ink2)', fontWeight: 600 }}>{speed} партий/с</div>
               </div>
             </div>
           </div>
@@ -283,18 +283,18 @@ export default function Simulator() {
           <div className="dash-card" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-around', padding: '8px 0' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: '#6b6880', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Игрок 1</div>
+                <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Игрок 1</div>
                 <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--p1)' }}>{p1Wr.toFixed(1)}%</div>
-                <div style={{ fontSize: 10, color: '#6b6880' }}>{data.p1Wins} побед</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{data.p1Wins} побед</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>VS</div>
-                <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{avgTurns} ходов</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{avgTurns} ходов</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: '#6b6880', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Игрок 2</div>
+                <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Игрок 2</div>
                 <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--p2)' }}>{p2Wr.toFixed(1)}%</div>
-                <div style={{ fontSize: 10, color: '#6b6880' }}>{data.p2Wins} побед</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{data.p2Wins} побед</div>
               </div>
             </div>
             <Verdict p1Wr={p1Wr} total={played} />
@@ -325,7 +325,7 @@ export default function Simulator() {
                 <div key={m.label} style={{ textAlign: 'center', padding: '10px 6px', background: `${m.color}08`, borderRadius: 10, border: `1px solid ${m.color}15` }}>
                   <div style={{ fontSize: 16 }}>{m.icon}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: m.color, marginTop: 2 }}>{m.value}</div>
-                  <div style={{ fontSize: 9, color: '#6b6880', marginTop: 2 }}>{m.label}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink3)', marginTop: 2 }}>{m.label}</div>
                 </div>
               ))}
             </div>
@@ -344,7 +344,7 @@ export default function Simulator() {
                       <div style={{ width: '100%', height: `${v/max*48+2}px`, borderRadius: '3px 3px 0 0',
                         background: k.startsWith('5:5') ? 'linear-gradient(180deg, #ffc145, #e6a020)' : 'linear-gradient(180deg, #6db4ff, #4a9eff)',
                         transition: 'height 0.3s' }} />
-                      <span style={{ fontSize: 9, color: '#6b6880' }}>{k}</span>
+                      <span style={{ fontSize: 9, color: 'var(--ink3)' }}>{k}</span>
                     </div>
                   )
                 })}
@@ -361,7 +361,7 @@ export default function Simulator() {
                         <div style={{ width: '100%', height: `${v/max*48+2}px`, borderRadius: '3px 3px 0 0',
                           background: i === 0 ? 'linear-gradient(180deg, #ffc145, #e6a020)' : 'linear-gradient(180deg, #6db4ff, #4a9eff)',
                           transition: 'height 0.3s' }} />
-                        <span style={{ fontSize: 9, color: '#6b6880' }}>{i === 0 ? '★' : i}</span>
+                        <span style={{ fontSize: 9, color: 'var(--ink3)' }}>{i === 0 ? '★' : i}</span>
                       </div>
                     )
                   })}
@@ -394,8 +394,8 @@ export default function Simulator() {
                     </td>
                     <td>{h.avgTurns}</td><td>{h.goldenPct}%</td>
                     <td>{h.goldenWr}%</td><td>{h.lastCloserWr}%</td>
-                    <td style={{ color: '#a09cb0' }}>{h.speed}</td>
-                    <td style={{ color: '#6b6880' }}>{h.time}с</td>
+                    <td style={{ color: 'var(--ink2)' }}>{h.speed}</td>
+                    <td style={{ color: 'var(--ink3)' }}>{h.time}с</td>
                   </tr>
                 ))}
               </tbody>
