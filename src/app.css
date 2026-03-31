@@ -1929,6 +1929,9 @@ body::before {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  /* Убираем .app padding в native */
+  padding: 0 !important;
+  max-width: none !important;
 }
 
 /* ═══ PERFORMANCE: убиваем тяжёлые эффекты в native ═══ */
@@ -2217,8 +2220,8 @@ body.native-body { animation: none !important; }
 .native-game-wrapper {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 52px);
-  min-height: calc(100dvh - 52px);
+  flex: 1 1 0%;
+  min-height: 0;
 }
 
 /* ═══ NATIVE: Game container ═══ */
