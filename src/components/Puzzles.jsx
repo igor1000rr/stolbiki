@@ -411,7 +411,7 @@ export default function Puzzles() {
       {tab === 'bank' && (
         <div>
           {/* Фильтр сложности */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
             {[
               [0, t('puzzle.filterAll')],
               [1, t('puzzle.filterEasy')],
@@ -420,7 +420,7 @@ export default function Puzzles() {
             ].map(([d, label]) => (
               <button key={d} className={`btn ${bankDiff === d ? 'primary' : ''}`}
                 onClick={() => { setBankDiff(d); setBankPage(1) }}
-                style={{ fontSize: 11, padding: '5px 12px' }}>
+                style={{ fontSize: 11, padding: '5px 10px', flex: '1 1 auto', textAlign: 'center' }}>
                 {label}
               </button>
             ))}

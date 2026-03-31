@@ -846,11 +846,11 @@ export default function Game() {
     <div>
       {/* Туториал для новых игроков */}
       {showTutorial && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isNative ? 12 : 20, overflowY: 'auto' }}
           onClick={dismissTutorial}>
-          <div style={{ maxWidth: 420, background: 'var(--surface)', borderRadius: 16, padding: '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+          <div style={{ maxWidth: 420, width: '100%', background: 'var(--surface)', borderRadius: 16, padding: isNative ? '20px 16px' : '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', margin: 'auto' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ textAlign: 'center', marginBottom: isNative ? 10 : 16 }}>
               <svg width="40" height="40" viewBox="0 0 28 28" fill="none" style={{ marginBottom: 8 }}>
                 <rect x="2" y="6" width="6" height="18" rx="2" fill="var(--gold)" opacity="0.9"/>
                 <rect x="11" y="10" width="6" height="14" rx="2" fill="var(--p1)" opacity="0.7"/>
