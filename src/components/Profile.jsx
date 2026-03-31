@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import * as API from '../engine/api'
+import { useI18n } from '../engine/i18n'
 import Icon from './Icon'
 
 // Аватары — SVG символы
@@ -244,6 +245,8 @@ const saveProfile = saveLocal
 
 export default function Profile({ viewUsername, onClose }) {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
+  const { lang } = useI18n()
+  const en = lang === 'en'
   const [profile, setProfile] = useState(loadLocal)
   const [publicProfile, setPublicProfile] = useState(null)
   const [publicLoading, setPublicLoading] = useState(false)
@@ -574,7 +577,7 @@ export default function Profile({ viewUsername, onClose }) {
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#ffc145' }}>{profile.rating}</div>
-                <div style={{ fontSize: 10, color: '#6b6880' }}>ELO рейтинг</div>
+                <div style={{ fontSize: 10, color: '#6b6880' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
               </div>
             </div>
           </div>
@@ -667,7 +670,7 @@ export default function Profile({ viewUsername, onClose }) {
 
           {unlockedAch.length > 0 && (
             <div className="dash-card" style={{ marginBottom: 16 }}>
-              <h3>Последние ачивки</h3>
+              <h3>{ en ? 'Recent achievements' : 'Последние ачивки'}</h3>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 {unlockedAch.slice(-5).map(a => (
                   <span key={a.id} title={a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
@@ -679,7 +682,7 @@ export default function Profile({ viewUsername, onClose }) {
           )}
 
           <button className="btn" onClick={logout} style={{ fontSize: 11, color: '#6b6880', borderColor: '#36364a' }}>
-            Выйти из профиля
+            {en ? 'Logout' : 'Выйти из профиля'}
           </button>
         </>
       )}
@@ -690,11 +693,11 @@ export default function Profile({ viewUsername, onClose }) {
           {(profile.history || []).length === 0 ? (
             <div className="dash-card" style={{ textAlign: 'center', padding: 32 }}>
               
-              <div style={{ fontSize: 14, color: '#6b6880' }}>Пока нет партий. Сыграйте свою первую!</div>
+              <div style={{ fontSize: 14, color: '#6b6880' }}>{en ? 'No games yet. Play your first!' : 'Пока нет партий. Сыграйте свою первую!'}</div>
             </div>
           ) : (
             <div className="dash-card">
-              <h3>Последние партии</h3>
+              <h3>{ en ? 'Recent games' : 'Последние партии'}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
                 {(profile.history || []).map((h, i) => {
                   const dt = new Date(h.date)
@@ -734,7 +737,7 @@ export default function Profile({ viewUsername, onClose }) {
               {/* Мини-график рейтинга */}
               {(profile.history || []).length >= 3 && (
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>Динамика рейтинга</div>
+                  <div style={{ fontSize: 11, color: '#a09cb0', marginBottom: 6, fontWeight: 600 }}>{en ? 'Rating history' : 'Динамика рейтинга'}</div>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 50 }}>
                     {[...(profile.history || [])].reverse().slice(-30).map((h, i) => {
                       const min = 900, max = 1500
@@ -883,7 +886,7 @@ export default function Profile({ viewUsername, onClose }) {
             {friendsList.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 24, color: '#6b6880' }}>
                 
-                <div style={{ fontSize: 13 }}>Пока нет друзей. Найдите игроков по нику!</div>
+                <div style={{ fontSize: 13 }}>{en ? 'No friends yet. Search by username!' : 'Пока нет друзей. Найдите игроков по нику!'}</div>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>

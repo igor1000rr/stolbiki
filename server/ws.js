@@ -104,7 +104,15 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
     const tokenFromUrl = url.searchParams.get('token')
     if (tokenFromUrl) wsUser = wsAuth(tokenFromUrl)
 
+    // Rate limit: макс 15 сообщений в секунду
+    let wsMessageCount = 0
+    let wsMessageReset = Date.now()
+
     ws.on('message', (raw) => {
+      const now = Date.now()
+      if (now - wsMessageReset > 1000) { wsMessageCount = 0; wsMessageReset = now }
+      if (++wsMessageCount > 15) return // Дроп спама
+
       let msg
       try { msg = JSON.parse(raw) } catch { return }
 
@@ -261,7 +269,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
 
       // ─── CHAT ───
       if (msg.type === 'chat' && playerRoom && msg.text) {
-        const text = String(msg.text).slice(0, 50)
+        const text = String(msg.text).replace(/<[^>]*>/g, '').slice(0, 50).trim()
+        if (!text) return
         playerRoom.players.forEach((p, i) => {
           if (i !== playerIdx && p.ws?.readyState === 1) {
             p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))

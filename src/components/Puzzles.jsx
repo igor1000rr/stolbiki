@@ -197,7 +197,7 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       {/* Шапка */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isNative ? 4 : 12, padding: '0 4px' }}>
-        <button className="btn" onClick={onBack} style={{ fontSize: 11, padding: '5px 12px' }}>←</button>
+        <button className="btn" onClick={onBack} style={{ fontSize: 11, padding: '5px 12px' }} aria-label="Back">←</button>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{title}</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{desc}</div>
@@ -230,15 +230,15 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
       {!status && (
         <div className="actions" style={{ marginTop: 10 }}>
           {hasTransfers && !transfer && phase === 'place' && (
-            <button className="btn" onClick={() => setPhase('transfer-select')}>↗</button>
+            <button className="btn" onClick={() => setPhase('transfer-select')} aria-label="Transfer">↗</button>
           )}
           {inTransferMode && (
-            <button className="btn" onClick={() => { setSelectedStand(null); setTransfer(null); setPhase('place') }}>✕</button>
+            <button className="btn" onClick={() => { setSelectedStand(null); setTransfer(null); setPhase('place') }} aria-label="Cancel">✕</button>
           )}
           {transfer && <span style={{ fontSize: 12, color: 'var(--green)', padding: '0 6px' }}>✓ {SL(transfer[0])}→{SL(transfer[1])}</span>}
-          {totalPlaced > 0 && <button className="btn" onClick={() => setPlacement({})}>↺</button>}
+          {totalPlaced > 0 && <button className="btn" onClick={() => setPlacement({})} aria-label="Reset placement">↺</button>}
           <button className="btn primary" disabled={totalPlaced === 0 && !transfer} onClick={confirmTurn}>OK</button>
-          <button className="btn" onClick={reset} style={{ fontSize: 11 }}>⟳</button>
+          <button className="btn" onClick={reset} style={{ fontSize: 11 }} aria-label="Restart puzzle">⟳</button>
         </div>
       )}
     </div>

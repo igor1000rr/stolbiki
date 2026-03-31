@@ -862,10 +862,10 @@ export default function Game() {
               <p><b style={{ color: '#3dd68c' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
-              Понятно, играем!
+              {lang === 'en' ? 'Got it, let\'s play!' : 'Понятно, играем!'}
             </button>
             <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: '#555' }}>
-              Подробные правила — вкладка «Правила»
+              {lang === 'en' ? 'Detailed rules — Rules tab' : 'Подробные правила — вкладка «Правила»'}
             </div>
           </div>
         </div>
@@ -873,7 +873,7 @@ export default function Game() {
       {mode === 'online' && (
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
           background: 'rgba(61,214,140,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(61,214,140,0.15)' }}>
-          <span style={{ fontSize: isNative ? 11 : 12, color: '#3dd68c', fontWeight: 600 }}>Онлайн — {onlinePlayers.join(' vs ')}</span>
+          <span style={{ fontSize: isNative ? 11 : 12, color: '#3dd68c', fontWeight: 600 }}>{lang === 'en' ? 'Online' : 'Онлайн'} — {onlinePlayers.join(' vs ')}</span>
         </div>
       )}
       {mode === 'spectate-online' && (
@@ -951,7 +951,7 @@ export default function Game() {
             </span>
             {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
           </div>
-          <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)}>
+          <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)} aria-label="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
               <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8"/>
             </svg>
@@ -964,12 +964,12 @@ export default function Game() {
         <div className="m-sheet-overlay" onClick={() => setShowMobileSettings(false)}>
           <div className="m-sheet" onClick={e => e.stopPropagation()}>
             <div className="m-sheet-handle" />
-            <div className="m-sheet-title">Настройки игры</div>
+            <div className="m-sheet-title">{lang === 'en' ? 'Game Settings' : 'Настройки игры'}</div>
 
             <div className="m-setting-row">
-              <span className="m-setting-label">Режим</span>
+              <span className="m-setting-label">{lang === 'en' ? 'Mode' : 'Режим'}</span>
               <select value={mode} onChange={e => { newGame(humanPlayer, difficulty, e.target.value); setShowMobileSettings(false) }}>
-                <option value="ai">Против AI</option>
+                <option value="ai">{lang === 'en' ? 'vs AI' : 'Против AI'}</option>
                 <option value="pvp">PvP</option>
                 <option value="spectate">AI vs AI</option>
               </select>
@@ -977,7 +977,7 @@ export default function Game() {
 
             {mode === 'ai' && (
               <div className="m-setting-row">
-                <span className="m-setting-label">Сложность</span>
+                <span className="m-setting-label">{lang === 'en' ? 'Difficulty' : 'Сложность'}</span>
                 <div className="m-difficulty-grid">
                   {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'}].map(d => (
                     <button key={d.v} className={`m-diff-opt ${difficulty === d.v ? 'active' : ''}`}
@@ -1040,7 +1040,7 @@ export default function Game() {
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 10,
           background: 'rgba(240,160,48,0.06)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(255,193,69,0.12)' }}>
           <div style={{ fontSize: 11, color: '#a8a4b8', marginBottom: 4 }}>
-            Турнир — партия {tournament.currentGame} из {tournament.total}
+            {lang === 'en' ? `Tournament — game ${tournament.currentGame} of ${tournament.total}` : `Турнир — партия ${tournament.currentGame} из ${tournament.total}`}
           </div>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
             {Array.from({ length: tournament.total }).map((_, i) => {
@@ -1065,7 +1065,7 @@ export default function Game() {
             {tournament.currentGame > 1 && ` · ${humanPlayer === 0 ? t('game.blue') : t('game.red')}`}
           </div>
           <button className="btn" onClick={() => setTournament(null)} style={{ fontSize: 9, padding: '2px 8px', marginTop: 4 }}>
-            Отменить турнир
+            {lang === 'en' ? 'Cancel tournament' : 'Отменить турнир'}
           </button>
         </div>
       )}
@@ -1073,8 +1073,8 @@ export default function Game() {
       {/* Сессионная статистика */}
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
-          <span>Побед: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
-          <span>Поражений: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
+          <span>{lang === 'en' ? 'Wins' : 'Побед'}: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
+          <span>{lang === 'en' ? 'Losses' : 'Поражений'}: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
           {sessionStats.streak > 1 && <span>Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
         </div>
       )}
@@ -1085,19 +1085,19 @@ export default function Game() {
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
           {mode === 'spectate' || mode === 'spectate-online' ? `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}` :
-           mode === 'online' ? (gs.currentPlayer === humanPlayer ? 'Ваш ход' : 'Ходит противник') :
+           mode === 'online' ? (gs.currentPlayer === humanPlayer ? (lang === 'en' ? 'Your turn' : 'Ваш ход') : (lang === 'en' ? 'Opponent\'s turn' : 'Ходит противник')) :
            `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}`}
         </div>
       )}
 
       <div className="scoreboard">
         <div className="score-player">
-          <div className="score-label">Синие</div>
+          <div className="score-label">{lang === 'en' ? 'Blue' : 'Синие'}</div>
           <div className={`score-num p0 ${scoreBump === 0 ? 'score-bump' : ''}`}>{gs.countClosed(0)}</div>
         </div>
         <div className="score-sep">:</div>
         <div className="score-player">
-          <div className="score-label">Красные</div>
+          <div className="score-label">{lang === 'en' ? 'Red' : 'Красные'}</div>
           <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
         </div>
       </div>
@@ -1192,8 +1192,8 @@ export default function Game() {
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
           <span className="place-status">
-            {totalPlaced}/{maxTotal} фишек · {Object.keys(placement).length}/{MAX_PLACE_STANDS} стоек
-            {transfer && ` · перенос ✓`}
+            {totalPlaced}/{maxTotal} {lang === 'en' ? 'chips' : 'фишек'} · {Object.keys(placement).length}/{MAX_PLACE_STANDS} {lang === 'en' ? 'stands' : 'стоек'}
+            {transfer && ` · ${lang === 'en' ? 'transfer' : 'перенос'} ✓`}
           </span>
         </div>
       )}
@@ -1334,7 +1334,7 @@ export default function Game() {
 
       {hint && hintMode && (
         <div className="hint-panel">
-          <div className="hint-title">Подсказка</div>
+          <div className="hint-title">{lang === 'en' ? 'Hint' : 'Подсказка'}</div>
           {hint.explanation.map((l, i) => <p key={i} className="hint-line">{l}</p>)}
         </div>
       )}
@@ -1427,7 +1427,7 @@ export default function Game() {
             </div>
             {sessionStats.streak > 1 && won && (
               <div style={{ marginTop: 8, fontSize: 12, color: '#ffc145' }}>
-                Серия побед: {sessionStats.streak}
+                {lang === 'en' ? 'Win streak' : 'Серия побед'}: {sessionStats.streak}
               </div>
             )}
             {/* Турнир — межпартийный / финальный экран */}
@@ -1460,7 +1460,7 @@ export default function Game() {
                     </div>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
                       <button className="btn primary" onClick={() => { setTournament(null); newGame() }} style={{ fontSize: 12 }}>
-                        Обычная игра
+                        {lang === 'en' ? 'Normal game' : 'Обычная игра'}
                       </button>
                       <button className="btn" onClick={() => startTournament(tournament.total)} style={{ fontSize: 12 }}>
                         New tournament
@@ -1517,7 +1517,7 @@ export default function Game() {
         <div className="achievement-popup">
           <div className="ach-icon">{newAch.icon}</div>
           <div>
-            <div className="ach-label">Ачивка разблокирована!</div>
+            <div className="ach-label">{lang === 'en' ? 'Achievement unlocked!' : 'Ачивка разблокирована!'}</div>
             <div className="ach-name">{newAch.name}</div>
           </div>
         </div>
