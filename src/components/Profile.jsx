@@ -511,7 +511,7 @@ export default function Profile({ viewUsername, onClose }) {
             onChange={e => setRegName(e.target.value)} style={inputStyle}
             onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
           {serverOnline && (
-            <input type="password" placeholder={en ? "Password (min 4 chars)" : "Пароль (мин 4 символа)"} value={regPass}
+            <input type="password" placeholder={en ? "Password (min 6 chars)" : "Пароль (мин 6 символов)"} value={regPass}
               onChange={e => setRegPass(e.target.value)} style={inputStyle}
               onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
           )}

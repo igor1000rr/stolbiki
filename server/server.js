@@ -88,21 +88,22 @@ function adminOnly(req, res, next) {
 // ═══ AUTH ═══
 app.post('/api/auth/register', (req, res) => {
   const { username, email, password } = req.body
-  if (!username || !password) return res.status(400).json({ error: 'Нужны username и password' })
-  if (username.length < 2 || username.length > 20) return res.status(400).json({ error: 'Ник: 2-20 символов' })
-  if (password.length < 6) return res.status(400).json({ error: 'Пароль: мин 6 символов' })
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
+  const cleanName = String(username).trim().replace(/[<>&"']/g, '')
+  if (cleanName.length < 2 || cleanName.length > 20) return res.status(400).json({ error: 'Username: 2-20 chars' })
+  if (String(password).length < 6) return res.status(400).json({ error: 'Password: min 6 chars' })
 
-  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username)
-  if (existing) return res.status(409).json({ error: 'Ник занят' })
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(cleanName)
+  if (existing) return res.status(409).json({ error: 'Username taken' })
 
   const hash = bcrypt.hashSync(password, 10)
   const adminNames = ['admin']
-  const isAdmin = adminNames.includes(username) ? 1 : 0
+  const isAdmin = adminNames.includes(cleanName) ? 1 : 0
 
-  const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)').run(username, email || null, hash, isAdmin)
-  const token = jwt.sign({ id: result.lastInsertRowid, username, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: '30d' })
+  const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)').run(cleanName, email || null, hash, isAdmin)
+  const token = jwt.sign({ id: result.lastInsertRowid, username: cleanName, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: '30d' })
 
-  res.json({ token, user: { id: result.lastInsertRowid, username, rating: 1000, isAdmin: !!isAdmin } })
+  res.json({ token, user: { id: result.lastInsertRowid, username: cleanName, rating: 1000, isAdmin: !!isAdmin } })
 })
 
 app.post('/api/auth/login', (req, res) => {
@@ -895,7 +896,7 @@ function generateRoomId() {
   return id
 }
 
-app.post('/api/rooms', (req, res) => {
+app.post('/api/rooms', rateLimit(60000, 10), (req, res) => {
   const { name, mode } = req.body // mode: 'single' | 'tournament3' | 'tournament5'
   let id = generateRoomId()
   while (rooms.has(id)) id = generateRoomId()

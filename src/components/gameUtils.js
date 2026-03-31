@@ -95,7 +95,7 @@ export function showNotification(title, body, onClick) {
   try {
     const n = new Notification(title, {
       body,
-      icon: '/favicon.svg',
+      icon: '/favicon.png',
       tag: 'snatch-' + Date.now(), // Не группируем — каждое уведомление отдельно
       requireInteraction: false,
     })
