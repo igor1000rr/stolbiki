@@ -631,6 +631,23 @@ const ALL_ACHIEVEMENTS = [
   { id: 'online_win', check: u => (u.online_wins || 0) >= 1 },
   { id: 'online_10', check: u => (u.online_wins || 0) >= 10 },
   { id: 'puzzle_10', check: u => (u.puzzles_solved || 0) >= 10 },
+  // v4.0
+  { id: 'level_5', check: u => (u.level || 1) >= 5 },
+  { id: 'level_10', check: u => (u.level || 1) >= 10 },
+  { id: 'level_20', check: u => (u.level || 1) >= 20 },
+]
+
+// Ачивки требующие данные из других таблиц
+const CROSS_TABLE_ACHIEVEMENTS = [
+  { id: 'rush_5', check: userId => { const r = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(userId); return (r?.best || 0) >= 5 } },
+  { id: 'rush_15', check: userId => { const r = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(userId); return (r?.best || 0) >= 15 } },
+  { id: 'arena_join', check: userId => { const r = db.prepare('SELECT COUNT(*) as c FROM arena_participants WHERE user_id=?').get(userId); return (r?.c || 0) >= 1 } },
+  { id: 'arena_top3', check: userId => {
+    const r = db.prepare(`SELECT COUNT(*) as c FROM (
+      SELECT user_id, RANK() OVER (PARTITION BY tournament_id ORDER BY score DESC) as rank FROM arena_participants
+    ) WHERE user_id=? AND rank <= 3`).get(userId)
+    return (r?.c || 0) >= 1
+  } },
 ]
 
 export function checkAchievements(userId) {
@@ -641,6 +658,12 @@ export function checkAchievements(userId) {
   const insert = db.prepare('INSERT OR IGNORE INTO achievements (user_id, achievement_id) VALUES (?, ?)')
   for (const ach of ALL_ACHIEVEMENTS) {
     if (!existing.includes(ach.id) && ach.check(user)) {
+      insert.run(userId, ach.id)
+      newAch.push(ach.id)
+    }
+  }
+  for (const ach of CROSS_TABLE_ACHIEVEMENTS) {
+    if (!existing.includes(ach.id) && ach.check(userId)) {
       insert.run(userId, ach.id)
       newAch.push(ach.id)
     }

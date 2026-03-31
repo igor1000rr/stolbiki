@@ -91,6 +91,14 @@ const ALL_ACHIEVEMENTS = [
   { id: 'online_win', color: ACH_COLORS.bronze, name: 'Онлайн', nameEn: 'Online', desc: 'Победа в онлайн-матче', descEn: 'Win an online match', check: p => (p.onlineWins || 0) >= 1 },
   { id: 'online_10', color: ACH_COLORS.silver, name: 'Боец', nameEn: 'Fighter', desc: '10 онлайн-побед', descEn: '10 online wins', check: p => (p.onlineWins || 0) >= 10 },
   { id: 'puzzle_10', color: ACH_COLORS.silver, name: 'Решатель', nameEn: 'Solver', desc: 'Решите 10 головоломок', descEn: 'Solve 10 puzzles', check: p => (p.puzzlesSolved || 0) >= 10 },
+  // v4.0
+  { id: 'rush_5', color: ACH_COLORS.bronze, name: 'Спринтер', nameEn: 'Sprinter', desc: 'Puzzle Rush: 5+ за раунд', descEn: 'Puzzle Rush: 5+ in a round', check: p => (p.rushBest || 0) >= 5 },
+  { id: 'rush_15', color: ACH_COLORS.gold, name: 'Ураган', nameEn: 'Hurricane', desc: 'Puzzle Rush: 15+ за раунд', descEn: 'Puzzle Rush: 15+ in a round', check: p => (p.rushBest || 0) >= 15 },
+  { id: 'arena_join', color: ACH_COLORS.bronze, name: 'Арена', nameEn: 'Arena', desc: 'Участие в турнире Arena', descEn: 'Participate in Arena tournament', check: p => (p.arenaStats?.tournaments || 0) >= 1 },
+  { id: 'arena_top3', color: ACH_COLORS.gold, name: 'Призёр', nameEn: 'Medalist', desc: 'Топ-3 в турнире Arena', descEn: 'Top 3 in Arena tournament', check: p => (p.arenaStats?.top3 || 0) >= 1 },
+  { id: 'level_5', color: ACH_COLORS.bronze, name: 'Новичок+', nameEn: 'Rookie+', desc: 'Достигните 5 уровня', descEn: 'Reach level 5', check: p => (p.level || 1) >= 5 },
+  { id: 'level_10', color: ACH_COLORS.silver, name: 'Ветеран', nameEn: 'Veteran', desc: 'Достигните 10 уровня', descEn: 'Reach level 10', check: p => (p.level || 1) >= 10 },
+  { id: 'level_20', color: ACH_COLORS.gold, name: 'Мастер скинов', nameEn: 'Skin Master', desc: 'Достигните 20 уровня — все скины открыты', descEn: 'Reach level 20 — all skins unlocked', check: p => (p.level || 1) >= 20 },
 ]
 
 // ─── Фейковый лидерборд (заменится на серверный) ───
@@ -124,6 +132,9 @@ function achProgress(id, p) {
     comeback: [p.comebacks, 1], games_10: [p.gamesPlayed, 10], games_50: [p.gamesPlayed, 50],
     games_100: [p.gamesPlayed, 100], rating_1200: [p.rating, 1200], rating_1500: [p.rating, 1500],
     beat_hard: [p.beatHardAi ? 1 : 0, 1], perfect: [p.perfectWins || 0, 1],
+    rush_5: [p.rushBest || 0, 5], rush_15: [p.rushBest || 0, 15],
+    arena_join: [p.arenaStats?.tournaments || 0, 1], arena_top3: [p.arenaStats?.top3 || 0, 1],
+    level_5: [p.level || 1, 5], level_10: [p.level || 1, 10], level_20: [p.level || 1, 20],
   }
   return map[id] || [0, 1]
 }

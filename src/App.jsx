@@ -145,6 +145,19 @@ export default function App() {
     if (typeof window.stolbikiCheckAdmin === 'function') window.stolbikiCheckAdmin()
   }
 
+  // Background profile refresh — keep level/xp/stats fresh
+  useEffect(() => {
+    if (!API.isLoggedIn()) return
+    const refresh = () => API.getProfile().then(p => {
+      const merged = { ...p, name: p.username }
+      localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
+      setAuthUser(merged)
+    }).catch(() => {})
+    refresh() // once on mount
+    const iv = setInterval(refresh, 120000) // every 2 min
+    return () => clearInterval(iv)
+  }, []) // eslint-disable-line
+
   // Sync hash with tab
   useEffect(() => {
     if (tab === 'landing') history.replaceState(null, '', location.pathname + location.search)
