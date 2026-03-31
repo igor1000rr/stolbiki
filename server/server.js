@@ -121,7 +121,19 @@ app.get('/api/profile', auth, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
   const achievements = db.prepare('SELECT achievement_id, unlocked_at FROM achievements WHERE user_id = ?').all(req.user.id)
-  res.json({ ...formatUser(user), achievements })
+  // Puzzle Rush best
+  const rushBest = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(req.user.id)
+  // Arena stats
+  const arenaStats = db.prepare('SELECT COUNT(*) as tournaments, SUM(wins) as wins, SUM(losses) as losses FROM arena_participants WHERE user_id=?').get(req.user.id)
+  const arenaTop3 = db.prepare(`SELECT COUNT(*) as c FROM (
+    SELECT tournament_id, user_id, RANK() OVER (PARTITION BY tournament_id ORDER BY score DESC) as rank
+    FROM arena_participants
+  ) WHERE user_id=? AND rank <= 3`).get(req.user.id)
+  res.json({
+    ...formatUser(user), achievements,
+    rushBest: rushBest?.best || 0,
+    arenaStats: { tournaments: arenaStats?.tournaments || 0, wins: arenaStats?.wins || 0, losses: arenaStats?.losses || 0, top3: arenaTop3?.c || 0 },
+  })
 })
 
 app.get('/api/profile/:username', (req, res) => {
@@ -295,7 +307,7 @@ app.get('/api/profile/rating-history', auth, (req, res) => {
 
 app.get('/api/leaderboard', (req, res) => {
   const limit = Math.min(+req.query.limit || 20, 100)
-  const users = db.prepare('SELECT id, username, rating, games_played, wins, losses, best_streak FROM users ORDER BY rating DESC LIMIT ?').all(limit)
+  const users = db.prepare('SELECT id, username, rating, games_played, wins, losses, best_streak, level, xp FROM users ORDER BY rating DESC LIMIT ?').all(limit)
   res.json(users.map(u => ({
     username: u.username, rating: u.rating,
     games: u.games_played, wins: u.wins,

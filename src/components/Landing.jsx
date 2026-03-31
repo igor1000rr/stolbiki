@@ -163,9 +163,11 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           {/* Three extras — plain text rows */}
           <div className="l-extras">
             {[
-              { icon: 'trainer', c: 'var(--purple)', t: en ? 'Trainer' : 'Тренер', d: en ? 'AI evaluates every move. Position strength bar in real-time.' : 'AI оценивает каждый ход. Шкала силы позиции.' },
-              { icon: 'chart', c: 'var(--accent)', t: en ? 'Opening book' : 'Книга дебютов', d: en ? 'Heatmaps, strategies, analytics from 239K games.' : 'Тепловые карты, стратегии из 239K партий.' },
-              { icon: 'theme', c: 'var(--accent)', t: en ? '4 themes + PWA' : '4 темы + PWA', d: en ? 'Dark, neon, wood, light. Works offline. Home screen.' : 'Тёмная, неон, дерево, светлая. Оффлайн.' },
+              { icon: 'trainer', c: 'var(--green)', t: en ? 'AI Game Review' : 'AI Анализ', d: en ? 'Post-game analysis: every move rated excellent→blunder.' : 'Анализ каждого хода: отличный → грубая ошибка.' },
+              { icon: 'chart', c: 'var(--accent)', t: en ? 'Puzzle Rush' : 'Puzzle Rush', d: en ? '3 min, max puzzles. +10/-15 sec. Leaderboard.' : '3 мин, максимум головоломок. +10/-15 сек. Рейтинг.' },
+              { icon: 'theme', c: 'var(--gold)', t: en ? '9 themes + 17 skins' : '9 тем + 17 скинов', d: en ? 'Ocean, Sunset, Forest, Royal + Glass, Metal, Pixel chips.' : 'Ocean, Sunset, Forest, Royal + Glass, Metal, Pixel фишки.' },
+              { icon: 'rules', c: 'var(--p1)', t: en ? '5 lessons' : '5 уроков', d: en ? 'Interactive board lessons: basics to strategy.' : 'Интерактивные уроки: от основ до стратегии.' },
+              { icon: 'chart', c: 'var(--p2)', t: en ? 'Live Arena' : 'Турниры', d: en ? 'Swiss system tournaments. XP for top 3.' : 'Турниры Swiss system. XP для топ-3.' },
             ].map((f, i) => (
               <div key={i} className="l-extra" style={{ '--i': i }}>
                 <div className="l-extra-dot" style={{ background: f.c, boxShadow: f.c + '40 0 0 6px' }} />

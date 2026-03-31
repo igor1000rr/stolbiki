@@ -224,7 +224,9 @@ function SeasonSection({ data, myName }) {
               <tr key={i} style={p.username === myName ? { background: 'rgba(74,158,255,0.08)' } : {}}>
                 <td style={{ fontWeight: 600, color: i < 3 ? 'var(--gold)' : 'var(--ink3)' }}>{i + 1}</td>
                 <td style={{ fontWeight: p.username === myName ? 700 : 400, color: p.username === myName ? 'var(--p1)' : 'var(--ink)' }}>
-                  {p.username} {p.username === myName && <span style={{ fontSize: 9, color: 'var(--ink3)' }}>(you)</span>}
+                  {p.username}
+                  {p.level > 1 && <span style={{ fontSize: 9, color: 'var(--accent)', marginLeft: 4, opacity: 0.7 }}>Lv.{p.level}</span>}
+                  {p.username === myName && <span style={{ fontSize: 9, color: 'var(--ink3)', marginLeft: 4 }}>(you)</span>}
                 </td>
                 <td style={{ fontWeight: 600 }}>{p.rating}</td>
                 <td>{p.games}</td>
@@ -715,6 +717,18 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--gold)' }}>{profile.goldenClosed}</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
+            {profile.rushBest > 0 && (
+              <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)' }}>{profile.rushBest}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Puzzle Rush</div>
+              </div>
+            )}
+            {profile.arenaStats?.tournaments > 0 && (
+              <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--p1)' }}>{profile.arenaStats.top3}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Arena top 3' : 'Arena топ-3'}</div>
+              </div>
+            )}
           </div>
 
           {/* График рейтинга */}
