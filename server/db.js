@@ -227,6 +227,25 @@ db.exec(`
   )
 `)
 
+// Daily missions
+db.exec(`
+  CREATE TABLE IF NOT EXISTS daily_missions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    mission_id TEXT NOT NULL,
+    progress INTEGER DEFAULT 0,
+    target INTEGER NOT NULL,
+    completed INTEGER DEFAULT 0,
+    xp_reward INTEGER DEFAULT 50,
+    UNIQUE(user_id, date, mission_id)
+  )
+`)
+
+// XP / Level
+try { db.exec('ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0') } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1') } catch {}
+
 // ─── Сид контента CMS ───
 const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
 if (contentCount === 0) {

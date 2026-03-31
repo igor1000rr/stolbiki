@@ -140,6 +140,7 @@ function formatUser(u) {
     perfectWins: u.perfect_wins, beatHardAi: !!u.beat_hard_ai,
     fastWins: u.fast_wins || 0, onlineWins: u.online_wins || 0,
     puzzlesSolved: u.puzzles_solved || 0, avatar: u.avatar || 'default',
+    xp: u.xp || 0, level: u.level || 1,
     isAdmin: !!u.is_admin, createdAt: u.created_at, lastSeen: u.last_seen,
   }
 }
@@ -240,7 +241,11 @@ app.post('/api/games', auth, (req, res) => {
   // Ачивки
   const newAch = checkAchievements(req.user.id)
 
-  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch })
+  // XP за партию
+  const xpGain = won ? 20 : 5
+  addXP(req.user.id, xpGain)
+
+  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain })
 })
 
 app.get('/api/games', auth, (req, res) => {
@@ -392,6 +397,82 @@ app.get('/api/users/search', auth, (req, res) => {
   const escaped = q.replace(/[%_]/g, '\\$&')
   const users = db.prepare("SELECT id, username, rating FROM users WHERE username LIKE ? ESCAPE '\\' AND id != ? LIMIT 10").all(`%${escaped}%`, req.user.id)
   res.json(users)
+})
+
+// ═══ DAILY MISSIONS ═══
+const MISSION_POOL = [
+  { id: 'play_3', target: 3, xp: 50, name_ru: 'Сыграй 3 партии', name_en: 'Play 3 games' },
+  { id: 'win_1', target: 1, xp: 30, name_ru: 'Одержи победу', name_en: 'Win a game' },
+  { id: 'win_ai_hard', target: 1, xp: 80, name_ru: 'Победи AI на Hard+', name_en: 'Beat AI on Hard+' },
+  { id: 'solve_puzzle', target: 1, xp: 40, name_ru: 'Реши головоломку', name_en: 'Solve a puzzle' },
+  { id: 'play_online', target: 1, xp: 60, name_ru: 'Сыграй онлайн', name_en: 'Play online' },
+  { id: 'streak_3', target: 3, xp: 70, name_ru: 'Выиграй 3 подряд', name_en: 'Win 3 in a row' },
+  { id: 'close_golden', target: 1, xp: 50, name_ru: 'Закрой золотую стойку', name_en: 'Close golden stand' },
+  { id: 'play_5', target: 5, xp: 60, name_ru: 'Сыграй 5 партий', name_en: 'Play 5 games' },
+]
+
+function getTodayMissions(userId) {
+  const today = new Date().toISOString().split('T')[0]
+  const existing = db.prepare('SELECT mission_id, progress, target, completed, xp_reward FROM daily_missions WHERE user_id=? AND date=?').all(userId, today)
+  if (existing.length >= 3) return existing
+
+  // Генерируем 3 случайных миссии (seed по дате + userId для разнообразия)
+  const seed = parseInt(today.replace(/-/g, '')) + userId
+  const shuffled = [...MISSION_POOL].sort((a, b) => {
+    const ha = (seed * 31 + a.id.charCodeAt(0)) % 100
+    const hb = (seed * 31 + b.id.charCodeAt(0)) % 100
+    return ha - hb
+  })
+  const picked = shuffled.slice(0, 3)
+  const ins = db.prepare('INSERT OR IGNORE INTO daily_missions (user_id, date, mission_id, target, xp_reward) VALUES (?, ?, ?, ?, ?)')
+  for (const m of picked) ins.run(userId, today, m.id, m.target, m.xp)
+  return db.prepare('SELECT mission_id, progress, target, completed, xp_reward FROM daily_missions WHERE user_id=? AND date=?').all(userId, today)
+}
+
+function addXP(userId, amount) {
+  db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(amount, userId)
+  const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(userId)
+  if (!user) return
+  // Level up: 100 * level XP needed
+  const xpForNext = user.level * 100
+  if (user.xp >= xpForNext) {
+    db.prepare('UPDATE users SET level = level + 1, xp = xp - ? WHERE id = ?').run(xpForNext, userId)
+  }
+}
+
+app.get('/api/missions', auth, (req, res) => {
+  const missions = getTodayMissions(req.user.id)
+  const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(req.user.id)
+  const enriched = missions.map(m => {
+    const def = MISSION_POOL.find(p => p.id === m.mission_id) || {}
+    return { ...m, name_ru: def.name_ru, name_en: def.name_en }
+  })
+  const allDone = enriched.every(m => m.completed)
+  res.json({ missions: enriched, allDone, xp: user?.xp || 0, level: user?.level || 1, xpForNext: (user?.level || 1) * 100 })
+})
+
+app.post('/api/missions/progress', auth, (req, res) => {
+  const { mission_id, increment } = req.body
+  if (!mission_id) return res.status(400).json({ error: 'mission_id required' })
+  const today = new Date().toISOString().split('T')[0]
+  getTodayMissions(req.user.id) // ensure generated
+
+  const m = db.prepare('SELECT * FROM daily_missions WHERE user_id=? AND date=? AND mission_id=?').get(req.user.id, today, mission_id)
+  if (!m || m.completed) return res.json({ ok: true, alreadyDone: true })
+
+  const newProgress = Math.min(m.progress + (increment || 1), m.target)
+  const completed = newProgress >= m.target ? 1 : 0
+  db.prepare('UPDATE daily_missions SET progress=?, completed=? WHERE id=?').run(newProgress, completed, m.id)
+
+  if (completed) {
+    addXP(req.user.id, m.xp_reward)
+    // Bonus: all 3 done?
+    const allDone = db.prepare('SELECT COUNT(*) as c FROM daily_missions WHERE user_id=? AND date=? AND completed=1').get(req.user.id, today).c
+    if (allDone >= 3) addXP(req.user.id, 100) // Bonus XP
+  }
+
+  const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(req.user.id)
+  res.json({ ok: true, completed: !!completed, progress: newProgress, target: m.target, xp: user?.xp, level: user?.level })
 })
 
 // ═══ LOGIN STREAK ═══

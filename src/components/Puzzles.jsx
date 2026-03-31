@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { GameState, applyAction, getValidTransfers, MAX_PLACE, MAX_PLACE_STANDS, GOLDEN_STAND } from '../engine/game'
 import { useI18n } from '../engine/i18n'
-import { isLoggedIn } from '../engine/api'
+import * as API from '../engine/api'
 import Board from './Board'
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -170,6 +170,7 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
       setStatus('solved')
       const duration = Math.floor((Date.now() - startTime.current) / 1000)
       onSolved?.(newMoves, duration)
+      if (API.isLoggedIn()) API.missionProgress('solve_puzzle').catch(() => {})
     } else if (newMoves >= puzzle.maxMoves) {
       setStatus('failed')
     }
@@ -263,7 +264,7 @@ export default function Puzzles() {
   useEffect(() => {
     fetch('/api/puzzles/daily').then(r => r.json()).then(setDaily).catch(() => {})
     fetch('/api/puzzles/weekly').then(r => r.json()).then(setWeekly).catch(() => {})
-    if (isLoggedIn()) fetch('/api/puzzles/user/stats', { headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` } }).then(r => r.json()).then(setUserStats).catch(() => {})
+    if (API.isLoggedIn()) fetch('/api/puzzles/user/stats', { headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` } }).then(r => r.json()).then(setUserStats).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -275,7 +276,7 @@ export default function Puzzles() {
     setSolvedSet(newSet)
     localStorage.setItem('stolbiki_puzzles_solved', JSON.stringify([...newSet]))
     // Отправляем на сервер
-    if (isLoggedIn()) {
+    if (API.isLoggedIn()) {
       const [type, id] = key.split(':')
       fetch('/api/puzzles/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` },

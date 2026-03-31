@@ -127,6 +127,15 @@ export async function getStreak() {
   return await api('/streak')
 }
 
+// ═══ Daily missions ═══
+export async function getMissions() {
+  return await api('/missions')
+}
+
+export async function missionProgress(mission_id, increment = 1) {
+  return await api('/missions/progress', { method: 'POST', body: JSON.stringify({ mission_id, increment }) })
+}
+
 // ═══ Health check ═══
 export async function checkServer() {
   try {

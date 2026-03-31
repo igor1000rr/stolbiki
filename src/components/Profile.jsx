@@ -269,6 +269,7 @@ export default function Profile({ viewUsername, onClose }) {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [openingStats, setOpeningStats] = useState(null)
   const [streakData, setStreakData] = useState(null)
+  const [missionsData, setMissionsData] = useState(null)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
@@ -302,6 +303,8 @@ export default function Profile({ viewUsername, onClose }) {
       .then(setOpeningStats).catch(() => {})
     // Login streak
     API.getStreak().then(setStreakData).catch(() => {})
+    // Daily missions
+    API.getMissions().then(setMissionsData).catch(() => {})
   }, [serverOnline]) // eslint-disable-line
 
   async function loadFriends() {
@@ -619,6 +622,62 @@ export default function Profile({ viewUsername, onClose }) {
               </div>
             )}
           </div>
+
+          {/* XP / Level */}
+          {missionsData && (
+            <div className="dash-card" style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#4a9eff' }}>Lv.{missionsData.level}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#6b6880', marginBottom: 4 }}>
+                    <span>XP</span>
+                    <span>{missionsData.xp} / {missionsData.xpForNext}</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 3, background: '#1a1a2a', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 3,
+                      background: 'linear-gradient(90deg, #4a9eff, #6db4ff)', transition: 'width 0.5s' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Daily missions */}
+          {missionsData && missionsData.missions && (
+            <div className="dash-card" style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>{en ? 'Daily missions' : 'Задания дня'}</div>
+                {missionsData.allDone && <span style={{ fontSize: 10, color: '#3dd68c', fontWeight: 600 }}>{en ? 'All done! +100 XP' : 'Все выполнены! +100 XP'}</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {missionsData.missions.map(m => {
+                  const pct = Math.min(m.progress / m.target, 1)
+                  return (
+                    <div key={m.mission_id} style={{
+                      padding: '10px 12px', borderRadius: 8,
+                      background: m.completed ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : '#2a2a38'}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? '#3dd68c' : '#e8e6f0' }}>
+                          {m.completed ? '✓ ' : ''}{en ? m.name_en : m.name_ru}
+                        </span>
+                        <span style={{ fontSize: 10, color: m.completed ? '#3dd68c' : '#ffc145' }}>+{m.xp_reward} XP</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#1a1a2a', overflow: 'hidden' }}>
+                          <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2,
+                            background: m.completed ? '#3dd68c' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
+                            transition: 'width 0.3s' }} />
+                        </div>
+                        <span style={{ fontSize: 9, color: '#555', minWidth: 28 }}>{m.progress}/{m.target}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Avatar picker */}
           {showAvatarPicker && (

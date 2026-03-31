@@ -8,7 +8,7 @@ import { isGpuReady } from '../engine/neuralnet'
 import { getHint } from '../engine/hints'
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
 import * as MP from '../engine/multiplayer'
-import { isLoggedIn } from '../engine/api'
+import * as API from '../engine/api'
 import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'
@@ -448,10 +448,26 @@ export default function Game() {
       streak: won ? prev.streak + 1 : 0,
       loseStreak: won ? 0 : prev.loseStreak + 1,
     }))
+    // Streak mission: при 3 победах подряд
+    if (won && sessionStats.streak + 1 >= 3 && API.isLoggedIn()) {
+      API.missionProgress('streak_3').catch(() => {})
+    }
     // First win celebration — один раз в жизни
     if (won && !localStorage.getItem('stolbiki_first_win')) {
       localStorage.setItem('stolbiki_first_win', '1')
       setTimeout(() => { setFirstWinCelebration(true); setTimeout(() => setFirstWinCelebration(false), 5000) }, 800)
+    }
+    // Mission progress tracking
+    if (API.isLoggedIn()) {
+      API.missionProgress('play_3').catch(() => {})
+      API.missionProgress('play_5').catch(() => {})
+      if (won) {
+        API.missionProgress('win_1').catch(() => {})
+        if (mode === 'ai' && difficultyRef.current >= 200) API.missionProgress('win_ai_hard').catch(() => {})
+      }
+      if (mode === 'online') API.missionProgress('play_online').catch(() => {})
+      const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
+      if ((0 in gs.closed) && gs.closed[0] === humanPlayer) API.missionProgress('close_golden').catch(() => {})
     }
   }, [result]) // eslint-disable-line
 
@@ -773,7 +789,7 @@ export default function Game() {
           }))
         }
         // Daily — отправка результата
-        if (dailyMode && isLoggedIn()) {
+        if (dailyMode && API.isLoggedIn()) {
           const w = ns.winner === humanPlayer ? 1 : 0
           fetch('/api/daily/submit', {
             method: 'POST',
