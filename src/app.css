@@ -2505,3 +2505,7 @@ body.native-body *::after {
   .native-app .native-tab-label { display: none; }
   .native-app .site-content { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 }
+
+/* ═══ NATIVE: Page padding для всех разделов ═══ */
+.native-app h2 { font-size: 20px; }
+.native-app .dash-card h3 { line-height: 1.3; }

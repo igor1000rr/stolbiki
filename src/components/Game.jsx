@@ -1041,8 +1041,8 @@ export default function Game() {
 
       {/* Турнирный прогресс */}
       {tournament && (
-        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 10,
-          background: 'rgba(240,160,48,0.06)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.12)' }}>
+        <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 10,
+          background: 'rgba(240,160,48,0.06)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(255,193,69,0.12)' }}>
           <div style={{ fontSize: 11, color: '#a8a4b8', marginBottom: 4 }}>
             Турнир — партия {tournament.currentGame} из {tournament.total}
           </div>
@@ -1076,7 +1076,7 @@ export default function Game() {
 
       {/* Сессионная статистика */}
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8, fontSize: 11, color: 'var(--ink3)' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
           <span>Побед: <b style={{ color: '#3dd68c' }}>{sessionStats.wins}</b></span>
           <span>Поражений: <b style={{ color: '#ff6066' }}>{sessionStats.losses}</b></span>
           {sessionStats.streak > 1 && <span>Серия: <b style={{ color: '#ffc145' }}>{sessionStats.streak}</b></span>}
@@ -1084,7 +1084,7 @@ export default function Game() {
       )}
 
       {(mode === 'pvp' || mode === 'spectate' || mode === 'online' || mode === 'spectate-online') && !gs.gameOver && (
-        <div style={{ textAlign: 'center', padding: '6px 12px', margin: '0 auto 8px', fontSize: 13, fontWeight: 600,
+        <div style={{ textAlign: 'center', padding: isNative ? '3px 10px' : '6px 12px', margin: isNative ? '0 auto 2px' : '0 auto 8px', fontSize: isNative ? 12 : 13, fontWeight: 600,
           color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
@@ -1116,7 +1116,7 @@ export default function Game() {
 
       {/* Таймер игроков */}
       {timerLimit > 0 && !gs.gameOver && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 16px 8px', fontSize: 13, fontFamily: 'monospace' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: isNative ? '2px 12px 4px' : '4px 16px 8px', fontSize: isNative ? 12 : 13, fontFamily: 'monospace' }}>
           <div style={{ color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 0 ? 700 : 400,
             opacity: playerTime[0] < 30 && gs.currentPlayer === 0 ? (playerTime[0] % 2 ? 1 : 0.5) : 1 }}>
             {Math.floor(playerTime[0] / 60)}:{String(playerTime[0] % 60).padStart(2, '0')}
@@ -1173,7 +1173,7 @@ export default function Game() {
 
       {/* Тренер — оценка позиции */}
       {trainerMode && posEval && mode === 'ai' && !gs.gameOver && (
-        <div style={{ margin: '0 4px 8px', padding: '6px 10px', background: 'rgba(26,26,42,0.6)',
+        <div style={{ margin: isNative ? '0 4px 4px' : '0 4px 8px', padding: isNative ? '4px 8px' : '6px 10px', background: 'rgba(26,26,42,0.6)',
           borderRadius: 8, border: `1px solid ${posEval.color}22` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: posEval.color }}>{posEval.label}</span>
