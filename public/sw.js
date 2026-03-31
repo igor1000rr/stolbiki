@@ -1,6 +1,6 @@
 // Service Worker — version обновляется автоматически при каждом деплое
 const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
-const STATIC_ASSETS = ['/', '/favicon.svg', '/manifest.json']
+const STATIC_ASSETS = ['/', '/manifest.json']
 
 self.addEventListener('install', e => {
   self.skipWaiting()
@@ -15,8 +15,8 @@ self.addEventListener('activate', e => {
 })
 
 self.addEventListener('fetch', e => {
-  // Не кешируем API вызовы и WS
   if (e.request.url.includes('/api/') || e.request.url.includes('/ws')) return
+  // Network-first: всегда пробуем сеть, fallback на кеш
   e.respondWith(
     fetch(e.request).then(res => {
       if (res.ok && e.request.method === 'GET') {
