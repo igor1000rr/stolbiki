@@ -760,93 +760,78 @@ app.get('/api/puzzles/user/stats', auth, (req, res) => {
 // Сид начальных постов (только если пусто)
 const blogCount = db.prepare('SELECT COUNT(*) as c FROM blog_posts').get().c
 if (blogCount === 0) {
-  const seed = db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)')
+  const seed = db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
   seed.run('launch', 'Запуск открытой беты', 'Open beta launch',
-    'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n- Игра против AI (3 уровня сложности)\n- Онлайн мультиплеер по ссылке\n- Ежедневные и еженедельные головоломки\n- Режим «Тренер» с оценкой каждого хода\n- 4 цветовые темы\n- Print & Play PDF\n\nМы активно собираем обратную связь. Нашли баг или есть идея? Пишите в профиле.',
-    'Snatch Highrise enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback. Found a bug or have an idea? Let us know via your profile.',
-    'release', 1)
-  seed.run('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
-    'Нейросеть AI прошла 3 прогона GPU-обучения. Результаты:\n\n- 1146 итераций self-play\n- Loss снизился до 0.098\n- Винрейт лучшей модели: 97%\n- Баланс P1/P2: 50% / 50%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
-    'The AI neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss dropped to 0.098\n- Best model win rate: 97%\n- P1/P2 balance: 50% / 50%\n\nAI is notably stronger in endgame and better at evaluating the golden stand.',
-    'ai', 0)
-  seed.run('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
-    'Добавлены тактические головоломки!\n\n- Головоломка дня — обновляется каждый день\n- Задача недели — сложнее, обновляется по понедельникам\n- Банк из 50 головоломок с 3 уровнями сложности\n- Лидерборды и статистика решений\n\nЦель — закрыть нужные стойки за ограниченное число ходов. Тренирует тактическое мышление.',
-    'Tactical puzzles are here!\n\n- Daily puzzle — refreshes every day\n- Weekly challenge — harder, refreshes on Mondays\n- Bank of 50 puzzles with 3 difficulty levels\n- Leaderboards and solve stats\n\nGoal: close the required stands in limited moves. Trains tactical thinking.',
-    'feature', 0)
-  seed.run('roadmap', 'Что дальше: планы развития', 'What\'s next: roadmap',
-    'Snatch Highrise — исследовательский проект на стыке настольных игр и AI. Вот что в планах:\n\nБлижайшее:\n- Рейтинговые сезоны\n- Push-уведомления\n- Расширенная книга дебютов\n\nБудущее:\n- Мобильное приложение (iOS/Android)\n- Турниры с призами\n- Физическое издание игры\n- Открытый API для разработчиков\n\nСледите за обновлениями в этом блоге.',
-    'Snatch Highrise is a research project at the intersection of board games and AI. Here\'s what\'s planned:\n\nComing soon:\n- Ranked seasons\n- Push notifications\n- Extended opening book\n\nFuture:\n- Mobile app (iOS/Android)\n- Tournaments with prizes\n- Physical game edition\n- Open API for developers\n\nStay tuned via this blog.',
-    'roadmap', 0)
+    'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n- Игра против AI (3 уровня сложности)\n- Онлайн мультиплеер по ссылке\n- Ежедневные и еженедельные головоломки\n- Режим «Тренер» с оценкой каждого хода\n- 4 цветовые темы\n- Print & Play PDF\n\nМы активно собираем обратную связь.',
+    'Snatch Highrise enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback.',
+    'release', 1, '2026-02-15 10:00:00')
 }
 
-// Новые посты (добавляются если ещё нет)
-const addPost = (slug, tru, ten, bru, ben, tag) => {
+// Добавление постов с датой (если ещё нет)
+const addPost = (slug, tru, ten, bru, ben, tag, date) => {
   if (!db.prepare('SELECT id FROM blog_posts WHERE slug=?').get(slug))
-    db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?,?,?,?,?,?,0)').run(slug, tru, ten, bru, ben, tag)
+    db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at) VALUES (?,?,?,?,?,?,0,?)').run(slug, tru, ten, bru, ben, tag, date)
 }
 
-addPost('update-march-2026', 'Март 2026: масштабное обновление', 'March 2026: Major update',
-  '26 ачивок, рейтинговые сезоны, 14 настроек и полная мультиязычность — вот главные изменения за март.\n\n' +
-  'Ачивки\nТеперь их 26 вместо 14. Новые: Бессмертный (20 побед подряд), Гроссмейстер (рейтинг 1800), Молния (5 быстрых побед), Решатель (10 головоломок) и другие. Каждая ачивка теперь с цветовой категорией: бронза, серебро, золото, алмаз.\n\n' +
-  'Рейтинговые сезоны\nКаждый месяц — новый сезон. Отдельный рейтинг, лидерборд топ-20, график истории ELO прямо в профиле.\n\n' +
-  'Настройки\n14 параметров: таймер (блиц/рапид/30м), стиль фишек, плотность доски, скорость анимаций, режим для дальтоников, крупный текст, высокий контраст. Всё сохраняется и применяется мгновенно.\n\n' +
-  'Мультиязычность\nВесь интерфейс полностью переведён на английский. Переключатель RU/EN в шапке.',
-  '26 achievements, ranked seasons, 14 settings, and full English translation — here are the main changes for March.\n\n' +
-  'Achievements\nNow 26 instead of 14. New ones: Immortal (20 wins in a row), Grandmaster (1800 rating), Lightning (5 fast wins), Solver (10 puzzles), and more. Each achievement now has a color tier: bronze, silver, gold, diamond.\n\n' +
-  'Ranked Seasons\nEvery month is a new season with separate rating, top-20 leaderboard, and ELO history chart right in your profile.\n\n' +
-  'Settings\n14 parameters: timer (blitz/rapid/30m), chip style, board density, animation speed, colorblind mode, large text, high contrast. Everything saves and applies instantly.\n\n' +
-  'Multilingual\nThe entire interface is now fully translated to English. RU/EN switch in the header.',
-  'release')
+// ═══ Хронологический порядок (от старых к новым) ═══
+
+addPost('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
+  'Нейросеть AI прошла 3 прогона GPU-обучения:\n\n- 1146 итераций self-play\n- Loss снизился до 0.098\n- Винрейт лучшей модели: 97%\n- Баланс P1/P2: 50% / 50%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
+  'The AI neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss dropped to 0.098\n- Best model win rate: 97%\n- P1/P2 balance: 50% / 50%\n\nAI is notably stronger in endgame and better at evaluating the golden stand.',
+  'ai', '2026-02-20 14:00:00')
+
+addPost('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
+  'Добавлены тактические головоломки!\n\n- Головоломка дня — обновляется каждый день\n- Задача недели — сложнее, обновляется по понедельникам\n- Банк из 50 головоломок с 3 уровнями сложности\n- Лидерборды и статистика решений\n\nЦель — закрыть нужные стойки за ограниченное число ходов.',
+  'Tactical puzzles are here!\n\n- Daily puzzle — refreshes every day\n- Weekly challenge — harder, refreshes on Mondays\n- Bank of 50 puzzles with 3 difficulty levels\n- Leaderboards and solve stats\n\nGoal: close the required stands in limited moves.',
+  'feature', '2026-03-01 12:00:00')
+
+addPost('update-march-2026', 'v3.0: Масштабное обновление', 'v3.0: Major update',
+  '26 ачивок, рейтинговые сезоны, 14 настроек и полная мультиязычность.\n\n**Ачивки** — 26 вместо 14. Бронза, серебро, золото, алмаз.\n**Рейтинговые сезоны** — каждый месяц новый сезон с лидербордом топ-20.\n**14 настроек** — таймер, стиль фишек, доступность.\n**Мультиязычность** — полный перевод RU/EN.',
+  '26 achievements, ranked seasons, 14 settings, and full English translation.\n\n**Achievements** — 26 with bronze/silver/gold/diamond tiers.\n**Ranked Seasons** — monthly seasons with top-20 leaderboard.\n**14 Settings** — timer, chip style, accessibility.\n**Multilingual** — full RU/EN translation.',
+  'release', '2026-03-15 10:00:00')
 
 addPost('online-v2', 'Онлайн v2: resign, ничья, чат', 'Online v2: resign, draw, chat',
-  'Онлайн-режим стал полноценным. Что нового:\n\n' +
-  'Сдача партии\nКнопка «Сдаться» — противник мгновенно получает победу. Работает через WebSocket.\n\n' +
-  'Предложение ничьей\nКнопка «Ничья» отправляет предложение противнику. Он видит баннер с кнопками «Принять» и «Отклонить».\n\n' +
-  'Быстрый чат\nПять кнопок быстрых сообщений: gg, gl, nice, wp, ! — плюс ввод произвольного текста.\n\n' +
-  'Уведомления\nКогда противник сделал ход и вкладка в фоне — заголовок мигает красной точкой. Вы не пропустите свой ход.',
-  'Online mode is now fully featured. What\'s new:\n\n' +
-  'Resign\nA "Resign" button — your opponent instantly gets the win. Works via WebSocket.\n\n' +
-  'Draw offer\nA "Draw" button sends an offer. Opponent sees a banner with "Accept" and "Decline".\n\n' +
-  'Quick chat\nFive quick message buttons: gg, gl, nice, wp, ! — plus free text input.\n\n' +
-  'Notifications\nWhen opponent moves and your tab is in the background, the title blinks with a red dot. You won\'t miss your turn.',
-  'feature')
+  'Онлайн-режим стал полноценным:\n\n**Сдача партии** — кнопка «Сдаться» через WebSocket.\n**Предложение ничьей** — баннер с «Принять» / «Отклонить».\n**Быстрый чат** — 5 кнопок (gg, gl, nice, wp, !) + свободный текст.\n**Уведомления** — мигающий заголовок когда ваш ход.',
+  'Online mode is now fully featured:\n\n**Resign** — instant win for opponent via WebSocket.\n**Draw offer** — banner with Accept/Decline.\n**Quick chat** — 5 preset buttons + free text.\n**Notifications** — blinking title when it\'s your turn.',
+  'feature', '2026-03-18 10:00:00')
 
-addPost('design-v3', 'Дизайн v3: лендинг, шапка, авторизация', 'Design v3: landing, header, auth',
-  'Полная переработка визуала:\n\n' +
-  'Лендинг\n8 секций, каждая с уникальной архитектурой. Scroll-анимации (IntersectionObserver), animated counters, AI-баннер с метриками, gradient Print&Play баннер, нумерованный FAQ.\n\n' +
-  'Шапка\n4 основных пункта + выпадающее «Ещё». Авторизация вынесена в хедер — аватар с рейтингом или кнопка «Войти» с dropdown формой.\n\n' +
-  'SEO\nOG-теги, twitter:card, JSON-LD structured data, robots.txt, sitemap.xml, PWA-иконки 192+512.\n\n' +
-  'Код\n11 lazy-loaded компонентов (React.lazy + Suspense). Hash-роутинг: #game, #blog, #puzzles — back/forward работает. Error Boundary для безопасности.',
-  'Complete visual overhaul:\n\n' +
-  'Landing\n8 sections, each with unique architecture. Scroll animations (IntersectionObserver), animated counters, AI banner with metrics, gradient Print&Play banner, numbered FAQ.\n\n' +
-  'Header\n4 main items + "More" dropdown. Auth moved to header — avatar with rating or "Login" button with dropdown form.\n\n' +
-  'SEO\nOG tags, twitter:card, JSON-LD structured data, robots.txt, sitemap.xml, PWA icons 192+512.\n\n' +
-  'Code\n11 lazy-loaded components (React.lazy + Suspense). Hash routing: #game, #blog, #puzzles — back/forward works. Error Boundary for safety.',
-  'update')
+addPost('admin-panel', 'Админ-панель и безопасность', 'Admin panel & security',
+  'Полноценная админ-панель с 9 разделами: обзор с метриками, пользователи, партии, блог, комнаты.\n\nБезопасность: WebSocket аутентификация, серверная валидация, антиспам, CSP.',
+  'Full admin panel with 9 sections: overview with metrics, users, games, blog, rooms.\n\nSecurity: WebSocket auth, server validation, anti-spam, CSP.',
+  'update', '2026-03-20 10:00:00')
+
+addPost('design-v3', 'Дизайн v3: лендинг и SEO', 'Design v3: landing & SEO',
+  'Лендинг с 8 секциями и scroll-анимациями. Шапка с 4 пунктами + «Ещё». Авторизация в хедере.\n\nSEO: OG-теги, JSON-LD, sitemap, robots.txt, PWA-иконки.',
+  'Landing with 8 sections and scroll animations. Header with 4 items + "More". Auth in header.\n\nSEO: OG tags, JSON-LD, sitemap, robots.txt, PWA icons.',
+  'update', '2026-03-22 10:00:00')
+
+addPost('v3-3-update', 'v3.3: Адаптивка и тема Wood', 'v3.3: Responsive & Wood theme',
+  '8 брейкпоинтов вместо 4 — корректно от 340px до 1024px. Тема Wood с текстурой дерева. Три интерактивные схемы правил. Страница Changelog.',
+  '8 breakpoints instead of 4 — correct from 340px to 1024px. Wood theme with grain texture. Three interactive rule diagrams. Changelog page.',
+  'update', '2026-03-24 10:00:00')
+
+addPost('v3-4-ux', 'v3.4: UX по результатам тестирования', 'v3.4: UX from playtesting',
+  'Первое тестирование с реальными игроками:\n\n**Правила** переписаны с нуля (SVG-схемы вместо демо).\n**Стойки перевёрнуты** — фишки растут снизу вверх.\n**Счётчик фишек** — всегда виден, красный при 9+.\n**Призрачный перенос** — видно откуда/куда.\n**Онлайн-баги** исправлены.',
+  'First playtest with real users:\n\n**Rules** rewritten from scratch (SVG diagrams).\n**Stands flipped** — chips grow bottom-up.\n**Chip counter** — always visible, red at 9+.\n**Ghost transfer** — visual source/destination.\n**Online bugs** fixed.',
+  'release', '2026-03-27 10:00:00')
+
+addPost('v35-gpu', 'v3.5: GPU-нейросеть в браузере', 'v3.5: GPU neural network in browser',
+  'ResNet 840K параметров загружается в браузер. Сложность «Экстрим» — 1500 GPU-симуляций. Спектатор-режим. Рематч онлайн. Публичные профили. 200 головоломок. Серверная валидация ходов.',
+  'ResNet 840K parameters loads in browser. Extreme difficulty — 1500 GPU simulations. Spectator mode. Online rematch. Public profiles. 200 puzzles. Server-side move validation.',
+  'release', '2026-03-30 10:00:00')
 
 addPost('v37-mobile-app', 'v3.7: Мобильное приложение!', 'v3.7: Mobile app is here!',
-  'Snatch Highrise теперь доступен как нативное Android-приложение!\n\n' +
-  '**Полная адаптация UI**\nДоска растягивается на весь экран. Кнопки действий в зоне большого пальца. Bottom tab bar с 5 вкладками: Играть, Онлайн, Задачи, Профиль, Ещё.\n\n' +
-  '**Haptic feedback**\nВибрация при каждом действии: лёгкая при размещении фишки, средняя при переносе, сильная при закрытии стойки. Победа — SUCCESS, поражение — ERROR. Работает даже при выключенном звуке.\n\n' +
-  '**Offline mode**\nAI работает без интернета! Нейросеть загружена в bundle приложения. Головоломки из кеша тоже доступны. При отсутствии сети — красный баннер сверху.\n\n' +
-  '**Onboarding**\n4 экрана обучения при первом запуске: Welcome → Ставьте фишки → Закройте 6 стоек → Играйте! С возможностью пропустить.\n\n' +
-  '**Новые логотипы**\nПрофессиональные логотипы с прозрачным фоном. Иконка приложения, splash screen, OG-image — всё обновлено.\n\n' +
-  '**Privacy Policy**\nСтраница конфиденциальности RU/EN. Без рекламы, без трекеров, без продажи данных.\n\n' +
-  '**Share & Rate**\nПоделиться приложением через нативный dialog. Предложение оценить после 5 побед.',
-  'Snatch Highrise is now available as a native Android app!\n\n' +
-  '**Full UI adaptation**\nBoard stretches to fill the entire screen. Action buttons in the thumb zone. Bottom tab bar with 5 tabs: Play, Online, Puzzles, Profile, More.\n\n' +
-  '**Haptic feedback**\nVibration on every action: light on chip placement, medium on transfer, heavy on closing a stand. Win — SUCCESS, loss — ERROR. Works even with sound off.\n\n' +
-  '**Offline mode**\nAI works without internet! Neural network is bundled in the app. Cached puzzles are also available. No connection — red banner on top.\n\n' +
-  '**Onboarding**\n4 intro screens on first launch: Welcome → Place chips → Close 6 stands → Play! With skip option.\n\n' +
-  '**New logos**\nProfessional logos with transparent background. App icon, splash screen, OG image — all updated.\n\n' +
-  '**Privacy Policy**\nPrivacy page in RU/EN. No ads, no trackers, no data selling.\n\n' +
-  '**Share & Rate**\nShare the app via native dialog. Rate prompt after 5 wins.',
-  'release')
+  'Snatch Highrise теперь на Android!\n\n**Полная адаптация UI** — доска на весь экран, tab bar.\n**Haptic feedback** — вибрация при каждом действии.\n**Offline mode** — AI без интернета.\n**Onboarding** — 4 экрана при первом запуске.\n**Новые логотипы**, Privacy Policy, Share & Rate.',
+  'Snatch Highrise is now on Android!\n\n**Full UI adaptation** — board fills screen, tab bar.\n**Haptic feedback** — vibration on every action.\n**Offline mode** — AI without internet.\n**Onboarding** — 4 intro screens.\n**New logos**, Privacy Policy, Share & Rate.',
+  'release', '2026-03-31 10:00:00')
 
-addPost('roadmap-2026', 'Планы на 2026: от бета к релизу', 'Roadmap 2026: from beta to release',
-  'Что уже сделано:\n✅ Мобильное приложение Android (Capacitor)\n✅ Haptic feedback — вибрация при ходах\n✅ Offline mode — AI без интернета\n✅ GPU-нейросеть 840K params в браузере\n✅ 200+ головоломок\n✅ Онлайн мультиплеер + спектатор\n✅ 26 ачивок\n\nБлижайшие планы:\n→ Публикация в Google Play\n→ Push-уведомления (Firebase)\n→ Обучение AI на RTX 5090 — ожидаем WR 99%+\n→ Рейтинговые сезоны v2\n→ Apple Sign-In / Google Sign-In\n\nДолгосрочные:\n→ iOS приложение через Xcode\n→ Турниры с призами\n→ Физическое издание игры\n→ Открытый API\n→ Расширенная книга дебютов',
-  'What\'s done:\n✅ Android mobile app (Capacitor)\n✅ Haptic feedback on moves\n✅ Offline mode — AI without internet\n✅ GPU neural net 840K params in browser\n✅ 200+ puzzles\n✅ Online multiplayer + spectator\n✅ 26 achievements\n\nComing soon:\n→ Google Play release\n→ Push notifications (Firebase)\n→ AI training on RTX 5090 — expect 99%+ WR\n→ Ranked seasons v2\n→ Apple/Google Sign-In\n\nLong-term:\n→ iOS app via Xcode\n→ Tournaments with prizes\n→ Physical game edition\n→ Open API\n→ Extended opening book',
-  'roadmap')
+addPost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
+  '✅ Android-приложение\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 26 ачивок\n\nДалее:\n→ Google Play\n→ Обучение AI на RTX 5090\n→ Push-уведомления\n→ iOS\n→ Турниры',
+  '✅ Android app\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n\nNext:\n→ Google Play\n→ AI training on RTX 5090\n→ Push notifications\n→ iOS\n→ Tournaments',
+  'roadmap', '2026-03-31 18:00:00')
+
+// Удаляем устаревший roadmap и дубли
+db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 
 // Получить посты
 app.get('/api/blog', (req, res) => {
@@ -1200,84 +1185,6 @@ app.get('/api/admin/server', auth, adminOnly, (req, res) => {
     pid: process.pid,
   })
 })
-
-addPost('admin-panel', 'Админ-панель и безопасность', 'Admin panel & security',
-  'Добавлена полноценная админ-панель с 9 разделами.\n\n' +
-  'Что внутри\n' +
-  'Обзор — живые метрики: пользователи, партии, рейтинг, память сервера. Графики регистраций и партий за 30 дней.\n\n' +
-  'Пользователи — поиск, сортировка, редактирование рейтинга, сброс пароля, удаление.\n\n' +
-  'Партии — фильтрация по режиму (AI, PvP, онлайн), история с дельтой рейтинга.\n\n' +
-  'Блог — создание и редактирование постов прямо из админки. Черновики, теги, закрепление.\n\n' +
-  'Комнаты — мониторинг активных онлайн-комнат и очереди матчмейкинга в реальном времени.\n\n' +
-  'Безопасность\n' +
-  'WebSocket аутентификация, валидация результатов партий на сервере, антиспам при записи партий, CSP заголовки.',
-  'Full admin panel with 9 sections added.\n\n' +
-  'Overview — live metrics: users, games, rating, server memory. Registration and game charts for 30 days.\n\n' +
-  'Users — search, sort, edit rating, reset password, delete.\n\n' +
-  'Games — filter by mode (AI, PvP, online), history with rating delta.\n\n' +
-  'Blog — create and edit posts from admin. Drafts, tags, pinning.\n\n' +
-  'Rooms — live monitoring of online rooms and matchmaking queue.\n\n' +
-  'Security\n' +
-  'WebSocket authentication, server-side game result validation, anti-spam, CSP headers.',
-  'release')
-
-addPost('v3-3-update', 'Адаптивка, тема Wood и интерактивные правила', 'Responsive, Wood theme & interactive rules',
-  'Большое обновление интерфейса.\n\n' +
-  'Адаптивка\n' +
-  'Теперь 8 брейкпоинтов вместо 4. Сайт корректно отображается на экранах от 340px до 1024px. Админка на мобилке показывает горизонтальные табы вместо сайдбара.\n\n' +
-  'Тема Wood\n' +
-  'Полностью переработана. Доска и стойки с текстурой дерева через CSS-паттерны. Фишки стилизованы: светлые как кость, тёмные как эбен. Inner shadow для глубины.\n\n' +
-  'Правила\n' +
-  'Три интерактивные схемы с пошаговой анимацией: перенос фишек (4 шага), закрытие стойки (3 шага), swap rule с кнопкой смены цветов. Обновлён Print & Play PDF.\n\n' +
-  'Также добавлена отдельная страница Changelog с историей всех версий.',
-  'Big interface update.\n\n' +
-  'Responsive\n' +
-  'Now 8 breakpoints instead of 4. Site displays correctly from 340px to 1024px. Admin on mobile shows horizontal tabs instead of sidebar.\n\n' +
-  'Wood theme\n' +
-  'Fully reworked. Board and stands with wood grain texture via CSS patterns. Chips styled: light as ivory, dark as ebony. Inner shadows for depth.\n\n' +
-  'Rules\n' +
-  'Three interactive diagrams with step-by-step animation: chip transfer (4 steps), stand closing (3 steps), swap rule with color swap button. Updated Print & Play PDF.\n\n' +
-  'Also added a dedicated Changelog page with full version history.',
-  'update')
-
-addPost('v3-4-ux', 'UX-обновление по тестированию', 'UX update from playtesting',
-  'Провели первое тестирование с реальными игроками. Вот что изменилось:\n\n' +
-  'Правила полностью переписаны\n' +
-  'Раздел «Правила» переработан с нуля. Убраны интерактивные демо (раздражали необходимостью кликать). ' +
-  'Вместо них — статичные SVG-схемы переноса и закрытия. Формулировки уточнены: «Стойка принадлежит игроку, если фишка его цвета на вершине». ' +
-  'Swap Rule переименован в «Баланс первого хода» — сразу понятно зачем это нужно.\n\n' +
-  'Стойки перевёрнуты\n' +
-  'Фишки теперь растут снизу вверх. Раньше верх стоек обрезался и хотелось прокрутить — теперь основание внизу, верх скруглён, визуально завершённая форма.\n\n' +
-  'Счётчик фишек\n' +
-  'Под каждой стойкой всегда виден счётчик: сколько фишек стоит. Красный при 9+, жёлтый при 7+. ' +
-  'Больше не нужно считать вручную — главный pain point по отзывам.\n\n' +
-  'Призрачный перенос\n' +
-  'После переноса во время расстановки видно: откуда ушли фишки (полосатые, dashed border) и куда пришли (пульсирующие, зелёный glow). Помогает ориентироваться.\n\n' +
-  'Онлайн-баги\n' +
-  'Исправлен критический баг: если игрок шёл прямо в «Онлайн» не заходя в «Играть», партия стартовала с AI вместо противника. ' +
-  'Исправлены пустые кнопки после сдачи партии. «Ещё партию» заменена на «В лобби» в онлайн-режиме.\n\n' +
-  'Print & Play\n' +
-  'Белый фон для печати. 70 фишек каждого цвета (было 55 — при игре 1 vs 3 не хватало). Обновлённые правила.',
-  'First playtest with real users. Here\'s what changed:\n\n' +
-  'Rules completely rewritten\n' +
-  'Rules section rebuilt from scratch. Removed interactive demos (annoying click-throughs). ' +
-  'Replaced with static SVG diagrams for transfer and closing. Swap Rule renamed to "First Move Balance" — immediately clear why it exists.\n\n' +
-  'Stands flipped\n' +
-  'Chips now grow bottom-up. Before, stand tops were cut off. Now base is at bottom, rounded top — visually complete.\n\n' +
-  'Chip counter\n' +
-  'Always-visible counter under each stand. Red at 9+, yellow at 7+. No more manual counting — top pain point from testers.\n\n' +
-  'Ghost transfer\n' +
-  'After transfer during placement: source shows striped fading chips, destination shows pulsing green glow. Helps orient.\n\n' +
-  'Online bugs\n' +
-  'Fixed critical bug: going to Online without visiting Play first started AI game instead of multiplayer. Fixed empty buttons after resign. "New game" replaced with "Back to lobby" in online.\n\n' +
-  'Print & Play\n' +
-  'White background for printing. 70 chips each color (was 55). Updated rules text.',
-  'release')
-
-// Удаляем дубли из БД
-for (const slug of ['v35-gpu-neural', 'changelog-march', 'changelog-v3-4']) {
-  db.prepare('DELETE FROM blog_posts WHERE slug=?').run(slug)
-}
 
 // ═══ КОНТЕНТ (CMS) ═══
 
