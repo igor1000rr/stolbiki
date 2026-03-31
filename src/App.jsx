@@ -404,7 +404,7 @@ export default function App() {
                 </div>
               )}
               {!authUser && (
-                <button className="m-more-item" onClick={() => { setAuthOpen(true); /* показать auth */ }}>
+                <button className="m-more-item" onClick={() => go('profile')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 3.6-7 7-7s7 3 7 7"/></svg>
                   <span>{en ? 'Login / Register' : 'Вход / Регистрация'}</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
