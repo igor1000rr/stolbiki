@@ -260,7 +260,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes — PWA. Add to home screen, play offline.' : 'Да — PWA. Добавьте на экран, играйте оффлайн.'],
             [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first block, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
             [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '50:50 balance. Confirmed across 239K games.' : '50:50 баланс. Проверено на 239K партиях.'],
-            [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely. No ads, no paywalls. Open source.' : 'Полностью. Без рекламы. Open source.'],
+            [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely free. No ads, no paywalls.' : 'Полностью. Без рекламы, без подвохов.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
               <div className="l-qa-num">{String(i + 1).padStart(2, '0')}</div>
@@ -281,8 +281,8 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <h2 style={{ fontSize: 28, margin: '0 0 10px' }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
           <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 24px' }}>
             {en
-              ? 'Open-source project at the intersection of board game design and AI. Neural network trained via self-play on 239K+ games. New features every week.'
-              : 'Open-source проект на стыке дизайна настольных игр и AI. Нейросеть обучена через self-play на 239K+ партиях. Новые фичи каждую неделю.'}
+              ? 'Project at the intersection of board game design and AI. Neural network trained via self-play on 239K+ games. New features every week.'
+              : 'Проект на стыке дизайна настольных игр и AI. Нейросеть обучена через self-play на 239K+ партиях. Новые фичи каждую неделю.'}
           </p>
 
           <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay} style={{ marginBottom: 28, fontSize: 16, padding: '14px 40px' }}>
@@ -298,11 +298,6 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
 
           {/* Links row */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink3)' }}>
-            <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
-              GitHub
-            </a>
-            <span style={{ opacity: 0.3 }}>·</span>
             <a href="https://t.me/igor1000rr" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
               Telegram
