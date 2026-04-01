@@ -3226,9 +3226,9 @@ body.native-body { animation: none !important; }
 .l-dl-sub { font-size: 9px; color: rgba(255,255,255,0.5); line-height: 1; margin-bottom: 2px; text-align: left; }
 .l-dl-name { font-size: 16px; font-weight: 700; color: #fff; line-height: 1.1; text-align: left; }
 .l-dl-badge {
-  position: absolute; top: 5px; right: 7px;
-  font-size: 9px; padding: 2px 6px; border-radius: 4px;
-  background: rgba(74,158,255,0.2); color: var(--p1); font-weight: 600;
+  position: absolute; top: -8px; right: -8px;
+  font-size: 9px; padding: 2px 8px; border-radius: 8px;
+  background: var(--p1); color: #fff; font-weight: 600;
 }
 @media (max-width: 600px) {
   .l-dl-inner { flex-direction: column; text-align: center; padding: 24px 16px; }
