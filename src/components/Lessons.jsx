@@ -11,10 +11,10 @@ import * as API from '../engine/api'
 const LESSONS = [
   {
     id: 'basics',
-    title_ru: 'Основы: ставьте фишки',
-    title_en: 'Basics: place chips',
-    desc_ru: 'Каждый ход ставьте до 3 фишек на 1-2 стойки. Первый ход — только 1 фишку.\n\nЗадание: поставьте 1 фишку на любую стойку и нажмите ✓.',
-    desc_en: 'Each turn place up to 3 chips on 1-2 stands. First turn — only 1 chip.\n\nTask: place 1 chip on any stand and press ✓.',
+    title_ru: 'Основы: ставьте блоки',
+    title_en: 'Basics: place blocks',
+    desc_ru: 'Каждый ход ставьте до 3 блоков на 1-2 стойки. Первый ход — только 1 блок.\n\nЗадание: поставьте 1 блок на любую стойку и нажмите ✓.',
+    desc_en: 'Each turn place up to 3 blocks on 1-2 stands. First turn — only 1 block.\n\nTask: place 1 block on any stand and press ✓.',
     setup: () => { const gs = new GameState(); return gs },
     goal: (gs, action) => {
       const totalPlaced = Object.values(action.placement || {}).reduce((a, b) => a + b, 0)
@@ -26,8 +26,8 @@ const LESSONS = [
     id: 'transfer',
     title_ru: 'Перенос: ключевой приём',
     title_en: 'Transfer: key tactic',
-    desc_ru: 'Перенос перемещает верхнюю группу фишек с одной стойки на другую. Это меняет контроль!\n\nЗадание: выполните перенос со стойки 3 на стойку 5.',
-    desc_en: 'Transfer moves the top group of chips from one stand to another. This changes control!\n\nTask: transfer from stand 3 to stand 5.',
+    desc_ru: 'Перенос перемещает верхнюю группу блоков с одной стойки на другую. Это меняет контроль!\n\nЗадание: выполните перенос со стойки 3 на стойку 5.',
+    desc_en: 'Transfer moves the top group of blocks from one stand to another. This changes control!\n\nTask: transfer from stand 3 to stand 5.',
     setup: () => {
       const gs = new GameState()
       gs.turn = 6; gs.currentPlayer = 0
@@ -46,8 +46,8 @@ const LESSONS = [
     id: 'golden',
     title_ru: 'Золотая стойка',
     title_en: 'Golden stand',
-    desc_ru: 'Стойка #1 (золотая ★) решает при ничьей 5:5. Кто её контролирует — побеждает!\n\nЗадание: поставьте фишки на золотую стойку (#1) чтобы получить контроль.',
-    desc_en: 'Stand #1 (golden ★) breaks 5:5 ties. Who controls it wins!\n\nTask: place chips on the golden stand (#1) to take control.',
+    desc_ru: 'Стойка #1 (золотая ★) решает при ничьей 5:5. Кто её контролирует — побеждает!\n\nЗадание: поставьте блоки на золотую стойку (#1) чтобы получить контроль.',
+    desc_en: 'Stand #1 (golden ★) breaks 5:5 ties. Who controls it wins!\n\nTask: place blocks on the golden stand (#1) to take control.',
     setup: () => {
       const gs = new GameState()
       gs.turn = 6; gs.currentPlayer = 0
@@ -66,12 +66,12 @@ const LESSONS = [
     id: 'closing',
     title_ru: 'Закрытие стоек',
     title_en: 'Closing stands',
-    desc_ru: 'Когда стойка набирает 11 фишек — она закрывается. Цвет верхней группы = владелец. Закройте 6 из 10 чтобы победить!\n\nЗадание: поставьте фишки чтобы закрыть стойку #4 (нужно довести до 11).',
-    desc_en: 'When a stand reaches 11 chips it closes. Top group color = owner. Close 6 of 10 to win!\n\nTask: place chips to close stand #4 (bring to 11).',
+    desc_ru: 'Когда стойка набирает 11 блоков — высотка достроена. Цвет верхней группы = владелец. Достройте 6 из 10 чтобы победить!\n\nЗадание: поставьте блоки чтобы достроить высотку #4 (нужно довести до 11 блоков).',
+    desc_en: 'When a stand reaches 11 blocks it is complete. Top group color = owner. Complete 6 of 10 to win!\n\nTask: place blocks to complete stand #4 (bring to 11 blocks).',
     setup: () => {
       const gs = new GameState()
       gs.turn = 8; gs.currentPlayer = 0
-      gs.stands[3] = [0, 1, 0, 0, 1, 0, 0, 1, 0] // 9 chips, need 2 more
+      gs.stands[3] = [0, 1, 0, 0, 1, 0, 0, 1, 0] // 9 блоков, нужно ещё 2
       gs.stands[0] = [0, 1, 0, 1, 0]
       gs.stands[5] = [1, 0, 1, 0]
       gs.stands[8] = [0, 0, 1]
@@ -86,8 +86,8 @@ const LESSONS = [
     id: 'strategy',
     title_ru: 'Стратегия: контроль центра',
     title_en: 'Strategy: center control',
-    desc_ru: 'Опытные игроки контролируют центральные стойки — они ближе к закрытию. Размещайте фишки стратегически!\n\nЗадание: поставьте фишки на 2 разные стойки одновременно.',
-    desc_en: 'Experienced players control central stands — they\'re closer to closing. Place chips strategically!\n\nTask: place chips on 2 different stands at once.',
+    desc_ru: 'Опытные игроки контролируют центральные стойки — они ближе к достройке. Размещайте блоки стратегически!\n\nЗадание: поставьте блоки на 2 разные стойки одновременно.',
+    desc_en: 'Experienced players control central stands — they\'re closer to completion. Place blocks strategically!\n\nTask: place blocks on 2 different stands at once.',
     setup: () => {
       const gs = new GameState()
       gs.turn = 6; gs.currentPlayer = 0

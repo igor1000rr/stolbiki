@@ -64,8 +64,8 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </h1>
         <p className="l-hero-sub">
           {en
-            ? '10 stands. 11 chips each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
-            : '10 стоек. 11 фишек на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
+            ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
+            : '10 высоток. 10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
         </p>
         <div className="l-hero-meta">
           <span className="beta-badge">beta</span>
@@ -96,9 +96,9 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <div className={`l-steps ${stepVis ? 'in' : ''}`} ref={stepRef}>
           <div className="l-steps-line" />
           {[
-            { n: '01', t: c('landing.step1_title', en ? 'Place' : 'Ставьте'), d: c('landing.step1_desc', en ? 'Up to 3 chips on max 2 stands per turn. First move is always 1 chip.' : 'До 3 фишек на 2 стойки за ход. Первый ход — 1 фишка.') },
-            { n: '02', t: c('landing.step2_title', en ? 'Transfer' : 'Переносите'), d: c('landing.step2_desc', en ? 'Move your top chip group to another stand. The key tactical move that decides games.' : 'Переместите верхнюю группу фишек. Ключевой тактический приём, решающий партии.') },
-            { n: '03', t: c('landing.step3_title', en ? 'Close' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 chips a stand closes. Top color = owner. First to close 6 of 10 wins!' : 'При 11 фишках стойка закрывается. Цвет сверху = владелец. Закройте 6 из 10!') },
+            { n: '01', t: c('landing.step1_title', en ? 'Place' : 'Ставьте'), d: c('landing.step1_desc', en ? 'Up to 3 blocks on max 2 stands per turn. First move — 1 block.' : 'До 3 блоков на 2 стойки за ход. Первый ход — 1 блок.') },
+            { n: '02', t: c('landing.step2_title', en ? 'Transfer' : 'Переносите'), d: c('landing.step2_desc', en ? 'Move the top group of blocks. The key tactical move that decides games.' : 'Переместите верхнюю группу блоков. Ключевой тактический приём, решающий партии.') },
+            { n: '03', t: c('landing.step3_title', en ? 'Complete' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 blocks the highrise is complete. Top color = owner. Complete 6 of 10!' : 'При 11 блоках высотка построена. Цвет сверху = владелец. Закройте 6 из 10!') },
           ].map((s, i) => (
             <div key={i} className="l-step" style={{ '--i': i }}>
               <div className="l-step-n">{s.n}</div>
@@ -165,7 +165,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             {[
               { icon: 'trainer', c: 'var(--green)', t: en ? 'AI Game Review' : 'AI Анализ', d: en ? 'Post-game analysis: every move rated excellent→blunder. Accuracy %.' : 'Анализ каждого хода: отличный → грубая ошибка. Accuracy %.' },
               { icon: 'chart', c: 'var(--accent)', t: en ? 'Puzzle Rush' : 'Puzzle Rush', d: en ? '3 min, max puzzles. +10/-15 sec. Leaderboard.' : '3 мин тайм-аттак. +10/-15 сек. Рейтинг.' },
-              { icon: 'theme', c: 'var(--gold)', t: en ? '11 themes + 17 skins' : '11 тем + 17 скинов', d: en ? 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow chips.' : 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow фишки.' },
+              { icon: 'theme', c: 'var(--gold)', t: en ? '11 themes + 17 skins' : '11 тем + 17 скинов', d: en ? 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow blocks.' : 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow блоки.' },
               { icon: 'rules', c: 'var(--p1)', t: en ? '5 lessons' : '5 уроков', d: en ? 'Interactive board: basics → transfer → golden → closing → strategy.' : 'Интерактивная доска: основы → перенос → золотая → закрытие → стратегия.' },
               { icon: 'chart', c: 'var(--p2)', t: en ? 'Live Arena' : 'Турниры', d: en ? 'Swiss system, 4 rounds, auto-pairing. XP for top 3.' : 'Swiss system, 4 раунда, auto-pairing. XP для топ-3.' },
               { icon: 'online', c: 'var(--purple)', t: en ? 'XP & Streaks' : 'XP и Стрики', d: en ? 'Daily missions, login streaks, 33 achievements, level-up.' : 'Ежедневные миссии, стрики, 33 ачивки, уровни.' },
@@ -223,8 +223,8 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             <div className="l-print-text">
               <strong>Print & Play</strong>
               <span>{en
-                ? 'Download a 3-page PDF with the game board, 110 chips to cut out, and full rules. Everything you need to play at the table.'
-                : 'Скачайте PDF на 3 страницы: игровое поле, 110 фишек для вырезания и полные правила. Всё для игры за столом.'}</span>
+                ? 'Download a 3-page PDF with the game board, 110 blocks to cut out, and full rules. Everything you need to play at the table.'
+                : 'Скачайте PDF на 3 страницы: игровое поле, 110 блоков для вырезания и полные правила. Всё для игры за столом.'}</span>
             </div>
             <div className="l-print-cta">
               <span>{en ? 'Download' : 'Скачать'}</span>
@@ -242,7 +242,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
             [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5-15 minutes depending on skill. Blitz mode available.' : '5-15 минут. Есть блиц-режим.'],
             [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при 5:5. Контроль — ключевая стратегия.'],
             [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes — PWA. Add to home screen, play offline.' : 'Да — PWA. Добавьте на экран, играйте оффлайн.'],
-            [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first chip, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
+            [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first block, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
             [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '50:50 balance. Confirmed across 239K games.' : '50:50 баланс. Проверено на 239K партиях.'],
             [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely. No ads, no paywalls. Open source.' : 'Полностью. Без рекламы. Open source.'],
           ].map(([q, a], i) => (

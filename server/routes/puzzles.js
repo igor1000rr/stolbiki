@@ -9,7 +9,7 @@ const router = Router()
 // ═══ Puzzle Templates + Generator ═══
 const PUZZLE_TEMPLATES = [
   // ─── Лёгкие (1 ход) — перенос закрывает стойку ───
-  { difficulty: 1, maxMoves: 1, title_ru: 'Закрой стойку', title_en: 'Close a stand',
+  { difficulty: 1, maxMoves: 1, title_ru: 'Достройте высотку', title_en: 'Complete a highrise',
     gen: (rng) => {
       const s = Math.floor(rng() * 9) + 1
       const d = (s + 3) % 10 || 1
@@ -18,7 +18,7 @@ const PUZZLE_TEMPLATES = [
       stands[s] = [...Array(2).fill(1), ...Array(6 + Math.floor(rng() * 2)).fill(0)]
       stands[d] = Array(11 - stands[s].length).fill(0)
       return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 1 },
-        desc_ru: `Закройте стойку ${s} переносом`, desc_en: `Close stand ${s} by transfer` }
+        desc_ru: `Достройте высотку ${s} переносом`, desc_en: `Complete highrise ${s} by transfer` }
     }
   },
   { difficulty: 1, maxMoves: 1, title_ru: 'Золотая', title_en: 'Golden',
@@ -29,11 +29,11 @@ const PUZZLE_TEMPLATES = [
       const src = 1 + Math.floor(rng() * 9)
       stands[src] = Array(3).fill(0)
       return { stands, goal: { closedByPlayer: { 0: 0 }, maxMoves: 1 },
-        desc_ru: 'Закройте золотую стойку ★', desc_en: 'Close golden stand ★' }
+        desc_ru: 'Достройте золотую высотку ★', desc_en: 'Complete golden highrise ★' }
     }
   },
   // ─── Средние (2 хода) ───
-  { difficulty: 2, maxMoves: 2, title_ru: 'Двойное закрытие', title_en: 'Double close',
+  { difficulty: 2, maxMoves: 2, title_ru: 'Двойная достройка', title_en: 'Double complete',
     gen: (rng) => {
       const a = 1 + Math.floor(rng() * 4)
       const b = 5 + Math.floor(rng() * 4)
@@ -49,7 +49,7 @@ const PUZZLE_TEMPLATES = [
       stands[srcs[0]] = Array(3).fill(0)
       stands[srcs[1]] = Array(3).fill(0)
       return { stands, goal: { minClosed: 2, maxMoves: 2 },
-        desc_ru: 'Закройте 2 стойки за 2 хода', desc_en: 'Close 2 stands in 2 moves' }
+        desc_ru: 'Достройте 2 высотки за 2 хода', desc_en: 'Complete 2 highrises in 2 moves' }
     }
   },
   { difficulty: 2, maxMoves: 2, title_ru: 'Захват', title_en: 'Capture',
@@ -61,7 +61,7 @@ const PUZZLE_TEMPLATES = [
       stands[target] = [...Array(5).fill(1), ...Array(3).fill(0)]
       stands[src] = Array(3 + Math.floor(rng() * 2)).fill(0)
       return { stands, goal: { closedByPlayer: { [target]: 0 }, maxMoves: 2 },
-        desc_ru: `Перехватите стойку ${target}`, desc_en: `Capture stand ${target}` }
+        desc_ru: `Перехватите высотку ${target}`, desc_en: `Capture highrise ${target}` }
     }
   },
   // ─── Сложные (3 хода) ───
@@ -83,7 +83,7 @@ const PUZZLE_TEMPLATES = [
       }
       srcs.forEach(s => { stands[s] = Array(3).fill(0) })
       return { stands, goal: { minClosed: 3, maxMoves: 3 },
-        desc_ru: 'Закройте 3 стойки за 3 хода', desc_en: 'Close 3 stands in 3 moves' }
+        desc_ru: 'Достройте 3 высотки за 3 хода', desc_en: 'Complete 3 highrises in 3 moves' }
     }
   },
   { difficulty: 3, maxMoves: 3, title_ru: 'Цепная реакция', title_en: 'Chain reaction',
@@ -97,7 +97,7 @@ const PUZZLE_TEMPLATES = [
       const src = (a + 2) % 10 === b ? (a + 3) % 10 : (a + 2) % 10
       stands[src] = Array(4).fill(0)
       return { stands, goal: { minClosed: 2, maxMoves: 3 },
-        desc_ru: 'Разберите позицию и закройте 2 стойки', desc_en: 'Untangle and close 2 stands' }
+        desc_ru: 'Разберите позицию и достройте 2 высотки', desc_en: 'Untangle and complete 2 highrises' }
     }
   },
   // ─── Дополнительные шаблоны ───
@@ -109,10 +109,10 @@ const PUZZLE_TEMPLATES = [
       const src = (s + 1 + Math.floor(rng() * 4)) % 10
       stands[src] = Array(3).fill(0)
       return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 1 },
-        desc_ru: `Закройте стойку ${s} одним переносом`, desc_en: `Close stand ${s} in one transfer` }
+        desc_ru: `Достройте высотку ${s} одним переносом`, desc_en: `Complete highrise ${s} in one transfer` }
     }
   },
-  { difficulty: 2, maxMoves: 2, title_ru: 'Золото и стойка', title_en: 'Gold and stand',
+  { difficulty: 2, maxMoves: 2, title_ru: 'Золото и высотка', title_en: 'Gold and highrise',
     gen: (rng) => {
       const s = 1 + Math.floor(rng() * 9)
       const stands = Array.from({length:10}, () => [])
@@ -123,7 +123,7 @@ const PUZZLE_TEMPLATES = [
       stands[src1] = Array(3).fill(0)
       stands[src2] = Array(3).fill(0)
       return { stands, goal: { minClosed: 2, maxMoves: 2 },
-        desc_ru: 'Закройте золотую ★ и ещё одну стойку', desc_en: 'Close golden ★ and one more stand' }
+        desc_ru: 'Достройте золотую ★ и ещё одну высотку', desc_en: 'Complete golden ★ and one more highrise' }
     }
   },
   { difficulty: 2, maxMoves: 2, title_ru: 'Перехват врага', title_en: 'Enemy takeover',
@@ -134,7 +134,7 @@ const PUZZLE_TEMPLATES = [
       const src = (s + 2 + Math.floor(rng() * 3)) % 10
       stands[src] = Array(3).fill(0)
       return { stands, goal: { closedByPlayer: { [s]: 0 }, maxMoves: 2 },
-        desc_ru: `Перехватите стойку ${s} у противника`, desc_en: `Take over stand ${s} from opponent` }
+        desc_ru: `Перехватите высотку ${s} у противника`, desc_en: `Take over highrise ${s} from opponent` }
     }
   },
   { difficulty: 3, maxMoves: 3, title_ru: 'Золотой удар', title_en: 'Golden strike',
@@ -149,7 +149,7 @@ const PUZZLE_TEMPLATES = [
       stands[srcs[0]] = Array(3).fill(0)
       stands[srcs[1]] = Array(3).fill(0)
       return { stands, goal: { closedByPlayer: { 0: 0 }, minClosed: 2, maxMoves: 3 },
-        desc_ru: 'Закройте золотую ★ и перехватите стойку', desc_en: 'Close golden ★ and capture a stand' }
+        desc_ru: 'Достройте золотую ★ и перехватите высотку', desc_en: 'Complete golden ★ and capture a highrise' }
     }
   },
 ]

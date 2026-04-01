@@ -672,7 +672,7 @@ export default function Game() {
       if (ts > 0) {
         setSelected(i)
         setPhase('transfer-dst')
-        setInfo(lang === 'en' ? `Where to transfer chips from stand ${SL(i)}?` : `Куда перенести фишки со стойки ${SL(i)}?`)
+        setInfo(lang === 'en' ? `Where to transfer blocks from stand ${SL(i)}?` : `Куда перенести блоки со стойки ${SL(i)}?`)
       }
       return
     }
@@ -719,7 +719,7 @@ export default function Game() {
           setPlacement(newPlacement)
           sp()
           const newTotal = currentTotal + 1
-          setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'chips' : 'фишек'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
+          setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'blocks' : 'блоков'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
         } else {
           // Достигнут макс — убираем с этой стойки
           const newPlacement = { ...placement }
@@ -739,7 +739,7 @@ export default function Game() {
       setPlacement(newPlacement)
       sp()
       const newTotal = currentTotal + 1
-      setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'chips' : 'фишек'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
+      setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'blocks' : 'блоков'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
     }
   }
 
@@ -811,7 +811,7 @@ export default function Game() {
     } else if (mode === 'pvp') {
       setPhase('place')
       const name = ns.currentPlayer === 0 ? t('game.blue') : t('game.red')
-      setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 chip' : 'поставьте 1 фишку'}` : `${name}: ${lang === 'en' ? 'place chips' : 'расставьте фишки'}`)
+      setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 chip' : 'поставьте 1 блок'}` : `${name}: ${lang === 'en' ? 'place chips' : 'расставьте блоки'}`)
     } else {
       setLocked(true)
       evaluatePosition(ns)
@@ -889,15 +889,15 @@ export default function Game() {
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
               {lang === 'en' ? <>
-                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Click stands</b> to place chips (up to 3 on 2 stands)</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Click stands</b> to place blocks (up to 3 on 2 stands)</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — move top group from one stand to another</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Closing</b> — stand with 11 chips closes. Top group color = owner</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Completing</b> — stand with 11 blocks is complete. Top group color = owner</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
                 <p><b style={{ color: 'var(--green)' }}></b> Close <b>6+ stands</b> out of 10 to win</p>
               </> : <>
-                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить фишки (до 3 на 2 стойки)</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить блоки (до 3 на 2 стойки)</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Закрытие</b> — стойка с 11 фишками закрывается. Цвет верхней группы = владелец</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Достройка</b> — высотка с 11 блоками достроена. Цвет верхней группы = владелец</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
                 <p><b style={{ color: 'var(--green)' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
               </>}
@@ -1240,7 +1240,7 @@ export default function Game() {
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
         <div className="place-controls">
           <span className="place-status">
-            {totalPlaced}/{maxTotal} {lang === 'en' ? 'chips' : 'фишек'} · {Object.keys(placement).length}/{MAX_PLACE_STANDS} {lang === 'en' ? 'stands' : 'стоек'}
+            {totalPlaced}/{maxTotal} {lang === 'en' ? 'blocks' : 'блоков'} · {Object.keys(placement).length}/{MAX_PLACE_STANDS} {lang === 'en' ? 'stands' : 'стоек'}
             {transfer && ` · ${lang === 'en' ? 'transfer' : 'перенос'} ✓`}
           </span>
         </div>
@@ -1344,9 +1344,12 @@ export default function Game() {
             ✓ {SL(transfer[0])} → {SL(transfer[1])}
           </span>
         )}
+        {isMyTurn && transfer && phase === 'place' && (
+          <button className="btn" onClick={cancelTransfer}>{t('game.cancelTransfer')}</button>
+        )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
           <button className="btn" onClick={() => {
-            // Убрать 1 фишку с последней стойки
+            // Убрать 1 блок с последней стойки
             const keys = Object.keys(placement).map(Number)
             if (keys.length === 0) return
             const last = keys[keys.length - 1]
@@ -1354,7 +1357,7 @@ export default function Game() {
             if (newP[last] <= 1) delete newP[last]
             else newP[last]--
             setPlacement(newP)
-          }} aria-label="Undo last chip">↩</button>
+          }} aria-label="Undo last block">↩</button>
         )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
           <button className="btn" onClick={() => setPlacement({})}>{t('game.reset')}</button>

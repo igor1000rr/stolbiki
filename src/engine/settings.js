@@ -10,7 +10,7 @@ const DEFAULTS = {
   boardFlip: false,
   colorblind: false,
   reducedMotion: false,
-  largeText: false,
+  largeText: true,
   highContrast: false,
   showCoords: true,
   showFillBar: true,

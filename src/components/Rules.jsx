@@ -40,7 +40,7 @@ function TransferSchema({ lang }) {
         {[0,1,2].map(i => <rect key={`g${i}`} x={248} y={91 - i*14} width={34} height={11} rx={4} fill="var(--p2)" opacity={0.5} strokeDasharray="3,2" stroke="var(--p2)" />)}
       </svg>
       <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>
-        {en ? '3 red chips transfer from A to B as a group' : '3 красные фишки переносятся со стойки A на B целиком'}
+        {en ? '3 red blocks transfer from A to B as a group' : '3 красных блока переносятся со стойки A на B целиком'}
       </div>
     </div>
   )
@@ -52,7 +52,7 @@ function CloseSchema({ lang }) {
   return (
     <div style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid var(--surface3)', marginTop: 12 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', marginBottom: 10 }}>
-        {en ? 'Closing example' : 'Пример закрытия'}
+        {en ? 'Completion example' : 'Пример достройки'}
       </div>
       <svg viewBox="0 0 360 155" style={{ width: '100%', maxWidth: 400, display: 'block', margin: '0 auto' }}>
         {/* Левая стойка — До (8 фишек: 5 синих + 3 красных) */}
@@ -68,7 +68,7 @@ function CloseSchema({ lang }) {
 
         {/* Правая стойка — Закрыта (11 фишек) */}
         <rect x={210} y={15} width={50} height={112} rx={6} fill="rgba(61,214,140,0.08)" stroke="var(--green)" strokeWidth={1.5} />
-        <text x={235} y={10} textAnchor="middle" fontSize={10} fill="var(--green)">{en ? 'Closed' : 'Закрыта'}</text>
+        <text x={235} y={10} textAnchor="middle" fontSize={10} fill="var(--green)">{en ? 'Complete' : 'Достроена'}</text>
         {Array.from({length: 11}).map((_, i) => <rect key={`f${i}`} x={218} y={113 - i*9} width={34} height={6} rx={2} fill={i >= 8 ? 'var(--p2)' : 'var(--p1)'} opacity={0.5} />)}
         <text x={235} y={145} textAnchor="middle" fontSize={9} fill="var(--green)">11/11</text>
 
@@ -89,13 +89,13 @@ export default function Rules() {
 
       <Section title={en ? 'Game Rules "Snatch Highrise"' : 'Правила игры «Перехват высотки»'}>
         <Bullet>{en ? 'Strategic board game for two players' : 'Стратегическая настольная игра для двух игроков'}</Bullet>
-        <Bullet>{en ? 'Players compete for control of stands' : 'Игроки соревнуются за контроль стоек'}</Bullet>
-        <Bullet>{en ? 'The player who closed more stands wins' : 'Побеждает игрок, который закрыл больше стоек к концу игры'}</Bullet>
+        <Bullet>{en ? 'The player who controls more highrises wins' : 'Побеждает игрок, который контролирует больше высоток к концу игры'}</Bullet>
+        <Bullet>{en ? 'The player who controls more highrises wins' : 'Побеждает игрок, который контролирует больше высоток к концу игры'}</Bullet>
       </Section>
 
       <Section title={en ? 'Setup' : 'Подготовка'}>
         <Bullet>{en ? '10 stands on the table: 1 golden (★) and 9 regular' : '10 стоек на столе: 1 золотая (★) и 9 обычных'}</Bullet>
-        <Bullet>{en ? 'First move — only 1 chip is placed, then the second player can swap colors' : 'Первый ход — ставится 1 фишка, второй игрок может поменяться цветами'}</Bullet>
+        <Bullet>{en ? 'First move — 1 block is placed, second player can swap colors' : 'Первый ход — ставится 1 блок, второй игрок может поменяться цветами'}</Bullet>
       </Section>
 
       <Section title={en ? 'Turn' : 'Ход'}>
@@ -105,42 +105,42 @@ export default function Rules() {
 
         <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(74,158,255,0.04)', border: '1px solid rgba(74,158,255,0.12)', marginBottom: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--p1)', marginBottom: 8 }}>
-            {en ? '1. Transfer' : '1. Перемещение фишек'}
+            {en ? '1. Transfer' : '1. Перемещение блоков'}
           </div>
           <Bullet>{en ? 'Can make one transfer or skip this action' : 'Можно сделать один перенос или пропустить действие'}</Bullet>
-          <Bullet>{en ? 'The top group of same-color chips transfers whole — cannot split' : 'Переносится верхняя группа фишек одного цвета — группа переносится целиком, делить её нельзя'}</Bullet>
-          <Bullet>{en ? 'Can transfer your chips and opponent\'s chips' : 'Можно переносить свои фишки и фишки соперника'}</Bullet>
-          <Bullet>{en ? 'Target: empty stand or stand with same color on top' : 'Куда: на пустую стойку или на фишки такого же цвета сверху'}</Bullet>
-          <Bullet>{en ? 'Max 11 chips on a stand, excess removed from the game' : 'На стойке не может быть больше 11 фишек, остальные убираются из игры'}</Bullet>
+          <Bullet>{en ? 'The top group of same-color blocks transfers whole — cannot split' : 'Переносится верхняя группа блоков одного цвета — группа переносится целиком, делить её нельзя'}</Bullet>
+          <Bullet>{en ? "Can transfer your blocks and opponent's blocks" : 'Можно переносить свои блоки и блоки соперника'}</Bullet>
+          <Bullet>{en ? 'Target: empty stand or stand with same color on top' : 'Куда: на пустую стойку или на блоки такого же цвета сверху'}</Bullet>
+          <Bullet>{en ? 'Max 11 blocks per stand, excess removed from the game' : 'На стойке не может быть больше 11 блоков, остальные убираются из игры'}</Bullet>
         </div>
 
         <TransferSchema lang={lang} />
 
         <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(240,96,64,0.04)', border: '1px solid rgba(240,96,64,0.12)', marginTop: 20, marginBottom: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
-            {en ? '2. Placement' : '2. Установка фишек'}
+            {en ? '2. Placement' : '2. Установка блоков'}
           </div>
-          <Bullet>{en ? '1 to 3 chips per turn' : 'От 1 до 3 фишек за ход'}</Bullet>
+          <Bullet>{en ? '1 to 3 blocks per turn' : 'От 1 до 3 блоков за ход'}</Bullet>
           <Bullet>{en ? 'On max 2 stands' : 'Максимум на 2 стойки'}</Bullet>
         </div>
       </Section>
 
-      <Section title={en ? 'Closing Stands' : 'Закрытие стойки'}>
-        <Bullet>{en ? 'A stand can only be closed by transferring a group of your color chips' : 'Стойка закрывается только переносом группы фишек своего цвета'}</Bullet>
-        <Bullet>{en ? 'Exception: when only 2 stands remain open, you can close by placement' : 'Установкой можно закрыть, когда осталось 2 стойки'}</Bullet>
-        <Bullet>{en ? 'If a stand has 11 chips, it is blocked: no placement or transfer allowed' : 'Если на стойке 11 фишек, она блокируется: ставить и переносить нельзя'}</Bullet>
-        <Bullet>{en ? 'Only one stand can be closed per turn' : 'За ход можно закрыть только одну стойку'}</Bullet>
-        <Bullet color="var(--green)">{en ? 'Owner = player whose chip is on top' : 'Стойка принадлежит игроку, чья фишка установлена на вершине'}</Bullet>
+      <Section title={en ? 'Completing Highrises' : 'Завершение строительства'}>
+        <Bullet>{en ? 'A highrise can only be completed by transferring a group of your color blocks' : 'Высотку можно достроить только переносом группы блоков своего цвета'}</Bullet>
+        <Bullet>{en ? 'When only 2 stands remain, you can complete by placement' : 'Установкой можно достроить, когда осталось 2 стойки'}</Bullet>
+        <Bullet>{en ? 'If a stand has 11 blocks, it is complete: no more blocks allowed' : 'Если на стойке 11 блоков, высотка достроена: ставить и переносить блоки нельзя'}</Bullet>
+        <Bullet>{en ? 'Only one highrise can be completed per turn' : 'За ход можно достроить только одну высотку'}</Bullet>
+        <Bullet color="var(--green)">{en ? 'Owner = player whose block is on top' : 'Высотка принадлежит игроку, чей блок установлен на вершине'}</Bullet>
         <CloseSchema lang={lang} />
       </Section>
 
       <Section title={en ? 'Victory' : 'Победа'}>
-        <Bullet>{en ? 'The player who closed more stands wins' : 'Побеждает игрок, закрывший больше стоек'}</Bullet>
-        <Bullet color="var(--gold)">{en ? 'At 5:5 the golden stand (★) owner wins' : 'При счёте 5:5 побеждает владелец золотой стойки (★)'}</Bullet>
+        <Bullet>{en ? 'The player who controls more highrises wins' : 'Побеждает игрок, достроивший больше высоток'}</Bullet>
+        <Bullet color="var(--gold)">{en ? 'At 5:5 the golden highrise (★) owner wins' : 'При счёте 5:5 побеждает владелец золотой высотки (★)'}</Bullet>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           <div style={{ textAlign: 'center', padding: 16, background: 'rgba(61,214,140,0.06)', borderRadius: 12, border: '1px solid rgba(61,214,140,0.15)' }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>6+</div>
-            <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>{en ? 'stands = victory' : 'стоек = победа'}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>{en ? 'highrises = victory' : 'высоток = победа'}</div>
           </div>
           <div style={{ textAlign: 'center', padding: 16, background: 'rgba(255,190,48,0.06)', borderRadius: 12, border: '1px solid rgba(255,190,48,0.15)' }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>5:5</div>

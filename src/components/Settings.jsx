@@ -82,7 +82,7 @@ export default function Settings() {
           ]} />
         </SettingRow>
 
-        <SettingRow label={en ? 'Auto-confirm' : 'Автоподтверждение'} desc={en ? 'Submit move when max chips placed' : 'Ход подтверждается автоматически при макс фишках'}>
+        <SettingRow label={en ? 'Auto-confirm' : 'Автоподтверждение'} desc={en ? 'Submit move when max blocks placed' : 'Ход подтверждается автоматически при макс блоках'}>
           <Toggle checked={s.autoConfirm} onChange={v => update('autoConfirm', v)} />
         </SettingRow>
 
@@ -90,7 +90,7 @@ export default function Settings() {
           <Toggle checked={s.boardFlip} onChange={v => update('boardFlip', v)} />
         </SettingRow>
 
-        <SettingRow label={en ? 'Confirm before close' : 'Подтверждение закрытия'} desc={en ? 'Ask before closing a stand' : 'Спрашивать перед закрытием стойки'}>
+        <SettingRow label={en ? 'Confirm before complete' : 'Подтверждение достройки'} desc={en ? 'Ask before completing a highrise' : 'Спрашивать перед достройкой высотки'}>
           <Toggle checked={s.confirmClose} onChange={v => update('confirmClose', v)} />
         </SettingRow>
       </section>
@@ -106,7 +106,7 @@ export default function Settings() {
           <button className="btn" onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-skinshop'))}
             style={{ fontSize: 12, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
-            {en ? `Chips: ${s.chipStyle} · Stands: ${s.standStyle}` : `Фишки: ${s.chipStyle} · Стойки: ${s.standStyle}`}
+            {en ? `Blocks: ${s.chipStyle} · Stands: ${s.standStyle}` : `Блоки: ${s.chipStyle} · Стойки: ${s.standStyle}`}
           </button>
         </SettingRow>
 
@@ -127,7 +127,7 @@ export default function Settings() {
           ]} />
         </SettingRow>
 
-        <SettingRow label={en ? 'Show chip count' : 'Счётчик фишек'}>
+        <SettingRow label={en ? 'Show block count' : 'Счётчик блоков'}>
           <Toggle checked={s.showChipCount} onChange={v => update('showChipCount', v)} />
         </SettingRow>
 
@@ -160,7 +160,7 @@ export default function Settings() {
           {en ? 'Accessibility' : 'Доступность'}
         </h3>
 
-        <SettingRow label={en ? 'Colorblind mode' : 'Режим для дальтоников'} desc={en ? 'Patterns on chips instead of colors only' : 'Паттерны на фишках вместо только цвета'}>
+        <SettingRow label={en ? 'Colorblind mode' : 'Режим для дальтоников'} desc={en ? 'Patterns on blocks instead of colors only' : 'Паттерны на блоках вместо только цвета'}>
           <Toggle checked={s.colorblind} onChange={v => update('colorblind', v)} />
         </SettingRow>
 
