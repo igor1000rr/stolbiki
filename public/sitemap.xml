@@ -5,23 +5,10 @@
   <url><loc>https://snatch-highrise.com/#online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://snatch-highrise.com/#puzzles</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://snatch-highrise.com/#rules</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://snatch-highrise.com/#profile</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://snatch-highrise.com/#blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://snatch-highrise.com/#openings</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://snatch-highrise.com/#changelog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://snatch-highrise.com/#settings</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://snatch-highrise.com/#privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/launch</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/ai-v2</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/puzzles-launch</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/update-march-2026</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/online-v2</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/design-v3</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/admin-panel</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v3-3-update</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v3-4-ux</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v37-mobile-app</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/roadmap-2026</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/print-and-play.pdf</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v35-gpu</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v38-audit</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v39-retention</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/#blog/v40-platform</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>

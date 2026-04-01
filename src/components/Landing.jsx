@@ -128,10 +128,10 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
               : 'Нейросеть обучена через self-play на GPU. Три уровня сложности. AI учится на каждой партии с самим собой.'}</p>
             <div className="l-ai-metrics">
               {[
-                { v: '1146', l: en ? 'iterations' : 'итераций' },
-                { v: '0.098', l: 'loss' },
-                { v: '97%', l: en ? 'win rate' : 'винрейт' },
-                { v: '3', l: en ? 'levels' : 'уровня' },
+                { v: '1243', l: en ? 'iterations' : 'итераций' },
+                { v: '0.169', l: 'loss' },
+                { v: '98%', l: en ? 'win rate' : 'винрейт' },
+                { v: '4', l: en ? 'levels' : 'уровня' },
               ].map((m, i) => (
                 <div key={i} className="l-ai-metric">
                   <span className="l-ai-mv">{m.v}</span>
@@ -163,11 +163,12 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           {/* Three extras — plain text rows */}
           <div className="l-extras">
             {[
-              { icon: 'trainer', c: 'var(--green)', t: en ? 'AI Game Review' : 'AI Анализ', d: en ? 'Post-game analysis: every move rated excellent→blunder.' : 'Анализ каждого хода: отличный → грубая ошибка.' },
-              { icon: 'chart', c: 'var(--accent)', t: en ? 'Puzzle Rush' : 'Puzzle Rush', d: en ? '3 min, max puzzles. +10/-15 sec. Leaderboard.' : '3 мин, максимум головоломок. +10/-15 сек. Рейтинг.' },
-              { icon: 'theme', c: 'var(--gold)', t: en ? '9 themes + 17 skins' : '9 тем + 17 скинов', d: en ? 'Ocean, Sunset, Forest, Royal + Glass, Metal, Pixel chips.' : 'Ocean, Sunset, Forest, Royal + Glass, Metal, Pixel фишки.' },
-              { icon: 'rules', c: 'var(--p1)', t: en ? '5 lessons' : '5 уроков', d: en ? 'Interactive board lessons: basics to strategy.' : 'Интерактивные уроки: от основ до стратегии.' },
-              { icon: 'chart', c: 'var(--p2)', t: en ? 'Live Arena' : 'Турниры', d: en ? 'Swiss system tournaments. XP for top 3.' : 'Турниры Swiss system. XP для топ-3.' },
+              { icon: 'trainer', c: 'var(--green)', t: en ? 'AI Game Review' : 'AI Анализ', d: en ? 'Post-game analysis: every move rated excellent→blunder. Accuracy %.' : 'Анализ каждого хода: отличный → грубая ошибка. Accuracy %.' },
+              { icon: 'chart', c: 'var(--accent)', t: en ? 'Puzzle Rush' : 'Puzzle Rush', d: en ? '3 min, max puzzles. +10/-15 sec. Leaderboard.' : '3 мин тайм-аттак. +10/-15 сек. Рейтинг.' },
+              { icon: 'theme', c: 'var(--gold)', t: en ? '11 themes + 17 skins' : '11 тем + 17 скинов', d: en ? 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow chips.' : 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow фишки.' },
+              { icon: 'rules', c: 'var(--p1)', t: en ? '5 lessons' : '5 уроков', d: en ? 'Interactive board: basics → transfer → golden → closing → strategy.' : 'Интерактивная доска: основы → перенос → золотая → закрытие → стратегия.' },
+              { icon: 'chart', c: 'var(--p2)', t: en ? 'Live Arena' : 'Турниры', d: en ? 'Swiss system, 4 rounds, auto-pairing. XP for top 3.' : 'Swiss system, 4 раунда, auto-pairing. XP для топ-3.' },
+              { icon: 'online', c: 'var(--purple)', t: en ? 'XP & Streaks' : 'XP и Стрики', d: en ? 'Daily missions, login streaks, 33 achievements, level-up.' : 'Ежедневные миссии, стрики, 33 ачивки, уровни.' },
             ].map((f, i) => (
               <div key={i} className="l-extra" style={{ '--i': i }}>
                 <div className="l-extra-dot" style={{ background: f.c, boxShadow: f.c + '40 0 0 6px' }} />
