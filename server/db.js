@@ -643,10 +643,14 @@ const CROSS_TABLE_ACHIEVEMENTS = [
   { id: 'rush_15', check: userId => { const r = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(userId); return (r?.best || 0) >= 15 } },
   { id: 'arena_join', check: userId => { const r = db.prepare('SELECT COUNT(*) as c FROM arena_participants WHERE user_id=?').get(userId); return (r?.c || 0) >= 1 } },
   { id: 'arena_top3', check: userId => {
-    const r = db.prepare(`SELECT COUNT(*) as c FROM (
-      SELECT user_id, RANK() OVER (PARTITION BY tournament_id ORDER BY score DESC) as rank FROM arena_participants
-    ) WHERE user_id=? AND rank <= 3`).get(userId)
-    return (r?.c || 0) >= 1
+    try {
+      const ts = db.prepare('SELECT DISTINCT tournament_id FROM arena_participants WHERE user_id=?').all(userId)
+      for (const t of ts) {
+        const top = db.prepare('SELECT user_id FROM arena_participants WHERE tournament_id=? ORDER BY score DESC LIMIT 3').all(t.tournament_id)
+        if (top.some(p => p.user_id === userId)) return true
+      }
+    } catch {}
+    return false
   } },
 ]
 

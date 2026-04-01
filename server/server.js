@@ -125,14 +125,18 @@ app.get('/api/profile', auth, (req, res) => {
   const rushBest = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(req.user.id)
   // Arena stats
   const arenaStats = db.prepare('SELECT COUNT(*) as tournaments, SUM(wins) as wins, SUM(losses) as losses FROM arena_participants WHERE user_id=?').get(req.user.id)
-  const arenaTop3 = db.prepare(`SELECT COUNT(*) as c FROM (
-    SELECT tournament_id, user_id, RANK() OVER (PARTITION BY tournament_id ORDER BY score DESC) as rank
-    FROM arena_participants
-  ) WHERE user_id=? AND rank <= 3`).get(req.user.id)
+  let arenaTop3Count = 0
+  try {
+    const tournaments = db.prepare('SELECT DISTINCT tournament_id FROM arena_participants WHERE user_id=?').all(req.user.id)
+    for (const t of tournaments) {
+      const top = db.prepare('SELECT user_id FROM arena_participants WHERE tournament_id=? ORDER BY score DESC LIMIT 3').all(t.tournament_id)
+      if (top.some(p => p.user_id === req.user.id)) arenaTop3Count++
+    }
+  } catch {}
   res.json({
     ...formatUser(user), achievements,
     rushBest: rushBest?.best || 0,
-    arenaStats: { tournaments: arenaStats?.tournaments || 0, wins: arenaStats?.wins || 0, losses: arenaStats?.losses || 0, top3: arenaTop3?.c || 0 },
+    arenaStats: { tournaments: arenaStats?.tournaments || 0, wins: arenaStats?.wins || 0, losses: arenaStats?.losses || 0, top3: arenaTop3Count },
   })
 })
 
