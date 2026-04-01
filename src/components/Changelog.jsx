@@ -8,9 +8,10 @@ const VERSIONS = [
   {
     version: '4.2',
     date: '2026-04-02',
-    title_ru: 'Терминология, симулятор, онлайн-скины, баги',
-    title_en: 'Terminology, simulator, online skins, bugfixes',
+    title_ru: 'Маскот Снуппи, терминология, симулятор, онлайн-скины',
+    title_en: 'Mascot Snoopy, terminology, simulator, online skins',
     changes_ru: [
+      { type: 'new', text: 'Маскот Снуппи — енот-строитель на 10 страницах: лендинг, результат партии, головоломки, уроки, правила, профиль, onboarding. 6 поз, CSS-анимации' },
       { type: 'new', text: 'Терминология: фишка → блок, закрытие → достройка, стойка с 11 блоками = высотка. Обновлены все тексты: i18n, правила, уроки, лендинг, настройки, головоломки' },
       { type: 'new', text: 'Симулятор: 2 новых параметра — «блоков за ход» (1-6) и «стоек за ход» (1-5). Исследуйте альтернативные варианты правил' },
       { type: 'new', text: 'Онлайн: скины передаются оппоненту через WebSocket. Бейдж с выбранными скинами виден во время игры' },
@@ -19,6 +20,7 @@ const VERSIONS = [
       { type: 'fix', text: 'Архитектура: server.js разбит на 9 route-модулей (1646 → 177 строк), CORS закрыт, global error handler, 41 тест на движок' },
     ],
     changes_en: [
+      { type: 'new', text: 'Mascot Snoopy — raccoon builder on 10 pages: landing, game result, puzzles, lessons, rules, profile, onboarding. 6 poses, CSS animations' },
       { type: 'new', text: 'Terminology: chip → block, closing → completing, stand with 11 blocks = highrise. All texts updated: i18n, rules, lessons, landing, settings, puzzles' },
       { type: 'new', text: 'Simulator: 2 new parameters — "blocks per turn" (1-6) and "stands per turn" (1-5). Explore alternative rule variants' },
       { type: 'new', text: 'Online: skins transmitted to opponent via WebSocket. Skin badge visible during games' },
