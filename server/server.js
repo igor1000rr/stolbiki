@@ -7,7 +7,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import { db, JWT_SECRET, PORT } from './db.js'
-import { rateLimit } from './middleware.js'
+import { rateLimit, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
 
 // ═══ Route imports ═══
@@ -110,7 +110,6 @@ app.get('/api/content', (req, res) => {
 })
 
 // ═══ Daily Challenge (отдельно от puzzles — другой prefix) ═══
-import { auth as dailyAuth } from './middleware.js'
 import { getDailySeed, seededRandom } from './helpers.js'
 
 app.get('/api/daily', (req, res) => {
@@ -133,7 +132,7 @@ app.get('/api/daily/leaderboard', (req, res) => {
   res.json({ seed, results: rows })
 })
 
-app.post('/api/daily/submit', dailyAuth, (req, res) => {
+app.post('/api/daily/submit', auth, (req, res) => {
   const { turns, duration, won } = req.body
   const seed = getDailySeed()
   const existing = db.prepare('SELECT id FROM daily_results WHERE user_id = ? AND seed = ?').get(req.user.id, seed)
