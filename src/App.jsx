@@ -164,6 +164,8 @@ export default function App() {
   useEffect(() => {
     if (tab === 'landing') history.replaceState(null, '', location.pathname + location.search)
     else history.replaceState(null, '', '#' + tab)
+    const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика' }
+    document.title = titles[tab] ? `${titles[tab]} — Snatch Highrise` : 'Snatch Highrise — Strategy Board Game'
   }, [tab])
 
   // Listen for back/forward

@@ -6,6 +6,34 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.1',
+    date: '2026-04-01',
+    title_ru: 'UI polish: темы, скины, профиль, формы',
+    title_en: 'UI polish: themes, skins, profile, forms',
+    changes_ru: [
+      { type: 'new', text: 'Sakura (вишнёвая) и Retro (CRT терминал) — 2 новые темы, итого 11' },
+      { type: 'new', text: 'Arctic переписана — тёмно-ледяная с голубым свечением (была светлой)' },
+      { type: 'new', text: 'Визуальный SkinShop: мини-доска для каждой темы, стопки фишек и стойки с текстурой' },
+      { type: 'fix', text: 'Каждая тема: 10–21 CSS правил (board glow, chip shadows, gradient стойки, neon text-shadow)' },
+      { type: 'fix', text: 'Профиль: градиентный header, level badge, XP bar с glow, SVG checkmarks в ачивках' },
+      { type: 'fix', text: 'Global: стилизованные input/select с focus-ring, кастомный scrollbar, ::selection' },
+      { type: 'fix', text: 'Все hardcoded цвета → CSS vars. Все темы полностью theme-aware' },
+      { type: 'fix', text: 'SVG иконки вместо emoji (puzzle sun, trophy, bolt, pin, checkmarks)' },
+      { type: 'fix', text: 'Блог: исправлены числа в старых постах, удалены дубли, v4.0 закреплён' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Sakura (cherry blossom) and Retro (CRT terminal) — 2 new themes, 11 total' },
+      { type: 'new', text: 'Arctic rewritten — dark icy with blue glow (was light)' },
+      { type: 'new', text: 'Visual SkinShop: mini-board per theme, chip stacks, textured stands' },
+      { type: 'fix', text: 'Each theme: 10–21 CSS rules (board glow, chip shadows, gradient stands, neon text-shadow)' },
+      { type: 'fix', text: 'Profile: gradient header, level badge, XP bar with glow, SVG checkmarks' },
+      { type: 'fix', text: 'Global: styled input/select with focus-ring, custom scrollbar, ::selection' },
+      { type: 'fix', text: 'All hardcoded colors → CSS vars. All themes fully theme-aware' },
+      { type: 'fix', text: 'SVG icons instead of emoji (puzzle sun, trophy, bolt, pin, checkmarks)' },
+      { type: 'fix', text: 'Blog: fixed numbers in old posts, removed duplicates, v4.0 pinned' },
+    ],
+  },
+  {
     version: '4.0',
     date: '2026-04-01',
     title_ru: 'AI анализ, Puzzle Rush, Arena, уроки, 11 тем, 8 скинов фишек, 9 скинов стоек',
