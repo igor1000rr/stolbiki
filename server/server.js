@@ -962,9 +962,6 @@ app.get('/api/puzzles/weekly', (req, res) => {
   res.json(puzzle)
 })
 
-// ─── Банк головоломок (50 штук, статичные) ───
-app.get('/api/puzzles/bank', (req, res) => {
-
 // ─── Puzzle Rush ───
 app.get('/api/puzzles/rush', (req, res) => {
   // 30 случайных головоломок с нарастающей сложностью
