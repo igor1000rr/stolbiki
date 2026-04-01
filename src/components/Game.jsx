@@ -13,6 +13,7 @@ import * as MP from '../engine/multiplayer'
 import * as API from '../engine/api'
 import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
+import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick } from '../engine/sounds'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
 const GameReview = lazy(() => import('./GameReview'))
@@ -26,6 +27,7 @@ const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 export default function Game() {
   const { t, lang } = useI18n()
   const en = lang === 'en'
+  const sw = soundWin, sl = soundLose, ss = soundSwap
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
   const [selected, setSelected] = useState(null)
@@ -668,6 +670,7 @@ export default function Game() {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
     if (i in gs.closed) return
+    soundClick()
 
     if (phase === 'transfer-select') {
       const [, ts] = gs.topGroup(i)
@@ -761,6 +764,13 @@ export default function Game() {
     }
 
     const ns = applyAction(gs, action)
+    // Звуки
+    if (action.transfer) soundTransfer()
+    else if (Object.keys(action.placement || {}).length) soundPlace()
+    const newClosed = Object.keys(ns.closed).length
+    const oldClosed = Object.keys(gs.closed).length
+    if (newClosed > oldClosed) soundClose()
+
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
     setPosEval(null)

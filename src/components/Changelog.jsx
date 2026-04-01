@@ -17,6 +17,7 @@ const VERSIONS = [
       { type: 'new', text: 'Error Boundary — при краше JS показывается Снуппи + кнопка перезагрузки вместо белого экрана' },
       { type: 'new', text: 'Лендинг: анимированные карточки тем 2×2, пульсирующие блоки, секция Download с App Store / Google Play' },
       { type: 'fix', text: 'Input sanitization — server/validate.js, защита от XSS' },
+      { type: 'fix', text: 'Звуковые эффекты подключены — клик, постановка, перенос, достройка, победа, поражение, swap (были написаны, но не вызывались!)' },
       { type: 'fix', text: 'Автобэкап БД каждые 6 часов (backup.sh, 28 слотов = 7 дней)' },
     ],
     changes_en: [
@@ -26,6 +27,7 @@ const VERSIONS = [
       { type: 'new', text: 'Error Boundary — JS crash shows Snoopy + reload button instead of white screen' },
       { type: 'new', text: 'Landing: animated theme cards 2×2, pulsing blocks, Download section with App Store / Google Play' },
       { type: 'fix', text: 'Input sanitization — server/validate.js, XSS protection' },
+      { type: 'fix', text: 'Sound effects hooked up — click, place, transfer, close, win, lose, swap (were written but never called!)' },
       { type: 'fix', text: 'Auto DB backup every 6 hours (backup.sh, 28 slots = 7 days)' },
     ],
   },
