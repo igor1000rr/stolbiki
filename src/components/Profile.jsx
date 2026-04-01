@@ -147,12 +147,16 @@ function AchievementCard({ ach, unlocked, profile, en }) {
   return (
     <div style={{
       padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
-      background: unlocked ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${unlocked ? 'rgba(61,214,140,0.2)' : 'var(--surface2)'}`,
-      opacity: unlocked ? 1 : 0.6,
+      background: unlocked ? `linear-gradient(135deg, ${ach.color}08, ${ach.color}04)` : 'rgba(255,255,255,0.02)',
+      border: `1px solid ${unlocked ? ach.color + '35' : 'var(--surface2)'}`,
+      opacity: unlocked ? 1 : 0.5,
+      transition: 'all 0.2s',
+      cursor: 'default',
     }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: unlocked ? `${ach.color}20` : 'var(--surface)', border: `2px solid ${unlocked ? ach.color : 'var(--surface3)'}`,
+      <div style={{ width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: unlocked ? `linear-gradient(135deg, ${ach.color}30, ${ach.color}15)` : 'var(--surface)',
+        border: `2px solid ${unlocked ? ach.color : 'var(--surface3)'}`,
+        boxShadow: unlocked ? `0 0 10px ${ach.color}20` : 'none',
         fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : 'var(--ink3)' }}>
         {name[0]}
       </div>
@@ -170,7 +174,7 @@ function AchievementCard({ ach, unlocked, profile, en }) {
           </div>
         )}
       </div>
-      {unlocked && <div style={{ marginLeft: 'auto', color: 'var(--green)', fontSize: 14 }}>✓</div>}
+      {unlocked && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ach.color} strokeWidth="2.5" style={{ marginLeft: 'auto', flexShrink: 0 }}><path d="M20 6L9 17l-5-5"/></svg>}
     </div>
   )
 }
@@ -588,25 +592,38 @@ export default function Profile({ viewUsername, onClose }) {
       {/* ─── Профиль ─── */}
       {tab === 'profile' && (
         <>
-          <div className="dash-card" style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 56, height: 56, position: 'relative', cursor: 'pointer' }}
-                onClick={() => setShowAvatarPicker(v => !v)}>
-                <AvatarCircle avatar={profile.avatar || 'default'} name={profile.name} size={56} />
-                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: '50%',
-                  background: 'var(--surface)', border: '2px solid var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="theme" size={10} color="var(--ink3)" />
+          <div className="dash-card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+            {/* Gradient header */}
+            <div style={{ padding: '20px 20px 16px', background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--p1) 8%, transparent))', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, color-mix(in srgb, var(--accent) 6%, transparent), transparent 70%)', filter: 'blur(20px)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative' }}>
+                <div style={{ width: 56, height: 56, position: 'relative', cursor: 'pointer' }}
+                  onClick={() => setShowAvatarPicker(v => !v)}>
+                  <AvatarCircle avatar={profile.avatar || 'default'} name={profile.name} size={56} />
+                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: '50%',
+                    background: 'var(--surface)', border: '2px solid var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="theme" size={10} color="var(--ink3)" />
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{profile.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                    <RatingBadge rating={profile.rating} en={en} />
+                    {(profile.level || missionsData?.level) > 1 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '1px 6px', borderRadius: 4 }}>
+                        Lv.{profile.level || missionsData?.level || 1}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)', textShadow: '0 0 20px color-mix(in srgb, var(--gold) 30%, transparent)' }}>{profile.rating}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{profile.name}</div>
-                <RatingBadge rating={profile.rating} en={en} />
-              </div>
-              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>{profile.rating}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
-              </div>
             </div>
+            {/* Streak + Calendar inside same card */}
+            <div style={{ padding: '0 20px 16px' }}>
             {streakData && streakData.streak > 0 && (
               <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,193,69,0.06)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 2c.7 5.5-2.8 7-2.8 11a5.6 5.6 0 0011.2 0c0-4-3.5-5.5-2.8-11" stroke="#ffc145" strokeWidth="1.5" fill="rgba(255,193,69,0.15)"/></svg>
@@ -634,21 +651,29 @@ export default function Profile({ viewUsername, onClose }) {
                 })}
               </div>
             )}
+            </div>{/* end padding wrapper */}
           </div>
 
           {/* XP / Level */}
           {missionsData && (
             <div className="dash-card" style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--p1)' }}>Lv.{missionsData.level}</div>
+                <div style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--p1) 10%, transparent))',
+                  border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+                  fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
+                  {missionsData.level}
+                </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>
-                    <span>XP</span>
-                    <span>{missionsData.xp} / {missionsData.xpForNext}</span>
+                    <span style={{ fontWeight: 600 }}>Level {missionsData.level}</span>
+                    <span>{missionsData.xp} / {missionsData.xpForNext} XP</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--surface)', overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 3,
-                      background: 'linear-gradient(90deg, #4a9eff, #6db4ff)', transition: 'width 0.5s' }} />
+                  <div style={{ height: 8, borderRadius: 4, background: 'var(--surface2)', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 4,
+                      background: 'linear-gradient(90deg, var(--accent), var(--p1))',
+                      boxShadow: '0 0 8px color-mix(in srgb, var(--accent) 40%, transparent)',
+                      transition: 'width 0.5s' }} />
                   </div>
                 </div>
               </div>
@@ -672,15 +697,17 @@ export default function Profile({ viewUsername, onClose }) {
                       border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : 'var(--surface2)'}`,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? 'var(--green)' : 'var(--ink)' }}>
-                          {m.completed ? '✓ ' : ''}{en ? m.name_en : m.name_ru}
+                        <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? 'var(--green)' : 'var(--ink)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {m.completed && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                          {en ? m.name_en : m.name_ru}
                         </span>
                         <span style={{ fontSize: 10, color: m.completed ? 'var(--green)' : 'var(--gold)' }}>+{m.xp_reward} XP</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
-                          <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2,
-                            background: m.completed ? 'var(--green)' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
+                        <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--surface2)', overflow: 'hidden' }}>
+                          <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 3,
+                            background: m.completed ? 'var(--green)' : 'linear-gradient(90deg, var(--accent), var(--p1))',
+                            boxShadow: pct > 0.5 ? '0 0 6px color-mix(in srgb, var(--accent) 30%, transparent)' : 'none',
                             transition: 'width 0.3s' }} />
                         </div>
                         <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 28 }}>{m.progress}/{m.target}</span>
