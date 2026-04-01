@@ -3093,3 +3093,39 @@ body.native-body { animation: none !important; }
 /* Hero mascot — прячем на узких экранах */
 .l-hero-mascot { flex-shrink: 0; }
 @media (max-width: 600px) { .l-hero-mascot { display: none !important; } }
+
+/* ═══ Bento Grid — Features ═══ */
+.l-bento {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  opacity: 0; transform: translateY(30px); transition: all 0.7s ease;
+}
+.l-bento.in { opacity: 1; transform: none; }
+.l-bento-card {
+  position: relative; overflow: hidden;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(26, 26, 42, 0.6);
+  border: 1px solid rgba(255,255,255,0.04);
+  backdrop-filter: blur(8px);
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.l-bento-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.l-bento-ai { grid-column: span 2; grid-row: span 2; padding: 28px; }
+.l-bento-online { grid-column: span 2; }
+.l-bento-puzzles { grid-column: span 2; }
+.l-bento-themes { grid-column: span 2; }
+@media (max-width: 700px) {
+  .l-bento { grid-template-columns: 1fr 1fr; }
+  .l-bento-ai { grid-column: span 2; grid-row: span 1; }
+  .l-bento-online, .l-bento-puzzles, .l-bento-themes { grid-column: span 1; }
+}
+@media (max-width: 480px) {
+  .l-bento { grid-template-columns: 1fr; }
+  .l-bento-ai, .l-bento-online, .l-bento-puzzles, .l-bento-themes { grid-column: span 1; }
+}
