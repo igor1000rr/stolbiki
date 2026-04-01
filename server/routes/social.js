@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth, adminOnly } from '../middleware.js'
+import { sanitize } from '../validate.js'
 
 const router = Router()
 
 // ═══ Friends ═══
 router.post('/friends/request', auth, (req, res) => {
-  const { username } = req.body
+  const username = sanitize(req.body.username)
+  if (!username) return res.status(400).json({ error: 'Username обязателен' })
   const friend = db.prepare('SELECT id FROM users WHERE username = ?').get(username)
   if (!friend) return res.status(404).json({ error: 'Пользователь не найден' })
   if (friend.id === req.user.id) return res.status(400).json({ error: 'Нельзя добавить себя' })

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import * as API from './engine/api'
 import Icon from './components/Icon'
+import ErrorBoundary from './components/ErrorBoundary'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
@@ -285,6 +286,7 @@ export default function App() {
   const isSecondaryActive = secondaryNav.some(n => n.id === tab)
 
   return (
+    <ErrorBoundary>
     <I18nContext.Provider value={i18n}>
     <div className={`app ${isNative ? 'native-app' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
@@ -690,5 +692,6 @@ export default function App() {
       )}
     </div>
     </I18nContext.Provider>
+    </ErrorBoundary>
   )
 }

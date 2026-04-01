@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
 import Mascot from './Mascot'
+import Confetti from './Confetti'
 import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
@@ -1415,6 +1416,7 @@ export default function Game() {
         const iconSize = isNative ? 56 : 32
         const inner = (
           <div className="game-result" style={{ ...(isNative ? {} : { borderLeft: `3px solid ${accentColor}` }), textAlign: 'center' }}>
+            {won && <Confetti />}
             {isNative && <div style={{ width: 60, height: 3, borderRadius: 2, background: accentColor, margin: '0 auto 16px', opacity: 0.8 }} />}
             <div style={{ marginBottom: isNative ? 8 : 4, display: 'flex', justifyContent: 'center' }}>
               <Mascot pose={isDraw ? 'shock' : won ? 'celebrate' : 'sad'} size={isNative ? 100 : 72} className="mascot-enter" />

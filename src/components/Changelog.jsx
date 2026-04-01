@@ -6,6 +6,28 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.3',
+    date: '2026-04-02',
+    title_ru: 'Конфетти, Error Boundary, валидация, лендинг',
+    title_en: 'Confetti, Error Boundary, validation, landing',
+    changes_ru: [
+      { type: 'new', text: 'Конфетти при победе — canvas-анимация из 120 частиц, 3 секунды' },
+      { type: 'new', text: 'Error Boundary — при краше JS показывается Снуппи + кнопка перезагрузки вместо белого экрана' },
+      { type: 'new', text: 'Лендинг: анимированные карточки тем 2×2, пульсирующие блоки, секция Download с кнопками App Store / Google Play' },
+      { type: 'fix', text: 'Input sanitization — server/validate.js для всех POST endpoints, защита от XSS' },
+      { type: 'fix', text: 'Автобэкап БД каждые 6 часов (backup.sh, 28 слотов = 7 дней)' },
+      { type: 'fix', text: 'Лендинг: убраны шаблонные блоки, чистая структура из 9 секций' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Confetti on victory — canvas animation with 120 particles, 3 seconds' },
+      { type: 'new', text: 'Error Boundary — JS crash shows Snoopy + reload button instead of white screen' },
+      { type: 'new', text: 'Landing: animated theme cards 2×2, pulsing blocks, Download section with App Store / Google Play buttons' },
+      { type: 'fix', text: 'Input sanitization — server/validate.js for all POST endpoints, XSS protection' },
+      { type: 'fix', text: 'Auto DB backup every 6 hours (backup.sh, 28 slots = 7 days)' },
+      { type: 'fix', text: 'Landing: removed generic blocks, clean 9-section structure' },
+    ],
+  },
+  {
     version: '4.2',
     date: '2026-04-02',
     title_ru: 'Маскот Снуппи, терминология, симулятор, онлайн-скины',
