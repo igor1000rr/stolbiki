@@ -56,39 +56,33 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
   return (
     <div className="landing">
 
-      {/* ═══ HERO — animated bars grow in ═══ */}
+      {/* ═══ HERO ═══ */}
       <section className={`l-hero ${heroVis ? 'in' : ''}`} ref={heroRef}>
         <div className="l-hero-glow" />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 320px', maxWidth: 480 }}>
-            <div style={{ marginBottom: 16 }}>
-              <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 'min(260px, 65vw)', height: 'auto' }} />
-            </div>
-            <h1 className="l-hero-title">
-              {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
-            </h1>
-            <p className="l-hero-sub">
-              {en
-                ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
-                : '10 высоток. 10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
-            </p>
-            <div className="l-hero-meta">
-              <span className="beta-badge">beta</span>
-              {c('site.beta_text', en ? 'Open beta — active development' : 'Открытая бета — активная разработка')}
-            </div>
-            <div className="l-hero-btns">
-              <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
-                <Icon name="play" size={18} color="#fff" />{c('landing.play_btn', en ? 'Play free' : 'Играть')}
-              </button>
-              <button className="btn l-btn-lg" onClick={onTutorial}>
-                <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
-              </button>
-            </div>
-          </div>
-          <div style={{ flex: '0 0 auto' }}>
-            <Mascot pose="hero" size={220} large className="mascot-enter" />
-          </div>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
         </div>
+        <h1 className="l-hero-title">
+          {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
+        </h1>
+        <p className="l-hero-sub">
+          {en
+            ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
+            : '10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
+        </p>
+        <div className="l-hero-meta">
+          <span className="beta-badge">beta</span>
+          {c('site.beta_text', en ? 'Open beta — active development' : 'Открытая бета — активная разработка')}
+        </div>
+        <div className="l-hero-btns">
+          <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
+            <Icon name="play" size={18} color="#fff" />{c('landing.play_btn', en ? 'Play free' : 'Играть')}
+          </button>
+          <button className="btn l-btn-lg" onClick={onTutorial}>
+            <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
+          </button>
+        </div>
+        <Mascot pose="hero" size={180} large className="mascot-enter" style={{ display: 'block', margin: '24px auto 0' }} />
       </section>
 
       {/* ═══ NUMBERS — count-up animation ═══ */}
@@ -106,13 +100,12 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <div className={`l-steps ${stepVis ? 'in' : ''}`} ref={stepRef}>
           <div className="l-steps-line" />
           {[
-            { n: '01', t: c('landing.step1_title', en ? 'Place' : 'Ставьте'), d: c('landing.step1_desc', en ? 'Up to 3 blocks on max 2 stands per turn. First move — 1 block.' : 'До 3 блоков на 2 стойки за ход. Первый ход — 1 блок.'), mascot: 'hero' },
-            { n: '02', t: c('landing.step2_title', en ? 'Transfer' : 'Переносите'), d: c('landing.step2_desc', en ? 'Move the top group of blocks. The key tactical move that decides games.' : 'Переместите верхнюю группу блоков. Ключевой тактический приём, решающий партии.'), mascot: 'point' },
-            { n: '03', t: c('landing.step3_title', en ? 'Complete' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 blocks the highrise is complete. Top color = owner. Complete 6 of 10!' : 'При 11 блоках высотка построена. Цвет сверху = владелец. Достройте 6 из 10!'), mascot: 'celebrate' },
+            { n: '01', t: c('landing.step1_title', en ? 'Place' : 'Ставьте'), d: c('landing.step1_desc', en ? 'Up to 3 blocks on max 2 stands per turn. First move — 1 block.' : 'До 3 блоков на 2 стойки за ход. Первый ход — 1 блок.') },
+            { n: '02', t: c('landing.step2_title', en ? 'Transfer' : 'Переносите'), d: c('landing.step2_desc', en ? 'Move the top group of blocks. The key tactical move that decides games.' : 'Переместите верхнюю группу блоков. Ключевой тактический приём, решающий партии.') },
+            { n: '03', t: c('landing.step3_title', en ? 'Complete' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 blocks the highrise is complete. Top color = owner. Complete 6 of 10!' : 'При 11 блоках высотка построена. Цвет сверху = владелец. Достройте 6 из 10!') },
           ].map((s, i) => (
             <div key={i} className="l-step" style={{ '--i': i }}>
               <div className="l-step-n">{s.n}</div>
-              <Mascot pose={s.mascot} size={48} animate={false} style={{ flexShrink: 0 }} />
               <div className="l-step-body">
                 <div className="l-step-t">{s.t}</div>
                 <div className="l-step-d">{s.d}</div>
@@ -223,78 +216,50 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
               </svg>
               <div style={{ fontSize: 16, fontWeight: 700, color: s.accent }}>{s.theme}</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{s.desc}</div>
-              {/* Маскот в углу */}
-              <div style={{ position: 'absolute', bottom: -8, right: -4, opacity: 0.15 }}>
-                <Mascot pose={['hero', 'wave', 'celebrate', 'point'][i]} size={80} animate={false} />
-              </div>
             </div>
           ))}
         </div>
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink3)' }}>
-            <Mascot pose="wave" size={28} animate={false} />
-            {en ? '+ 7 more themes and 17 skins in the Skin Shop' : '+ ещё 7 тем и 17 скинов в магазине'}
-          </div>
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'var(--ink3)' }}>
+          {en ? '+ 7 more themes and 17 skins in the Skin Shop' : '+ ещё 7 тем и 17 скинов в магазине'}
         </div>
       </section>
 
-      {/* ═══ DOWNLOAD — QR codes for App Store / Play Market ═══ */}
+      {/* ═══ DOWNLOAD ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '32px 24px', background: 'linear-gradient(135deg, rgba(74,158,255,0.06), rgba(255,96,102,0.04))', borderRadius: 20, border: '1px solid rgba(74,158,255,0.1)', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Mascot pose="wave" size={120} large className="mascot-bounce" />
-          <div style={{ flex: '1 1 240px', minWidth: 200 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-              {en ? 'Play on your phone' : 'Играйте на телефоне'}
-            </h2>
-            <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, margin: 0 }}>
-              {en ? 'Download from App Store or Google Play. Same account, same progress, offline AI mode.' : 'Скачайте из App Store или Google Play. Тот же аккаунт, тот же прогресс, офлайн AI.'}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {/* App Store QR */}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 120, height: 120, borderRadius: 12, background: '#fff', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg viewBox="0 0 100 100" width="104" height="104">
-                  {/* QR-like placeholder pattern */}
-                  {Array.from({ length: 10 }, (_, r) =>
-                    Array.from({ length: 10 }, (_, c) => {
-                      const isBorder = r < 3 && c < 3 || r < 3 && c > 6 || r > 6 && c < 3
-                      const isCorner = (r === 0 || r === 2) && (c === 0 || c === 2) || (r === 0 || r === 2) && (c === 7 || c === 9) || (r === 7 || r === 9) && (c === 0 || c === 2)
-                      const fill = isBorder || isCorner || Math.random() > 0.5 ? '#000' : '#fff'
-                      return <rect key={`${r}-${c}`} x={c * 10} y={r * 10} width={9} height={9} rx={1} fill={fill} />
-                    })
-                  )}
-                  <rect x="30" y="30" width="40" height="40" rx="4" fill="#fff" />
-                  <text x="50" y="55" textAnchor="middle" fontSize="16" fontWeight="800" fill="#000">SH</text>
-                </svg>
+        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ textAlign: 'center', padding: '40px 24px', background: 'radial-gradient(ellipse at center, rgba(74,158,255,0.06) 0%, transparent 70%)', borderRadius: 24, border: '1px solid rgba(74,158,255,0.08)' }}>
+          <Mascot pose="wave" size={120} large className="mascot-enter" style={{ display: 'block', margin: '0 auto 20px' }} />
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+            {en ? 'Play on your phone' : 'Играйте на телефоне'}
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 auto 24px', maxWidth: 400 }}>
+            {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
+          </p>
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {/* App Store button */}
+            <div style={{ width: 180, padding: '14px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #1a1a2e, #222240)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', position: 'relative', overflow: 'hidden' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1, marginBottom: 2 }}>Download on the</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.1 }}>App Store</div>
+                </div>
               </div>
-              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--ink2)"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                App Store
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Coming soon' : 'Скоро'}</div>
+              <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(74,158,255,0.2)', color: 'var(--p1)', fontWeight: 600 }}>{en ? 'Soon' : 'Скоро'}</div>
             </div>
-            {/* Google Play QR */}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 120, height: 120, borderRadius: 12, background: '#fff', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg viewBox="0 0 100 100" width="104" height="104">
-                  {Array.from({ length: 10 }, (_, r) =>
-                    Array.from({ length: 10 }, (_, c) => {
-                      const isBorder = r < 3 && c < 3 || r < 3 && c > 6 || r > 6 && c < 3
-                      const isCorner = (r === 0 || r === 2) && (c === 0 || c === 2) || (r === 0 || r === 2) && (c === 7 || c === 9) || (r === 7 || r === 9) && (c === 0 || c === 2)
-                      const fill = isBorder || isCorner || Math.random() > 0.45 ? '#000' : '#fff'
-                      return <rect key={`${r}-${c}`} x={c * 10} y={r * 10} width={9} height={9} rx={1} fill={fill} />
-                    })
-                  )}
-                  <rect x="30" y="30" width="40" height="40" rx="4" fill="#fff" />
-                  <text x="50" y="55" textAnchor="middle" fontSize="16" fontWeight="800" fill="#000">SH</text>
-                </svg>
+            {/* Google Play button */}
+            <div style={{ width: 180, padding: '14px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #1a1a2e, #222240)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', position: 'relative', overflow: 'hidden' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1, marginBottom: 2 }}>GET IT ON</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.1 }}>Google Play</div>
+                </div>
               </div>
-              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--ink2)"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
-                Google Play
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Coming soon' : 'Скоро'}</div>
+              <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(61,214,140,0.2)', color: 'var(--green)', fontWeight: 600 }}>{en ? 'Soon' : 'Скоро'}</div>
             </div>
           </div>
         </div>
@@ -306,15 +271,15 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           {[
             { c: 'var(--gold)', bg: 'rgba(255,193,69,0.06)', border: 'rgba(255,193,69,0.15)',
               icon: 'star', num: '8+', t: en ? 'Families' : 'Семьи',
-              d: en ? 'Simple rules, deep strategy. Perfect for game nights with kids.' : 'Простые правила, глубокая стратегия. Идеально для вечеров с детьми.', mascot: 'wave' },
+              d: en ? 'Simple rules, deep strategy. Perfect for game nights with kids.' : 'Простые правила, глубокая стратегия. Идеально для вечеров с детьми.' },
             { c: 'var(--green)', bg: 'rgba(61,214,140,0.06)', border: 'rgba(61,214,140,0.15)',
               icon: 'trophy', num: '50:50', t: en ? 'Board gamers' : 'Настольщики',
-              d: en ? 'Original mechanics. Mathematically verified balance on 239K games.' : 'Оригинальная механика. Баланс математически проверен на 239K партиях.', mascot: 'hero' },
+              d: en ? 'Original mechanics. Mathematically verified balance on 239K games.' : 'Оригинальная механика. Баланс математически проверен на 239K партиях.' },
             { c: 'var(--p1)', bg: 'rgba(74,158,255,0.06)', border: 'rgba(74,158,255,0.15)',
               icon: 'online', num: '0s', t: en ? 'Online players' : 'Онлайн',
-              d: en ? 'No signup needed. Share a link and play instantly from any device.' : 'Без регистрации. Отправьте ссылку — играйте с любого устройства.', mascot: 'point' },
+              d: en ? 'No signup needed. Share a link and play instantly from any device.' : 'Без регистрации. Отправьте ссылку — играйте с любого устройства.' },
           ].map((a, i) => (
-            <div key={i} className="l-who-block" style={{ '--i': i, background: a.bg, borderColor: a.border, position: 'relative', overflow: 'hidden' }}>
+            <div key={i} className="l-who-block" style={{ '--i': i, background: a.bg, borderColor: a.border }}>
               <div className="l-who-num" style={{ color: a.c }}>{a.num}</div>
               <div className="l-who-content">
                 <div className="l-who-head" style={{ color: a.c }}>
@@ -322,9 +287,6 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
                   <strong>{a.t}</strong>
                 </div>
                 <p>{a.d}</p>
-              </div>
-              <div style={{ position: 'absolute', bottom: -6, right: -2, opacity: 0.12 }}>
-                <Mascot pose={a.mascot} size={70} animate={false} />
               </div>
             </div>
           ))}
