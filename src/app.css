@@ -1482,60 +1482,80 @@ body::before {
    CUSTOMIZATION CLASSES
    ═══════════════════════════════════════════ */
 /* Chip styles */
+/* Flat — чистый цвет, без эффектов */
 .chip-flat .chip { border-radius: 2px; box-shadow: none; }
-.chip-rounded .chip { border-radius: 50%; width: 14px; height: 14px; margin: 1px auto; }
+.chip-flat .chip.p0 { background: var(--p1); }
+.chip-flat .chip.p1 { background: var(--p2); }
 
-/* Glass chips */
-.chip-glass .chip.p0 { background: linear-gradient(180deg, rgba(74,158,255,0.7), rgba(74,158,255,0.3)); box-shadow: 0 2px 8px rgba(74,158,255,0.2), inset 0 1px 0 rgba(255,255,255,0.5); backdrop-filter: blur(4px); }
-.chip-glass .chip.p1 { background: linear-gradient(180deg, rgba(255,96,102,0.7), rgba(255,96,102,0.3)); box-shadow: 0 2px 8px rgba(255,96,102,0.2), inset 0 1px 0 rgba(255,255,255,0.5); backdrop-filter: blur(4px); }
+/* Round — круглые монетки */
+.chip-rounded .chip { border-radius: 50%; width: 16px; height: 16px; margin: 0 auto; }
+.chip-rounded .chip.p0 { background: radial-gradient(circle at 40% 35%, #a0d4ff, var(--p1), #2a70c0); box-shadow: 0 2px 3px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.4); }
+.chip-rounded .chip.p1 { background: radial-gradient(circle at 40% 35%, #ffc0c2, var(--p2), #c03840); box-shadow: 0 2px 3px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.4); }
 
-/* Metal chips */
-.chip-metal .chip.p0 { background: linear-gradient(180deg, #b8d4f0, #6a9cc8, #4a7ca8, #6a9cc8); box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.6); }
-.chip-metal .chip.p1 { background: linear-gradient(180deg, #f0b8b8, #c86a6a, #a84a4a, #c86a6a); box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.6); }
+/* Glass — полупрозрачное стекло с blur */
+.chip-glass .chip.p0 { background: linear-gradient(180deg, rgba(74,158,255,0.65), rgba(74,158,255,0.25)); box-shadow: 0 2px 8px rgba(74,158,255,0.25), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.1); backdrop-filter: blur(4px); border: 1px solid rgba(74,158,255,0.2); }
+.chip-glass .chip.p1 { background: linear-gradient(180deg, rgba(255,96,102,0.65), rgba(255,96,102,0.25)); box-shadow: 0 2px 8px rgba(255,96,102,0.25), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.1); backdrop-filter: blur(4px); border: 1px solid rgba(255,96,102,0.2); }
 
-/* Candy chips */
-.chip-candy .chip.p0 { background: linear-gradient(180deg, #a0e0ff, #60c0ff, #40a0e0); border-radius: 10px; box-shadow: 0 3px 0 #3090c0, inset 0 2px 0 rgba(255,255,255,0.4); }
-.chip-candy .chip.p1 { background: linear-gradient(180deg, #ffa0c0, #ff6090, #e04070); border-radius: 10px; box-shadow: 0 3px 0 #c03060, inset 0 2px 0 rgba(255,255,255,0.4); }
+/* Metal — хромированный блеск */
+.chip-metal .chip.p0 { background: linear-gradient(180deg, #d0e8ff, #88b8e0, #5090c0, #70a0d0, #b0d0f0); box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(0,0,0,0.2); border: 0.5px solid rgba(255,255,255,0.15); }
+.chip-metal .chip.p1 { background: linear-gradient(180deg, #ffd0d0, #e08888, #c05050, #d07070, #f0b0b0); box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(0,0,0,0.2); border: 0.5px solid rgba(255,255,255,0.15); }
 
-/* Pixel chips */
+/* Candy — конфетный 3D с тенью-подставкой */
+.chip-candy .chip { border-radius: 10px; }
+.chip-candy .chip.p0 { background: linear-gradient(180deg, #b0f0ff, #60d0ff, #30a8e0); box-shadow: 0 3px 0 #2088b0, 0 4px 6px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.5); }
+.chip-candy .chip.p1 { background: linear-gradient(180deg, #ffb0d0, #ff6898, #e04878); box-shadow: 0 3px 0 #b83060, 0 4px 6px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.5); }
+
+/* Pixel — квадратные, 8-bit */
 .chip-pixel .chip { border-radius: 0 !important; image-rendering: pixelated; }
-.chip-pixel .chip.p0 { background: #4a9eff; box-shadow: 2px 2px 0 #2060a0; }
-.chip-pixel .chip.p1 { background: #ff6066; box-shadow: 2px 2px 0 #a03040; }
+.chip-pixel .chip.p0 { background: #4a9eff; box-shadow: 3px 3px 0 #2060a0, -1px -1px 0 #80c0ff; }
+.chip-pixel .chip.p1 { background: #ff6066; box-shadow: 3px 3px 0 #a03040, -1px -1px 0 #ff9098; }
 
-/* Neon glow chips */
-.chip-glow .chip.p0 { background: var(--p1); box-shadow: 0 0 8px var(--p1-glow), 0 0 16px var(--p1-glow), inset 0 0 4px rgba(255,255,255,0.2); }
-.chip-glow .chip.p1 { background: var(--p2); box-shadow: 0 0 8px var(--p2-glow), 0 0 16px var(--p2-glow), inset 0 0 4px rgba(255,255,255,0.2); }
+/* Glow — неоновое свечение */
+.chip-glow .chip.p0 { background: var(--p1); box-shadow: 0 0 6px var(--p1-glow), 0 0 14px var(--p1-glow), 0 0 28px rgba(74,158,255,0.1), inset 0 0 4px rgba(255,255,255,0.2); }
+.chip-glow .chip.p1 { background: var(--p2); box-shadow: 0 0 6px var(--p2-glow), 0 0 14px var(--p2-glow), 0 0 28px rgba(255,96,102,0.1), inset 0 0 4px rgba(255,255,255,0.2); }
 
 /* ═══ Stand skins ═══ */
-/* Marble */
-.stand-marble .stand { background: linear-gradient(170deg, #2a2a3a 0%, #1e1e2e 40%, #2a2840 60%, #1a1a28 100%); border-color: rgba(255,255,255,0.1); }
-.stand-marble .stand::after { background: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 16px); }
 
-/* Concrete */
-.stand-concrete .stand { background: linear-gradient(180deg, #3a3a42, #2e2e36); border-color: rgba(255,255,255,0.06); border-radius: 4px 4px 0 0; }
-.stand-concrete .stand::after { background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.03), transparent 40%); }
+/* Marble — мраморные прожилки */
+.stand-marble .stand { background: linear-gradient(170deg, #2a2a3a 0%, #1e1e2e 30%, #2a2840 50%, #222238 70%, #1a1a28 100%); border-color: rgba(255,255,255,0.1); }
+.stand-marble .stand::after { background: repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(255,255,255,0.02) 6px, rgba(255,255,255,0.02) 12px), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.01) 10px, rgba(255,255,255,0.01) 20px); }
+.stand-marble .stand.golden { border-color: rgba(255,200,100,0.4); box-shadow: 0 0 14px rgba(255,193,69,0.15); }
 
-/* Bamboo */
-.stand-bamboo .stand { background: linear-gradient(180deg, #3a5a30, #2a4820, #1e3a16); border-color: rgba(100,180,60,0.15); }
-.stand-bamboo .stand::after { background: repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(255,255,255,0.04) 12px, rgba(255,255,255,0.04) 13px); }
+/* Concrete — шероховатый бетон */
+.stand-concrete .stand { background: linear-gradient(180deg, #3e3e48, #32323c, #2a2a32); border-color: rgba(255,255,255,0.06); border-radius: 3px 3px 0 0; }
+.stand-concrete .stand::after { background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.04), transparent 40%), radial-gradient(circle at 70% 70%, rgba(255,255,255,0.03), transparent 35%); }
+.stand-concrete .stand.golden { border-color: rgba(255,193,69,0.35); }
 
-/* Obsidian */
-.stand-obsidian .stand { background: linear-gradient(180deg, #1a1a22, #0e0e14, #1a1a22); border-color: rgba(100,100,140,0.15); }
-.stand-obsidian .stand.golden { box-shadow: 0 0 20px rgba(255,193,69,0.2), inset 0 0 10px rgba(255,193,69,0.05); }
+/* Bamboo — зелёный с горизонтальными полосами */
+.stand-bamboo .stand { background: linear-gradient(180deg, #3a5a30, #2e4c24, #244018, #2a4820); border-color: rgba(100,180,60,0.2); }
+.stand-bamboo .stand::after { background: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px, transparent 11px, transparent 13px); }
+.stand-bamboo .stand.golden { border-color: rgba(255,213,79,0.4); box-shadow: 0 0 10px rgba(255,213,79,0.15); }
 
-/* Crystal */
-.stand-crystal .stand { background: linear-gradient(180deg, rgba(60,80,120,0.4), rgba(30,40,60,0.6)); border-color: rgba(100,160,255,0.15); backdrop-filter: blur(4px); }
+/* Obsidian — чёрное зеркало */
+.stand-obsidian .stand { background: linear-gradient(180deg, #1a1a24, #0c0c14, #080810, #0e0e18); border-color: rgba(100,100,160,0.12); }
+.stand-obsidian .stand::after { background: linear-gradient(180deg, rgba(100,100,160,0.06), transparent 40%, rgba(100,100,160,0.03)); }
+.stand-obsidian .stand.golden { box-shadow: 0 0 20px rgba(255,193,69,0.25), inset 0 0 8px rgba(255,193,69,0.05); border-color: rgba(255,193,69,0.4); }
 
-/* Rust */
-.stand-rust .stand { background: linear-gradient(180deg, #4a3028, #3a2018, #2a1810); border-color: rgba(180,100,60,0.2); }
-.stand-rust .stand::after { background: radial-gradient(ellipse at 60% 30%, rgba(200,120,60,0.08), transparent 60%); }
+/* Crystal — прозрачный кристалл с blur */
+.stand-crystal .stand { background: linear-gradient(180deg, rgba(60,80,120,0.35), rgba(40,60,90,0.5), rgba(30,40,60,0.6)); border-color: rgba(100,160,255,0.18); backdrop-filter: blur(4px); }
+.stand-crystal .stand::after { background: linear-gradient(170deg, rgba(100,160,255,0.06) 0%, transparent 30%, rgba(100,160,255,0.04) 60%, transparent 100%); }
+.stand-crystal .stand.golden { border-color: rgba(255,213,79,0.4); box-shadow: 0 0 14px rgba(255,213,79,0.2); }
 
-/* Void */
-.stand-void .stand { background: linear-gradient(180deg, #0a0a14, #050508, #0a0a14); border-color: rgba(80,60,120,0.2); }
-.stand-void .stand.golden { border-color: rgba(255,193,69,0.5); box-shadow: 0 0 16px rgba(255,193,69,0.15); }
+/* Rust — ржавый металл с пятнами */
+.stand-rust .stand { background: linear-gradient(180deg, #4a3028, #3a2418, #2e1c12, #3a2818); border-color: rgba(180,100,60,0.25); }
+.stand-rust .stand::after { background: radial-gradient(ellipse at 60% 25%, rgba(200,120,60,0.1), transparent 50%), radial-gradient(ellipse at 30% 75%, rgba(180,90,40,0.08), transparent 40%); }
+.stand-rust .stand.golden { border-color: rgba(255,180,80,0.5); box-shadow: 0 0 12px rgba(255,180,80,0.2); }
 
-/* Ice */
-.stand-ice .stand { background: linear-gradient(180deg, rgba(180,220,255,0.15), rgba(120,180,240,0.08), rgba(180,220,255,0.12)); border-color: rgba(120,180,240,0.2); }
+/* Void — абсолютная темнота с пурпурным свечением */
+.stand-void .stand { background: linear-gradient(180deg, #0a0a16, #040408, #060610, #0a0a14); border-color: rgba(80,60,140,0.18); }
+.stand-void .stand::after { background: radial-gradient(ellipse at 50% 100%, rgba(80,60,140,0.08), transparent 60%); }
+.stand-void .stand.golden { border-color: rgba(255,193,69,0.55); box-shadow: 0 0 18px rgba(255,193,69,0.2), 0 0 4px rgba(80,60,140,0.3); }
+.stand-void .stand:hover { border-color: rgba(80,60,140,0.3); box-shadow: 0 0 12px rgba(80,60,140,0.15); }
+
+/* Ice — ледяной с морозным бликом */
+.stand-ice .stand { background: linear-gradient(180deg, rgba(180,220,255,0.12), rgba(140,200,250,0.06), rgba(160,210,255,0.1), rgba(120,180,240,0.08)); border-color: rgba(120,180,240,0.22); }
+.stand-ice .stand::after { background: linear-gradient(180deg, rgba(200,230,255,0.08), transparent 30%, transparent 70%, rgba(180,220,255,0.06)); }
+.stand-ice .stand.golden { border-color: rgba(255,224,130,0.45); box-shadow: 0 0 14px rgba(255,224,130,0.2), 0 0 4px rgba(120,180,240,0.2); }
 
 /* Board density */
 .board-compact .stand { min-height: 130px; width: 44px; }
