@@ -1145,7 +1145,9 @@ export default function Game() {
           style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
             background: 'none', border: 'none', cursor: 'pointer', padding: 6, opacity: 0.4,
             color: 'var(--ink3)', fontSize: 16, lineHeight: 1 }}
-          title={en ? 'Skin Shop' : 'Скины'}>🎨</button>
+          title={en ? 'Skin Shop' : 'Скины'}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
+          </button>
       </div>
 
       <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`} role="status" aria-live="polite">{info}</div>

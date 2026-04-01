@@ -410,7 +410,7 @@ export default function App() {
                 <div className="nav-more-row">
                   <button onClick={() => { setShowSkinShop(true); setMobileMenu(false) }}
                     className="nav-more-theme active" style={{ flex: 1 }}>
-                    🎨 {en ? 'Customize' : 'Оформление'}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:4}}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>{en ? 'Customize' : 'Оформление'}
                   </button>
                 </div>
                 </div>
@@ -510,7 +510,7 @@ export default function App() {
             <div style={{ padding: '8px 16px' }}>
               <button onClick={() => { setShowSkinShop(true); setMobileMenu(false) }}
                 className="nav-more-theme active" style={{ width: '100%', padding: '10px 16px', fontSize: 13 }}>
-                🎨 {en ? 'Customize' : 'Оформление'}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:4}}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>{en ? 'Customize' : 'Оформление'}
               </button>
             </div>
           </nav>

@@ -1,62 +1,86 @@
 /**
- * SkinShop — popup для выбора скинов фишек и стоек
- * Live preview mini-board, level-locked items
+ * SkinShop — popup для кастомизации: темы, скины фишек, скины стоек
+ * Визуальный превью каждого скина с текстурами
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useI18n } from '../engine/i18n'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
 
 const CHIP_SKINS = [
-  { id: 'classic', ru: 'Классика', en: 'Classic', level: 1, preview: { borderRadius: '7px', bg0: 'linear-gradient(180deg, #85c4ff, #4a9eff, #3580d4)', bg1: 'linear-gradient(180deg, #ffa0a4, #ff6066, #d44c52)' } },
-  { id: 'flat', ru: 'Плоские', en: 'Flat', level: 1, preview: { borderRadius: '2px', bg0: '#4a9eff', bg1: '#ff6066' } },
-  { id: 'rounded', ru: 'Круглые', en: 'Round', level: 2, preview: { borderRadius: '50%', bg0: '#4a9eff', bg1: '#ff6066', size: 14 } },
-  { id: 'glass', ru: 'Стекло', en: 'Glass', level: 3, preview: { borderRadius: '7px', bg0: 'linear-gradient(180deg, rgba(74,158,255,0.7), rgba(74,158,255,0.3))', bg1: 'linear-gradient(180deg, rgba(255,96,102,0.7), rgba(255,96,102,0.3))' } },
-  { id: 'metal', ru: 'Металл', en: 'Metal', level: 5, preview: { borderRadius: '7px', bg0: 'linear-gradient(180deg, #b8d4f0, #6a9cc8, #4a7ca8, #6a9cc8)', bg1: 'linear-gradient(180deg, #f0b8b8, #c86a6a, #a84a4a, #c86a6a)' } },
-  { id: 'candy', ru: 'Candy', en: 'Candy', level: 7, preview: { borderRadius: '10px', bg0: 'linear-gradient(180deg, #a0e0ff, #60c0ff, #40a0e0)', bg1: 'linear-gradient(180deg, #ffa0c0, #ff6090, #e04070)' } },
-  { id: 'pixel', ru: 'Пиксель', en: 'Pixel', level: 10, preview: { borderRadius: '0px', bg0: '#4a9eff', bg1: '#ff6066' } },
-  { id: 'glow', ru: 'Свечение', en: 'Glow', level: 15, preview: { borderRadius: '7px', bg0: '#4a9eff', bg1: '#ff6066', glow: true } },
+  { id: 'classic', ru: 'Классика', en: 'Classic', level: 1,
+    css0: 'linear-gradient(180deg, #85c4ff, #4a9eff, #3580d4)',
+    css1: 'linear-gradient(180deg, #ffa0a4, #ff6066, #d44c52)',
+    shadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)', radius: 7 },
+  { id: 'flat', ru: 'Плоские', en: 'Flat', level: 1,
+    css0: '#4a9eff', css1: '#ff6066', shadow: 'none', radius: 2 },
+  { id: 'rounded', ru: 'Круглые', en: 'Round', level: 2,
+    css0: '#4a9eff', css1: '#ff6066', shadow: 'none', radius: '50%', size: 14 },
+  { id: 'glass', ru: 'Стекло', en: 'Glass', level: 3,
+    css0: 'linear-gradient(180deg, rgba(74,158,255,0.7), rgba(74,158,255,0.3))',
+    css1: 'linear-gradient(180deg, rgba(255,96,102,0.7), rgba(255,96,102,0.3))',
+    shadow: '0 2px 8px rgba(74,158,255,0.2), inset 0 1px 0 rgba(255,255,255,0.5)', radius: 7 },
+  { id: 'metal', ru: 'Металл', en: 'Metal', level: 5,
+    css0: 'linear-gradient(180deg, #b8d4f0, #6a9cc8, #4a7ca8, #6a9cc8)',
+    css1: 'linear-gradient(180deg, #f0b8b8, #c86a6a, #a84a4a, #c86a6a)',
+    shadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.6)', radius: 7 },
+  { id: 'candy', ru: 'Candy', en: 'Candy', level: 7,
+    css0: 'linear-gradient(180deg, #a0e0ff, #60c0ff, #40a0e0)',
+    css1: 'linear-gradient(180deg, #ffa0c0, #ff6090, #e04070)',
+    shadow: '0 3px 0 rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.4)', radius: 10 },
+  { id: 'pixel', ru: 'Пиксель', en: 'Pixel', level: 10,
+    css0: '#4a9eff', css1: '#ff6066', shadow: '2px 2px 0 rgba(0,0,0,0.3)', radius: 0 },
+  { id: 'glow', ru: 'Свечение', en: 'Glow', level: 15,
+    css0: '#4a9eff', css1: '#ff6066',
+    shadow: '0 0 8px rgba(74,158,255,0.5), 0 0 16px rgba(74,158,255,0.3)', radius: 7,
+    shadow1: '0 0 8px rgba(255,96,102,0.5), 0 0 16px rgba(255,96,102,0.3)' },
 ]
 
 const STAND_SKINS = [
-  { id: 'classic', ru: 'Классика', en: 'Classic', level: 1, color: '#1a1a2a' },
-  { id: 'marble', ru: 'Мрамор', en: 'Marble', level: 2, color: '#2a2a3a' },
-  { id: 'concrete', ru: 'Бетон', en: 'Concrete', level: 3, color: '#3a3a42' },
-  { id: 'bamboo', ru: 'Бамбук', en: 'Bamboo', level: 4, color: '#2a4820' },
-  { id: 'obsidian', ru: 'Обсидиан', en: 'Obsidian', level: 6, color: '#0e0e14' },
-  { id: 'crystal', ru: 'Кристалл', en: 'Crystal', level: 8, color: '#1e2a40' },
-  { id: 'rust', ru: 'Ржавчина', en: 'Rust', level: 12, color: '#3a2018' },
-  { id: 'void', ru: 'Void', en: 'Void', level: 16, color: '#050508' },
-  { id: 'ice', ru: 'Лёд', en: 'Ice', level: 20, color: '#c0daf0' },
+  { id: 'classic', ru: 'Классика', en: 'Classic', level: 1,
+    bg: 'linear-gradient(180deg, rgba(20,20,32,0.9), rgba(20,20,32,0.6))', border: 'rgba(255,255,255,0.06)' },
+  { id: 'marble', ru: 'Мрамор', en: 'Marble', level: 2,
+    bg: 'linear-gradient(170deg, #2a2a3a, #1e1e2e, #2a2840, #1a1a28)', border: 'rgba(255,255,255,0.1)' },
+  { id: 'concrete', ru: 'Бетон', en: 'Concrete', level: 3,
+    bg: 'linear-gradient(180deg, #3a3a42, #2e2e36)', border: 'rgba(255,255,255,0.06)' },
+  { id: 'bamboo', ru: 'Бамбук', en: 'Bamboo', level: 4,
+    bg: 'linear-gradient(180deg, #3a5a30, #2a4820, #1e3a16)', border: 'rgba(100,180,60,0.15)' },
+  { id: 'obsidian', ru: 'Обсидиан', en: 'Obsidian', level: 6,
+    bg: 'linear-gradient(180deg, #1a1a22, #0e0e14, #1a1a22)', border: 'rgba(100,100,140,0.15)' },
+  { id: 'crystal', ru: 'Кристалл', en: 'Crystal', level: 8,
+    bg: 'linear-gradient(180deg, rgba(60,80,120,0.6), rgba(30,40,60,0.8))', border: 'rgba(100,160,255,0.15)' },
+  { id: 'rust', ru: 'Ржавчина', en: 'Rust', level: 12,
+    bg: 'linear-gradient(180deg, #4a3028, #3a2018, #2a1810)', border: 'rgba(180,100,60,0.2)' },
+  { id: 'void', ru: 'Void', en: 'Void', level: 16,
+    bg: 'linear-gradient(180deg, #0a0a14, #050508, #0a0a14)', border: 'rgba(80,60,120,0.2)' },
+  { id: 'ice', ru: 'Лёд', en: 'Ice', level: 20,
+    bg: 'linear-gradient(180deg, rgba(180,220,255,0.3), rgba(120,180,240,0.15), rgba(180,220,255,0.25))', border: 'rgba(120,180,240,0.25)' },
 ]
 
-function MiniBoard({ chipSkin, standSkin }) {
-  const p = CHIP_SKINS.find(c => c.id === chipSkin)?.preview || CHIP_SKINS[0].preview
-  const sc = STAND_SKINS.find(s => s.id === standSkin)?.color || '#1a1a2a'
-  const chipH = p.size || 11
-  const chipW = p.size || 32
-  const chipR = p.borderRadius || '7px'
+const THEMES = [
+  { id: 'default', ru: 'Тёмная', en: 'Dark', bg: '#0c0c12', surface: '#1a1a2a', accent: '#3bb8a8', p1: '#4a9eff', p2: '#ff6066' },
+  { id: 'ocean', ru: 'Океан', en: 'Ocean', bg: '#0a1628', surface: '#132840', accent: '#00bcd4', p1: '#4fc3f7', p2: '#ef5350' },
+  { id: 'sunset', ru: 'Закат', en: 'Sunset', bg: '#1a0e1e', surface: '#2e1a32', accent: '#ff7043', p1: '#ffa726', p2: '#ab47bc' },
+  { id: 'forest', ru: 'Лес', en: 'Forest', bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784', p2: '#e57373' },
+  { id: 'royal', ru: 'Королевская', en: 'Royal', bg: '#0e0a18', surface: '#1e1638', accent: '#9c27b0', p1: '#ce93d8', p2: '#ef5350' },
+  { id: 'neon', ru: 'Неон', en: 'Neon', bg: '#05050a', surface: '#0f0f22', accent: '#ff00ff', p1: '#00e5ff', p2: '#ff3090' },
+  { id: 'wood', ru: 'Дерево', en: 'Wood', bg: '#2c1e0f', surface: '#4a3520', accent: '#d4803a', p1: '#f0ece0', p2: '#2a2018' },
+  { id: 'arctic', ru: 'Арктика', en: 'Arctic', bg: '#e8f0f8', surface: '#f0f6fc', accent: '#0288d1', p1: '#0288d1', p2: '#d32f2f' },
+  { id: 'minimal', ru: 'Светлая', en: 'Light', bg: '#f5f5f7', surface: '#ffffff', accent: '#0071e3', p1: '#007aff', p2: '#ff3b30' },
+]
 
+function ThemePreview({ theme }) {
   return (
-    <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '16px 8px',
-      background: 'color-mix(in srgb, var(--surface) 92%, transparent)', borderRadius: 14,
-      border: '1px solid var(--surface2)' }}>
-      {[0, 1, 2].map(si => (
-        <div key={si} style={{
-          width: 36, minHeight: 90, borderRadius: '8px 8px 0 0',
-          background: sc, border: '1px solid var(--surface3)', borderBottom: 'none',
-          display: 'flex', flexDirection: 'column-reverse', alignItems: 'center',
-          padding: '3px 2px 4px', gap: 1,
-          boxShadow: si === 0 ? '0 0 8px var(--gold-glow)' : 'none',
-        }}>
-          {Array.from({ length: si === 0 ? 5 : si === 1 ? 7 : 4 }).map((_, ci) => {
-            const isP1 = si === 0 ? ci < 3 : si === 1 ? ci >= 4 : ci < 2
-            return (
-              <div key={ci} style={{
-                width: chipW, height: chipH, borderRadius: chipR,
-                background: isP1 ? (p.bg0 || 'var(--p1)') : (p.bg1 || 'var(--p2)'),
-                boxShadow: p.glow ? `0 0 6px ${isP1 ? 'var(--p1-glow)' : 'var(--p2-glow)'}` : 'none',
-              }} />
-            )
+    <div style={{ display: 'flex', gap: 3, justifyContent: 'center', padding: '8px 6px',
+      background: theme.bg, borderRadius: 8, border: `1px solid ${theme.accent}20` }}>
+      {[4, 6, 3].map((count, si) => (
+        <div key={si} style={{ width: 18, minHeight: 50, borderRadius: '4px 4px 0 0',
+          background: theme.surface, borderBottom: 'none',
+          border: si === 0 ? `1px solid ${theme.accent}40` : `1px solid ${theme.accent}15`,
+          display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', padding: '2px 1px', gap: 1 }}>
+          {Array.from({ length: count }).map((_, ci) => {
+            const isP1 = si === 0 ? ci < 2 : si === 1 ? ci >= 3 : ci < 1
+            return <div key={ci} style={{ width: 12, height: 4, borderRadius: 2,
+              background: isP1 ? theme.p1 : theme.p2 }} />
           })}
         </div>
       ))}
@@ -64,55 +88,54 @@ function MiniBoard({ chipSkin, standSkin }) {
   )
 }
 
-function SkinCard({ skin, selected, locked, onClick, en }) {
+function ChipPreview({ skin, count = 5 }) {
   return (
-    <div onClick={!locked ? onClick : undefined} style={{
-      padding: '10px 14px', borderRadius: 10, cursor: locked ? 'default' : 'pointer',
-      background: selected ? 'var(--accent-glow)' : 'var(--surface)',
-      border: `2px solid ${selected ? 'var(--accent)' : 'var(--surface2)'}`,
-      opacity: locked ? 0.45 : 1,
-      transition: 'all 0.2s',
-      display: 'flex', alignItems: 'center', gap: 10,
-      position: 'relative',
-    }}>
-      {locked && (
-        <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, color: 'var(--ink3)',
-          background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>
-          Lv.{skin.level}
-        </div>
-      )}
-      <div style={{ fontSize: 13, fontWeight: selected ? 600 : 400,
-        color: selected ? 'var(--accent)' : 'var(--ink)' }}>
-        {en ? skin.en : skin.ru}
-      </div>
-      {selected && <span style={{ fontSize: 11, color: 'var(--accent)', marginLeft: 'auto' }}>✓</span>}
+    <div style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 1, padding: '4px 0' }}>
+      {Array.from({ length: count }).map((_, i) => {
+        const isP1 = i < 3
+        const w = skin.size || 32
+        const h = skin.size || 10
+        return <div key={i} style={{
+          width: w, height: h,
+          borderRadius: typeof skin.radius === 'string' ? skin.radius : skin.radius + 'px',
+          background: isP1 ? skin.css0 : skin.css1,
+          boxShadow: isP1 ? skin.shadow : (skin.shadow1 || skin.shadow),
+        }} />
+      })}
     </div>
+  )
+}
+
+function StandPreview({ skin }) {
+  return (
+    <div style={{ width: 28, minHeight: 56, borderRadius: '6px 6px 0 0',
+      background: skin.bg, border: `1.5px solid ${skin.border}`, borderBottom: 'none',
+      display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', padding: '3px 2px', gap: 1 }}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} style={{ width: 18, height: 5, borderRadius: 3,
+          background: i < 2 ? '#4a9eff' : '#ff6066',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+      ))}
+    </div>
+  )
+}
+
+export function PaintIcon({ size = 20, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19l7-7 3 3-7 7-3-3z" />
+      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+      <path d="M2 2l7.586 7.586" />
+      <circle cx="11" cy="11" r="2" />
+    </svg>
   )
 }
 
 export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'default', onThemeChange }) {
   const { lang } = useI18n()
   const en = lang === 'en'
-  const [tab, setTab] = useState('themes') // themes | chips | stands
+  const [tab, setTab] = useState('themes')
   const [settings, setSettings] = useState(getSettings)
-  const previewRef = useRef(null)
-
-  const THEMES = [
-    { id: 'default', ru: 'Тёмная', en: 'Dark', color: '#0c0c12' },
-    { id: 'ocean', ru: 'Океан', en: 'Ocean', color: '#0a1628' },
-    { id: 'sunset', ru: 'Закат', en: 'Sunset', color: '#1a0e1e' },
-    { id: 'forest', ru: 'Лес', en: 'Forest', color: '#0c1a0f' },
-    { id: 'royal', ru: 'Королевская', en: 'Royal', color: '#0e0a18' },
-    { id: 'neon', ru: 'Неон', en: 'Neon', color: '#05050a' },
-    { id: 'wood', ru: 'Дерево', en: 'Wood', color: '#2c1e0f' },
-    { id: 'arctic', ru: 'Арктика', en: 'Arctic', color: '#e8f0f8' },
-    { id: 'minimal', ru: 'Светлая', en: 'Light', color: '#f5f5f7' },
-  ]
-
-  const ACCENT_COLORS = {
-    default: '#3bb8a8', ocean: '#00bcd4', sunset: '#ff7043', forest: '#4caf50',
-    royal: '#9c27b0', neon: '#ff00ff', wood: '#d4803a', arctic: '#0288d1', minimal: '#0071e3',
-  }
 
   function select(key, value) {
     const ns = { ...settings, [key]: value }
@@ -122,120 +145,141 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     window.dispatchEvent(new CustomEvent('stolbiki-settings-changed'))
   }
 
-  const chipSkins = CHIP_SKINS
-  const standSkins = STAND_SKINS
-
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.88)',
       display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
-          {en ? 'Customize' : 'Оформление'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <PaintIcon size={18} color="var(--accent)" />
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
+            {en ? 'Customize' : 'Оформление'}
+          </span>
         </div>
         <button className="btn" onClick={onClose} style={{ fontSize: 12, padding: '6px 14px' }}>
           {en ? 'Done' : 'Готово'}
         </button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
+        {[
+          ['themes', en ? 'Themes' : 'Темы', THEMES.length],
+          ['chips', en ? 'Chips' : 'Фишки', `${CHIP_SKINS.filter(s => s.level <= userLevel).length}/${CHIP_SKINS.length}`],
+          ['stands', en ? 'Stands' : 'Стойки', `${STAND_SKINS.filter(s => s.level <= userLevel).length}/${STAND_SKINS.length}`],
+        ].map(([id, label, count]) => (
+          <button key={id} onClick={() => setTab(id)} style={{
+            flex: 1, padding: '12px 16px', border: 'none', cursor: 'pointer',
+            background: tab === id ? 'var(--surface)' : 'transparent',
+            color: tab === id ? 'var(--ink)' : 'var(--ink3)',
+            fontWeight: tab === id ? 600 : 400, fontSize: 13,
+            borderBottom: tab === id ? '2px solid var(--accent)' : '2px solid transparent',
+            fontFamily: 'inherit', transition: 'all 0.2s',
+          }}>
+            {label} <span style={{ fontSize: 10, opacity: 0.6 }}>({count})</span>
+          </button>
+        ))}
+      </div>
 
-        {/* Left: live preview */}
-        <div style={{ width: 220, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', padding: 20, borderRight: '1px solid var(--surface2)', flexShrink: 0 }}>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10, textAlign: 'center' }}>
-            {en ? 'Preview' : 'Превью'}
-          </div>
-          <MiniBoard chipSkin={settings.chipStyle} standSkin={settings.standStyle} />
-          <div style={{ marginTop: 14, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'Your level' : 'Ваш уровень'}</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--p1)' }}>Lv.{userLevel}</div>
-          </div>
-        </div>
-
-        {/* Right: tabs + grid */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-          {/* Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
-            {[
-              ['themes', en ? 'Themes' : 'Темы', `${THEMES.length}`],
-              ['chips', en ? 'Chips' : 'Фишки', `${chipSkins.filter(s => s.level <= userLevel).length}/${chipSkins.length}`],
-              ['stands', en ? 'Stands' : 'Стойки', `${standSkins.filter(s => s.level <= userLevel).length}/${standSkins.length}`],
-            ].map(([id, label, count]) => (
-              <button key={id} onClick={() => setTab(id)} style={{
-                flex: 1, padding: '12px 16px', border: 'none', cursor: 'pointer',
-                background: tab === id ? 'var(--surface)' : 'transparent',
-                color: tab === id ? 'var(--ink)' : 'var(--ink3)',
-                fontWeight: tab === id ? 600 : 400, fontSize: 13,
-                borderBottom: tab === id ? '2px solid var(--accent)' : '2px solid transparent',
-                fontFamily: 'inherit', transition: 'all 0.2s',
-              }}>
-                {label} <span style={{ fontSize: 10, opacity: 0.6 }}>({count})</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Grid */}
-          <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-            {tab === 'themes' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                {THEMES.map(th => (
-                  <div key={th.id} onClick={() => onThemeChange?.(th.id)} style={{
-                    padding: '14px 14px', borderRadius: 10, cursor: 'pointer',
-                    background: currentTheme === th.id ? 'var(--accent-glow)' : 'var(--surface)',
-                    border: `2px solid ${currentTheme === th.id ? 'var(--accent)' : 'var(--surface2)'}`,
-                    transition: 'all 0.2s',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 6, background: th.color,
-                        border: '1px solid var(--surface3)' }} />
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: ACCENT_COLORS[th.id] }} />
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: currentTheme === th.id ? 600 : 400,
-                      color: currentTheme === th.id ? 'var(--accent)' : 'var(--ink)' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+        {tab === 'themes' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+            {THEMES.map(th => {
+              const active = currentTheme === th.id
+              return (
+                <div key={th.id} onClick={() => onThemeChange?.(th.id)} style={{
+                  padding: 12, borderRadius: 12, cursor: 'pointer',
+                  background: active ? 'var(--accent-glow)' : 'var(--surface)',
+                  border: `2px solid ${active ? 'var(--accent)' : 'var(--surface2)'}`,
+                  transition: 'all 0.2s',
+                }}>
+                  <ThemePreview theme={th} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: active ? 600 : 400,
+                      color: active ? 'var(--accent)' : 'var(--ink)' }}>
                       {en ? th.en : th.ru}
-                    </div>
-                    {currentTheme === th.id && <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓</span>}
+                    </span>
+                    {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {tab === 'chips' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                {chipSkins.map(skin => (
-                  <SkinCard key={skin.id} skin={skin} en={en}
-                    selected={settings.chipStyle === skin.id}
-                    locked={skin.level > userLevel}
-                    onClick={() => select('chipStyle', skin.id)} />
-                ))}
-              </div>
-            )}
-
-            {tab === 'stands' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                {standSkins.map(skin => (
-                  <SkinCard key={skin.id} skin={skin} en={en}
-                    selected={settings.standStyle === skin.id}
-                    locked={skin.level > userLevel}
-                    onClick={() => select('standStyle', skin.id)} />
-                ))}
-              </div>
-            )}
-
-            {/* Legend */}
-            <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--surface)',
-              borderRadius: 10, border: '1px solid var(--surface2)' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.8 }}>
-                {en
-                  ? 'New skins unlock as you level up. Win games, complete missions, and solve puzzles to earn XP!'
-                  : 'Новые скины открываются с ростом уровня. Побеждайте, выполняйте миссии и решайте головоломки!'}
-              </div>
-            </div>
+                </div>
+              )
+            })}
           </div>
+        )}
+
+        {tab === 'chips' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+            {CHIP_SKINS.map(skin => {
+              const active = settings.chipStyle === skin.id
+              const locked = skin.level > userLevel
+              return (
+                <div key={skin.id} onClick={!locked ? () => select('chipStyle', skin.id) : undefined} style={{
+                  padding: 12, borderRadius: 12, cursor: locked ? 'default' : 'pointer',
+                  background: active ? 'var(--accent-glow)' : 'var(--surface)',
+                  border: `2px solid ${active ? 'var(--accent)' : 'var(--surface2)'}`,
+                  opacity: locked ? 0.4 : 1, transition: 'all 0.2s', position: 'relative',
+                }}>
+                  {locked && (
+                    <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, color: 'var(--ink3)',
+                      background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>
+                      Lv.{skin.level}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0 8px',
+                    background: 'rgba(0,0,0,0.15)', borderRadius: 8, marginBottom: 8 }}>
+                    <ChipPreview skin={skin} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 12, fontWeight: active ? 600 : 400,
+                      color: active ? 'var(--accent)' : 'var(--ink)' }}>
+                      {en ? skin.en : skin.ru}
+                    </span>
+                    {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {tab === 'stands' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+            {STAND_SKINS.map(skin => {
+              const active = settings.standStyle === skin.id
+              const locked = skin.level > userLevel
+              return (
+                <div key={skin.id} onClick={!locked ? () => select('standStyle', skin.id) : undefined} style={{
+                  padding: 12, borderRadius: 12, cursor: locked ? 'default' : 'pointer',
+                  background: active ? 'var(--accent-glow)' : 'var(--surface)',
+                  border: `2px solid ${active ? 'var(--accent)' : 'var(--surface2)'}`,
+                  opacity: locked ? 0.4 : 1, transition: 'all 0.2s', position: 'relative',
+                }}>
+                  {locked && (
+                    <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, color: 'var(--ink3)',
+                      background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>
+                      Lv.{skin.level}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0 4px',
+                    background: 'rgba(0,0,0,0.15)', borderRadius: 8, marginBottom: 8 }}>
+                    <StandPreview skin={skin} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 12, fontWeight: active ? 600 : 400,
+                      color: active ? 'var(--accent)' : 'var(--ink)' }}>
+                      {en ? skin.en : skin.ru}
+                    </span>
+                    {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--surface)',
+          borderRadius: 10, border: '1px solid var(--surface2)', fontSize: 11, color: 'var(--ink3)', lineHeight: 1.8 }}>
+          {en ? 'New skins unlock as you level up. Win games, complete missions, and solve puzzles to earn XP!'
+            : 'Новые скины открываются с ростом уровня. Побеждайте, выполняйте миссии и решайте головоломки!'}
         </div>
       </div>
     </div>
