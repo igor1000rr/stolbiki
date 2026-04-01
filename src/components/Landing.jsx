@@ -141,58 +141,45 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ SCREENSHOTS — animated theme previews ═══ */}
+      {/* ═══ SCREENSHOTS — 6 тем, блоки ставятся по одному ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'The game in action' : 'Игра в действии'}</h2>
-        <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, maxWidth: 600, margin: '0 auto' }}>
+        <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 720, margin: '0 auto' }}>
           {[
-            { theme: 'Dark', gradient: 'linear-gradient(160deg, #12121e 0%, #1a1a30 100%)', accent: '#4a9eff', accent2: '#ff6066', glow: '#4a9eff30', desc: en ? 'Classic dark theme' : 'Классическая тёмная' },
-            { theme: 'Neon', gradient: 'linear-gradient(160deg, #08081a 0%, #18003a 100%)', accent: '#ff00ff', accent2: '#00ffaa', glow: '#ff00ff30', desc: en ? 'Cyberpunk neon' : 'Киберпанк неон' },
-            { theme: 'Sakura', gradient: 'linear-gradient(160deg, #1e0e18 0%, #2a1028 100%)', accent: '#ff69b4', accent2: '#ffb7d5', glow: '#ff69b430', desc: en ? 'Cherry blossom' : 'Сакура' },
-            { theme: 'Arctic', gradient: 'linear-gradient(160deg, #0a1620 0%, #0c2030 100%)', accent: '#00bcd4', accent2: '#80deea', glow: '#00bcd430', desc: en ? 'Frozen depths' : 'Ледяная' },
-          ].map((s, i) => (
-            <div key={i} className="l-theme-card" style={{ '--accent': s.accent, '--accent2': s.accent2, '--glow': s.glow, '--i': i, background: s.gradient, borderRadius: 16, padding: '20px 16px 16px', border: `1px solid ${s.accent}18`, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-              onClick={onPlay}>
-              {/* Фоновое свечение */}
-              <div style={{ position: 'absolute', top: '30%', left: '50%', width: 200, height: 200, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${s.glow}, transparent 70%)`, pointerEvents: 'none' }} />
-              {/* Анимированная доска */}
-              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', gap: 4, height: 120, alignItems: 'flex-end', marginBottom: 14 }}>
-                {Array.from({ length: 10 }, (_, j) => {
-                  const blocks = [5,3,7,2,8,4,6,1,5,3][j]
-                  const isGolden = j === 0
-                  return (
-                    <div key={j} style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 2, width: 20 }}>
-                      {/* Основание стойки */}
-                      <div style={{ width: 20, height: 3, borderRadius: 1, background: `${s.accent}30` }} />
-                      {/* Блоки с анимацией появления */}
-                      {Array.from({ length: blocks }, (_, k) => {
-                        const isP1 = (j + k) % 3 !== 0
-                        return (
-                          <div key={k} className="l-theme-block" style={{
-                            width: 16, height: 8, borderRadius: 3,
-                            background: isP1 ? s.accent : s.accent2,
-                            opacity: 0.85,
-                            boxShadow: `0 0 6px ${isP1 ? s.accent : s.accent2}40`,
-                            animationDelay: `${0.3 + i * 0.15 + j * 0.04 + k * 0.03}s`,
-                          }} />
-                        )
-                      })}
-                      {/* Звезда для золотой */}
-                      {isGolden && <div style={{ fontSize: 10, color: '#ffc145', lineHeight: 1, marginTop: 2, textShadow: '0 0 8px #ffc14580' }}>★</div>}
+            { theme: 'Dark', bg: '#0c0c12', surface: '#1a1a2a', p1: '#4a9eff', p2: '#ff6066' },
+            { theme: 'Neon', bg: '#05050a', surface: '#0f0f22', p1: '#00e5ff', p2: '#ff3090' },
+            { theme: 'Sakura', bg: '#1a0e14', surface: '#2e1824', p1: '#f48fb1', p2: '#4fc3f7' },
+            { theme: 'Retro', bg: '#0a0a00', surface: '#1a1a06', p1: '#76ff03', p2: '#ff6e40' },
+            { theme: 'Arctic', bg: '#0a1520', surface: '#122436', p1: '#80d8ff', p2: '#ff8a80' },
+            { theme: 'Sunset', bg: '#1a0e1e', surface: '#2e1a32', p1: '#ffa726', p2: '#ab47bc' },
+          ].map((s, i) => {
+            // Генерируем "партию" — фиксированные высоты стоек для каждой темы
+            const heights = [[3,5,2,7,4,6,1,5,3,4],[4,2,6,3,7,5,2,4,6,3],[5,3,4,6,2,7,4,3,5,2],[2,6,3,5,7,4,6,2,3,5],[6,4,5,2,3,7,5,4,2,6],[3,7,4,5,2,6,3,5,4,7]][i]
+            return (
+              <div key={i} className="l-theme-card" style={{ '--i': i, background: s.bg, borderRadius: 14, padding: '16px 12px 12px', border: `1px solid ${s.p1}15`, cursor: 'pointer', overflow: 'hidden' }}
+                onClick={onPlay}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 3, height: 90, alignItems: 'flex-end', marginBottom: 10 }}>
+                  {heights.map((blocks, j) => (
+                    <div key={j} style={{ display: 'flex', flexDirection: 'column-reverse', gap: 1.5, width: 16 }}>
+                      <div style={{ width: 16, height: 2, borderRadius: 1, background: s.surface }} />
+                      {Array.from({ length: blocks }, (_, k) => (
+                        <div key={k} className="l-block-place" style={{
+                          width: 13, height: 7, borderRadius: 2, margin: '0 auto',
+                          background: (j + k) % 3 !== 0 ? s.p1 : s.p2,
+                          animationDelay: `${0.2 + i * 0.12 + j * 0.06 + k * 0.04}s`,
+                        }} />
+                      ))}
+                      {j === 0 && <div style={{ fontSize: 7, color: '#ffc145', textAlign: 'center', lineHeight: 1 }}>★</div>}
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: s.p1 }}>{s.theme}</div>
               </div>
-              {/* Название темы */}
-              <div style={{ position: 'relative' }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: s.accent, letterSpacing: '-0.3px' }}>{s.theme}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.desc}</div>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'var(--ink3)' }}>
-          {en ? '+ 7 more themes and 17 skins in the Skin Shop' : '+ ещё 7 тем и 17 скинов в магазине'}
+        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 13, color: 'var(--ink3)' }}>
+          {en ? '+ 5 more themes, 8 block skins, 9 stand skins' : '+ ещё 5 тем, 8 скинов блоков, 9 скинов стоек'}
         </div>
       </section>
 
