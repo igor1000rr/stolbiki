@@ -3080,3 +3080,12 @@ body.native-body { animation: none !important; }
   from { opacity: 0; transform: scale(0.3) translateY(30px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+
+/* ═══ Landing: Screenshots + Download ═══ */
+.l-screens { opacity: 0; transform: translateY(30px); transition: all 0.6s ease; }
+.l-screens.in { opacity: 1; transform: none; }
+.l-screen-card { animation: none; }
+.l-screens.in .l-screen-card { animation: fadeSlideUp 0.5s ease forwards; animation-delay: calc(var(--i) * 0.1s); opacity: 0; }
+.l-download { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
+.l-download.in { opacity: 1; transform: none; }
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
