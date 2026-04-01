@@ -166,7 +166,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
                         <div key={k} className="l-block-place" style={{
                           width: 13, height: 7, borderRadius: 2, margin: '0 auto',
                           background: (j + k) % 3 !== 0 ? s.p1 : s.p2,
-                          animationDelay: `${0.2 + i * 0.12 + j * 0.06 + k * 0.04}s`,
+                          animationDelay: `${0.3 + i * 0.3 + j * 0.12 + k * 0.08}s`,
                         }} />
                       ))}
                       {j === 0 && <div style={{ fontSize: 7, color: '#ffc145', textAlign: 'center', lineHeight: 1 }}>★</div>}
