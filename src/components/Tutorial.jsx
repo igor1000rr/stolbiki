@@ -5,10 +5,10 @@ import Board from './Board'
 
 const STEPS = [
   {
-    title: { ru: 'Установка фишек', en: 'Placing chips' },
+    title: { ru: 'Установка блоков', en: 'Placing blocks' },
     text: {
       ru: 'Кликните на стойку 3, чтобы поставить блок. Первый ход — всегда 1 блок.',
-      en: 'Click on stand 3 to place a chip. First move is always 1 chip.',
+      en: 'Click on stand 3 to place a block. First move is always 1 block.',
     },
     setup: (gs) => { gs.turn = 0; gs.currentPlayer = 0 },
     validClick: 3,
@@ -18,7 +18,7 @@ const STEPS = [
     title: { ru: 'Обычный ход', en: 'Normal turn' },
     text: {
       ru: 'Теперь поставьте 2 блока: кликните на стойку 5 дважды. До 3 блоков на 2 стойки за ход.',
-      en: 'Now place 2 chips: click stand 5 twice. Up to 3 chips on 2 stands per turn.',
+      en: 'Now place 2 blocks: click stand 5 twice. Up to 3 blocks on 2 stands per turn.',
     },
     setup: (gs) => {
       gs.stands[3] = [1] // от прошлого хода
@@ -29,10 +29,10 @@ const STEPS = [
     action: { placement: { 5: 2 } },
   },
   {
-    title: { ru: 'Перенос фишек', en: 'Transferring chips' },
+    title: { ru: 'Перенос блоков', en: 'Transferring blocks' },
     text: {
       ru: 'Перенос — ключевой элемент! Кликните на стойку 2 (откуда), потом на стойку 1 (куда). Переносить можно свои и чужие блоки.',
-      en: 'Transfer is key! Click stand 2 (from), then stand 1 (to). You can move your own and opponent\'s chips.',
+      en: 'Transfer is key! Click stand 2 (from), then stand 1 (to). You can move your own and opponent\'s blocks.',
     },
     setup: (gs) => {
       gs.stands[1] = [0,0,0,0,0,0,0,0] // 8 наших
@@ -44,14 +44,14 @@ const STEPS = [
     action: { transfer: [2, 1], placement: {} },
     afterText: {
       ru: 'Высотка 1 достроена! При 11+ блоках высотка достроена. Цвет верхней группы — владелец.',
-      en: 'Stand 1 is closed! At 11+ chips a stand closes. Top group color = owner.',
+      en: 'Highrise 1 is complete! At 11+ blocks the highrise is complete. Top group color = owner.',
     },
   },
   {
     title: { ru: 'Золотая стойка ★', en: 'Golden stand ★' },
     text: {
       ru: 'Стойка ★ (0) решает при ничьей 5:5. Поставьте 3 блока на неё — кликните 3 раза.',
-      en: 'Stand ★ (0) breaks 5:5 ties. Place 3 chips on it — click 3 times.',
+      en: 'Stand ★ (0) breaks 5:5 ties. Place 3 blocks on it — click 3 times.',
     },
     setup: (gs) => {
       gs.stands[0] = [0,0,0,0,0] // 5 фишек на золотой

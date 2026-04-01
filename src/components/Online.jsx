@@ -632,7 +632,7 @@ export default function Online() {
       <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>{draw ? '=' : won ? '+' : '-'}</div>
         <h3 style={{ fontSize: 20, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0, marginBottom: 4 }}>
-          {draw ? 'Ничья!' : won ? 'Вы победили в турнире!' : 'Противник победил'}
+          {draw ? (en ? 'Draw!' : 'Ничья!') : won ? (en ? 'You won the tournament!' : 'Вы победили в турнире!') : (en ? 'Opponent won' : 'Противник победил')}
         </h3>
         <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--ink)', margin: '12px 0' }}>
           <span style={{ color: won || draw ? 'var(--green)' : 'var(--p2)' }}>{tournamentResult.scores[playerIdx]}</span>
