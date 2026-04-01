@@ -346,8 +346,8 @@ export default function Online() {
   }, [])
 
   const inputStyle = {
-    width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(20,20,32,0.8)', color: 'var(--ink)', fontSize: 14, boxSizing: 'border-box', marginBottom: 10,
+    width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--surface3)',
+    background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, boxSizing: 'border-box', marginBottom: 10,
     fontFamily: 'Outfit, sans-serif',
   }
 

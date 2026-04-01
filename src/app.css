@@ -317,6 +317,72 @@ body::before {
 /* Board stand focus */
 .stand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* ═══ Global form elements ═══ */
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], textarea {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--surface3);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+input:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+input::placeholder, textarea::placeholder { color: var(--ink3); }
+
+select {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  padding: 8px 28px 8px 12px;
+  border: 1px solid var(--surface3);
+  border-radius: 8px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a6a8a' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+select:hover { border-color: var(--ink3); }
+
+/* Checkbox */
+input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+
+/* Focus-visible — universal */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions everywhere */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Selection */
+::selection { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
 
