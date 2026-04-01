@@ -297,40 +297,36 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
 
       {/* ═══ DOWNLOAD ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ textAlign: 'center', padding: '40px 24px', background: 'radial-gradient(ellipse at center, rgba(74,158,255,0.06) 0%, transparent 70%)', borderRadius: 24, border: '1px solid rgba(74,158,255,0.08)' }}>
-          <Mascot pose="wave" size={120} large className="mascot-enter" style={{ display: 'block', margin: '0 auto 20px' }} />
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-            {en ? 'Play on your phone' : 'Играйте на телефоне'}
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 auto 24px', maxWidth: 400 }}>
-            {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
-          </p>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {/* App Store button */}
-            <div style={{ width: 180, padding: '14px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #1a1a2e, #222240)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', position: 'relative', overflow: 'hidden' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1, marginBottom: 2 }}>Download on the</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.1 }}>App Store</div>
+        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '40px 32px', background: 'radial-gradient(ellipse at 20% 50%, rgba(74,158,255,0.06) 0%, transparent 70%)', borderRadius: 24, border: '1px solid rgba(74,158,255,0.08)' }}>
+          <Mascot pose="wave" size={180} large className="mascot-enter l-dl-mascot" />
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+              {en ? 'Play on your phone' : 'Играйте на телефоне'}
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 20px', maxWidth: 360 }}>
+              {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {/* App Store */}
+              <div style={{ width: 180, padding: '14px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #1a1a2e, #222240)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', position: 'relative', overflow: 'hidden' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <div><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1, marginBottom: 2 }}>Download on the</div><div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.1 }}>App Store</div></div>
                 </div>
+                <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(74,158,255,0.2)', color: 'var(--p1)', fontWeight: 600 }}>{en ? 'Soon' : 'Скоро'}</div>
               </div>
-              <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(74,158,255,0.2)', color: 'var(--p1)', fontWeight: 600 }}>{en ? 'Soon' : 'Скоро'}</div>
-            </div>
-            {/* Google Play button */}
-            <div style={{ width: 180, padding: '14px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #1a1a2e, #222240)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', position: 'relative', overflow: 'hidden' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1, marginBottom: 2 }}>GET IT ON</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.1 }}>Google Play</div>
+              {/* Google Play */}
+              <div style={{ width: 180, padding: '14px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #1a1a2e, #222240)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s', position: 'relative', overflow: 'hidden' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
+                  <div><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1, marginBottom: 2 }}>GET IT ON</div><div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.1 }}>Google Play</div></div>
                 </div>
+                <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(61,214,140,0.2)', color: 'var(--green)', fontWeight: 600 }}>{en ? 'Soon' : 'Скоро'}</div>
               </div>
-              <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(61,214,140,0.2)', color: 'var(--green)', fontWeight: 600 }}>{en ? 'Soon' : 'Скоро'}</div>
             </div>
           </div>
         </div>

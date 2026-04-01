@@ -3132,3 +3132,7 @@ body.native-body { animation: none !important; }
   .l-bento { grid-template-columns: 1fr; }
   .l-bento-ai, .l-bento-online, .l-bento-puzzles, .l-bento-themes { grid-column: span 1; }
 }
+
+/* Download mascot — на мобильных прячем */
+.l-dl-mascot { flex-shrink: 0; }
+@media (max-width: 600px) { .l-dl-mascot { display: none !important; } }
