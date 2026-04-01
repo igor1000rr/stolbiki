@@ -1349,7 +1349,7 @@ export default function Game() {
           <button className="btn" onClick={startTransfer}>{t('game.transfer')}</button>
         )}
         {isMyTurn && inTransferMode && (
-          <button className="btn" onClick={cancelTransfer}>{t('game.cancelTransfer')}</button>
+          <button className="btn" onClick={cancelTransfer} title="Esc">{t('game.cancelTransfer')}</button>
         )}
         {isMyTurn && transfer && phase === 'place' && (
           <span style={{ fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
@@ -1357,7 +1357,7 @@ export default function Game() {
           </span>
         )}
         {isMyTurn && transfer && phase === 'place' && (
-          <button className="btn" onClick={cancelTransfer}>{t('game.cancelTransfer')}</button>
+          <button className="btn" onClick={cancelTransfer} title="Esc">{t('game.cancelTransfer')}</button>
         )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
           <button className="btn" onClick={() => {
@@ -1375,7 +1375,7 @@ export default function Game() {
           <button className="btn" onClick={() => setPlacement({})}>{t('game.reset')}</button>
         )}
         {isMyTurn && phase === 'place' && (
-          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn}>{ t('game.confirm') }</button>
+          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn} title="Enter">{ t('game.confirm') } ⏎</button>
         )}
         {hintMode && isMyTurn && (
           <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}>
