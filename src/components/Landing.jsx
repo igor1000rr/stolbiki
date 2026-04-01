@@ -114,124 +114,30 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ FEATURES — bento grid ═══ */}
+      {/* ═══ FEATURES — symmetric 3×2 grid with animated diagrams ═══ */}
       <section className="l-section">
         <h2 className="l-title">{c('landing.features_title', en ? "What's inside" : 'Что внутри')}</h2>
-
-        <div className={`l-bento ${featVis ? 'in' : ''}`} ref={featRef}>
-
-          {/* AI — главная карточка */}
-          <div className="l-bento-card l-bento-ai">
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 20% 30%, rgba(74,158,255,0.12) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(74,158,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="ai" size={20} color="#4a9eff" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>{en ? 'AlphaZero AI' : 'AI на базе AlphaZero'}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'GPU neural network' : 'Нейросеть на GPU'}</div>
-                </div>
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6, margin: '0 0 16px' }}>{en
-                ? 'Trained via self-play on 239K games. Four difficulty levels from casual to grandmaster.'
-                : 'Обучена на 239K партиях через self-play. Четыре уровня сложности от новичка до гроссмейстера.'}</p>
-              <div style={{ display: 'flex', gap: 16 }}>
-                {[
-                  { v: '239K', l: en ? 'games' : 'партий' },
-                  { v: '0.169', l: 'loss' },
-                  { v: '98%', l: en ? 'win rate' : 'винрейт' },
-                ].map((m, i) => (
-                  <div key={i} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#4a9eff', lineHeight: 1 }}>{m.v}</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.l}</div>
-                  </div>
-                ))}
-              </div>
+        <div className={`l-feat-grid ${featVis ? 'in' : ''}`} ref={featRef}>
+          {[
+            { color: '#4a9eff', title: en ? 'AlphaZero AI' : 'AI нейросеть', desc: en ? 'Trained on 239K games via self-play. 4 difficulty levels.' : 'Обучена на 239K партиях. 4 уровня сложности.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><g className="l-feat-bars">{[18,32,24,40,28,36,20,44,30,22].map((h,i)=><rect key={i} x={4+i*12} y={48-h} width={8} height={h} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} opacity={0.7} style={{animationDelay:`${i*0.08}s`}}/>)}</g><text x="60" y="12" textAnchor="middle" fill="#ffc145" fontSize="6">★ 98% win rate</text></svg> },
+            { color: '#3dd68c', title: en ? 'Online multiplayer' : 'Онлайн', desc: en ? 'Send a link — play in seconds. No signup. Best-of-3/5.' : 'Ссылка другу — игра через секунды. Без регистрации.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><circle cx="30" cy="24" r="10" fill="none" stroke="#3dd68c" strokeWidth="1.5" opacity="0.5"/><circle cx="90" cy="24" r="10" fill="none" stroke="#4a9eff" strokeWidth="1.5" opacity="0.5"/><line x1="40" y1="24" x2="80" y2="24" stroke="#3dd68c50" strokeWidth="1" strokeDasharray="4 3" className="l-feat-dash"/><circle cx="30" cy="24" r="3" fill="#3dd68c" className="l-feat-pulse"/><circle cx="90" cy="24" r="3" fill="#4a9eff" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/><text x="60" y="44" textAnchor="middle" fill="#3dd68c60" fontSize="7">WebSocket</text></svg> },
+            { color: '#ffc145', title: en ? 'Daily puzzles' : 'Головоломки', desc: en ? 'Daily + weekly challenges. 50 puzzles. Leaderboards.' : 'Ежедневные + еженедельные. 50 штук. Лидерборды.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><g>{[[20,8,28,20],[40,14,28,20],[60,8,28,20],[80,14,28,20]].map(([x,y,w,h],i)=><rect key={i} x={x} y={y} width={w} height={h} rx={4} fill="none" stroke="#ffc14550" strokeWidth="1" className="l-feat-pop" style={{animationDelay:`${i*0.15}s`}}/>)}<text x="34" y="22" fill="#ffc145" fontSize="14" fontWeight="800" className="l-feat-pop" style={{animationDelay:'0.1s'}}>?</text><text x="74" y="22" fill="#3dd68c" fontSize="14" fontWeight="800" className="l-feat-pop" style={{animationDelay:'0.3s'}}>✓</text></g></svg> },
+            { color: '#9b59b6', title: en ? '11 themes + 17 skins' : '11 тем + 17 скинов', desc: en ? 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow blocks.' : 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow блоки.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><g>{['#4a9eff','#ff00ff','#ff69b4','#00bcd4','#ffc145','#3dd68c','#ff6066'].map((c,i)=><circle key={i} cx={18+i*14} cy={20} r={6} fill={c} opacity={0.7} className="l-feat-pop" style={{animationDelay:`${i*0.08}s`}}/>)}<g>{['Glass','Metal','Glow'].map((t,i)=><text key={i} x={20+i*36} y={40} fill="#ffffff40" fontSize="7" textAnchor="middle">{t}</text>)}</g></g></svg> },
+            { color: '#3dd68c', title: 'AI ' + (en ? 'Review' : 'Анализ'), desc: en ? 'Every move rated: excellent → blunder. Accuracy %.' : 'Каждый ход: отличный → грубая ошибка. Accuracy %.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><g>{[['✓',12,'#3dd68c'],['✓',30,'#3dd68c'],['○',48,'#ffc145'],['✕',66,'#ff6066'],['✓',84,'#3dd68c'],['✓',102,'#3dd68c']].map(([s,x,c],i)=><g key={i} className="l-feat-pop" style={{animationDelay:`${i*0.1}s`}}><text x={x} y={24} fill={c} fontSize="14" textAnchor="middle" fontWeight="700">{s}</text></g>)}</g><rect x="10" y="36" width="85" height="4" rx="2" fill="#1a1a2e"/><rect x="10" y="36" width="70" height="4" rx="2" fill="#3dd68c80" className="l-feat-grow"/><text x="100" y="40" fill="#3dd68c" fontSize="8" fontWeight="700">82%</text></svg> },
+            { color: '#ff6066', title: en ? 'Arena & Progression' : 'Арена и прогресс', desc: en ? 'Tournaments, daily missions, 33 achievements, levels.' : 'Турниры, миссии, 33 ачивки, уровни.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><g className="l-feat-bars">{[12,20,32,24,40,16,28,36].map((h,i)=><rect key={i} x={8+i*14} y={44-h} width={10} height={h} rx={2} fill={`hsl(${340+i*8},70%,60%)`} opacity={0.6} style={{animationDelay:`${i*0.06}s`}}/>)}</g><text x="60" y="8" textAnchor="middle" fill="#ffc14580" fontSize="9">🏆 XP ↑</text></svg> },
+          ].map((f, i) => (
+            <div key={i} className="l-feat-card" style={{ '--i': i, '--color': f.color }}>
+              <div className="l-feat-visual">{f.visual}</div>
+              <div className="l-feat-title" style={{ color: f.color }}>{f.title}</div>
+              <div className="l-feat-desc">{f.desc}</div>
             </div>
-          </div>
-
-          {/* Online */}
-          <div className="l-bento-card l-bento-online">
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 20%, rgba(61,214,140,0.1) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(61,214,140,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <Icon name="online" size={18} color="#3dd68c" />
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{en ? 'Online' : 'Онлайн'}</div>
-              <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>{en ? 'Link to a friend — play in seconds. No signup needed.' : 'Ссылка другу — играйте через секунды. Без регистрации.'}</p>
-            </div>
-          </div>
-
-          {/* Puzzles */}
-          <div className="l-bento-card l-bento-puzzles">
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 20% 80%, rgba(255,193,69,0.1) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,193,69,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <Icon name="puzzle" size={18} color="#ffc145" />
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{en ? 'Puzzles' : 'Головоломки'}</div>
-              <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>{en ? 'Daily + weekly challenges. 50 puzzles with leaderboards.' : 'Ежедневные + еженедельные задачи. 50 штук с лидербордами.'}</p>
-            </div>
-          </div>
-
-          {/* Themes */}
-          <div className="l-bento-card l-bento-themes">
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%, rgba(155,89,182,0.08) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-                {['#4a9eff', '#ff00ff', '#ff69b4', '#00bcd4', '#ffc145'].map((c, i) => (
-                  <div key={i} style={{ width: 20, height: 20, borderRadius: 6, background: c, opacity: 0.7 }} />
-                ))}
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>11 {en ? 'themes' : 'тем'} + 17 {en ? 'skins' : 'скинов'}</div>
-              <p style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>Sakura, Neon, Retro, Arctic + Glass, Metal, Glow</p>
-            </div>
-          </div>
-
-          {/* Game Review */}
-          <div className="l-bento-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(61,214,140,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="trainer" size={14} color="#3dd68c" />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>AI {en ? 'Review' : 'Анализ'}</div>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>{en ? 'Every move rated. Accuracy %.' : 'Оценка каждого хода. Accuracy %.'}</p>
-          </div>
-
-          {/* Rush */}
-          <div className="l-bento-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,96,102,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="chart" size={14} color="#ff6066" />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Puzzle Rush</div>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>{en ? '3 min blitz. +10/−15 sec.' : '3 мин блиц. +10/−15 сек.'}</p>
-          </div>
-
-          {/* Lessons */}
-          <div className="l-bento-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(74,158,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="rules" size={14} color="#4a9eff" />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>5 {en ? 'lessons' : 'уроков'}</div>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>{en ? 'Interactive board tutorials.' : 'Интерактивные уроки на доске.'}</p>
-          </div>
-
-          {/* Arena + XP */}
-          <div className="l-bento-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(155,89,182,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="chart" size={14} color="#9b59b6" />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{en ? 'Arena & XP' : 'Арена и XP'}</div>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5, margin: 0 }}>{en ? 'Tournaments, missions, 33 achievements.' : 'Турниры, миссии, 33 ачивки.'}</p>
-          </div>
+          ))}
         </div>
       </section>
 

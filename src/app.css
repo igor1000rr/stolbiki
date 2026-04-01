@@ -3136,3 +3136,42 @@ body.native-body { animation: none !important; }
 /* Download mascot — на мобильных прячем */
 .l-dl-mascot { flex-shrink: 0; }
 @media (max-width: 600px) { .l-dl-mascot { display: none !important; } }
+
+/* ═══ Features 3×2 grid ═══ */
+.l-feat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  opacity: 0; transform: translateY(30px); transition: all 0.6s ease;
+}
+.l-feat-grid.in { opacity: 1; transform: none; }
+.l-feat-card {
+  background: rgba(26,26,42,0.6); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px; padding: 20px; text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  opacity: 0; animation: featCardIn 0.5s ease forwards;
+  animation-delay: calc(var(--i) * 0.08s);
+}
+.l-feat-grid:not(.in) .l-feat-card { animation: none; }
+.l-feat-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+@keyframes featCardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.l-feat-visual { height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.l-feat-svg { width: 100%; height: 100%; overflow: visible; }
+.l-feat-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.l-feat-desc { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+
+/* Анимации для SVG элементов внутри карточек */
+.l-feat-bars rect { animation: barGrow 0.6s cubic-bezier(0.34,1.56,0.64,1) both; transform-origin: bottom; }
+.l-feat-grid:not(.in) .l-feat-bars rect { animation: none; opacity: 0; }
+@keyframes barGrow { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 0.7; } }
+.l-feat-pulse { animation: pulseDot 2s ease-in-out infinite; }
+@keyframes pulseDot { 0%,100% { r: 3; opacity: 0.8; } 50% { r: 5; opacity: 1; } }
+.l-feat-dash { animation: dashMove 2s linear infinite; }
+@keyframes dashMove { to { stroke-dashoffset: -14; } }
+.l-feat-pop { animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+.l-feat-grid:not(.in) .l-feat-pop { animation: none; opacity: 0; }
+@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.l-feat-grow { animation: growWidth 1s ease both; animation-delay: 0.5s; }
+.l-feat-grid:not(.in) .l-feat-grow { animation: none; width: 0; }
+@keyframes growWidth { from { width: 0; } to { width: 70px; } }
+
+@media (max-width: 768px) { .l-feat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .l-feat-grid { grid-template-columns: 1fr; } }
