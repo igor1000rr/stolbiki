@@ -297,13 +297,18 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           </div>
 
           {/* Links row */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink3)', flexWrap: 'wrap' }}>
             <a href="https://t.me/igor1000rr" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
               Telegram
             </a>
             <span style={{ opacity: 0.3 }}>·</span>
-            <span style={{ opacity: 0.5 }}>v4.2</span>
+            <a href="https://boosty.to/igor1000rr" target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
+              ☕ {en ? 'Support' : 'Поддержать'}
+            </a>
+            <span style={{ opacity: 0.3 }}>·</span>
+            <span style={{ opacity: 0.5 }}>v4.3</span>
           </div>
         </div>
       </section>
