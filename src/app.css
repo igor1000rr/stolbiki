@@ -3178,3 +3178,25 @@ body.native-body { animation: none !important; }
 @media (max-width: 768px) { .l-feat-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .l-feat-grid { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .l-screens { grid-template-columns: 1fr !important; max-width: 320px !important; } }
+
+/* ═══ Store buttons — animated border glow ═══ */
+.l-store-btn {
+  position: relative; width: 185px; padding: 14px 20px; border-radius: 14px;
+  background: linear-gradient(135deg, #16162a, #1e1e38); cursor: pointer;
+  transition: transform 0.25s ease; overflow: hidden; z-index: 0;
+}
+.l-store-btn::before {
+  content: ''; position: absolute; inset: 0; border-radius: 14px; padding: 1.5px;
+  background: linear-gradient(var(--border-angle, 0deg), #4a9eff, #ff6066, #ffc145, #3dd68c, #4a9eff);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: borderSpin 3s linear infinite; z-index: -1;
+}
+@keyframes borderSpin { to { --border-angle: 360deg; } }
+@property --border-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.l-store-btn:hover { transform: translateY(-3px); }
+.l-store-badge {
+  position: absolute; top: 6px; right: 8px; font-size: 9px; padding: 2px 7px;
+  border-radius: 4px; background: rgba(74,158,255,0.2); color: var(--p1); font-weight: 600;
+}
