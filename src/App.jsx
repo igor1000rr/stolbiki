@@ -48,9 +48,11 @@ const THEMES = [
   { id: 'sunset', label: 'Sunset' },
   { id: 'forest', label: 'Forest' },
   { id: 'royal', label: 'Royal' },
+  { id: 'sakura', label: 'Sakura' },
   { id: 'neon', label: 'Neon' },
   { id: 'wood', label: 'Wood' },
   { id: 'arctic', label: 'Arctic' },
+  { id: 'retro', label: 'Retro' },
   { id: 'minimal', label: 'Light' },
 ]
 

@@ -2055,29 +2055,64 @@ body::before {
 [data-theme="royal"] .chip.p1 { box-shadow: 0 0 6px var(--p2-glow); }
 
 /* ═══ Arctic — ледяная тема ═══ */
+/* ═══ Arctic — ледяная тёмная ═══ */
 [data-theme="arctic"] {
-  --bg: #e8f0f8; --bg2: #dce8f2; --surface: #f0f6fc; --surface2: #d0dcea; --surface3: #b0c4d8;
-  --purple: #7b1fa2; --coral: #d32f2f;
-  --ink: #1a2a3a; --ink2: #4a6278; --ink3: #7a92a8;
-  --accent: #0288d1; --accent2: #0277bd; --accent-glow: rgba(2,136,209,0.2);
-  --p1: #0288d1; --p1-light: #4fc3f7; --p1-glow: rgba(2,136,209,0.2);
-  --p2: #d32f2f; --p2-light: #ef5350; --p2-glow: rgba(211,47,47,0.2);
-  --gold: #f57f17; --gold-glow: rgba(245,127,23,0.25);
-  --green: #2e7d32; --green-glow: rgba(46,125,50,0.2);
+  --bg: #0a1520; --bg2: #0e1c2c; --surface: #122436; --surface2: #1a3248; --surface3: #24425a;
+  --purple: #80d8ff; --coral: #ff8a80;
+  --ink: #d0e8ff; --ink2: #88b8e0; --ink3: #5888b0;
+  --accent: #40c4ff; --accent2: #00b0ff; --accent-glow: rgba(64,196,255,0.25);
+  --p1: #80d8ff; --p1-light: #b3e5fc; --p1-glow: rgba(128,216,255,0.3);
+  --p2: #ff8a80; --p2-light: #ffab91; --p2-glow: rgba(255,138,128,0.3);
+  --gold: #ffe082; --gold-glow: rgba(255,224,130,0.3);
+  --green: #69f0ae; --green-glow: rgba(105,240,174,0.3);
 }
-[data-theme="arctic"] body::before { display: none; }
-[data-theme="arctic"] .site-header { background: rgba(232,240,248,0.85); backdrop-filter: blur(20px); }
-[data-theme="arctic"] .board { background: var(--surface); border-color: var(--surface2); }
-[data-theme="arctic"] .stand { border-color: var(--surface3); background: var(--bg); }
-[data-theme="arctic"] .btn { border-color: var(--surface2); color: var(--ink2); background: var(--surface); }
-[data-theme="arctic"] .btn:hover { border-color: var(--surface3); }
-[data-theme="arctic"] .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-[data-theme="arctic"] .dash-card { background: var(--surface); border-color: var(--surface2); }
-[data-theme="arctic"] .game-result { background: var(--surface); border-color: var(--surface2); }
-[data-theme="arctic"] .nav-more-menu { background: var(--surface); border-color: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
-[data-theme="arctic"] ::selection { background: rgba(2,136,209,0.15); }
-[data-theme="arctic"] .l-hero-glow { display: none; }
-[data-theme="arctic"] .beta-badge { background: var(--accent); color: #fff; }
+[data-theme="arctic"] body::before {
+  background: radial-gradient(ellipse at 40% 20%, rgba(64,196,255,0.06), transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(128,216,255,0.04), transparent 50%);
+}
+[data-theme="arctic"] .board { border-color: rgba(64,196,255,0.12); }
+[data-theme="arctic"] .stand { border-color: rgba(64,196,255,0.1); }
+[data-theme="arctic"] .stand.golden { border-color: rgba(255,224,130,0.35); box-shadow: 0 0 12px rgba(255,224,130,0.15); }
+[data-theme="arctic"] .chip.p0 { box-shadow: 0 0 4px var(--p1-glow); }
+
+/* ═══ Sakura — вишнёвый цвет ═══ */
+[data-theme="sakura"] {
+  --bg: #1a0e14; --bg2: #24121c; --surface: #2e1824; --surface2: #3e2234; --surface3: #502e44;
+  --purple: #f48fb1; --coral: #ff8a80;
+  --ink: #fce4ec; --ink2: #d4a0b0; --ink3: #a06a80;
+  --accent: #f06292; --accent2: #ec407a; --accent-glow: rgba(240,98,146,0.25);
+  --p1: #f48fb1; --p1-light: #f8bbd0; --p1-glow: rgba(244,143,177,0.3);
+  --p2: #4fc3f7; --p2-light: #81d4fa; --p2-glow: rgba(79,195,247,0.3);
+  --gold: #ffe082; --gold-glow: rgba(255,224,130,0.3);
+  --green: #a5d6a7; --green-glow: rgba(165,214,167,0.3);
+}
+[data-theme="sakura"] body::before {
+  background: radial-gradient(ellipse at 30% 70%, rgba(240,98,146,0.06), transparent 60%),
+    radial-gradient(ellipse at 70% 20%, rgba(244,143,177,0.04), transparent 50%);
+}
+[data-theme="sakura"] .board { border-color: rgba(240,98,146,0.12); }
+[data-theme="sakura"] .stand { border-color: rgba(240,98,146,0.08); }
+[data-theme="sakura"] .btn.primary { background: linear-gradient(135deg, #f06292, #ec407a); }
+
+/* ═══ Retro — CRT/terminal ═══ */
+[data-theme="retro"] {
+  --bg: #0a0a00; --bg2: #141400; --surface: #1a1a06; --surface2: #28280e; --surface3: #363616;
+  --purple: #ffab40; --coral: #ff6e40;
+  --ink: #c8e6a0; --ink2: #8aac60; --ink3: #5a7838;
+  --accent: #76ff03; --accent2: #64dd17; --accent-glow: rgba(118,255,3,0.2);
+  --p1: #76ff03; --p1-light: #b2ff59; --p1-glow: rgba(118,255,3,0.3);
+  --p2: #ff6e40; --p2-light: #ff9e80; --p2-glow: rgba(255,110,64,0.3);
+  --gold: #ffd740; --gold-glow: rgba(255,215,64,0.3);
+  --green: #69f0ae; --green-glow: rgba(105,240,174,0.3);
+}
+[data-theme="retro"] body::before {
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(118,255,3,0.02) 2px, rgba(118,255,3,0.02) 4px);
+}
+[data-theme="retro"] .board { border-color: rgba(118,255,3,0.12); }
+[data-theme="retro"] .stand { border-color: rgba(118,255,3,0.08); border-radius: 2px 2px 0 0; }
+[data-theme="retro"] .chip { border-radius: 1px !important; }
+[data-theme="retro"] .btn.primary { background: linear-gradient(135deg, #76ff03, #64dd17); color: #0a0a00; }
+[data-theme="retro"] .site-logo-text { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
 
 /* Mobile: hide username text, show only avatar */
 @media (max-width: 480px) {

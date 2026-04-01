@@ -8,8 +8,8 @@ const VERSIONS = [
   {
     version: '4.0',
     date: '2026-04-01',
-    title_ru: 'AI анализ, Puzzle Rush, Arena, уроки, 9 тем, 8 скинов фишек, 9 скинов стоек',
-    title_en: 'AI review, Puzzle Rush, Arena, lessons, 9 themes, 8 chip skins, 9 stand skins',
+    title_ru: 'AI анализ, Puzzle Rush, Arena, уроки, 11 тем, 8 скинов фишек, 9 скинов стоек',
+    title_en: 'AI review, Puzzle Rush, Arena, lessons, 11 themes, 8 chip skins, 9 stand skins',
     changes_ru: [
       { type: 'new', text: 'AI Game Review — анализ каждого хода: отличный/хороший/ошибка/грубая ошибка. Accuracy %, навигация по replay' },
       { type: 'new', text: 'Puzzle Rush — реши максимум головоломок за 3 минуты. +10 сек за правильную, -15 за ошибку. Leaderboard' },

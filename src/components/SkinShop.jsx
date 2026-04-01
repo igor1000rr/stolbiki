@@ -62,9 +62,11 @@ const THEMES = [
   { id: 'sunset', ru: 'Закат', en: 'Sunset', bg: '#1a0e1e', surface: '#2e1a32', accent: '#ff7043', p1: '#ffa726', p2: '#ab47bc' },
   { id: 'forest', ru: 'Лес', en: 'Forest', bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784', p2: '#e57373' },
   { id: 'royal', ru: 'Королевская', en: 'Royal', bg: '#0e0a18', surface: '#1e1638', accent: '#9c27b0', p1: '#ce93d8', p2: '#ef5350' },
+  { id: 'sakura', ru: 'Сакура', en: 'Sakura', bg: '#1a0e14', surface: '#2e1824', accent: '#f06292', p1: '#f48fb1', p2: '#4fc3f7' },
   { id: 'neon', ru: 'Неон', en: 'Neon', bg: '#05050a', surface: '#0f0f22', accent: '#ff00ff', p1: '#00e5ff', p2: '#ff3090' },
   { id: 'wood', ru: 'Дерево', en: 'Wood', bg: '#2c1e0f', surface: '#4a3520', accent: '#d4803a', p1: '#f0ece0', p2: '#2a2018' },
-  { id: 'arctic', ru: 'Арктика', en: 'Arctic', bg: '#e8f0f8', surface: '#f0f6fc', accent: '#0288d1', p1: '#0288d1', p2: '#d32f2f' },
+  { id: 'arctic', ru: 'Арктика', en: 'Arctic', bg: '#0a1520', surface: '#122436', accent: '#40c4ff', p1: '#80d8ff', p2: '#ff8a80' },
+  { id: 'retro', ru: 'Ретро', en: 'Retro', bg: '#0a0a00', surface: '#1a1a06', accent: '#76ff03', p1: '#76ff03', p2: '#ff6e40' },
   { id: 'minimal', ru: 'Светлая', en: 'Light', bg: '#f5f5f7', surface: '#ffffff', accent: '#0071e3', p1: '#007aff', p2: '#ff3b30' },
 ]
 
