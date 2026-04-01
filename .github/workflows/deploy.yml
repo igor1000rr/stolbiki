@@ -46,7 +46,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "server/package.json,server/server.js,server/db.js,server/ws.js,server/game-engine.js,server/ecosystem.config.cjs,server/backup.sh"
+          source: "server/package.json,server/server.js,server/db.js,server/ws.js,server/game-engine.js,server/middleware.js,server/helpers.js,server/ecosystem.config.cjs,server/backup.sh,server/routes/auth.js,server/routes/profile.js,server/routes/games.js,server/routes/social.js,server/routes/missions.js,server/routes/arena.js,server/routes/puzzles.js,server/routes/blog.js,server/routes/admin.js"
           target: /opt/stolbiki-api
           strip_components: 1
 
