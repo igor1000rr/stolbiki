@@ -407,27 +407,44 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ ABOUT ═══ */}
-      <section className="l-section" style={{ borderTop: '1px solid var(--surface2)', paddingTop: 48 }}>
-        <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="l-title">{c('landing.about_title', en ? 'About the project' : 'О проекте')}</h2>
-          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.75, marginBottom: 20 }}>
-            {c('landing.about_text', en
-              ? 'Snatch Highrise is an open-source research project exploring the intersection of board game design and AI. The neural network was trained from scratch using self-play (AlphaZero approach) across 239K+ games. The game is designed for balance: 50:50 between first and second player, verified by statistical analysis.'
-              : 'Перехват высотки — open-source исследовательский проект на стыке дизайна настольных игр и AI. Нейросеть обучена с нуля через self-play (подход AlphaZero) на 239K+ партиях. Игра спроектирована для баланса: 50:50 между первым и вторым игроком, подтверждено статистическим анализом.')}
-          </p>
-        </div>
-      </section>
-
-      {/* ═══ CTA — gradient dramatic ═══ */}
+      {/* ═══ ABOUT + CTA — combined rich ending ═══ */}
       <section className="l-final">
         <div className="l-final-glow" />
-        <Mascot pose="celebrate" size={100} large className="mascot-bounce" style={{ marginBottom: 12 }} />
-        <h2>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
-        <p>{en ? 'Open beta — we ship new features every week.' : 'Открытая бета — новые фичи каждую неделю.'}</p>
-        <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
-          <Icon name="play" size={18} color="#fff" />{en ? 'Start now' : 'Начать'}
-        </button>
+        <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
+          <Mascot pose="celebrate" size={110} large className="mascot-bounce" style={{ display: 'block', margin: '0 auto 16px' }} />
+          <h2 style={{ fontSize: 28, margin: '0 0 10px' }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
+          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 24px' }}>
+            {en
+              ? 'Open-source project at the intersection of board game design and AI. Neural network trained via self-play on 239K+ games. New features every week.'
+              : 'Open-source проект на стыке дизайна настольных игр и AI. Нейросеть обучена через self-play на 239K+ партиях. Новые фичи каждую неделю.'}
+          </p>
+
+          <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay} style={{ marginBottom: 28, fontSize: 16, padding: '14px 40px' }}>
+            <Icon name="play" size={18} color="#fff" />{en ? 'Start now' : 'Начать'}
+          </button>
+
+          {/* Tech badges */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            {['React', 'Node.js', 'AlphaZero', 'WebSocket', 'SQLite', 'Capacitor'].map(t => (
+              <span key={t} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'var(--ink3)' }}>{t}</span>
+            ))}
+          </div>
+
+          {/* Links row */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink3)' }}>
+            <a href="https://github.com/igor1000rr/stolbiki" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
+              GitHub
+            </a>
+            <span style={{ opacity: 0.3 }}>·</span>
+            <a href="https://t.me/igor1000rr" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
+              Telegram
+            </a>
+            <span style={{ opacity: 0.3 }}>·</span>
+            <span style={{ opacity: 0.5 }}>v4.2</span>
+          </div>
+        </div>
       </section>
     </div>
   )
