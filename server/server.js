@@ -1097,7 +1097,7 @@ if (blogCount === 0) {
   seed.run('launch', 'Запуск открытой беты', 'Open beta launch',
     'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n- Игра против AI (3 уровня сложности)\n- Онлайн мультиплеер по ссылке\n- Ежедневные и еженедельные головоломки\n- Режим «Тренер» с оценкой каждого хода\n- 4 цветовые темы\n- Print & Play PDF\n\nМы активно собираем обратную связь.',
     'Snatch Highrise enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback.',
-    'release', 1, '2026-02-15 10:00:00')
+    'release', 0, '2026-02-15 10:00:00')
 }
 
 // Добавление постов с датой (если ещё нет)
@@ -1180,6 +1180,13 @@ addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platfor
 
 // Удаляем устаревший roadmap и дубли
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
+
+// Закрепляем только v4.0 наверху
+db.prepare("UPDATE blog_posts SET pinned=0").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v40-platform'").run()
+// Удаляем дубли старых постов
+db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
+db.prepare("DELETE FROM blog_posts WHERE slug='v3-4-security-spectator'").run()
 
 // Принудительное обновление всех постов (даты, заголовки, тексты)
 const updatePost = (slug, tru, ten, bru, ben, tag, date) => {
