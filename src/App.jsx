@@ -656,6 +656,10 @@ export default function App() {
             <a href="#rules" onClick={(e) => { e.preventDefault(); go('rules') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Rules' : 'Правила'}</a>
             <span className="site-footer-divider" />
             <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print & Play</a>
+            <span className="site-footer-divider" />
+            <a href="#privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
+            <span className="site-footer-divider" />
+            <span style={{ opacity: 0.3 }}>v4.1</span>
           </div>
         </div>
       </footer>}

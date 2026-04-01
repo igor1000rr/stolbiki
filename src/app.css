@@ -2006,12 +2006,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     repeating-linear-gradient(176deg, rgba(80,50,20,0.08) 0px, transparent 1px, transparent 6px),
     var(--surface);
 }
-[data-theme="wood"] .header-auth-dropdown {
-  background: #4a3520;
-  border-color: rgba(100,70,35,0.3);
-}
-
-/* Светлая / Minimal */
+/* ═══ Light — светлая Apple-like ═══ */
 [data-theme="minimal"] {
   --bg: #f5f5f7; --bg2: #eeeef0; --surface: #ffffff; --surface2: #e5e5ea; --surface3: #c7c7cc;
   --purple: #af52de; --coral: #ff6b6b;
