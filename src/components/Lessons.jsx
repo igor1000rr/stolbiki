@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { GameState, applyAction, getValidTransfers } from '../engine/game'
 import Board from './Board'
+import Mascot from './Mascot'
 import { useI18n } from '../engine/i18n'
 import * as API from '../engine/api'
 
@@ -191,7 +192,8 @@ export default function Lessons({ onClose }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+          <Mascot pose="point" size={32} animate={false} />
           {en ? 'Lesson' : 'Урок'} {lessonIdx + 1} / {LESSONS.length}
         </div>
         {/* Progress dots */}
@@ -222,13 +224,16 @@ export default function Lessons({ onClose }) {
 
           {status === 'correct' && (
             <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 10,
-              background: 'rgba(61,214,140,0.08)', border: '1px solid rgba(61,214,140,0.2)' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--green)', marginBottom: 4 }}>
-                {en ? 'Correct!' : 'Правильно!'} +{lesson.xp} XP
+              background: 'rgba(61,214,140,0.08)', border: '1px solid rgba(61,214,140,0.2)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Mascot pose="celebrate" size={48} animate={false} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--green)', marginBottom: 4 }}>
+                  {en ? 'Correct!' : 'Правильно!'} +{lesson.xp} XP
+                </div>
+                <button className="btn primary" onClick={next} style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
+                  {lessonIdx < LESSONS.length - 1 ? (en ? 'Next lesson' : 'Следующий урок') : (en ? 'Complete!' : 'Завершить!')}
+                </button>
               </div>
-              <button className="btn primary" onClick={next} style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
-                {lessonIdx < LESSONS.length - 1 ? (en ? 'Next lesson' : 'Следующий урок') : (en ? 'Complete!' : 'Завершить!')}
-              </button>
             </div>
           )}
 

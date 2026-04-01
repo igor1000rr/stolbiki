@@ -2,6 +2,7 @@ import { useI18n } from '../engine/i18n'
 import { useContent } from '../engine/content'
 import { useRef, useEffect, useState } from 'react'
 import Icon from './Icon'
+import Mascot from './Mascot'
 
 // Scroll-triggered animation hook
 function useReveal(threshold = 0.15) {
@@ -78,6 +79,9 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <button className="btn l-btn-lg" onClick={onTutorial}>
             <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
           </button>
+        </div>
+        <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+          <Mascot pose="hero" size={140} large className="mascot-enter" />
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { useI18n } from '../engine/i18n'
+import Mascot from './Mascot'
 
 function Section({ title, children }) {
   return (
@@ -88,9 +89,13 @@ export default function Rules() {
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
       <Section title={en ? 'Game Rules "Snatch Highrise"' : 'Правила игры «Перехват высотки»'}>
-        <Bullet>{en ? 'Strategic board game for two players' : 'Стратегическая настольная игра для двух игроков'}</Bullet>
-        <Bullet>{en ? 'The player who controls more highrises wins' : 'Побеждает игрок, который контролирует больше высоток к концу игры'}</Bullet>
-        <Bullet>{en ? 'The player who controls more highrises wins' : 'Побеждает игрок, который контролирует больше высоток к концу игры'}</Bullet>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+          <Mascot pose="point" size={64} animate={false} />
+          <div>
+            <Bullet>{en ? 'Strategic board game for two players' : 'Стратегическая настольная игра для двух игроков'}</Bullet>
+            <Bullet>{en ? 'The player who controls more highrises wins' : 'Побеждает игрок, который контролирует больше высоток к концу игры'}</Bullet>
+          </div>
+        </div>
       </Section>
 
       <Section title={en ? 'Setup' : 'Подготовка'}>

@@ -6,55 +6,28 @@ const SLIDES = [
     title_en: 'Welcome!',
     desc_ru: 'Snatch Highrise — стратегическая настольная игра для двоих с AI на нейросетях',
     desc_en: 'Snatch Highrise — a strategy board game for two with neural network AI',
-    icon: <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 200, height: 'auto' }} />,
+    icon: <img src="/mascot/wave-lg.webp" alt="Снуппи" width={120} height={120} style={{ objectFit: 'contain' }} />,
   },
   {
     title_ru: 'Ставьте блоки',
     title_en: 'Place blocks',
     desc_ru: 'Каждый ход — ставьте до 3 блоков на 1-2 стойки. Заполните стойку до 11 — и она ваша!',
     desc_en: 'Each turn — place up to 3 blocks on 1-2 stands. Fill a stand to 11 — and it\'s yours!',
-    icon: (
-      <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-        <rect x="15" y="20" width="14" height="50" rx="4" fill="#2a2a38" stroke="#4a9eff33" strokeWidth="1"/>
-        <rect x="33" y="20" width="14" height="50" rx="4" fill="#2a2a38" stroke="#4a9eff33" strokeWidth="1"/>
-        <rect x="51" y="20" width="14" height="50" rx="4" fill="#2a2a38" stroke="#4a9eff33" strokeWidth="1"/>
-        <rect x="17" y="58" width="10" height="5" rx="2" fill="#4a9eff"/>
-        <rect x="17" y="51" width="10" height="5" rx="2" fill="#4a9eff"/>
-        <rect x="17" y="44" width="10" height="5" rx="2" fill="#ff6b6b"/>
-        <rect x="35" y="58" width="10" height="5" rx="2" fill="#ff6b6b"/>
-        <rect x="53" y="58" width="10" height="5" rx="2" fill="#4a9eff"/>
-        <rect x="53" y="51" width="10" height="5" rx="2" fill="#ff6b6b"/>
-        <text x="40" y="14" textAnchor="middle" fill="#ffc145" fontSize="12" fontWeight="700">★</text>
-      </svg>
-    ),
+    icon: <img src="/mascot/hero-lg.webp" alt="Снуппи" width={120} height={120} style={{ objectFit: 'contain' }} />,
   },
   {
     title_ru: 'Достройте 6 высоток',
     title_en: 'Complete 6 highrises',
     desc_ru: 'Цвет верхней группы определяет владельца. Золотая ★ стойка решает при ничьей 5:5',
     desc_en: 'Top group color determines the owner. Golden ★ stand decides at 5:5 tie',
-    icon: (
-      <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-        {Array.from({ length: 10 }, (_, i) => (
-          <rect key={i} x={4 + i * 7.4} y="50" width="6" height="3" rx="1"
-            fill={i < 6 ? 'var(--p1)' : i < 9 ? 'var(--p2)' : 'var(--gold)'} opacity={0.9} />
-        ))}
-        <text x="40" y="38" textAnchor="middle" fill="#3dd68c" fontSize="28" fontWeight="800">6:4</text>
-        <text x="40" y="72" textAnchor="middle" fill="#3dd68c" fontSize="11" fontWeight="600">Victory!</text>
-      </svg>
-    ),
+    icon: <img src="/mascot/celebrate-lg.webp" alt="Снуппи" width={120} height={120} style={{ objectFit: 'contain' }} />,
   },
   {
     title_ru: 'Играйте!',
     title_en: 'Play!',
     desc_ru: 'Против AI, онлайн с друзьями, решайте головоломки и покоряйте рейтинг',
     desc_en: 'VS AI, online with friends, solve puzzles and climb the rankings',
-    icon: (
-      <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-        <circle cx="40" cy="40" r="30" stroke="#4a9eff33" strokeWidth="2" fill="none"/>
-        <path d="M32 28l22 12-22 12V28z" fill="#4a9eff"/>
-      </svg>
-    ),
+    icon: <img src="/mascot/point-lg.webp" alt="Снуппи" width={120} height={120} style={{ objectFit: 'contain' }} />,
   },
 ]
 

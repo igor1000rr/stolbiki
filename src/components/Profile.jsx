@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import * as API from '../engine/api'
 import { useI18n } from '../engine/i18n'
 import Icon from './Icon'
+import Mascot from './Mascot'
 
 // Аватары — SVG символы
 const AVATARS = {
@@ -841,7 +842,7 @@ export default function Profile({ viewUsername, onClose }) {
         <div>
           {(profile.history || []).length === 0 ? (
             <div className="dash-card" style={{ textAlign: 'center', padding: 32 }}>
-              
+              <Mascot pose="wave" size={80} style={{ marginBottom: 12 }} />
               <div style={{ fontSize: 14, color: 'var(--ink3)' }}>{en ? 'No games yet. Play your first!' : 'Пока нет партий. Сыграйте свою первую!'}</div>
             </div>
           ) : (

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
+import Mascot from './Mascot'
 import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
@@ -1416,12 +1417,7 @@ export default function Game() {
           <div className="game-result" style={{ ...(isNative ? {} : { borderLeft: `3px solid ${accentColor}` }), textAlign: 'center' }}>
             {isNative && <div style={{ width: 60, height: 3, borderRadius: 2, background: accentColor, margin: '0 auto 16px', opacity: 0.8 }} />}
             <div style={{ marginBottom: isNative ? 8 : 4, display: 'flex', justifyContent: 'center' }}>
-              {isDraw
-                ? <svg viewBox="0 0 32 32" width={iconSize} height={iconSize} fill="none" stroke="#9b59b6" strokeWidth="2"><path d="M6 13h20M6 19h20"/></svg>
-                : won
-                ? <svg viewBox="0 0 32 32" width={iconSize} height={iconSize} fill="none" stroke="#3dd68c" strokeWidth="2.5"><path d="M6 17l7 7L26 8"/></svg>
-                : <svg viewBox="0 0 32 32" width={iconSize} height={iconSize} fill="none" stroke="#ff6066" strokeWidth="2.5"><path d="M8 8l16 16M24 8L8 24"/></svg>
-              }
+              <Mascot pose={isDraw ? 'shock' : won ? 'celebrate' : 'sad'} size={isNative ? 100 : 72} className="mascot-enter" />
             </div>
             <span style={{ fontSize: isNative ? 24 : 20, fontWeight: isNative ? 700 : 400 }}>{isDraw
               ? (t('game.draw'))
@@ -1619,7 +1615,7 @@ export default function Game() {
       {/* Ачивка popup */}
       {newAch && (
         <div className="achievement-popup">
-          <div className="ach-icon">{newAch.icon}</div>
+          <Mascot pose="celebrate" size={40} animate={false} />
           <div>
             <div className="ach-label">{lang === 'en' ? 'Achievement unlocked!' : 'Ачивка разблокирована!'}</div>
             <div className="ach-name">{lang === 'en' && newAch.nameEn ? newAch.nameEn : newAch.name}</div>
@@ -1637,7 +1633,7 @@ export default function Game() {
         }} onClick={() => setFirstWinCelebration(false)}>
           <div style={{ textAlign: 'center', padding: 32, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 64, marginBottom: 16 }}>
-              <svg viewBox="0 0 64 64" width="80" height="80"><path d="M32 4l8 16 18 3-13 13 3 18-16-8-16 8 3-18L6 23l18-3z" fill="#ffc145" stroke="#ffc145" strokeWidth="1"/></svg>
+              <Mascot pose="celebrate" size={120} large className="mascot-enter" />
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)', marginBottom: 8 }}>
               {lang === 'en' ? 'First Victory!' : 'Первая победа!'}

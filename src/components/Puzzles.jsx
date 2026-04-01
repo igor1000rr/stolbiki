@@ -3,6 +3,7 @@ import { GameState, applyAction, getValidTransfers, MAX_PLACE, MAX_PLACE_STANDS,
 import { useI18n } from '../engine/i18n'
 import * as API from '../engine/api'
 import Board from './Board'
+import Mascot from './Mascot'
 const PuzzleRush = lazy(() => import('./PuzzleRush'))
 
 const SL = i => i === GOLDEN_STAND ? '★' : String(i)
@@ -217,8 +218,8 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
       {/* Результат */}
       {status && (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>{status === 'solved' ? '!' : ''}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: status === 'solved' ? 'var(--green)' : 'var(--p2)', marginBottom: 12 }}>
+          <Mascot pose={status === 'solved' ? 'celebrate' : 'shock'} size={80} className="mascot-enter" />
+          <div style={{ fontSize: 18, fontWeight: 700, color: status === 'solved' ? 'var(--green)' : 'var(--p2)', marginBottom: 12, marginTop: 8 }}>
             {status === 'solved' ? t('puzzle.solvedStatus') : t('puzzle.failedStatus')}
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>

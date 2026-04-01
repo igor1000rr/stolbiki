@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { GameState, applyAction, getValidTransfers } from '../engine/game'
 import Board from './Board'
+import Mascot from './Mascot'
 import { useI18n } from '../engine/i18n'
 import * as API from '../engine/api'
 
@@ -250,6 +251,7 @@ export default function PuzzleRush({ onClose }) {
       {/* Done */}
       {phase === 'done' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <Mascot pose={score >= 10 ? 'celebrate' : score >= 5 ? 'hero' : 'sad'} size={90} className="mascot-enter" />
           <div style={{ fontSize: 14, color: 'var(--ink3)' }}>{en ? 'Time\'s up!' : 'Время вышло!'}</div>
           <div style={{ fontSize: 64, fontWeight: 800, color: 'var(--gold)' }}>{score}</div>
           <div style={{ fontSize: 14, color: 'var(--ink2)' }}>
