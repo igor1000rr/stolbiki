@@ -1119,8 +1119,8 @@ addPost('puzzles-launch', 'Запуск головоломок', 'Puzzles launch
   'feature', '2026-03-01 12:00:00')
 
 addPost('update-march-2026', 'v3.0: Масштабное обновление', 'v3.0: Major update',
-  '33 ачивки, рейтинговые сезоны, 14 настроек и полная мультиязычность.\n\n**Ачивки** — 26 вместо 14. Бронза, серебро, золото, алмаз.\n**Рейтинговые сезоны** — каждый месяц новый сезон с лидербордом топ-20.\n**14 настроек** — таймер, стиль фишек, доступность.\n**Мультиязычность** — полный перевод RU/EN.',
-  '33 achievements, ranked seasons, 14 settings, and full English translation.\n\n**Achievements** — 26 with bronze/silver/gold/diamond tiers.\n**Ranked Seasons** — monthly seasons with top-20 leaderboard.\n**14 Settings** — timer, chip style, accessibility.\n**Multilingual** — full RU/EN translation.',
+  '26 ачивок, рейтинговые сезоны, 14 настроек и полная мультиязычность.\n\n**Ачивки** — 26 вместо 14. Бронза, серебро, золото, алмаз.\n**Рейтинговые сезоны** — каждый месяц новый сезон с лидербордом топ-20.\n**14 настроек** — таймер, стиль фишек, доступность.\n**Мультиязычность** — полный перевод RU/EN.',
+  '26 achievements, ranked seasons, 14 settings, and full English translation.\n\n**Achievements** — 26 with bronze/silver/gold/diamond tiers.\n**Ranked Seasons** — monthly seasons with top-20 leaderboard.\n**14 Settings** — timer, chip style, accessibility.\n**Multilingual** — full RU/EN translation.',
   'release', '2026-03-15 10:00:00')
 
 addPost('online-v2', 'Онлайн v2: resign, ничья, чат', 'Online v2: resign, draw, chat',
@@ -1159,13 +1159,13 @@ addPost('v37-mobile-app', 'v3.7: Мобильное приложение!', 'v3.
   'release', '2026-03-31 10:00:00')
 
 addPost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
-  '✅ Android-приложение\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 33 ачивки\n\nДалее:\n→ Google Play\n→ Обучение AI на RTX 5090\n→ Push-уведомления\n→ iOS\n→ Турниры',
-  '✅ Android app\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 33 achievements\n\nNext:\n→ Google Play\n→ AI training on RTX 5090\n→ Push notifications\n→ iOS\n→ Tournaments',
+  '✅ Android-приложение\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 26 ачивок\n\nДалее:\n→ Google Play\n→ Обучение AI на RTX 5090\n→ Push-уведомления\n→ iOS\n→ Турниры',
+  '✅ Android app\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n\nNext:\n→ Google Play\n→ AI training on RTX 5090\n→ Push notifications\n→ iOS\n→ Tournaments',
   'roadmap', '2026-03-31 18:00:00')
 
 addPost('v38-audit', 'v3.8: Аудит, безопасность, retention', 'v3.8: Audit, security, retention',
-  'Полный аудит проекта + новые механики удержания:\n\n**Безопасность**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: все изображения -80% трафика.\n**i18n**: полный перевод Game, Online, Profile, 33 ачивки.\n**AI auto-difficulty**: после 3 поражений подряд — предложение понизить сложность.\n**First Win**: специальное celebration при первой победе.\n**ELO дельта**: +12/-8 отображается после каждой партии.\n**PvP Undo**: кнопка отмены хода.\n**Яндекс.Метрика**: вебвизор + карта кликов.',
-  'Full project audit + new retention mechanics:\n\n**Security**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: all images -80% traffic.\n**i18n**: full translation Game, Online, Profile, 33 achievements.\n**AI auto-difficulty**: after 3 losses in a row — suggest easier level.\n**First Win**: special celebration on first victory.\n**ELO delta**: +12/-8 shown after each game.\n**PvP Undo**: undo move button.\n**Yandex Metrika**: webvisor + click map.',
+  'Полный аудит проекта + новые механики удержания:\n\n**Безопасность**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: все изображения -80% трафика.\n**i18n**: полный перевод Game, Online, Profile, 26 ачивок.\n**AI auto-difficulty**: после 3 поражений подряд — предложение понизить сложность.\n**First Win**: специальное celebration при первой победе.\n**ELO дельта**: +12/-8 отображается после каждой партии.\n**PvP Undo**: кнопка отмены хода.\n**Яндекс.Метрика**: вебвизор + карта кликов.',
+  'Full project audit + new retention mechanics:\n\n**Security**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: all images -80% traffic.\n**i18n**: full translation Game, Online, Profile, 26 achievements.\n**AI auto-difficulty**: after 3 losses in a row — suggest easier level.\n**First Win**: special celebration on first victory.\n**ELO delta**: +12/-8 shown after each game.\n**PvP Undo**: undo move button.\n**Yandex Metrika**: webvisor + click map.',
   'release', '2026-03-31 22:00:00')
 
 addPost('v39-retention', 'v3.9: Стрики, миссии, XP, уровни', 'v3.9: Streaks, missions, XP, levels',
@@ -1208,10 +1208,6 @@ updatePost('puzzles-launch', 'Запуск головоломок', 'Puzzles lau
   'Тактические головоломки:\n\n- Головоломка дня\n- Задача недели\n- Банк из 50 задач\n- Лидерборды',
   'Tactical puzzles:\n\n- Daily puzzle\n- Weekly challenge\n- 50 puzzle bank\n- Leaderboards',
   'feature', '2026-03-01 12:00:00')
-updatePost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
-  '✅ Android-приложение (Capacitor)\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 33 ачивки\n✅ Login streak + Daily missions + XP/Levels\n✅ AI Game Review (анализ каждого хода)\n✅ Puzzle Rush (3 мин тайм-аттак)\n✅ Live Arena (Swiss турниры)\n✅ 5 интерактивных уроков\n✅ Animated board (3D, shake, pulse)\n✅ Полный i18n RU/EN\n\nДалее:\n→ Google Play публикация\n→ Push-уведомления (Firebase)\n→ Обучение AI v4 (RTX 5090)\n→ iOS\n→ Seasonal cosmetics',
-  '✅ Android app (Capacitor)\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 33 achievements\n✅ Login streak + Daily missions + XP/Levels\n✅ AI Game Review (move-by-move analysis)\n✅ Puzzle Rush (3min time attack)\n✅ Live Arena (Swiss tournaments)\n✅ 5 interactive lessons\n✅ Animated board (3D, shake, pulse)\n✅ Full i18n RU/EN\n\nNext:\n→ Google Play release\n→ Push notifications (Firebase)\n→ AI v4 training (RTX 5090)\n→ iOS\n→ Seasonal cosmetics',
-  'roadmap', '2026-04-01 00:00:00')
 updatePost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
   'Snatch Highrise v4.0 — полноценная игровая платформа:\n\n**AI Game Review** — анализ каждого хода. Accuracy %, replay с подсветкой.\n**Puzzle Rush** — 3 минуты, +10/-15 сек. Leaderboard.\n**Live Arena** — Swiss турниры, 4 раунда, XP для топ-3.\n**5 уроков** — от основ до стратегии.\n**Магазин скинов** — popup с live preview, level-locked.\n**11 тем** — Dark, Ocean, Sunset, Forest, Royal, Sakura, Neon, Wood, Arctic, Retro, Light.\n**8 скинов фишек** — Classic, Flat, Round, Glass, Metal, Candy, Pixel, Glow.\n**9 скинов стоек** — Classic, Marble, Concrete, Bamboo, Obsidian, Crystal, Rust, Void, Ice.\n**Анимации** — screen shake, 3D perspective, golden pulse.',
   'Snatch Highrise v4.0 — full competitive platform:\n\n**AI Game Review** — analyze every move. Accuracy %, color-coded replay.\n**Puzzle Rush** — 3 min, +10/-15 sec. Leaderboard.\n**Live Arena** — Swiss tournaments, 4 rounds, XP for top 3.\n**5 lessons** — basics to strategy.\n**Skin Shop** — popup with live preview, level-locked.\n**11 themes** — Dark, Ocean, Sunset, Forest, Royal, Sakura, Neon, Wood, Arctic, Retro, Light.\n**8 chip skins** — Classic, Flat, Round, Glass, Metal, Candy, Pixel, Glow.\n**9 stand skins** — Classic, Marble, Concrete, Bamboo, Obsidian, Crystal, Rust, Void, Ice.\n**Animations** — screen shake, 3D perspective, golden pulse.',
