@@ -29,7 +29,7 @@ const OPENINGS = [
     moves: '4',
     frequency: 10.8,
     winP1: 50.2,
-    desc: { ru: 'Стойка рядом с центром. Готовит парное закрытие 4+5.', en: 'Near-center stand. Prepares paired close of 4+5.' },
+    desc: { ru: 'Стойка рядом с центром. Готовит парную достройку 4+5.', en: 'Near-center stand. Prepares paired completion of 4+5.' },
   },
   {
     name: { ru: 'Swap-ловушка', en: 'Swap trap' },

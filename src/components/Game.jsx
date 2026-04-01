@@ -899,7 +899,7 @@ export default function Game() {
                 <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Достройка</b> — высотка с 11 блоками достроена. Цвет верхней группы = владелец</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
-                <p><b style={{ color: 'var(--green)' }}></b> Закройте <b>6+ стоек</b> из 10 чтобы победить</p>
+                <p><b style={{ color: 'var(--green)' }}></b> Достройте <b>6+ высоток</b> из 10 чтобы победить</p>
               </>}
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>

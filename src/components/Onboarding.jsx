@@ -9,8 +9,8 @@ const SLIDES = [
     icon: <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 200, height: 'auto' }} />,
   },
   {
-    title_ru: 'Ставьте фишки',
-    title_en: 'Place chips',
+    title_ru: 'Ставьте блоки',
+    title_en: 'Place blocks',
     desc_ru: 'Каждый ход — ставьте до 3 фишек на 1-2 стойки. Заполните стойку до 11 — и она ваша!',
     desc_en: 'Each turn — place up to 3 chips on 1-2 stands. Fill a stand to 11 — and it\'s yours!',
     icon: (
@@ -29,8 +29,8 @@ const SLIDES = [
     ),
   },
   {
-    title_ru: 'Закройте 6 стоек',
-    title_en: 'Close 6 stands',
+    title_ru: 'Достройте 6 высоток',
+    title_en: 'Complete 6 highrises',
     desc_ru: 'Цвет верхней группы определяет владельца. Золотая ★ стойка решает при ничьей 5:5',
     desc_en: 'Top group color determines the owner. Golden ★ stand decides at 5:5 tie',
     icon: (

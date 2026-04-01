@@ -98,7 +98,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           {[
             { n: '01', t: c('landing.step1_title', en ? 'Place' : 'Ставьте'), d: c('landing.step1_desc', en ? 'Up to 3 blocks on max 2 stands per turn. First move — 1 block.' : 'До 3 блоков на 2 стойки за ход. Первый ход — 1 блок.') },
             { n: '02', t: c('landing.step2_title', en ? 'Transfer' : 'Переносите'), d: c('landing.step2_desc', en ? 'Move the top group of blocks. The key tactical move that decides games.' : 'Переместите верхнюю группу блоков. Ключевой тактический приём, решающий партии.') },
-            { n: '03', t: c('landing.step3_title', en ? 'Complete' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 blocks the highrise is complete. Top color = owner. Complete 6 of 10!' : 'При 11 блоках высотка построена. Цвет сверху = владелец. Закройте 6 из 10!') },
+            { n: '03', t: c('landing.step3_title', en ? 'Complete' : 'Закрывайте'), d: c('landing.step3_desc', en ? 'At 11 blocks the highrise is complete. Top color = owner. Complete 6 of 10!' : 'При 11 блоках высотка построена. Цвет сверху = владелец. Достройте 6 из 10!') },
           ].map((s, i) => (
             <div key={i} className="l-step" style={{ '--i': i }}>
               <div className="l-step-n">{s.n}</div>
@@ -166,7 +166,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
               { icon: 'trainer', c: 'var(--green)', t: en ? 'AI Game Review' : 'AI Анализ', d: en ? 'Post-game analysis: every move rated excellent→blunder. Accuracy %.' : 'Анализ каждого хода: отличный → грубая ошибка. Accuracy %.' },
               { icon: 'chart', c: 'var(--accent)', t: en ? 'Puzzle Rush' : 'Puzzle Rush', d: en ? '3 min, max puzzles. +10/-15 sec. Leaderboard.' : '3 мин тайм-аттак. +10/-15 сек. Рейтинг.' },
               { icon: 'theme', c: 'var(--gold)', t: en ? '11 themes + 17 skins' : '11 тем + 17 скинов', d: en ? 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow blocks.' : 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow блоки.' },
-              { icon: 'rules', c: 'var(--p1)', t: en ? '5 lessons' : '5 уроков', d: en ? 'Interactive board: basics → transfer → golden → closing → strategy.' : 'Интерактивная доска: основы → перенос → золотая → закрытие → стратегия.' },
+              { icon: 'rules', c: 'var(--p1)', t: en ? '5 lessons' : '5 уроков', d: en ? 'Interactive board: basics → transfer → golden → completing → strategy.' : 'Интерактивная доска: основы → перенос → золотая → достройка → стратегия.' },
               { icon: 'chart', c: 'var(--p2)', t: en ? 'Live Arena' : 'Турниры', d: en ? 'Swiss system, 4 rounds, auto-pairing. XP for top 3.' : 'Swiss system, 4 раунда, auto-pairing. XP для топ-3.' },
               { icon: 'online', c: 'var(--purple)', t: en ? 'XP & Streaks' : 'XP и Стрики', d: en ? 'Daily missions, login streaks, 33 achievements, level-up.' : 'Ежедневные миссии, стрики, 33 ачивки, уровни.' },
             ].map((f, i) => (

@@ -336,7 +336,7 @@ export default function Simulator() {
                 { icon: '⭐', label: 'Золотая→Win', value: `${goldenWinPct}%`, color: '#f0a030' },
                 { icon: 'F', label: 'Последний→Win', value: `${lastCloserPct}%`, color: '#e74c3c' },
                 { icon: 'S', label: 'Swap принят', value: `${played > 0 ? ((data.swapCount||0)/played*100).toFixed(0) : '—'}%`, color: 'var(--purple)' },
-                { icon: '1', label: '1-е закрытие', value: `ход ${data.firstCloseTurns?.length > 0 ? (data.firstCloseTurns.reduce((a,b)=>a+b,0)/data.firstCloseTurns.length).toFixed(0) : '—'}`, color: '#2ecc71' },
+                { icon: '1', label: '1-я достройка', value: `ход ${data.firstCloseTurns?.length > 0 ? (data.firstCloseTurns.reduce((a,b)=>a+b,0)/data.firstCloseTurns.length).toFixed(0) : '—'}`, color: '#2ecc71' },
                 { icon: '↗', label: 'Переносов/игру', value: played > 0 ? ((data.transferCount||0)/played).toFixed(1) : '—', color: '#3498db' },
                 { icon: 'T', label: 'Закр. переносом', value: (closeTr+closePl) > 0 ? `${(closeTr/(closeTr+closePl)*100).toFixed(0)}%` : '—', color: '#e67e22' },
               ].map(m => (
@@ -369,7 +369,7 @@ export default function Simulator() {
               </div>
             </div>
             <div className="dash-card">
-              <h3>Частота закрытия стоек</h3>
+              <h3>Частота достройки высоток</h3>
               {data.standCloseCount && (
                 <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 65, marginTop: 8 }}>
                   {data.standCloseCount.map((v, i) => {

@@ -91,7 +91,7 @@ function explainAction(state, action, analysis) {
   if (analysis.myScore > analysis.oppScore) {
     parts.push(`Вы ведёте ${analysis.myScore}:${analysis.oppScore}. Удерживайте преимущество.`)
   } else if (analysis.oppScore > analysis.myScore) {
-    parts.push(`Вы отстаёте ${analysis.myScore}:${analysis.oppScore}. Нужно активнее закрывать стойки.`)
+    parts.push(`Вы отстаёте ${analysis.myScore}:${analysis.oppScore}. Нужно активнее достраивать высотки.`)
   } else {
     parts.push(`Счёт равный ${analysis.myScore}:${analysis.oppScore}. Золотая стойка может решить исход.`)
   }
@@ -111,26 +111,26 @@ function explainAction(state, action, analysis) {
       // Закрывающий перенос
       const owner = gc === player ? 'вашу' : 'вражескую'
       const isGolden = dst === GOLDEN_STAND
-      parts.push(`Рекомендация: закрыть ${owner} стойку ${standLabel(dst)} переносом с ${standLabel(src)}.`)
+      parts.push(`Рекомендация: достроить высотку ${standLabel(dst)} переносом с ${standLabel(src)}.`)
       if (isGolden) {
         parts.push('Это золотая стойка — её контроль критически важен при равном счёте!')
       }
       const newMyScore = gc === player ? analysis.myScore + 1 : analysis.myScore
       const newOppScore = gc !== player ? analysis.oppScore + 1 : analysis.oppScore
-      parts.push(`После закрытия счёт станет ${newMyScore}:${newOppScore}.`)
+      parts.push(`После достройки счёт станет ${newMyScore}:${newOppScore}.`)
     } else {
       // Стратегический перенос
       if (gc === player) {
         parts.push(`Рекомендация: перенести ${gs} фишек с ${standLabel(src)} на ${standLabel(dst)}, усиливая позицию.`)
         if (state.stands[dst].length + gs >= MAX_CHIPS - 3) {
-          parts.push(`Стойка ${standLabel(dst)} будет близка к закрытию (${state.stands[dst].length + gs}/${MAX_CHIPS}).`)
+          parts.push(`Стойка ${standLabel(dst)} будет близка к достройке (${state.stands[dst].length + gs}/${MAX_CHIPS}).`)
         }
       } else {
-        parts.push(`Рекомендация: перенести чужие фишки с ${standLabel(src)} на ${standLabel(dst)}, освобождая стойку.`)
+        parts.push(`Рекомендация: перенести чужие блоки с ${standLabel(src)} на ${standLabel(dst)}, освобождая стойку.`)
       }
     }
   } else if (analysis.closingMoves.length > 0 && !action.transfer) {
-    parts.push('Есть возможность закрыть стойку, но AI считает что установка сейчас важнее.')
+    parts.push('Есть возможность достроить высотку, но AI считает что установка сейчас важнее.')
   }
 
   if (action.placement && Object.keys(action.placement).length > 0) {
@@ -145,7 +145,7 @@ function explainAction(state, action, analysis) {
       }
       const total = state.stands[i].length + count
       if (total >= MAX_CHIPS - 3) {
-        parts.push(`Стойка ${standLabel(i)} приближается к закрытию (${total}/${MAX_CHIPS}).`)
+        parts.push(`Стойка ${standLabel(i)} приближается к достройке (${total}/${MAX_CHIPS}).`)
       }
     }
   }
@@ -153,7 +153,7 @@ function explainAction(state, action, analysis) {
   // Предупреждения
   if (analysis.threatenedStands.length > 0) {
     const threatened = analysis.threatenedStands.map(standLabel).join(', ')
-    parts.push(`Внимание: соперник близок к закрытию стоек ${threatened}.`)
+    parts.push(`Внимание: соперник близок к достройке высоток ${threatened}.`)
   }
 
   if (analysis.goldenStatus === 'соперник сверху' && analysis.myScore === analysis.oppScore) {

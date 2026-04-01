@@ -7,7 +7,7 @@ const STEPS = [
   {
     title: { ru: 'Установка фишек', en: 'Placing chips' },
     text: {
-      ru: 'Кликните на стойку 3, чтобы поставить фишку. Первый ход — всегда 1 фишка.',
+      ru: 'Кликните на стойку 3, чтобы поставить блок. Первый ход — всегда 1 блок.',
       en: 'Click on stand 3 to place a chip. First move is always 1 chip.',
     },
     setup: (gs) => { gs.turn = 0; gs.currentPlayer = 0 },
@@ -17,7 +17,7 @@ const STEPS = [
   {
     title: { ru: 'Обычный ход', en: 'Normal turn' },
     text: {
-      ru: 'Теперь поставьте 2 фишки: кликните на стойку 5 дважды. До 3 фишек на 2 стойки за ход.',
+      ru: 'Теперь поставьте 2 блока: кликните на стойку 5 дважды. До 3 блоков на 2 стойки за ход.',
       en: 'Now place 2 chips: click stand 5 twice. Up to 3 chips on 2 stands per turn.',
     },
     setup: (gs) => {
@@ -31,7 +31,7 @@ const STEPS = [
   {
     title: { ru: 'Перенос фишек', en: 'Transferring chips' },
     text: {
-      ru: 'Перенос — ключевой элемент! Кликните на стойку 2 (откуда), потом на стойку 1 (куда). Переносить можно свои и чужие фишки.',
+      ru: 'Перенос — ключевой элемент! Кликните на стойку 2 (откуда), потом на стойку 1 (куда). Переносить можно свои и чужие блоки.',
       en: 'Transfer is key! Click stand 2 (from), then stand 1 (to). You can move your own and opponent\'s chips.',
     },
     setup: (gs) => {
@@ -43,14 +43,14 @@ const STEPS = [
     validFrom: 2, validTo: 1,
     action: { transfer: [2, 1], placement: {} },
     afterText: {
-      ru: 'Стойка 1 закрылась! При 11+ фишках стойка закрывается. Цвет верхней группы — владелец.',
+      ru: 'Высотка 1 достроена! При 11+ блоках высотка достроена. Цвет верхней группы — владелец.',
       en: 'Stand 1 is closed! At 11+ chips a stand closes. Top group color = owner.',
     },
   },
   {
     title: { ru: 'Золотая стойка ★', en: 'Golden stand ★' },
     text: {
-      ru: 'Стойка ★ (0) решает при ничьей 5:5. Поставьте 3 фишки на неё — кликните 3 раза.',
+      ru: 'Стойка ★ (0) решает при ничьей 5:5. Поставьте 3 блока на неё — кликните 3 раза.',
       en: 'Stand ★ (0) breaks 5:5 ties. Place 3 chips on it — click 3 times.',
     },
     setup: (gs) => {
@@ -65,8 +65,8 @@ const STEPS = [
   {
     title: { ru: 'Победа!', en: 'Victory!' },
     text: {
-      ru: 'Закройте 6 из 10 стоек — и вы победили! Или при 5:5 — владелец ★ выигрывает. Теперь вы готовы играть!',
-      en: 'Close 6 of 10 stands to win! Or at 5:5, the ★ owner wins. Now you\'re ready to play!',
+      ru: 'Достройте 6 из 10 высоток — и вы победили! Или при 5:5 — владелец ★ выигрывает. Теперь вы готовы играть!',
+      en: 'Complete 6 of 10 highrises to win! Or at 5:5, the ★ owner wins. Now you\'re ready to play!',
     },
     setup: (gs) => {
       gs.closed = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 1, 7: 1, 8: 1, 9: 1 }

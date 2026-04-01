@@ -70,9 +70,9 @@ const ALL_ACHIEVEMENTS = [
   { id: 'streak_10', color: ACH_COLORS.gold, name: 'Легенда', nameEn: 'Legend', desc: '10 побед подряд', descEn: '10 wins in a row', check: p => p.bestStreak >= 10 },
   { id: 'streak_20', color: ACH_COLORS.diamond, name: 'Бессмертный', nameEn: 'Immortal', desc: '20 побед подряд', descEn: '20 wins in a row', check: p => p.bestStreak >= 20 },
   // Золотая стойка
-  { id: 'golden_1', color: ACH_COLORS.bronze, name: 'Золотой', nameEn: 'Golden', desc: 'Закройте золотую стойку', descEn: 'Close the golden stand', check: p => p.goldenClosed >= 1 },
-  { id: 'golden_10', color: ACH_COLORS.silver, name: 'Золотая лихорадка', nameEn: 'Gold rush', desc: 'Закройте золотую 10 раз', descEn: 'Close golden 10 times', check: p => p.goldenClosed >= 10 },
-  { id: 'golden_50', color: ACH_COLORS.gold, name: 'Золотой магнат', nameEn: 'Gold magnate', desc: 'Закройте золотую 50 раз', descEn: 'Close golden 50 times', check: p => p.goldenClosed >= 50 },
+  { id: 'golden_1', color: ACH_COLORS.bronze, name: 'Золотой', nameEn: 'Golden', desc: 'Достройте золотую высотку', descEn: 'Complete the golden highrise', check: p => p.goldenClosed >= 1 },
+  { id: 'golden_10', color: ACH_COLORS.silver, name: 'Золотая лихорадка', nameEn: 'Gold rush', desc: 'Достройте золотую 10 раз', descEn: 'Complete golden 10 times', check: p => p.goldenClosed >= 10 },
+  { id: 'golden_50', color: ACH_COLORS.gold, name: 'Золотой магнат', nameEn: 'Gold magnate', desc: 'Достройте золотую 50 раз', descEn: 'Complete golden 50 times', check: p => p.goldenClosed >= 50 },
   // Камбэки
   { id: 'comeback', color: ACH_COLORS.silver, name: 'Камбэк', nameEn: 'Comeback', desc: 'Победа при отставании 3+', descEn: 'Win when trailing by 3+', check: p => p.comebacks >= 1 },
   { id: 'comeback_5', color: ACH_COLORS.gold, name: 'Феникс', nameEn: 'Phoenix', desc: '5 камбэков', descEn: '5 comebacks', check: p => p.comebacks >= 5 },
