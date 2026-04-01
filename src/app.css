@@ -3081,11 +3081,14 @@ body.native-body { animation: none !important; }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ═══ Landing: Screenshots + Download ═══ */
+/* ═══ Landing: Theme cards + Download ═══ */
 .l-screens { opacity: 0; transform: translateY(30px); transition: all 0.6s ease; }
 .l-screens.in { opacity: 1; transform: none; }
-.l-screen-card { animation: none; }
-.l-screens.in .l-screen-card { animation: fadeSlideUp 0.5s ease forwards; animation-delay: calc(var(--i) * 0.1s); opacity: 0; }
+.l-theme-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.l-theme-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px var(--glow); }
+.l-theme-block { animation: blockGrow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: bottom center; }
+.l-screens:not(.in) .l-theme-block { animation: none; opacity: 0; }
+@keyframes blockGrow { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 0.85; } }
 .l-download { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
 .l-download.in { opacity: 1; transform: none; }
 @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }

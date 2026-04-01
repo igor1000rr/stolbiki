@@ -240,36 +240,53 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ SCREENSHOTS — game previews in different themes ═══ */}
+      {/* ═══ SCREENSHOTS — animated theme previews ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'The game in action' : 'Игра в действии'}</h2>
         <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
           {[
-            { theme: 'Dark', gradient: 'linear-gradient(135deg, #1a1a2e, #16213e)', accent: '#4a9eff', desc: en ? 'Classic dark theme' : 'Классическая тёмная тема' },
-            { theme: 'Neon', gradient: 'linear-gradient(135deg, #0a0a18, #1a0030)', accent: '#ff00ff', desc: en ? 'Cyberpunk neon glow' : 'Киберпанк неоновое свечение' },
-            { theme: 'Sakura', gradient: 'linear-gradient(135deg, #2a1520, #1a0a14)', accent: '#ff69b4', desc: en ? 'Cherry blossom elegance' : 'Вишнёвая элегантность' },
-            { theme: 'Arctic', gradient: 'linear-gradient(135deg, #0a1a2a, #0d2137)', accent: '#00bcd4', desc: en ? 'Icy cold depths' : 'Ледяные глубины' },
+            { theme: 'Dark', gradient: 'linear-gradient(160deg, #12121e 0%, #1a1a30 100%)', accent: '#4a9eff', accent2: '#ff6066', glow: '#4a9eff30', desc: en ? 'Classic dark theme' : 'Классическая тёмная' },
+            { theme: 'Neon', gradient: 'linear-gradient(160deg, #08081a 0%, #18003a 100%)', accent: '#ff00ff', accent2: '#00ffaa', glow: '#ff00ff30', desc: en ? 'Cyberpunk neon' : 'Киберпанк неон' },
+            { theme: 'Sakura', gradient: 'linear-gradient(160deg, #1e0e18 0%, #2a1028 100%)', accent: '#ff69b4', accent2: '#ffb7d5', glow: '#ff69b430', desc: en ? 'Cherry blossom' : 'Сакура' },
+            { theme: 'Arctic', gradient: 'linear-gradient(160deg, #0a1620 0%, #0c2030 100%)', accent: '#00bcd4', accent2: '#80deea', glow: '#00bcd430', desc: en ? 'Frozen depths' : 'Ледяная' },
           ].map((s, i) => (
-            <div key={i} className="l-screen-card" style={{ '--i': i, background: s.gradient, borderRadius: 16, padding: 20, border: `1px solid ${s.accent}22`, position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.3s, box-shadow 0.3s' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 12px 40px ${s.accent}20` }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+            <div key={i} className="l-theme-card" style={{ '--accent': s.accent, '--accent2': s.accent2, '--glow': s.glow, '--i': i, background: s.gradient, borderRadius: 16, padding: '20px 16px 16px', border: `1px solid ${s.accent}18`, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
               onClick={onPlay}>
-              {/* Мини-доска */}
-              <svg viewBox="0 0 280 100" style={{ width: '100%', height: 'auto', marginBottom: 12 }}>
+              {/* Фоновое свечение */}
+              <div style={{ position: 'absolute', top: '30%', left: '50%', width: 200, height: 200, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${s.glow}, transparent 70%)`, pointerEvents: 'none' }} />
+              {/* Анимированная доска */}
+              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', gap: 4, height: 120, alignItems: 'flex-end', marginBottom: 14 }}>
                 {Array.from({ length: 10 }, (_, j) => {
-                  const x = 10 + j * 27
-                  const h = 20 + Math.random() * 60
-                  return <g key={j}>
-                    <rect x={x} y={100 - h} width={20} height={h} rx={4} fill={`${s.accent}15`} stroke={`${s.accent}30`} strokeWidth={0.5} />
-                    {Array.from({ length: Math.floor(h / 8) }, (_, k) => (
-                      <rect key={k} x={x + 2} y={100 - 7 - k * 8} width={16} height={5} rx={2} fill={k % 3 === 0 ? s.accent : k % 2 === 0 ? '#4a9eff' : '#ff6066'} opacity={0.7 + Math.random() * 0.3} />
-                    ))}
-                    {j === 0 && <text x={x + 10} y={100 - h - 4} textAnchor="middle" fontSize="8" fill="#ffc145">★</text>}
-                  </g>
+                  const blocks = [5,3,7,2,8,4,6,1,5,3][j]
+                  const isGolden = j === 0
+                  return (
+                    <div key={j} style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 2, width: 20 }}>
+                      {/* Основание стойки */}
+                      <div style={{ width: 20, height: 3, borderRadius: 1, background: `${s.accent}30` }} />
+                      {/* Блоки с анимацией появления */}
+                      {Array.from({ length: blocks }, (_, k) => {
+                        const isP1 = (j + k) % 3 !== 0
+                        return (
+                          <div key={k} className="l-theme-block" style={{
+                            width: 16, height: 8, borderRadius: 3,
+                            background: isP1 ? s.accent : s.accent2,
+                            opacity: 0.85,
+                            boxShadow: `0 0 6px ${isP1 ? s.accent : s.accent2}40`,
+                            animationDelay: `${0.3 + i * 0.15 + j * 0.04 + k * 0.03}s`,
+                          }} />
+                        )
+                      })}
+                      {/* Звезда для золотой */}
+                      {isGolden && <div style={{ fontSize: 10, color: '#ffc145', lineHeight: 1, marginTop: 2, textShadow: '0 0 8px #ffc14580' }}>★</div>}
+                    </div>
+                  )
                 })}
-              </svg>
-              <div style={{ fontSize: 16, fontWeight: 700, color: s.accent }}>{s.theme}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{s.desc}</div>
+              </div>
+              {/* Название темы */}
+              <div style={{ position: 'relative' }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: s.accent, letterSpacing: '-0.3px' }}>{s.theme}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.desc}</div>
+              </div>
             </div>
           ))}
         </div>
