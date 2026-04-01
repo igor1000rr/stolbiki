@@ -144,7 +144,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
       {/* ═══ SCREENSHOTS — animated theme previews ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'The game in action' : 'Игра в действии'}</h2>
-        <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+        <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, maxWidth: 600, margin: '0 auto' }}>
           {[
             { theme: 'Dark', gradient: 'linear-gradient(160deg, #12121e 0%, #1a1a30 100%)', accent: '#4a9eff', accent2: '#ff6066', glow: '#4a9eff30', desc: en ? 'Classic dark theme' : 'Классическая тёмная' },
             { theme: 'Neon', gradient: 'linear-gradient(160deg, #08081a 0%, #18003a 100%)', accent: '#ff00ff', accent2: '#00ffaa', glow: '#ff00ff30', desc: en ? 'Cyberpunk neon' : 'Киберпанк неон' },
