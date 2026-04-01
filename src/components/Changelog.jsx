@@ -6,6 +6,28 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.2',
+    date: '2026-04-02',
+    title_ru: 'Терминология, симулятор, онлайн-скины, баги',
+    title_en: 'Terminology, simulator, online skins, bugfixes',
+    changes_ru: [
+      { type: 'new', text: 'Терминология: фишка → блок, закрытие → достройка, стойка с 11 блоками = высотка. Обновлены все тексты: i18n, правила, уроки, лендинг, настройки, головоломки' },
+      { type: 'new', text: 'Симулятор: 2 новых параметра — «блоков за ход» (1-6) и «стоек за ход» (1-5). Исследуйте альтернативные варианты правил' },
+      { type: 'new', text: 'Онлайн: скины передаются оппоненту через WebSocket. Бейдж с выбранными скинами виден во время игры' },
+      { type: 'fix', text: 'Кнопка «Отменить перенос» теперь видна после выбора переноса (когда расставляете блоки)' },
+      { type: 'fix', text: 'Крупный шрифт включён по умолчанию' },
+      { type: 'fix', text: 'Архитектура: server.js разбит на 9 route-модулей (1646 → 177 строк), CORS закрыт, global error handler, 41 тест на движок' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Terminology: chip → block, closing → completing, stand with 11 blocks = highrise. All texts updated: i18n, rules, lessons, landing, settings, puzzles' },
+      { type: 'new', text: 'Simulator: 2 new parameters — "blocks per turn" (1-6) and "stands per turn" (1-5). Explore alternative rule variants' },
+      { type: 'new', text: 'Online: skins transmitted to opponent via WebSocket. Skin badge visible during games' },
+      { type: 'fix', text: 'Cancel transfer button now visible after selecting a transfer (during block placement phase)' },
+      { type: 'fix', text: 'Large text enabled by default' },
+      { type: 'fix', text: 'Architecture: server.js split into 9 route modules (1646 → 177 lines), CORS hardened, global error handler, 41 engine tests' },
+    ],
+  },
+  {
     version: '4.1',
     date: '2026-04-01',
     title_ru: 'UI polish: темы, скины, профиль, формы',

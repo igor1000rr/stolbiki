@@ -134,12 +134,17 @@ updatePost('v41-polish', 'v4.1: UI Polish & 11 тем', 'v4.1: UI Polish & 11 th
 
 // Pin только v4.1
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v41-polish'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v42-terminology'").run()
+
+addPost('v42-terminology', 'v4.2: Терминология, симулятор, онлайн-скины', 'v4.2: Terminology, simulator, online skins',
+  'Большое обновление текстов и функционала:\n\n**Терминология** — фишка → блок, закрытие → достройка. 10 стоек, 11 блоков на каждой = высотка. Обновлены все тексты: правила, уроки, лендинг, головоломки, настройки.\n**Симулятор** — 2 новых параметра: «блоков за ход» (1-6) и «стоек за ход» (1-5). Исследуйте варианты правил.\n**Онлайн-скины** — скины передаются оппоненту через WebSocket. Бейдж виден во время игры.\n**Баги** — кнопка «Отменить перенос» после выбора, крупный шрифт по умолчанию.\n**Архитектура** — server.js разбит на 9 модулей (1646→177 строк), CORS, error handler, 41 тест.',
+  'Major text and feature update:\n\n**Terminology** — chip → block, closing → completing. 10 stands, 11 blocks each = highrise. All texts updated: rules, lessons, landing, puzzles, settings.\n**Simulator** — 2 new parameters: "blocks per turn" (1-6) and "stands per turn" (1-5). Explore rule variants.\n**Online skins** — skins transmitted to opponent via WebSocket. Badge visible during games.\n**Bugfixes** — cancel transfer button after selection, large text on by default.\n**Architecture** — server.js split into 9 modules (1646→177 lines), CORS, error handler, 41 tests.',
+  'release', '2026-04-02 12:00:00')
 
 updatePost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
-  '✅ Android-приложение\n✅ GPU-нейросеть 840K\n✅ AI Game Review\n✅ Puzzle Rush\n✅ Live Arena\n✅ 5 уроков\n✅ 11 тем + 8 скинов фишек + 9 скинов стоек\n✅ Магазин скинов с level-unlock\n✅ Login streak + missions + XP\n✅ 33 ачивки\n✅ i18n RU/EN\n\nДалее:\n→ Google Play\n→ Push-уведомления\n→ AI v4 (RTX 5090)\n→ iOS',
-  '✅ Android app\n✅ GPU neural net 840K\n✅ AI Game Review\n✅ Puzzle Rush\n✅ Live Arena\n✅ 5 lessons\n✅ 11 themes + 8 chip skins + 9 stand skins\n✅ Skin Shop with level-unlock\n✅ Login streak + missions + XP\n✅ 33 achievements\n✅ i18n RU/EN\n\nNext:\n→ Google Play\n→ Push notifications\n→ AI v4 (RTX 5090)\n→ iOS',
-  'roadmap', '2026-04-01 01:00:00')
+  '✅ Android-приложение\n✅ GPU-нейросеть 840K\n✅ AI Game Review\n✅ Puzzle Rush\n✅ Live Arena\n✅ 5 уроков\n✅ 11 тем + 8 скинов блоков + 9 скинов стоек\n✅ Магазин скинов с level-unlock\n✅ Login streak + missions + XP\n✅ 33 ачивки\n✅ i18n RU/EN\n✅ Терминология блок/высотка\n✅ Онлайн-скины\n\nДалее:\n→ Google Play\n→ Push-уведомления\n→ AI v4 (RTX 5090)\n→ iOS',
+  '✅ Android app\n✅ GPU neural net 840K\n✅ AI Game Review\n✅ Puzzle Rush\n✅ Live Arena\n✅ 5 lessons\n✅ 11 themes + 8 block skins + 9 stand skins\n✅ Skin Shop with level-unlock\n✅ Login streak + missions + XP\n✅ 33 achievements\n✅ i18n RU/EN\n✅ Block/highrise terminology\n✅ Online skins\n\nNext:\n→ Google Play\n→ Push notifications\n→ AI v4 (RTX 5090)\n→ iOS',
+  'roadmap', '2026-04-02 01:00:00')
 
 
 // ═══ Blog Endpoints ═══

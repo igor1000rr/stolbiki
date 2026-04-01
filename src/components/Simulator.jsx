@@ -130,6 +130,8 @@ function WinrateTimeline({ snapshots }) {
 export default function Simulator() {
   const [numStands, setNumStands] = useState(10)
   const [maxChips, setMaxChips] = useState(11)
+  const [maxPlace, setMaxPlace] = useState(3)
+  const [maxPlaceStands, setMaxPlaceStands] = useState(2)
   const [numGames, setNumGames] = useState(1000)
   const [running, setRunning] = useState(false)
   const [data, setData] = useState(null)
@@ -140,14 +142,14 @@ export default function Simulator() {
   const startTimeRef = useRef(0)
   const lastBatchRef = useRef(0)
 
-  const applyPreset = (p) => { setNumStands(p.stands); setMaxChips(p.chips) }
+  const applyPreset = (p) => { setNumStands(p.stands); setMaxChips(p.chips); setMaxPlace(3); setMaxPlaceStands(2) }
 
   const start = useCallback(() => {
     setRunning(true); setData(null); setSnapshots([])
     abortRef.current = false; startTimeRef.current = Date.now(); lastBatchRef.current = 0
 
     runSimulation(
-      { numStands, maxChips, numGames, batchSize: 50 },
+      { numStands, maxChips, numGames, batchSize: 50, maxPlace, maxPlaceStands },
       (batch) => {
         if (abortRef.current) return
         setData(batch)
@@ -180,7 +182,7 @@ export default function Simulator() {
         }, ...prev].slice(0, 20))
       }
     )
-  }, [numStands, maxChips, numGames])
+  }, [numStands, maxChips, numGames, maxPlace, maxPlaceStands])
 
   const stop = () => { abortRef.current = true; setRunning(false) }
 
@@ -220,7 +222,7 @@ export default function Simulator() {
 
       {/* Параметры */}
       <div className="dash-card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 16, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>
             Стоек
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -235,6 +237,22 @@ export default function Simulator() {
               <input type="range" min={5} max={17} value={maxChips} onChange={e => setMaxChips(+e.target.value)}
                 style={{ flex: 1, accentColor: 'var(--accent)' }} />
               <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxChips}</b>
+            </div>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>
+            Блоков/ход
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="range" min={1} max={6} value={maxPlace} onChange={e => setMaxPlace(+e.target.value)}
+                style={{ flex: 1, accentColor: 'var(--gold)' }} />
+              <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxPlace}</b>
+            </div>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>
+            Стоек/ход
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="range" min={1} max={5} value={maxPlaceStands} onChange={e => setMaxPlaceStands(+e.target.value)}
+                style={{ flex: 1, accentColor: 'var(--gold)' }} />
+              <b style={{ color: 'var(--ink)', fontSize: 20, minWidth: 24, textAlign: 'center' }}>{maxPlaceStands}</b>
             </div>
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--ink2)' }}>

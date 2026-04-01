@@ -7,9 +7,11 @@ import { sampleRandomAction, mctsSearch } from './ai.js'
 
 // GameState с кастомными параметрами
 class CustomGameState {
-  constructor(numStands = 10, maxChips = 11) {
+  constructor(numStands = 10, maxChips = 11, maxPlace = 3, maxPlaceStands = 2) {
     this.numStands = numStands
     this.maxChips = maxChips
+    this.maxPlace = maxPlace
+    this.maxPlaceStands = maxPlaceStands
     this.stands = Array.from({ length: numStands }, () => [])
     this.closed = {}
     this.currentPlayer = 0
@@ -20,7 +22,7 @@ class CustomGameState {
   }
 
   copy() {
-    const s = new CustomGameState(this.numStands, this.maxChips)
+    const s = new CustomGameState(this.numStands, this.maxChips, this.maxPlace, this.maxPlaceStands)
     s.stands = this.stands.map(st => [...st])
     s.closed = { ...this.closed }
     s.currentPlayer = this.currentPlayer
@@ -60,7 +62,6 @@ function fastRandomAction(state) {
   const player = state.currentPlayer
   const opens = state.openStands()
   let transfer = null
-  const MAX_PLACE = 3
 
   // Ищем переносы
   const closing = [], normal = []
@@ -86,7 +87,7 @@ function fastRandomAction(state) {
   if (closing.length && Math.random() < 0.7) transfer = closing[Math.floor(Math.random() * closing.length)]
   else if (normal.length && Math.random() < 0.4) transfer = normal[Math.floor(Math.random() * normal.length)]
 
-  const maxChips = state.isFirstTurn() ? 1 : MAX_PLACE
+  const maxChips = state.isFirstTurn() ? 1 : state.maxPlace
   const canClose = state.canCloseByPlacement()
   const available = []
   for (const idx of opens) {
@@ -103,7 +104,7 @@ function fastRandomAction(state) {
   const placement = {}
   if (available.length) {
     let remaining = maxChips
-    const num = Math.min(1 + Math.floor(Math.random() * 2), available.length)
+    const num = Math.min(1 + Math.floor(Math.random() * state.maxPlaceStands), available.length)
     const shuffled = [...available].sort(() => Math.random() - 0.5).slice(0, num)
     for (const [idx, cap] of shuffled) {
       if (remaining <= 0) break
@@ -193,7 +194,7 @@ function checkCustomGameOver(state) {
  * Запускает симуляцию — возвращает результаты пачками через callback
  */
 export function runSimulation(params, onBatch, onComplete) {
-  const { numStands, maxChips, numGames, batchSize = 50 } = params
+  const { numStands, maxChips, numGames, batchSize = 50, maxPlace = 3, maxPlaceStands = 2 } = params
   let played = 0
   const results = {
     p1Wins: 0, p2Wins: 0, draws: 0,
@@ -215,7 +216,7 @@ export function runSimulation(params, onBatch, onComplete) {
     const batchEnd = Math.min(played + batchSize, numGames)
 
     for (let g = played; g < batchEnd; g++) {
-      let state = new CustomGameState(numStands, maxChips)
+      let state = new CustomGameState(numStands, maxChips, maxPlace, maxPlaceStands)
       let t = 0
       let firstClose = null
       let lastCloser = -1

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import * as MP from '../engine/multiplayer'
 import { useI18n } from '../engine/i18n'
+import { getSettings } from '../engine/settings'
 import Icon from './Icon'
 
 // Ежедневный челлендж
@@ -128,6 +129,13 @@ export default function Online() {
   const [tournamentResult, setTournamentResult] = useState(null)
   const [activeRooms, setActiveRooms] = useState([])
   const [loadingRooms, setLoadingRooms] = useState(false)
+  const [opponentSkins, setOpponentSkins] = useState(null)
+
+  // Свои скины для передачи оппоненту
+  function getMySkins() {
+    const s = getSettings()
+    return { chipStyle: s.chipStyle, standStyle: s.standStyle }
+  }
 
   // Refs для актуальных значений в WS callback (не stale)
   const roomIdRef = useRef('')
@@ -162,6 +170,11 @@ export default function Online() {
         setCurrentGame(msg.currentGame || 1)
         setScreen('playing')
         setStatus('')
+        // Скины оппонента
+        if (msg.playerSkins) {
+          const oppIdx = playerIdxRef.current === 0 ? 1 : 0
+          setOpponentSkins(msg.playerSkins[oppIdx] || null)
+        }
         // Передаём в Game через window event (используем refs — актуальные значения)
         window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
           detail: { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current }
@@ -257,7 +270,7 @@ export default function Online() {
     try {
       const id = await MP.createRoom(mode)
       setRoomId(id)
-      MP.connect(id, playerName.trim(), handleWS)
+      MP.connect(id, playerName.trim(), handleWS, getMySkins())
     } catch { setError(en ? 'Failed to create room' : 'Ошибка создания комнаты') }
   }
 
@@ -267,7 +280,7 @@ export default function Online() {
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
     const code = joinCode.trim().toUpperCase()
-    MP.connect(code, playerName.trim(), handleWS)
+    MP.connect(code, playerName.trim(), handleWS, getMySkins())
   }
 
   function sendChat() {
@@ -282,7 +295,7 @@ export default function Online() {
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
     setScreen('searching')
-    MP.findMatch(playerName.trim(), handleWS)
+    MP.findMatch(playerName.trim(), handleWS, getMySkins())
   }
 
   function cancelSearch() {
@@ -540,6 +553,15 @@ export default function Online() {
         {status && (
           <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>
             {status}
+          </div>
+        )}
+
+        {/* Скины оппонента */}
+        {opponentSkins && (opponentSkins.chipStyle !== 'classic' || opponentSkins.standStyle !== 'classic') && (
+          <div style={{ textAlign: 'center', padding: '4px 12px', marginBottom: 8, fontSize: 11, color: 'var(--ink3)' }}>
+            {players[playerIdx === 0 ? 1 : 0]}
+            {opponentSkins.chipStyle !== 'classic' && <span style={{ margin: '0 4px', padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: 'var(--ink2)' }}>🧱 {opponentSkins.chipStyle}</span>}
+            {opponentSkins.standStyle !== 'classic' && <span style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: 'var(--ink2)' }}>🏗 {opponentSkins.standStyle}</span>}
           </div>
         )}
 

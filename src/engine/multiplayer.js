@@ -18,7 +18,7 @@ let intentionalClose = false
 let reconnectAttempts = 0
 const MAX_RECONNECT = 10
 
-export function connect(roomId, name, callback) {
+export function connect(roomId, name, callback, skins) {
   onMessage = callback
   intentionalClose = false
   reconnectAttempts = 0
@@ -29,7 +29,7 @@ export function connect(roomId, name, callback) {
 
   ws.onopen = () => {
     reconnectAttempts = 0
-    ws.send(JSON.stringify({ type: 'join', roomId, name }))
+    ws.send(JSON.stringify({ type: 'join', roomId, name, skins: skins || {} }))
   }
 
   ws.onmessage = (e) => {
@@ -76,7 +76,7 @@ export function sendRematchResponse(accepted) {
   send({ type: 'rematchResponse', accepted })
 }
 
-export function findMatch(name, callback) {
+export function findMatch(name, callback, skins) {
   onMessage = callback
   intentionalClose = false
   reconnectAttempts = 0
@@ -84,7 +84,7 @@ export function findMatch(name, callback) {
   intentionalClose = false
 
   ws = new WebSocket(getWsUrl())
-  ws.onopen = () => { reconnectAttempts = 0; ws.send(JSON.stringify({ type: 'findMatch', name })) }
+  ws.onopen = () => { reconnectAttempts = 0; ws.send(JSON.stringify({ type: 'findMatch', name, skins: skins || {} })) }
   ws.onmessage = (e) => { try { if (onMessage) onMessage(JSON.parse(e.data)) } catch {} }
   ws.onclose = () => { if (!intentionalClose && onMessage) onMessage({ type: 'disconnected' }) }
   ws.onerror = () => {}

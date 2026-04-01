@@ -126,11 +126,12 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
       // ─── MATCHMAKING ───
       if (msg.type === 'findMatch') {
         const name = wsUser?.username || msg.name || 'Player'
+        const skins = msg.skins || {}
         for (let i = matchQueue.length - 1; i >= 0; i--) {
           if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
         }
         if (matchQueue.some(q => q.ws === ws)) return
-        matchQueue.push({ ws, name, userId: wsUser?.id || null })
+        matchQueue.push({ ws, name, userId: wsUser?.id || null, skins })
 
         if (matchQueue.length >= 2) {
           const p1 = matchQueue.shift()
@@ -139,8 +140,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
           const room = {
             id: roomId,
             players: [
-              { ws: p1.ws, name: p1.name, userId: p1.userId },
-              { ws: p2.ws, name: p2.name, userId: p2.userId },
+              { ws: p1.ws, name: p1.name, userId: p1.userId, skins: p1.skins },
+              { ws: p2.ws, name: p2.name, userId: p2.userId, skins: p2.skins },
             ],
             mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0],
             gameState: new GameState(), firstPlayer: 0, spectators: [],
@@ -148,7 +149,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
           rooms.set(roomId, room)
           p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0 }))
           p2.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 1 }))
-          const startMsg = JSON.stringify({ type: 'start', players: [p1.name, p2.name], firstPlayer: 0, scores: [0, 0], currentGame: 1 })
+          const startMsg = JSON.stringify({ type: 'start', players: [p1.name, p2.name], playerSkins: [p1.skins, p2.skins], firstPlayer: 0, scores: [0, 0], currentGame: 1 })
           p1.ws.send(startMsg); p2.ws.send(startMsg)
         } else {
           ws.send(JSON.stringify({ type: 'queued', position: matchQueue.length }))
@@ -171,7 +172,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
         if (room.players.length >= 2) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната полна' }))
 
         playerIdx = room.players.length
-        room.players.push({ ws, name: wsUser?.username || msg.name || `Игрок ${playerIdx + 1}`, userId: wsUser?.id || null })
+        room.players.push({ ws, name: wsUser?.username || msg.name || `Игрок ${playerIdx + 1}`, userId: wsUser?.id || null, skins: msg.skins || {} })
         playerRoom = room
 
         ws.send(JSON.stringify({ type: 'joined', roomId, playerIdx, mode: room.mode, totalGames: room.totalGames }))
@@ -184,6 +185,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
           const startMsg = JSON.stringify({
             type: 'start',
             players: room.players.map(p => p.name),
+            playerSkins: room.players.map(p => p.skins || {}),
             currentGame: 1, totalGames: room.totalGames, scores: [0, 0],
             firstPlayer: 0,
           })
@@ -208,6 +210,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
           type: 'spectateJoined',
           roomId,
           players: room.players.map(p => p.name),
+          playerSkins: room.players.map(p => p.skins || {}),
           scores: room.scores,
           firstPlayer: room.firstPlayer ?? 0,
           // Сериализуем gameState для восстановления на клиенте
