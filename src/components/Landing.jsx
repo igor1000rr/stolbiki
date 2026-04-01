@@ -185,55 +185,44 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
 
       {/* ═══ DOWNLOAD ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} className="l-dl-wrap">
-          <div className="l-dl-inner">
-            <Mascot pose="wave" size={140} large animate={false} style={{ flexShrink: 0 }} />
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
-                {en ? 'Play on your phone' : 'Играйте на телефоне'}
-              </h2>
-              <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 20px' }}>
-                {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
-              </p>
-              <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <div className="l-dl-btn">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                  <div><div className="l-dl-sub">Download on the</div><div className="l-dl-name">App Store</div></div>
-                  <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
-                </div>
-                <div className="l-dl-btn">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
-                  <div><div className="l-dl-sub">GET IT ON</div><div className="l-dl-name">Google Play</div></div>
-                  <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
-                </div>
+        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 28, padding: '32px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Mascot pose="wave" size={130} large animate={false} style={{ flexShrink: 0 }} />
+          <div style={{ flex: '1 1 300px', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
+              {en ? 'Play on your phone' : 'Играйте на телефоне'}
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 18px' }}>
+              {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div className="l-dl-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                <div><div className="l-dl-sub">Download on the</div><div className="l-dl-name">App Store</div></div>
+                <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
+              </div>
+              <div className="l-dl-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
+                <div><div className="l-dl-sub">GET IT ON</div><div className="l-dl-name">Google Play</div></div>
+                <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-
-      {/* ═══ PRINT & PLAY — accent banner ═══ */}
+      {/* ═══ PRINT & PLAY ═══ */}
       <section className="l-section">
-        <a href="/print-and-play.pdf" target="_blank" className="l-print-banner">
-          <div className="l-print-bg" />
-          <div className="l-print-inner">
-            <div className="l-print-left">
-              <div className="l-print-icon-wrap">
-                <Icon name="download" size={28} color="#fff" />
-              </div>
-            </div>
-            <div className="l-print-text">
-              <strong>Print & Play</strong>
-              <span>{en
-                ? 'Download a 3-page PDF with the game board, 110 blocks to cut out, and full rules. Everything you need to play at the table.'
-                : 'Скачайте PDF на 3 страницы: игровое поле, 110 блоков для вырезания и полные правила. Всё для игры за столом.'}</span>
-            </div>
-            <div className="l-print-cta">
-              <span>{en ? 'Download' : 'Скачать'}</span>
-              <Icon name="arrow" size={16} color="#fff" />
+        <a href="/print-and-play.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 24px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)', textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface3)'; e.currentTarget.style.transform = '' }}>
+          <Icon name="download" size={22} color="var(--accent)" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
+              {en ? 'PDF: game board, 110 blocks to cut, full rules' : 'PDF: игровое поле, 110 блоков для вырезания, полные правила'}
             </div>
           </div>
+          <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{en ? 'Download' : 'Скачать'} →</div>
         </a>
       </section>
 
