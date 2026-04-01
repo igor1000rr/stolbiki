@@ -166,7 +166,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
       <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
         {[
           ['themes', en ? 'Themes' : 'Темы', THEMES.length],
-          ['chips', en ? 'Chips' : 'Фишки', `${CHIP_SKINS.filter(s => s.level <= userLevel).length}/${CHIP_SKINS.length}`],
+          ['chips', en ? 'Blocks' : 'Блоки', `${CHIP_SKINS.filter(s => s.level <= userLevel).length}/${CHIP_SKINS.length}`],
           ['stands', en ? 'Stands' : 'Стойки', `${STAND_SKINS.filter(s => s.level <= userLevel).length}/${STAND_SKINS.length}`],
         ].map(([id, label, count]) => (
           <button key={id} onClick={() => setTab(id)} style={{

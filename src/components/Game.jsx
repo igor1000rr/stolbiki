@@ -811,7 +811,7 @@ export default function Game() {
     } else if (mode === 'pvp') {
       setPhase('place')
       const name = ns.currentPlayer === 0 ? t('game.blue') : t('game.red')
-      setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 chip' : 'поставьте 1 блок'}` : `${name}: ${lang === 'en' ? 'place chips' : 'расставьте блоки'}`)
+      setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 block' : 'поставьте 1 блок'}` : `${name}: ${lang === 'en' ? 'place blocks' : 'расставьте блоки'}`)
     } else {
       setLocked(true)
       evaluatePosition(ns)

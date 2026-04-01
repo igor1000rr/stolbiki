@@ -11,8 +11,8 @@ const SLIDES = [
   {
     title_ru: 'Ставьте блоки',
     title_en: 'Place blocks',
-    desc_ru: 'Каждый ход — ставьте до 3 фишек на 1-2 стойки. Заполните стойку до 11 — и она ваша!',
-    desc_en: 'Each turn — place up to 3 chips on 1-2 stands. Fill a stand to 11 — and it\'s yours!',
+    desc_ru: 'Каждый ход — ставьте до 3 блоков на 1-2 стойки. Заполните стойку до 11 — и она ваша!',
+    desc_en: 'Each turn — place up to 3 blocks on 1-2 stands. Fill a stand to 11 — and it\'s yours!',
     icon: (
       <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
         <rect x="15" y="20" width="14" height="50" rx="4" fill="#2a2a38" stroke="#4a9eff33" strokeWidth="1"/>
