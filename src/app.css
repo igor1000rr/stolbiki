@@ -3162,19 +3162,37 @@ body.native-body { animation: none !important; }
 .l-feat-desc { font-size: 12px; color: var(--ink3); line-height: 1.5; }
 
 /* Анимации для SVG элементов внутри карточек */
-.l-feat-bars rect { animation: barGrow 0.6s cubic-bezier(0.34,1.56,0.64,1) both; transform-origin: bottom; }
-.l-feat-grid:not(.in) .l-feat-bars rect { animation: none; opacity: 0; }
-@keyframes barGrow { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 0.7; } }
+
+/* AI + Arena: столбики волнообразно качаются */
+.l-bar-wave { animation: barWave 2s ease-in-out infinite; }
+.l-feat-grid:not(.in) .l-bar-wave { animation: none; opacity: 0; }
+@keyframes barWave { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(0.5); } }
+
+/* Online: точки пульсируют, пунктир бежит, пакет летит */
 .l-feat-pulse { animation: pulseDot 2s ease-in-out infinite; }
 @keyframes pulseDot { 0%,100% { r: 3; opacity: 0.8; } 50% { r: 5; opacity: 1; } }
 .l-feat-dash { animation: dashMove 2s linear infinite; }
 @keyframes dashMove { to { stroke-dashoffset: -14; } }
-.l-feat-pop { animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
-.l-feat-grid:not(.in) .l-feat-pop { animation: none; opacity: 0; }
-@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.l-feat-grow { animation: growWidth 1s ease both; animation-delay: 0.5s; }
-.l-feat-grid:not(.in) .l-feat-grow { animation: none; width: 0; }
-@keyframes growWidth { from { width: 0; } to { width: 70px; } }
+.l-packet { animation: packetFly 2.5s ease-in-out infinite; }
+@keyframes packetFly { 0%,10% { cx: 30; opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 90%,100% { cx: 90; opacity: 0; } }
+
+/* Puzzles: ? мигает, ✓ появляется, полоска заполняется */
+.l-puzzle-q { animation: puzzleBlink 3s ease-in-out infinite; }
+@keyframes puzzleBlink { 0%,40% { opacity: 1; } 50%,90% { opacity: 0.2; } 100% { opacity: 1; } }
+.l-puzzle-a { animation: puzzleSolve 3s ease-in-out infinite; }
+@keyframes puzzleSolve { 0%,40% { opacity: 0; transform: scale(0); } 50% { opacity: 1; transform: scale(1.3); } 60%,100% { opacity: 1; transform: scale(1); } }
+.l-puzzle-bar { animation: puzzleBar 3s ease-in-out infinite; }
+@keyframes puzzleBar { 0% { width: 0; } 50% { width: 50px; } 100% { width: 70px; } }
+
+/* Skins: точки волнообразно прыгают */
+.l-skin-dot { animation: skinBounce 2s ease-in-out infinite; }
+@keyframes skinBounce { 0%,100% { cy: 20; } 50% { cy: 14; } }
+
+/* AI Review: отметки появляются по очереди, полоска заполняется */
+.l-review-mark { animation: reviewAppear 3.6s ease-in-out infinite; opacity: 0; }
+@keyframes reviewAppear { 0%,10% { opacity: 0; transform: scale(0); } 20% { opacity: 1; transform: scale(1.2); } 30%,80% { opacity: 1; transform: scale(1); } 90%,100% { opacity: 0; } }
+.l-review-bar { animation: reviewBar 3.6s ease-in-out infinite; }
+@keyframes reviewBar { 0%,10% { width: 0; } 80% { width: 82px; } 90%,100% { width: 82px; opacity: 0.3; } }
 
 @media (max-width: 768px) { .l-feat-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .l-feat-grid { grid-template-columns: 1fr; } }
