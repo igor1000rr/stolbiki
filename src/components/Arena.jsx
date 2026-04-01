@@ -73,7 +73,7 @@ export default function Arena({ onClose, onJoinMatch }) {
         </button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
+      <div className="arena-content" style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
 
         {/* Left: standings */}
         <div style={{ flex: 1, padding: 16, overflow: 'auto' }}>
@@ -149,7 +149,7 @@ export default function Arena({ onClose, onJoinMatch }) {
         </div>
 
         {/* Right: rounds */}
-        <div style={{ width: 280, borderLeft: '1px solid var(--surface2)', padding: 16, overflow: 'auto', flexShrink: 0 }}>
+        <div className="arena-sidebar" style={{ width: 280, borderLeft: '1px solid var(--surface2)', padding: 16, overflow: 'auto', flexShrink: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', marginBottom: 10 }}>
             {en ? 'Matches' : 'Матчи'}
           </div>

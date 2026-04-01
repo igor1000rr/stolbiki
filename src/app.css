@@ -2308,6 +2308,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 [data-theme="retro"] .site-logo-text { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
 [data-theme="retro"] ::selection { background: rgba(118,255,3,0.2); }
 
+/* ═══ Responsive: Lessons + GameReview + SkinShop ═══ */
+@media (max-width: 680px) {
+  .lessons-content { flex-direction: column !important; }
+  .lessons-content .lessons-text { width: auto !important; max-height: 200px; border-right: none !important; border-bottom: 1px solid var(--surface2); }
+  .review-content { flex-direction: column-reverse !important; }
+  .review-sidebar { width: auto !important; max-height: 200px; border-left: none !important; border-bottom: 1px solid var(--surface2); }
+  .arena-content { flex-direction: column !important; }
+  .arena-sidebar { width: auto !important; max-height: 250px; border-left: none !important; border-top: 1px solid var(--surface2); }
+}
+
 /* Mobile: hide username text, show only avatar */
 @media (max-width: 480px) {
   .header-username { display: none; }

@@ -82,7 +82,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
+      <div className="review-content" style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
 
         {/* Left: Board */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -124,7 +124,7 @@ export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
         </div>
 
         {/* Right: Move list + Stats */}
-        <div style={{ width: 260, borderLeft: '1px solid var(--surface2)', display: 'flex',
+        <div className="review-sidebar" style={{ width: 260, borderLeft: '1px solid var(--surface2)', display: 'flex',
           flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
 
           {/* Stats */}

@@ -210,9 +210,9 @@ export default function Lessons({ onClose }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
+      <div className="lessons-content" style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
         {/* Left: lesson text */}
-        <div style={{ width: 300, padding: 20, borderRight: '1px solid var(--surface2)', overflow: 'auto', flexShrink: 0 }}>
+        <div className="lessons-text" style={{ width: 300, padding: 20, borderRight: '1px solid var(--surface2)', overflow: 'auto', flexShrink: 0 }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 12px' }}>
             {en ? lesson.title_en : lesson.title_ru}
           </h3>
