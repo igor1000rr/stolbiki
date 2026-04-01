@@ -332,31 +332,31 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ AUDIENCE — big vibrant blocks ═══ */}
-      <section className="l-section">
-        <div className={`l-who ${audVis ? 'in' : ''}`} ref={audRef}>
-          {[
-            { c: 'var(--gold)', bg: 'rgba(255,193,69,0.06)', border: 'rgba(255,193,69,0.15)',
-              icon: 'star', num: '8+', t: en ? 'Families' : 'Семьи',
-              d: en ? 'Simple rules, deep strategy. Perfect for game nights with kids.' : 'Простые правила, глубокая стратегия. Идеально для вечеров с детьми.' },
-            { c: 'var(--green)', bg: 'rgba(61,214,140,0.06)', border: 'rgba(61,214,140,0.15)',
-              icon: 'trophy', num: '50:50', t: en ? 'Board gamers' : 'Настольщики',
-              d: en ? 'Original mechanics. Mathematically verified balance on 239K games.' : 'Оригинальная механика. Баланс математически проверен на 239K партиях.' },
-            { c: 'var(--p1)', bg: 'rgba(74,158,255,0.06)', border: 'rgba(74,158,255,0.15)',
-              icon: 'online', num: '0s', t: en ? 'Online players' : 'Онлайн',
-              d: en ? 'No signup needed. Share a link and play instantly from any device.' : 'Без регистрации. Отправьте ссылку — играйте с любого устройства.' },
-          ].map((a, i) => (
-            <div key={i} className="l-who-block" style={{ '--i': i, background: a.bg, borderColor: a.border }}>
-              <div className="l-who-num" style={{ color: a.c }}>{a.num}</div>
-              <div className="l-who-content">
-                <div className="l-who-head" style={{ color: a.c }}>
-                  <Icon name={a.icon} size={16} color={a.c} />
-                  <strong>{a.t}</strong>
-                </div>
-                <p>{a.d}</p>
+      {/* ═══ MASCOT INTRO ═══ */}
+      <section className="l-section" style={{ textAlign: 'center' }}>
+        <div className={`l-who ${audVis ? 'in' : ''}`} ref={audRef} style={{ maxWidth: 560, margin: '0 auto' }}>
+          <Mascot pose="point" size={120} large className="mascot-enter" style={{ display: 'block', margin: '0 auto 16px' }} />
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+            {en ? 'Meet Snoopy!' : 'Это Снуппи!'}
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 20px' }}>
+            {en
+              ? 'Your building companion. He\'ll celebrate your victories, help you learn the rules, and cheer you on during tough moments. Simple rules, deep strategy — for families, board gamers, and online players alike.'
+              : 'Ваш компаньон-строитель. Он празднует победы, помогает учить правила и поддерживает в трудные моменты. Простые правила, глубокая стратегия — для семей, настольщиков и онлайн-игроков.'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}>
+            {[
+              { v: '8+', l: en ? 'age' : 'возраст' },
+              { v: '5-15', l: en ? 'min/game' : 'мин/партия' },
+              { v: '2', l: en ? 'players' : 'игрока' },
+              { v: '0₽', l: en ? 'forever' : 'навсегда' },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{s.v}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{s.l}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
