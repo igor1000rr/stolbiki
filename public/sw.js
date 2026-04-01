@@ -1,11 +1,7 @@
-// Service Worker — version обновляется автоматически при каждом деплое
+// Service Worker — network-first, минимальный кеш
 const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
-const STATIC_ASSETS = ['/', '/manifest.json']
 
-self.addEventListener('install', e => {
-  self.skipWaiting()
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)))
-})
+self.addEventListener('install', () => self.skipWaiting())
 
 self.addEventListener('activate', e => {
   e.waitUntil(
@@ -15,15 +11,20 @@ self.addEventListener('activate', e => {
 })
 
 self.addEventListener('fetch', e => {
+  // Не кешируем API, WebSocket, навигацию
   if (e.request.url.includes('/api/') || e.request.url.includes('/ws')) return
-  // Network-first: всегда пробуем сеть, fallback на кеш
-  e.respondWith(
-    fetch(e.request).then(res => {
-      if (res.ok && e.request.method === 'GET') {
-        const clone = res.clone()
-        caches.open(CACHE_NAME).then(c => c.put(e.request, clone))
-      }
-      return res
-    }).catch(() => caches.match(e.request))
-  )
+  if (e.request.mode === 'navigate') return
+
+  // Только статику (JS, CSS, шрифты, картинки) — network-first
+  if (e.request.method === 'GET' && /\.(js|css|woff2?|png|webp|ico|svg)(\?|$)/.test(e.request.url)) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone()
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone))
+        }
+        return res
+      }).catch(() => caches.match(e.request))
+    )
+  }
 })
