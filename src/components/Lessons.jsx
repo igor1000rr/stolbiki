@@ -200,7 +200,7 @@ export default function Lessons({ onClose }) {
             <div key={i} onClick={() => setLessonIdx(i)} style={{
               width: 10, height: 10, borderRadius: '50%', cursor: 'pointer',
               background: completed.includes(l.id) ? 'var(--green)' : i === lessonIdx ? 'var(--p1)' : 'var(--surface2)',
-              border: i === lessonIdx ? '2px solid #4a9eff' : '2px solid transparent',
+              border: i === lessonIdx ? '2px solid var(--p1)' : '2px solid transparent',
             }} />
           ))}
         </div>
@@ -212,7 +212,7 @@ export default function Lessons({ onClose }) {
       {/* Content */}
       <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
         {/* Left: lesson text */}
-        <div style={{ width: 300, padding: 20, borderRight: '1px solid #2a2a38', overflow: 'auto', flexShrink: 0 }}>
+        <div style={{ width: 300, padding: 20, borderRight: '1px solid var(--surface2)', overflow: 'auto', flexShrink: 0 }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: '0 0 12px' }}>
             {en ? lesson.title_en : lesson.title_ru}
           </h3>

@@ -115,7 +115,7 @@ function StandPreview({ skin }) {
       display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', padding: '3px 2px', gap: 1 }}>
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} style={{ width: 18, height: 5, borderRadius: 3,
-          background: i < 2 ? '#4a9eff' : '#ff6066',
+          background: i < 2 ? 'var(--p1)' : 'var(--p2)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
       ))}
     </div>
