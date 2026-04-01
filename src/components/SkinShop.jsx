@@ -90,12 +90,29 @@ function SkinCard({ skin, selected, locked, onClick, en }) {
   )
 }
 
-export default function SkinShop({ onClose, userLevel = 1 }) {
+export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'default', onThemeChange }) {
   const { lang } = useI18n()
   const en = lang === 'en'
-  const [tab, setTab] = useState('chips') // chips | stands
+  const [tab, setTab] = useState('themes') // themes | chips | stands
   const [settings, setSettings] = useState(getSettings)
   const previewRef = useRef(null)
+
+  const THEMES = [
+    { id: 'default', ru: 'Тёмная', en: 'Dark', color: '#0c0c12' },
+    { id: 'ocean', ru: 'Океан', en: 'Ocean', color: '#0a1628' },
+    { id: 'sunset', ru: 'Закат', en: 'Sunset', color: '#1a0e1e' },
+    { id: 'forest', ru: 'Лес', en: 'Forest', color: '#0c1a0f' },
+    { id: 'royal', ru: 'Королевская', en: 'Royal', color: '#0e0a18' },
+    { id: 'neon', ru: 'Неон', en: 'Neon', color: '#05050a' },
+    { id: 'wood', ru: 'Дерево', en: 'Wood', color: '#2c1e0f' },
+    { id: 'arctic', ru: 'Арктика', en: 'Arctic', color: '#e8f0f8' },
+    { id: 'minimal', ru: 'Светлая', en: 'Light', color: '#f5f5f7' },
+  ]
+
+  const ACCENT_COLORS = {
+    default: '#3bb8a8', ocean: '#00bcd4', sunset: '#ff7043', forest: '#4caf50',
+    royal: '#9c27b0', neon: '#ff00ff', wood: '#d4803a', arctic: '#0288d1', minimal: '#0071e3',
+  }
 
   function select(key, value) {
     const ns = { ...settings, [key]: value }
@@ -116,7 +133,7 @@ export default function SkinShop({ onClose, userLevel = 1 }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
         <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
-          {en ? 'Skin Shop' : 'Магазин скинов'}
+          {en ? 'Customize' : 'Оформление'}
         </div>
         <button className="btn" onClick={onClose} style={{ fontSize: 12, padding: '6px 14px' }}>
           {en ? 'Done' : 'Готово'}
@@ -144,8 +161,9 @@ export default function SkinShop({ onClose, userLevel = 1 }) {
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
             {[
-              ['chips', en ? 'Chip skins' : 'Скины фишек', `${chipSkins.filter(s => s.level <= userLevel).length}/${chipSkins.length}`],
-              ['stands', en ? 'Stand skins' : 'Скины стоек', `${standSkins.filter(s => s.level <= userLevel).length}/${standSkins.length}`],
+              ['themes', en ? 'Themes' : 'Темы', `${THEMES.length}`],
+              ['chips', en ? 'Chips' : 'Фишки', `${chipSkins.filter(s => s.level <= userLevel).length}/${chipSkins.length}`],
+              ['stands', en ? 'Stands' : 'Стойки', `${standSkins.filter(s => s.level <= userLevel).length}/${standSkins.length}`],
             ].map(([id, label, count]) => (
               <button key={id} onClick={() => setTab(id)} style={{
                 flex: 1, padding: '12px 16px', border: 'none', cursor: 'pointer',
@@ -162,6 +180,30 @@ export default function SkinShop({ onClose, userLevel = 1 }) {
 
           {/* Grid */}
           <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+            {tab === 'themes' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                {THEMES.map(th => (
+                  <div key={th.id} onClick={() => onThemeChange?.(th.id)} style={{
+                    padding: '14px 14px', borderRadius: 10, cursor: 'pointer',
+                    background: currentTheme === th.id ? 'var(--accent-glow)' : 'var(--surface)',
+                    border: `2px solid ${currentTheme === th.id ? 'var(--accent)' : 'var(--surface2)'}`,
+                    transition: 'all 0.2s',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 6, background: th.color,
+                        border: '1px solid var(--surface3)' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: ACCENT_COLORS[th.id] }} />
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: currentTheme === th.id ? 600 : 400,
+                      color: currentTheme === th.id ? 'var(--accent)' : 'var(--ink)' }}>
+                      {en ? th.en : th.ru}
+                    </div>
+                    {currentTheme === th.id && <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {tab === 'chips' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                 {chipSkins.map(skin => (

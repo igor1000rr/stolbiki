@@ -408,13 +408,10 @@ export default function App() {
                 ))}
                 <div className="nav-more-divider" />
                 <div className="nav-more-row">
-                  <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 8 }}>Theme</span>
-                  {THEMES.map(th => (
-                    <button key={th.id} onClick={() => setTheme(th.id)}
-                      className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>
-                      {th.label}
-                    </button>
-                  ))}
+                  <button onClick={() => { setShowSkinShop(true); setMobileMenu(false) }}
+                    className="nav-more-theme active" style={{ flex: 1 }}>
+                    🎨 {en ? 'Customize' : 'Оформление'}
+                  </button>
                 </div>
                 </div>
               </div>
@@ -510,13 +507,11 @@ export default function App() {
               </button>
             ))}
             <div className="nav-more-divider" />
-            <div style={{ display: 'flex', gap: 4, padding: '8px 16px', flexWrap: 'wrap' }}>
-              {THEMES.map(th => (
-                <button key={th.id} onClick={() => { setTheme(th.id); setMobileMenu(false) }}
-                  className={`nav-more-theme ${theme === th.id ? 'active' : ''}`}>
-                  {th.label}
-                </button>
-              ))}
+            <div style={{ padding: '8px 16px' }}>
+              <button onClick={() => { setShowSkinShop(true); setMobileMenu(false) }}
+                className="nav-more-theme active" style={{ width: '100%', padding: '10px 16px', fontSize: 13 }}>
+                🎨 {en ? 'Customize' : 'Оформление'}
+              </button>
             </div>
           </nav>
         )}
@@ -576,7 +571,7 @@ export default function App() {
               </button>
               <button className="m-more-item" onClick={() => { setShowSkinShop(true) }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                <span>{en ? 'Skin Shop' : 'Магазин скинов'}</span>
+                <span>{en ? 'Customize' : 'Оформление'}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
               </button>
               <button className="m-more-item" onClick={() => go('openings')}>
@@ -636,7 +631,7 @@ export default function App() {
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => setShowLessons(false)} /></Suspense>}
       {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} /></Suspense>}
-      {showSkinShop && <Suspense fallback={<LazyFallback />}><SkinShop onClose={() => setShowSkinShop(false)} userLevel={authUser?.level || 1} /></Suspense>}
+      {showSkinShop && <Suspense fallback={<LazyFallback />}><SkinShop onClose={() => setShowSkinShop(false)} userLevel={authUser?.level || 1} currentTheme={theme} onThemeChange={setTheme} /></Suspense>}
 
       {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
