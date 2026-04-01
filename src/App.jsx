@@ -301,7 +301,7 @@ export default function App() {
       {isNative && !online && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 500,
-          background: '#ff6066', color: '#fff', textAlign: 'center',
+          background: 'var(--p2)', color: '#fff', textAlign: 'center',
           fontSize: 11, fontWeight: 600, padding: '4px 12px',
           paddingTop: 'calc(4px + env(safe-area-inset-top, 0px))',
         }}>
@@ -317,12 +317,12 @@ export default function App() {
           alignItems: 'center', justifyContent: 'center', padding: 20,
         }} onClick={() => { markRatingAsked(); setShowRatePopup(false) }}>
           <div style={{
-            background: '#1a1a28', borderRadius: 20, padding: '28px 24px',
+            background: 'var(--surface)', borderRadius: 20, padding: '28px 24px',
             maxWidth: 340, width: '100%', textAlign: 'center',
             border: '1px solid rgba(255,255,255,0.06)',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="#ffc145"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--gold)"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
             </div>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
               {en ? 'Enjoying Snatch Highrise?' : 'Нравится Snatch Highrise?'}
@@ -336,7 +336,7 @@ export default function App() {
               // TODO: открыть страницу в Google Play когда будет URL
             }} style={{
               width: '100%', padding: '14px 0', borderRadius: 12,
-              border: 'none', background: '#ffc145', color: '#0d0d14',
+              border: 'none', background: 'var(--gold)', color: 'var(--bg)',
               fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8,
             }}>
               {en ? 'Rate now' : 'Оценить'}
@@ -356,23 +356,23 @@ export default function App() {
       {streakPopup && (
         <div style={{
           position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 2000, background: '#1a1a28', borderRadius: 16,
+          zIndex: 2000, background: 'var(--surface)', borderRadius: 16,
           padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 14,
           border: '1px solid rgba(255,193,69,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           animation: 'fadeIn 0.3s ease',
         }}>
           <div style={{ fontSize: 32 }}>
             <svg viewBox="0 0 32 32" width="36" height="36" fill="none">
-              <path d="M16 4c1 8-4 10-4 16a8 8 0 0016 0c0-6-5-8-4-16" stroke="#ffc145" strokeWidth="2" fill="rgba(255,193,69,0.15)"/>
+              <path d="M16 4c1 8-4 10-4 16a8 8 0 0016 0c0-6-5-8-4-16" stroke="var(--gold)" strokeWidth="2" fill="rgba(255,193,69,0.15)"/>
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#ffc145' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>
               {streakPopup.streak} {lang === 'en' ? 'day streak!' : (streakPopup.streak >= 5 ? 'дней подряд!' : streakPopup.streak >= 2 ? 'дня подряд!' : 'день подряд!')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink2)' }}>
               {lang === 'en' ? `Best: ${streakPopup.best}` : `Рекорд: ${streakPopup.best}`}
-              {streakPopup.streakXP && <span style={{ color: '#3dd68c', marginLeft: 8 }}>+{streakPopup.streakXP} XP</span>}
+              {streakPopup.streakXP && <span style={{ color: 'var(--green)', marginLeft: 8 }}>+{streakPopup.streakXP} XP</span>}
               {streakPopup.freeze > 0 && ` · ${lang === 'en' ? 'Freeze: ' : 'Защита: '}${streakPopup.freeze}`}
             </div>
           </div>
@@ -457,7 +457,7 @@ export default function App() {
                         <Icon name="theme" size={14} style={{ opacity: 0.5 }} />{en ? 'Settings' : 'Настройки'}
                       </button>
                       <div className="nav-more-divider" />
-                      <button onClick={doLogout} className="header-auth-item" style={{ color: '#ff6066' }}>
+                      <button onClick={doLogout} className="header-auth-item" style={{ color: 'var(--p2)' }}>
                         {en ? 'Logout' : 'Выйти'}
                       </button>
                     </>
@@ -466,7 +466,7 @@ export default function App() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>
                         {authMode === 'login' ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}
                       </div>
-                      {authError && <div style={{ fontSize: 11, color: '#ff6066', marginBottom: 8 }}>{authError}</div>}
+                      {authError && <div style={{ fontSize: 11, color: 'var(--p2)', marginBottom: 8 }}>{authError}</div>}
                       <input type="text" placeholder={en ? 'Username' : 'Никнейм'} value={authName}
                         onChange={e => setAuthName(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
                         className="header-auth-input" autoFocus />

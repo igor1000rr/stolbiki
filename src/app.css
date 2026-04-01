@@ -2376,7 +2376,7 @@ body.native-body { animation: none !important; }
   align-items: stretch;
   height: 52px;
   padding-bottom: env(safe-area-inset-bottom);
-  background: #0d0d14;
+  background: var(--bg);
   border-top: 1px solid rgba(255,255,255,0.08);
   transform: translateZ(0);
 }

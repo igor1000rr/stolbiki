@@ -1,7 +1,7 @@
 {
   "name": "snatch-highrise",
   "private": true,
-  "version": "3.7.1",
+  "version": "4.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
