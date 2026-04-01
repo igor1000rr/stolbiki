@@ -507,12 +507,10 @@ export function useI18nProvider() {
   const changeLang = useCallback((l) => {
     setLang(l)
     localStorage.setItem('stolbiki_lang', l)
-    // Обновляем URL: /en/ для EN, / для RU
-    const hash = location.hash || ''
-    const newPath = l === 'en' ? '/en/' : '/'
-    if (location.pathname !== newPath) {
-      history.replaceState(null, '', newPath + hash)
-    }
+    // Обновляем URL: /en/game для EN, /game для RU
+    const currentPage = location.pathname.replace(/^\/en\/?/, '/').replace(/^\/+/, '')
+    const newPath = l === 'en' ? '/en/' + currentPage : '/' + currentPage
+    history.replaceState(null, '', newPath)
     document.documentElement.lang = l
   }, [])
 

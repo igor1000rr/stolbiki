@@ -51,9 +51,9 @@ export async function initPush() {
       const data = action.notification.data
       // Навигация по типу уведомления
       if (data?.room) {
-        window.location.hash = `online?room=${data.room}`
+        window.location.href = '/online?room=' + data.room
       } else if (data?.type === 'daily') {
-        window.location.hash = 'puzzles'
+        window.location.href = '/puzzles'
       }
     })
 

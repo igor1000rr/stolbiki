@@ -72,14 +72,30 @@ export default function App() {
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
+  // Path routing: /game, /en/game, /rules, /en/rules...
+  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','sim','dash','replay','admin','changelog','blog']
+
+  function getTabFromPath() {
+    const path = location.pathname.replace(/^\/en\/?/, '/').replace(/^\/+/, '')
+    if (!path || path === '/') return 'landing'
+    const seg = path.split('/')[0]
+    if (seg === 'blog') return 'blog'
+    if (VALID_TABS.includes(seg)) return seg
+    return 'landing'
+  }
+
   const [tab, setTab] = useState(() => {
-    if (isNative) return 'game' // В приложении — сразу в игру
+    if (isNative) return 'game'
     const params = new URLSearchParams(location.search)
     if (params.get('room')) return 'online'
+    // Совместимость: если есть hash — конвертируем в path
     const hash = location.hash.replace('#', '')
-    if (hash.startsWith('blog')) return 'blog'
-    if (hash && ['game','online','puzzles','openings','profile','settings','rules','privacy','sim','dash','replay','admin','changelog'].includes(hash)) return hash
-    return 'landing'
+    if (hash && VALID_TABS.includes(hash)) {
+      const base = lang === 'en' ? '/en/' : '/'
+      history.replaceState(null, '', base + hash)
+      return hash
+    }
+    return getTabFromPath()
   })
   const [isAdmin, setIsAdmin] = useState(getIsAdmin)
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
@@ -161,26 +177,23 @@ export default function App() {
     return () => clearInterval(iv)
   }, []) // eslint-disable-line
 
-  // Sync hash with tab
+  // Sync URL with tab (path routing)
   useEffect(() => {
     const base = lang === 'en' ? '/en/' : '/'
-    if (tab === 'landing') history.replaceState(null, '', base)
-    else history.replaceState(null, '', base + '#' + tab)
+    const target = tab === 'landing' ? base : base + tab
+    if (location.pathname !== target) history.pushState(null, '', target)
     const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика' }
     document.title = titles[tab] ? `${titles[tab]} — Snatch Highrise` : 'Snatch Highrise — Strategy Board Game'
   }, [tab, lang])
 
-  // Listen for back/forward
+  // Listen for back/forward (popstate instead of hashchange)
   useEffect(() => {
-    const onHash = () => {
-      const h = location.hash.replace('#', '')
-      if (h.startsWith('blog')) { if (tab !== 'blog') setTab('blog') }
-      else if (h && h !== tab) setTab(h)
-      else if (!h) setTab('landing')
+    const onPop = () => {
+      setTab(getTabFromPath())
     }
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
-  }, [tab])
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   useEffect(() => {
     if (theme === 'default') document.documentElement.removeAttribute('data-theme')
@@ -654,13 +667,13 @@ export default function App() {
             <span className="status-dot" style={{ background: publicStats ? 'var(--green)' : 'var(--p2)' }} />
             <span>{publicStats ? t('common.online') : t('common.offline')}</span>
             <span className="site-footer-divider" />
-            <a href="#changelog" onClick={(e) => { e.preventDefault(); go('changelog') }} style={{ cursor: 'pointer' }}>Changelog</a>
+            <a href="/changelog" onClick={(e) => { e.preventDefault(); go('changelog') }} style={{ cursor: 'pointer' }}>Changelog</a>
             <span className="site-footer-divider" />
-            <a href="#rules" onClick={(e) => { e.preventDefault(); go('rules') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Rules' : 'Правила'}</a>
+            <a href="/rules" onClick={(e) => { e.preventDefault(); go('rules') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Rules' : 'Правила'}</a>
             <span className="site-footer-divider" />
             <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print & Play</a>
             <span className="site-footer-divider" />
-            <a href="#privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
+            <a href="/privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
             <span className="site-footer-divider" />
             <span style={{ opacity: 0.3 }}>v4.1</span>
           </div>

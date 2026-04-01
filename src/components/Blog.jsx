@@ -85,10 +85,10 @@ export default function Blog() {
   const [activePost, setActivePost] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Read slug from URL hash: #blog/my-post-slug
+  // Read slug from URL path: /blog/my-post-slug
   useEffect(() => {
-    const hash = location.hash
-    const match = hash.match(/^#blog\/(.+)$/)
+    const path = location.pathname.replace(/^\/en\/?/, '/')
+    const match = path.match(/^\/blog\/(.+)$/)
     if (match) {
       const slug = match[1]
       fetch(`/api/blog/${slug}`)
@@ -107,13 +107,15 @@ export default function Blog() {
 
   function openPost(post) {
     setActivePost(post)
-    history.replaceState(null, '', `#blog/${post.slug}`)
+    const base = location.pathname.startsWith('/en') ? '/en/' : '/'
+    history.replaceState(null, '', `${base}blog/${post.slug}`)
     document.title = `${lang === 'en' && post.title_en ? post.title_en : post.title_ru} — Snatch Highrise`
   }
 
   function goBack() {
     setActivePost(null)
-    history.replaceState(null, '', '#blog')
+    const base = location.pathname.startsWith('/en') ? '/en/' : '/'
+    history.replaceState(null, '', `${base}blog`)
     document.title = 'Snatch Highrise — Strategy board game with AI'
   }
 
