@@ -3180,23 +3180,38 @@ body.native-body { animation: none !important; }
 @media (max-width: 520px) { .l-screens { grid-template-columns: 1fr !important; max-width: 320px !important; } }
 
 /* ═══ Store buttons — animated border glow ═══ */
-.l-store-btn {
-  position: relative; width: 185px; padding: 14px 20px; border-radius: 14px;
-  background: linear-gradient(135deg, #16162a, #1e1e38); cursor: pointer;
-  transition: transform 0.25s ease; overflow: hidden; z-index: 0;
+
+/* ═══ Download section — animated gradient border ═══ */
+.l-dl-wrap {
+  position: relative; border-radius: 20px; padding: 3px;
+  background: linear-gradient(135deg, #4a9eff, #ff6066, #ffc145, #3dd68c, #4a9eff);
+  background-size: 300% 300%;
+  animation: dlBorderFlow 4s ease infinite;
 }
-.l-store-btn::before {
-  content: ''; position: absolute; inset: 0; border-radius: 14px; padding: 1.5px;
-  background: linear-gradient(var(--border-angle, 0deg), #4a9eff, #ff6066, #ffc145, #3dd68c, #4a9eff);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  animation: borderSpin 3s linear infinite; z-index: -1;
+@keyframes dlBorderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
-@keyframes borderSpin { to { --border-angle: 360deg; } }
-@property --border-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-.l-store-btn:hover { transform: translateY(-3px); }
-.l-store-badge {
-  position: absolute; top: 6px; right: 8px; font-size: 9px; padding: 2px 7px;
-  border-radius: 4px; background: rgba(74,158,255,0.2); color: var(--p1); font-weight: 600;
+.l-dl-inner {
+  display: flex; align-items: center; gap: 28px; padding: 32px 28px;
+  background: var(--bg); border-radius: 17px;
+}
+.l-dl-btn {
+  display: flex; align-items: center; gap: 12px; position: relative;
+  padding: 12px 18px; border-radius: 12px;
+  background: linear-gradient(135deg, #1a1a2e, #222240);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+}
+.l-dl-btn:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
+.l-dl-sub { font-size: 9px; color: rgba(255,255,255,0.5); line-height: 1; margin-bottom: 2px; text-align: left; }
+.l-dl-name { font-size: 16px; font-weight: 700; color: #fff; line-height: 1.1; text-align: left; }
+.l-dl-badge {
+  position: absolute; top: 5px; right: 7px;
+  font-size: 9px; padding: 2px 6px; border-radius: 4px;
+  background: rgba(74,158,255,0.2); color: var(--p1); font-weight: 600;
+}
+@media (max-width: 600px) {
+  .l-dl-inner { flex-direction: column; text-align: center; padding: 24px 16px; }
 }
