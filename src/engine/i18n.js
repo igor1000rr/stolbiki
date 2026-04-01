@@ -482,7 +482,11 @@ async function loadCmsOverrides() {
 }
 
 export function useI18nProvider() {
-  const [lang, setLang] = useState(() => localStorage.getItem('stolbiki_lang') || 'ru')
+  const [lang, setLang] = useState(() => {
+    // Определяем язык из URL: /en/ → english
+    if (location.pathname.startsWith('/en')) return 'en'
+    return localStorage.getItem('stolbiki_lang') || 'ru'
+  })
   const [, setTick] = useState(0)
 
   // Загружаем CMS-переопределения при первом рендере
@@ -503,7 +507,17 @@ export function useI18nProvider() {
   const changeLang = useCallback((l) => {
     setLang(l)
     localStorage.setItem('stolbiki_lang', l)
+    // Обновляем URL: /en/ для EN, / для RU
+    const hash = location.hash || ''
+    const newPath = l === 'en' ? '/en/' : '/'
+    if (location.pathname !== newPath) {
+      history.replaceState(null, '', newPath + hash)
+    }
+    document.documentElement.lang = l
   }, [])
+
+  // Устанавливаем lang на html элементе
+  useState(() => { document.documentElement.lang = lang === 'en' ? 'en' : 'ru' })
 
   return { lang, setLang: changeLang, t }
 }
