@@ -62,30 +62,25 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
-          <div style={{ textAlign: 'center', flex: '1 1 auto', maxWidth: 520 }}>
-            <h1 className="l-hero-title">
-              {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
-            </h1>
-            <p className="l-hero-sub">
-              {en
-                ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
-                : '10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
-            </p>
-            <div className="l-hero-meta">
-              <span className="beta-badge">beta</span>
-              {c('site.beta_text', en ? 'Open beta — active development' : 'Открытая бета — активная разработка')}
-            </div>
-            <div className="l-hero-btns">
-              <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
-                <Icon name="play" size={18} color="#fff" />{c('landing.play_btn', en ? 'Play free' : 'Играть')}
-              </button>
-              <button className="btn l-btn-lg" onClick={onTutorial}>
-                <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
-              </button>
-            </div>
-          </div>
-          <Mascot pose="hero" size={160} large className="mascot-enter l-hero-mascot" />
+        <h1 className="l-hero-title">
+          {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
+        </h1>
+        <p className="l-hero-sub">
+          {en
+            ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 239K games, challenge friends, or print and play at the table.'
+            : '10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 239K партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
+        </p>
+        <div className="l-hero-meta">
+          <span className="beta-badge">beta</span>
+          {c('site.beta_text', en ? 'Open beta — active development' : 'Открытая бета — активная разработка')}
+        </div>
+        <div className="l-hero-btns">
+          <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay}>
+            <Icon name="play" size={18} color="#fff" />{c('landing.play_btn', en ? 'Play free' : 'Играть')}
+          </button>
+          <button className="btn l-btn-lg" onClick={onTutorial}>
+            <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
+          </button>
         </div>
       </section>
 
