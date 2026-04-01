@@ -49,7 +49,7 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
   const [stepRef, stepVis] = useReveal()
   const [featRef, featVis] = useReveal(0.1)
   const [screensRef, screensVis] = useReveal()
-  const [audRef, audVis] = useReveal()
+  
   const [dlRef, dlVis] = useReveal()
   const [faqRef, faqVis] = useReveal()
 
@@ -225,33 +225,6 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
         </div>
       </section>
 
-      {/* ═══ MASCOT INTRO ═══ */}
-      <section className="l-section" style={{ textAlign: 'center' }}>
-        <div className={`l-who ${audVis ? 'in' : ''}`} ref={audRef} style={{ maxWidth: 560, margin: '0 auto' }}>
-          <Mascot pose="point" size={120} large className="mascot-enter" style={{ display: 'block', margin: '0 auto 16px' }} />
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-            {en ? 'Meet Snoopy!' : 'Это Снуппи!'}
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 20px' }}>
-            {en
-              ? 'Your building companion. He\'ll celebrate your victories, help you learn the rules, and cheer you on during tough moments. Simple rules, deep strategy — for families, board gamers, and online players alike.'
-              : 'Ваш компаньон-строитель. Он празднует победы, помогает учить правила и поддерживает в трудные моменты. Простые правила, глубокая стратегия — для семей, настольщиков и онлайн-игроков.'}
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}>
-            {[
-              { v: '8+', l: en ? 'age' : 'возраст' },
-              { v: '5-15', l: en ? 'min/game' : 'мин/партия' },
-              { v: '2', l: en ? 'players' : 'игрока' },
-              { v: '0₽', l: en ? 'forever' : 'навсегда' },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{s.v}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ═══ PRINT & PLAY — accent banner ═══ */}
       <section className="l-section">
