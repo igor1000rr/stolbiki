@@ -69,7 +69,7 @@ function PuzzleCard({ puzzle, lang, onPlay, userSolved }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}60` }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>{title}</span>
-        {solved && <span style={{ fontSize: 14 }}></span>}
+        {solved && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
         <span style={{ fontSize: 10, color: 'var(--ink3)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 4 }}>
           {puzzle.maxMoves} {t('puzzle.movesShort')}
         </span>
@@ -335,8 +335,9 @@ export default function Puzzles() {
           </button>
         ))}
         <button className="btn" onClick={() => setShowRush(true)}
-          style={{ fontSize: 12, padding: '7px 16px', borderColor: 'var(--gold)', color: 'var(--gold)' }}>
-          ⚡ Puzzle Rush
+          style={{ fontSize: 12, padding: '7px 16px', borderColor: 'var(--gold)', color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--gold)" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Puzzle Rush
         </button>
       </div>
 
@@ -346,14 +347,14 @@ export default function Puzzles() {
           {/* Daily */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 28 }}></span>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {t('puzzle.dailyTitle')}
                 </div>
                 <Countdown label={t('puzzle.nextIn')} targetDate={nextDay.getTime()} />
               </div>
-              {daily && solvedSet.has(`daily:${daily.id}`) && <span style={{ fontSize: 20 }}></span>}
+              {daily && solvedSet.has(`daily:${daily.id}`) && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
             </div>
             {daily ? (
               <>
@@ -383,14 +384,14 @@ export default function Puzzles() {
           {/* Weekly */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 28 }}></span>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" strokeWidth="1.5"><path d="M8 21h8M12 17v4"/><path d="M7 4V2h10v2"/><path d="M7 4h10v4a5 5 0 01-10 0V4z"/><path d="M7 4H4v2a3 3 0 003 3M17 4h3v2a3 3 0 01-3 3"/></svg>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {t('puzzle.weeklyTitle')}
                 </div>
                 <Countdown label={t('puzzle.nextIn')} targetDate={nextMonday.getTime()} />
               </div>
-              {weekly && solvedSet.has(`weekly:${weekly.id}`) && <span style={{ fontSize: 20 }}></span>}
+              {weekly && solvedSet.has(`weekly:${weekly.id}`) && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
             </div>
             {weekly ? (
               <>

@@ -27,7 +27,7 @@ function PostCard({ post, lang, onOpen }) {
       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
       onMouseLeave={e => e.currentTarget.style.transform = ''}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {post.pinned ? <span style={{ fontSize: 14 }}></span> : null}
+        {post.pinned ? <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)" stroke="none" style={{ flexShrink: 0 }}><path d="M16 3l-4 4-4-1-3 3 5 5-4 4h2l3-3 5 5 3-3-1-4 4-4z"/></svg> : null}
         <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: tag.bg, color: tag.color, fontWeight: 600 }}>
           {tag.label[lang] || tag.label.ru}
         </span>
