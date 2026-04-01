@@ -121,4 +121,22 @@ router.get('/leaderboard', (req, res) => {
   })))
 })
 
+// ═══ Replays ═══
+router.post('/replays', auth, (req, res) => {
+  const { moves, result, score, mode, turns } = req.body
+  if (!moves || !Array.isArray(moves)) return res.status(400).json({ error: 'moves обязателен' })
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+  try {
+    db.prepare('INSERT INTO replays (id, user_id, moves, result, score, mode, turns) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(id, req.user.id, JSON.stringify(moves), result ?? null, score || null, mode || 'ai', turns || 0)
+    res.json({ id, url: `/replay/${id}` })
+  } catch (e) { res.status(500).json({ error: 'Ошибка сохранения' }) }
+})
+
+router.get('/replays/:id', (req, res) => {
+  const replay = db.prepare('SELECT r.*, u.username FROM replays r LEFT JOIN users u ON r.user_id = u.id WHERE r.id = ?').get(req.params.id)
+  if (!replay) return res.status(404).json({ error: 'Replay не найден' })
+  res.json({ ...replay, moves: JSON.parse(replay.moves) })
+})
+
 export default router

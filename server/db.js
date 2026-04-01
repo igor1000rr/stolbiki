@@ -227,6 +227,20 @@ db.exec(`
   )
 `)
 
+// Shared replays
+db.exec(`
+  CREATE TABLE IF NOT EXISTS replays (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER,
+    moves TEXT NOT NULL,
+    result INTEGER,
+    score TEXT,
+    mode TEXT DEFAULT 'ai',
+    turns INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
 // Daily missions
 db.exec(`
   CREATE TABLE IF NOT EXISTS daily_missions (

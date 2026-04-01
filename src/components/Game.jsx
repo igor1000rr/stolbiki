@@ -1508,6 +1508,24 @@ export default function Game() {
                   {t('game.replay')}
                 </button>
               )}
+              {moveHistoryRef.current.length > 0 && API.isLoggedIn() && (
+                <button className="btn" onClick={async () => {
+                  try {
+                    const resp = await fetch('/api/replays', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API.getToken()}` },
+                      body: JSON.stringify({ moves: moveHistoryRef.current, result, score: `${s0}:${s1}`, mode, turns: gs.turn })
+                    })
+                    const data = await resp.json()
+                    if (data.id) {
+                      const url = `${location.origin}/#replay/${data.id}`
+                      if (navigator.share) navigator.share({ text: `${shareText}\n${url}` }).catch(() => {})
+                      else { navigator.clipboard?.writeText(url); setInfo(lang === 'en' ? 'Link copied!' : 'Ссылка скопирована!') }
+                    }
+                  } catch { setInfo(lang === 'en' ? 'Error saving replay' : 'Ошибка сохранения') }
+                }} style={{ fontSize: 12, padding: '8px 12px', borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+                  {lang === 'en' ? '🔗 Share replay' : '🔗 Поделиться'}
+                </button>
+              )}
               {moveHistoryRef.current.length > 2 && (
                 <button className="btn" onClick={() => setShowReview(true)} style={{
                   fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px',

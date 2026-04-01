@@ -3215,3 +3215,7 @@ body.native-body { animation: none !important; }
 @media (max-width: 600px) {
   .l-dl-inner { flex-direction: column; text-align: center; padding: 24px 16px; }
 }
+
+/* ═══ Board intro — стойки вырастают при старте ═══ */
+.board-stand { animation: standGrow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes standGrow { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
