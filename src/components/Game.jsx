@@ -23,6 +23,7 @@ const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
 export default function Game() {
   const { t, lang } = useI18n()
+  const en = lang === 'en'
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
   const [selected, setSelected] = useState(null)
