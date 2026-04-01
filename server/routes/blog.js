@@ -140,9 +140,9 @@ updatePost('v41-polish', 'v4.1: UI Polish & 11 тем', 'v4.1: UI Polish & 11 th
 db.prepare("UPDATE blog_posts SET pinned=0").run()
 db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v43-confetti'").run()
 
-addPost('v43-confetti', 'v4.3: Конфетти, Error Boundary, валидация', 'v4.3: Confetti, Error Boundary, validation',
-  '**Конфетти** — canvas-анимация из 120 частиц при победе.\n**Error Boundary** — при JS-краше Снуппи + кнопка перезагрузки (не белый экран).\n**Лендинг** — анимированные карточки тем 2×2 с пульсирующими блоками. Секция Download: App Store + Google Play кнопки с animated border.\n**Валидация** — server/validate.js (sanitize, str, num, slug, username). Защита от XSS.\n**Автобэкап** — backup.sh каждые 6 часов, 28 слотов.',
-  '**Confetti** — canvas animation of 120 particles on victory.\n**Error Boundary** — JS crash shows Snoopy + reload button (not white screen).\n**Landing** — animated theme cards 2×2 with pulsing blocks. Download section: App Store + Google Play buttons with animated border.\n**Validation** — server/validate.js (sanitize, str, num, slug, username). XSS protection.\n**Auto backup** — backup.sh every 6 hours, 28 slots.',
+addPost('v43-confetti', 'v4.3: Replay sharing, конфетти, Error Boundary', 'v4.3: Replay sharing, confetti, Error Boundary',
+  '**Replay sharing** — сохраняйте партии и делитесь ссылкой. Кнопка «🔗 Поделиться» в результатах.\n**Конфетти** — canvas-анимация из 120 частиц при победе.\n**Анимация доски** — стойки вырастают при старте с stagger delay.\n**Error Boundary** — JS-краш → Снуппи + перезагрузка.\n**Лендинг** — карточки тем 2×2, пульсирующие блоки, Download: App Store + Google Play.\n**Валидация** — server/validate.js, XSS защита.\n**Автобэкап** — каждые 6 часов.',
+  '**Replay sharing** — save games and share links. "🔗 Share" button in results.\n**Confetti** — canvas animation of 120 particles on victory.\n**Board animation** — stands grow in with stagger delay.\n**Error Boundary** — JS crash → Snoopy + reload.\n**Landing** — theme cards 2×2, pulsing blocks, Download: App Store + Google Play.\n**Validation** — server/validate.js, XSS protection.\n**Auto backup** — every 6 hours.',
   'release', '2026-04-02 18:00:00')
 
 addPost('v42-terminology', 'v4.2: Маскот Снуппи, терминология, симулятор', 'v4.2: Mascot Snoopy, terminology, simulator',
