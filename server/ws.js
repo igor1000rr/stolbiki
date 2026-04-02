@@ -9,7 +9,7 @@ import { createServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
 
-export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
+export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
   const wss = new WebSocketServer({ server, path: '/ws' })
 
@@ -102,7 +102,13 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
 
     const url = new URL(req.url, 'http://localhost')
     const tokenFromUrl = url.searchParams.get('token')
-    if (tokenFromUrl) wsUser = wsAuth(tokenFromUrl)
+    if (tokenFromUrl) {
+      wsUser = wsAuth(tokenFromUrl)
+      if (wsUser?.id && db) {
+        const u = db.prepare('SELECT rating FROM users WHERE id=?').get(wsUser.id)
+        if (u) wsUser.rating = u.rating
+      }
+    }
 
     // Rate limit: макс 15 сообщений в секунду
     let wsMessageCount = 0
@@ -123,36 +129,64 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
         return
       }
 
-      // ─── MATCHMAKING ───
+      // ─── MATCHMAKING (ELO-based) ───
       if (msg.type === 'findMatch') {
         const name = wsUser?.username || msg.name || 'Player'
         const skins = msg.skins || {}
+        const rating = wsUser?.rating || 1000
+        // Чистим мёртвые соединения
         for (let i = matchQueue.length - 1; i >= 0; i--) {
           if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
         }
         if (matchQueue.some(q => q.ws === ws)) return
-        matchQueue.push({ ws, name, userId: wsUser?.id || null, skins })
 
-        if (matchQueue.length >= 2) {
-          const p1 = matchQueue.shift()
-          const p2 = matchQueue.shift()
+        const entry = { ws, name, userId: wsUser?.id || null, skins, rating, joinedAt: Date.now() }
+        matchQueue.push(entry)
+
+        // Пытаемся найти пару по рейтингу
+        let matched = null
+        const maxWait = 30000 // 30 сек
+        for (const q of matchQueue) {
+          if (q.ws === ws) continue
+          if (q.ws.readyState !== 1) continue
+          const ratingDiff = Math.abs(q.rating - rating)
+          const waitTime = Date.now() - Math.min(q.joinedAt, entry.joinedAt)
+          // Расширяем диапазон поиска со временем: +50 ELO каждые 5 сек
+          const allowedDiff = 200 + Math.floor(waitTime / 5000) * 50
+          if (ratingDiff <= allowedDiff || waitTime > maxWait) {
+            matched = q
+            break
+          }
+        }
+
+        if (matched) {
+          // Нашли пару
+          matchQueue.splice(matchQueue.indexOf(matched), 1)
+          matchQueue.splice(matchQueue.indexOf(entry), 1)
           const roomId = Math.random().toString(36).slice(2, 8).toUpperCase()
+          // Случайный выбор первого игрока
+          const first = Math.random() < 0.5 ? 0 : 1
+          const p1 = first === 0 ? entry : matched
+          const p2 = first === 0 ? matched : entry
           const room = {
             id: roomId,
             players: [
-              { ws: p1.ws, name: p1.name, userId: p1.userId, skins: p1.skins },
-              { ws: p2.ws, name: p2.name, userId: p2.userId, skins: p2.skins },
+              { ws: p1.ws, name: p1.name, userId: p1.userId, skins: p1.skins, rating: p1.rating },
+              { ws: p2.ws, name: p2.name, userId: p2.userId, skins: p2.skins, rating: p2.rating },
             ],
             mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0],
             gameState: new GameState(), firstPlayer: 0, spectators: [],
+            timer: msg.timer || null, // Таймер если запрошен
+            playerTime: msg.timer ? [msg.timer * 60, msg.timer * 60] : null,
           }
           rooms.set(roomId, room)
-          p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0 }))
-          p2.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 1 }))
-          const startMsg = JSON.stringify({ type: 'start', players: [p1.name, p2.name], playerSkins: [p1.skins, p2.skins], firstPlayer: 0, scores: [0, 0], currentGame: 1 })
+          p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0, opponentRating: p2.rating }))
+          p2.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 1, opponentRating: p1.rating }))
+          const startMsg = JSON.stringify({ type: 'start', players: [p1.name, p2.name], playerSkins: [p1.skins, p2.skins], ratings: [p1.rating, p2.rating], firstPlayer: 0, scores: [0, 0], currentGame: 1, timer: room.timer })
           p1.ws.send(startMsg); p2.ws.send(startMsg)
+          room.lastMoveTime = Date.now()
         } else {
-          ws.send(JSON.stringify({ type: 'queued', position: matchQueue.length }))
+          ws.send(JSON.stringify({ type: 'queued', position: matchQueue.length, rating }))
         }
         return
       }
@@ -237,13 +271,28 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue }) {
             if (!isLegal) {
               ws.send(JSON.stringify({ type: 'error', msg: 'Недопустимый ход' }))
             } else {
+              // Таймер: вычитаем время хода
+              if (room.playerTime && room.lastMoveTime) {
+                const elapsed = (Date.now() - room.lastMoveTime) / 1000
+                room.playerTime[playerIdx] = Math.max(0, room.playerTime[playerIdx] - elapsed)
+                if (room.playerTime[playerIdx] <= 0) {
+                  // Время вышло — проигрыш
+                  const timeMsg = JSON.stringify({ type: 'timeUp', loser: playerIdx, time: room.playerTime })
+                  room.players.forEach(p => p?.ws?.readyState === 1 && p.ws.send(timeMsg))
+                  broadcastToSpectators(room, { type: 'timeUp', loser: playerIdx })
+                  return
+                }
+              }
+              room.lastMoveTime = Date.now()
+
               room.gameState = applyAction(gs, action)
               const opponent = room.players[1 - playerIdx]
+              const moveMsg = { type: 'move', action, from: playerIdx }
+              if (room.playerTime) moveMsg.time = room.playerTime
               if (opponent?.ws?.readyState === 1) {
-                opponent.ws.send(JSON.stringify({ type: 'move', action, from: playerIdx }))
+                opponent.ws.send(JSON.stringify(moveMsg))
               }
-              // Спектаторы получают все ходы
-              broadcastToSpectators(room, { type: 'move', action, from: playerIdx })
+              broadcastToSpectators(room, moveMsg)
               if (room.gameState.gameOver) {
                 handleServerGameOver(room)
               }

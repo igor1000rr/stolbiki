@@ -16,12 +16,18 @@ let onMessage = null
 let reconnectTimer = null
 let intentionalClose = false
 let reconnectAttempts = 0
-const MAX_RECONNECT = 10
+const MAX_RECONNECT = 15
+let lastRoomId = null
+let lastName = null
+let lastSkins = null
 
 export function connect(roomId, name, callback, skins) {
   onMessage = callback
   intentionalClose = false
   reconnectAttempts = 0
+  lastRoomId = roomId
+  lastName = name
+  lastSkins = skins
   if (ws) { intentionalClose = true; ws.close() }
   intentionalClose = false
 
@@ -43,9 +49,17 @@ export function connect(roomId, name, callback, skins) {
     if (intentionalClose) return
     if (onMessage) onMessage({ type: 'disconnected', playerIdx: -1 })
     if (reconnectAttempts < MAX_RECONNECT) {
-      const delay = Math.min(3000 * (reconnectAttempts + 1), 15000)
+      // Exponential backoff с jitter: 1s, 2s, 4s, 8s... до 30s
+      const base = Math.min(30000, 1000 * Math.pow(2, reconnectAttempts))
+      const jitter = Math.random() * 1000
+      const delay = base + jitter
       reconnectAttempts++
-      reconnectTimer = setTimeout(() => connect(roomId, name, callback), delay)
+      if (onMessage) onMessage({ type: 'reconnecting', attempt: reconnectAttempts, maxAttempts: MAX_RECONNECT, delay: Math.round(delay / 1000) })
+      reconnectTimer = setTimeout(() => {
+        if (lastRoomId) connect(lastRoomId, lastName, callback, lastSkins)
+      }, delay)
+    } else {
+      if (onMessage) onMessage({ type: 'reconnectFailed' })
     }
   }
 

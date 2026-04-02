@@ -87,7 +87,7 @@ app.get('/api/rooms/:id', (req, res) => {
   res.json({ id: room.id, mode: room.mode, players: room.players.map(p => p.name), state: room.state, scores: room.scores, totalGames: room.totalGames, currentGame: room.currentGame })
 })
 
-const { server } = setupWebSocket(app, { JWT_SECRET, rooms, matchQueue })
+const { server } = setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db })
 
 // ═══ Public endpoints ═══
 app.get('/api/stats', (req, res) => {
