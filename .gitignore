@@ -38,6 +38,10 @@ analysis/report.pdf
 *.db-wal
 server/data/
 
+# Переменные окружения (секреты!)
+.env
+server/.env
+
 # Бэкапы
 *-backups/
 
@@ -55,7 +59,6 @@ ios/DerivedData/
 public/report.pdf
 public/stolbiki-report.docx
 stolbiki-report.docx
--e 
 # Signing
 android/keystore.properties
 *.keystore
