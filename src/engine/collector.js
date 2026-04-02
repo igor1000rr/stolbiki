@@ -89,27 +89,36 @@ export function cancelRecording() {
   currentGame = null
 }
 
-// ─── Хранение ───
+// ─── Хранение (in-memory кеш + localStorage sync) ───
 
-function saveGame(game) {
-  // localStorage
+let _cache = null
+
+function getGames() {
+  if (_cache) return _cache
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    const games = raw ? JSON.parse(raw) : []
-    games.push(game)
-    while (games.length > MAX_GAMES) games.shift()
+    _cache = raw ? JSON.parse(raw) : []
+  } catch { _cache = [] }
+  return _cache
+}
+
+function persistGames(games) {
+  _cache = games
+  try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(games))
-  } catch (e) {
+  } catch {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      const games = raw ? JSON.parse(raw) : []
       const trimmed = games.slice(Math.floor(games.length / 2))
-      trimmed.push(game)
+      _cache = trimmed
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
     } catch {}
   }
+}
 
-  // Сервер (fire and forget)
+function saveGame(game) {
+  const games = [...getGames(), game]
+  while (games.length > MAX_GAMES) games.shift()
+  persistGames(games)
   syncToServer(game)
 }
 
@@ -136,14 +145,9 @@ async function syncToServer(game) {
  * @returns {{ games: number, moves: number, data: object[] }}
  */
 export function exportTrainingData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const games = raw ? JSON.parse(raw) : []
-    const totalMoves = games.reduce((a, g) => a + (g.moves?.length || 0), 0)
-    return { games: games.length, moves: totalMoves, data: games }
-  } catch {
-    return { games: 0, moves: 0, data: [] }
-  }
+  const games = getGames()
+  const totalMoves = games.reduce((a, g) => a + (g.moves?.length || 0), 0)
+  return { games: games.length, moves: totalMoves, data: games }
 }
 
 /**
@@ -171,23 +175,19 @@ export function exportForTraining() {
 }
 
 export function clearTrainingData() {
+  _cache = []
   localStorage.removeItem(STORAGE_KEY)
 }
 
 export function getTrainingStats() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const games = raw ? JSON.parse(raw) : []
-    const totalMoves = games.reduce((a, g) => a + (g.moves?.length || 0), 0)
-    const aiGames = games.filter(g => g.mode === 'ai').length
-    const pvpGames = games.filter(g => g.mode === 'pvp').length
-    const byDifficulty = {}
-    games.filter(g => g.mode === 'ai').forEach(g => {
-      const d = g.difficulty || 0
-      byDifficulty[d] = (byDifficulty[d] || 0) + 1
-    })
-    return { games: games.length, moves: totalMoves, aiGames, pvpGames, byDifficulty }
-  } catch {
-    return { games: 0, moves: 0, aiGames: 0, pvpGames: 0, byDifficulty: {} }
-  }
+  const games = getGames()
+  const totalMoves = games.reduce((a, g) => a + (g.moves?.length || 0), 0)
+  const aiGames = games.filter(g => g.mode === 'ai').length
+  const pvpGames = games.filter(g => g.mode === 'pvp').length
+  const byDifficulty = {}
+  games.filter(g => g.mode === 'ai').forEach(g => {
+    const d = g.difficulty || 0
+    byDifficulty[d] = (byDifficulty[d] || 0) + 1
+  })
+  return { games: games.length, moves: totalMoves, aiGames, pvpGames, byDifficulty }
 }

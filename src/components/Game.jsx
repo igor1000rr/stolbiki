@@ -46,13 +46,13 @@ export default function Game() {
   useEffect(() => {
     setSoundOn(soundOn && userSettings.soundPack !== 'off')
   }, [userSettings, soundOn])
-  // Обновляем настройки мгновенно (storage event + custom + focus)
+  // Обновляем настройки мгновенно (focus + GameContext)
   useEffect(() => {
     const refresh = () => setUserSettings(getSettings())
     window.addEventListener('focus', refresh)
-    window.addEventListener('stolbiki-settings-changed', refresh)
-    return () => { window.removeEventListener('focus', refresh); window.removeEventListener('stolbiki-settings-changed', refresh) }
-  }, [])
+    const unsub = gameCtx?.on('settingsChanged', refresh)
+    return () => { window.removeEventListener('focus', refresh); unsub?.() }
+  }, [gameCtx])
   // Таймеры игроков
   const TIMER_LIMITS = { off: 0, blitz: 180, rapid: 600, classical: 1800 }
   const timerLimit = TIMER_LIMITS[userSettings.timer] || 0
@@ -210,8 +210,17 @@ export default function Game() {
       }
     }
 
-    window.addEventListener('stolbiki-online-start', handleOnlineStart)
-    window.addEventListener('stolbiki-online-move', handleOnlineMove)
+    // Регистрируем обработчики через GameContext (вместо window CustomEvents)
+    const unsubscribers = []
+    if (gameCtx) {
+      unsubscribers.push(gameCtx.register('onOnlineStart', (detail) => handleOnlineStart({ detail })))
+      unsubscribers.push(gameCtx.register('onOnlineMove', (action) => {
+        // Online mode: обработка хода оппонента
+        handleOnlineMove({ detail: action })
+        // Spectate mode: обработка хода любого игрока
+        handleSpectateMove({ detail: action })
+      }))
+    }
 
     // Opponent resigned
     function handleOnlineResign() {
@@ -229,8 +238,8 @@ export default function Game() {
     }
 
     // Draw response
-    function handleDrawResponse(e) {
-      if (e.detail?.accepted) {
+    function handleDrawResponse(detail) {
+      if (detail?.accepted) {
         setResult(-1); setPhase('done'); setLocked(false)
         setInfo(t('game.drawAgreed'))
       } else {
@@ -239,13 +248,15 @@ export default function Game() {
       setDrawOffered(false)
     }
 
-    window.addEventListener('stolbiki-online-resign', handleOnlineResign)
-    window.addEventListener('stolbiki-online-draw-offer', handleDrawOffer)
-    window.addEventListener('stolbiki-online-draw-response', handleDrawResponse)
+    if (gameCtx) {
+      unsubscribers.push(gameCtx.register('onOnlineResign', handleOnlineResign))
+      unsubscribers.push(gameCtx.register('onDrawOffer', handleDrawOffer))
+      unsubscribers.push(gameCtx.register('onDrawResponse', handleDrawResponse))
+    }
 
     // Серверное подтверждение gameOver (авторитетный источник)
-    function handleServerGameOver(e) {
-      const { winner } = e.detail
+    function handleServerGameOver(detail) {
+      const { winner } = detail
       const myColor = onlineRef.current?.myColor ?? 0
       // Если клиент ещё не показал gameOver — форсируем
       setResult(prev => {
@@ -256,7 +267,7 @@ export default function Game() {
         return winner >= 0 ? (winner === (onlineRef.current?.playerIdx ?? 0) ? myColor : 1 - myColor) : -1
       })
     }
-    window.addEventListener('stolbiki-online-server-gameover', handleServerGameOver)
+    if (gameCtx) unsubscribers.push(gameCtx.register('onServerGameOver', handleServerGameOver))
 
     // Rematch
     function handleRematchOffer() {
@@ -267,12 +278,14 @@ export default function Game() {
       setRematchPending(false)
       setInfo(t('game.rematchDeclined'))
     }
-    window.addEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
-    window.addEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
+    if (gameCtx) {
+      unsubscribers.push(gameCtx.register('onRematchOffer', handleRematchOffer))
+      unsubscribers.push(gameCtx.register('onRematchDeclined', handleRematchDeclined))
+    }
 
     // ─── Спектатор: наблюдение за чужой игрой ───
-    function handleSpectateStart(e) {
-      const { players, firstPlayer, gameState: gsData } = e.detail
+    function handleSpectateStart(detail) {
+      const { players, firstPlayer, gameState: gsData } = detail
       cancelRecording()
       // Восстанавливаем GameState из серверных данных
       const state = new GameState()
@@ -317,28 +330,17 @@ export default function Game() {
         }, 500)
       }
     }
-    // Спектатор слушает те же move-события что и online
-    window.addEventListener('stolbiki-spectate-start', handleSpectateStart)
-    window.addEventListener('stolbiki-online-move', handleSpectateMove)
+    if (gameCtx) unsubscribers.push(gameCtx.register('onSpectateStart', (detail) => handleSpectateStart(detail)))
 
     return () => {
-      window.removeEventListener('stolbiki-online-start', handleOnlineStart)
-      window.removeEventListener('stolbiki-online-move', handleOnlineMove)
-      window.removeEventListener('stolbiki-online-resign', handleOnlineResign)
-      window.removeEventListener('stolbiki-online-draw-offer', handleDrawOffer)
-      window.removeEventListener('stolbiki-online-draw-response', handleDrawResponse)
-      window.removeEventListener('stolbiki-online-server-gameover', handleServerGameOver)
-      window.removeEventListener('stolbiki-online-rematch-offer', handleRematchOffer)
-      window.removeEventListener('stolbiki-online-rematch-declined', handleRematchDeclined)
-      window.removeEventListener('stolbiki-spectate-start', handleSpectateStart)
-      window.removeEventListener('stolbiki-online-move', handleSpectateMove)
+      unsubscribers.forEach(unsub => unsub && unsub())
     }
-  }, []) // eslint-disable-line
+  }, [gameCtx]) // eslint-disable-line
 
-  // ─── Daily Challenge: слушаем событие из Online.jsx ───
+  // ─── Daily Challenge: слушаем из Online.jsx через GameContext ───
   useEffect(() => {
-    function handleDailyStart(e) {
-      const daily = e.detail
+    if (!gameCtx) return
+    return gameCtx.register('onDailyStart', (daily) => {
       if (!daily) return
 
       setDailyMode(true)
@@ -357,7 +359,6 @@ export default function Game() {
       if (daily.swapped) {
         state = applyAction(state, { swap: true })
       } else if (daily.secondMove?.stands?.length) {
-        // Считаем фишки на каждую стойку
         const pl = {}
         for (const s of daily.secondMove.stands) {
           pl[s] = (pl[s] || 0) + 1
@@ -384,10 +385,8 @@ export default function Game() {
       const seedLabel = (daily.seed || daily.date || '').toString().slice(-4)
       setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(lang === 'en' ? `Challenge #${seedLabel} — beat AI in minimum moves!` : `Челлендж #${seedLabel} — победите AI за минимум ходов!`)
-    }
-    window.addEventListener('stolbiki-daily-start', handleDailyStart)
-    return () => window.removeEventListener('stolbiki-daily-start', handleDailyStart)
-  }, []) // eslint-disable-line
+    })
+  }, [gameCtx]) // eslint-disable-line
 
   // ─── Тренер: оценка позиции через MCTS ───
   function evaluatePosition(state) {
@@ -1157,7 +1156,7 @@ export default function Game() {
           <div className="score-label">{lang === 'en' ? 'Red' : 'Красные'}</div>
           <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
         </div>
-        <button onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-skinshop'))}
+        <button onClick={() => gameCtx?.emit('openSkinShop')}
           style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
             background: 'none', border: 'none', cursor: 'pointer', padding: 6, opacity: 0.4,
             color: 'var(--ink3)', fontSize: 16, lineHeight: 1 }}
@@ -1461,7 +1460,7 @@ export default function Game() {
             <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>
               {!tournament && (
                 <button className="btn primary" onClick={() => {
-                  if (mode === 'online' || mode === 'spectate-online') window.dispatchEvent(new CustomEvent('stolbiki-back-to-lobby'))
+                  if (mode === 'online' || mode === 'spectate-online') gameCtx?.emit('backToLobby')
                   else newGame()
                 }} style={{ fontSize: isNative ? 16 : 12, padding: isNative ? '14px 24px' : '8px 16px', justifyContent: 'center' }}>
                   {(mode === 'online' || mode === 'spectate-online') ? (t('game.backToLobby')) : (t('game.anotherGame'))}

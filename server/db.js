@@ -200,18 +200,57 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_puzzle_user_solved ON puzzle_results(user_id, solved);
 `)
 
-// ─── Миграции (безопасно — если колонка есть, не упадёт) ───
-try { db.exec('ALTER TABLE users ADD COLUMN fast_wins INTEGER DEFAULT 0') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN online_wins INTEGER DEFAULT 0') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN puzzles_solved INTEGER DEFAULT 0') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT "default"') } catch {}
-try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
+// ═══ Версионные миграции ═══
+// Каждая миграция выполняется только один раз. Версия хранится в schema_version.
+db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`)
 
-// Login streak
-try { db.exec('ALTER TABLE users ADD COLUMN login_streak INTEGER DEFAULT 0') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN best_login_streak INTEGER DEFAULT 0') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN last_login_date TEXT') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN streak_freeze INTEGER DEFAULT 1') } catch {}
+function getSchemaVersion() {
+  const row = db.prepare('SELECT MAX(version) as v FROM schema_version').get()
+  return row?.v || 0
+}
+
+function runMigration(version, sql) {
+  if (getSchemaVersion() >= version) return
+  try {
+    if (typeof sql === 'function') sql()
+    else db.exec(sql)
+    db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(version)
+  } catch (e) {
+    // ALTER TABLE ADD COLUMN может упасть если колонка уже есть (от старых миграций)
+    try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(version) } catch {}
+  }
+}
+
+// Миграция 1: базовые поля users
+runMigration(1, () => {
+  try { db.exec('ALTER TABLE users ADD COLUMN fast_wins INTEGER DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN online_wins INTEGER DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN puzzles_solved INTEGER DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT "default"') } catch {}
+  try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
+})
+
+// Миграция 2: login streak
+runMigration(2, () => {
+  try { db.exec('ALTER TABLE users ADD COLUMN login_streak INTEGER DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN best_login_streak INTEGER DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN last_login_date TEXT') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN streak_freeze INTEGER DEFAULT 1') } catch {}
+})
+
+// Миграция 3: XP / Level
+runMigration(3, () => {
+  try { db.exec('ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1') } catch {}
+})
+
+// Следующие миграции добавлять так:
+// runMigration(4, 'ALTER TABLE ...')
+// runMigration(5, () => { db.exec(...); db.exec(...) })
+
+console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 3`)
+
+// ─── Таблицы (CREATE IF NOT EXISTS — идемпотентны) ───
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS daily_logins (
@@ -262,9 +301,7 @@ db.exec(`
   )
 `)
 
-// XP / Level
-try { db.exec('ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0') } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1') } catch {}
+// XP / Level — handled by schema migration 3
 
 // Puzzle Rush scores
 db.exec(`

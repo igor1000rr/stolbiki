@@ -1168,7 +1168,7 @@ export default function Profile({ viewUsername, onClose }) {
                   <td style={{ fontWeight: p.isMe ? 700 : 400, color: p.isMe ? 'var(--p1-light)' : 'var(--ink)' }}>
                     {!p.isMe && serverOnline ? (
                       <span style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.15)' }}
-                        onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-view-profile', { detail: { username: p.name || p.username } }))}>
+                        onClick={() => gameCtx?.emit('viewProfile', p.name || p.username)}>
                         {p.name || p.username}
                       </span>
                     ) : (

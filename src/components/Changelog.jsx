@@ -6,6 +6,30 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.4.2',
+    date: '2026-04-02',
+    title_ru: 'Полная миграция на GameContext, оптимизации, schema migrations',
+    title_en: 'Full GameContext migration, optimizations, schema migrations',
+    changes_ru: [
+      { type: 'new', text: 'GameContext v2: multi-listener EventEmitter — поддержка нескольких подписчиков на событие' },
+      { type: 'new', text: 'Schema migrations: таблица schema_version, версионные миграции (3 шт), новые через runMigration()' },
+      { type: 'new', text: 'collector.js: in-memory кеш вместо 11 чтений localStorage — быстрее запись/чтение тренировочных данных' },
+      { type: 'fix', text: '25 CustomEvent полностью мигрированы в GameContext (Online, Game, App, Settings, SkinShop, Profile)' },
+      { type: 'fix', text: 'GameProvider перенесён в main.jsx — App.jsx тоже имеет доступ к контексту' },
+      { type: 'fix', text: 'applySettings: 25 classList.toggle → data-attributes + один className (один reflow вместо 25)' },
+      { type: 'fix', text: 'Board.jsx: useEffect deps state → turn + closed count (стабильный ключ)' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'GameContext v2: multi-listener EventEmitter — multiple subscribers per event' },
+      { type: 'new', text: 'Schema migrations: schema_version table, versioned migrations (3), new via runMigration()' },
+      { type: 'new', text: 'collector.js: in-memory cache instead of 11 localStorage reads — faster training data I/O' },
+      { type: 'fix', text: '25 CustomEvents fully migrated to GameContext (Online, Game, App, Settings, SkinShop, Profile)' },
+      { type: 'fix', text: 'GameProvider moved to main.jsx — App.jsx also has context access' },
+      { type: 'fix', text: 'applySettings: 25 classList.toggle → data-attributes + single className (1 reflow instead of 25)' },
+      { type: 'fix', text: 'Board.jsx: useEffect deps state → turn + closed count (stable key)' },
+    ],
+  },
+  {
     version: '4.4',
     date: '2026-04-02',
     title_ru: 'Архитектурный аудит: безопасность, производительность, React Context',

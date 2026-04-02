@@ -1,5 +1,6 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
+import { GameProvider } from './engine/GameContext'
 import App from './App'
 
 // Error Boundary
@@ -86,7 +87,9 @@ if (isNative) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <GameProvider>
+        <App />
+      </GameProvider>
     </ErrorBoundary>
   </StrictMode>
 )

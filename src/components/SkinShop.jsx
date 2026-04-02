@@ -4,6 +4,7 @@
  */
 import { useState } from 'react'
 import { useI18n } from '../engine/i18n'
+import { useGameContext } from '../engine/GameContext'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
 
 const CHIP_SKINS = [
@@ -136,6 +137,7 @@ export function PaintIcon({ size = 20, color = 'currentColor' }) {
 export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'default', onThemeChange }) {
   const { lang } = useI18n()
   const en = lang === 'en'
+  const gameCtx = useGameContext()
   const [tab, setTab] = useState('themes')
   const [settings, setSettings] = useState(getSettings)
 
@@ -144,7 +146,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     setSettings(ns)
     saveSettings(ns)
     applySettings(ns)
-    window.dispatchEvent(new CustomEvent('stolbiki-settings-changed'))
+    gameCtx?.emit('settingsChanged')
   }
 
   return (

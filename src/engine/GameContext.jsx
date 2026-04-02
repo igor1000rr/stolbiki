@@ -1,6 +1,14 @@
 /**
- * GameContext — общий контекст для кросс-компонентного взаимодействия
- * Заменяет window.stolbikiRecordGame, window.stolbikiOnAchievement, и т.д.
+ * GameContext — общий EventEmitter для кросс-компонентного взаимодействия
+ * Поддерживает несколько слушателей на одно событие.
+ * Заменяет все window.dispatchEvent(new CustomEvent(...)) между компонентами.
+ *
+ * Использование:
+ *   const gameCtx = useGameContext()
+ *   // Подписка (возвращает функцию отписки):
+ *   useEffect(() => gameCtx?.on('onOnlineStart', handler), [gameCtx])
+ *   // Эмит:
+ *   gameCtx.emit('onOnlineStart', payload)
  */
 
 import { createContext, useContext, useCallback, useRef } from 'react'
@@ -8,37 +16,39 @@ import { createContext, useContext, useCallback, useRef } from 'react'
 const GameContext = createContext(null)
 
 export function GameProvider({ children }) {
-  // Коллбэки регистрируются компонентами и вызываются другими
-  const callbacks = useRef({
-    recordGame: null,
-    onAchievement: null,
-    onRatingDelta: null,
-    checkAdmin: null,
-    // Онлайн-события (Online → Game)
-    onOnlineStart: null,
-    onOnlineMove: null,
-    onOnlineResign: null,
-    onDrawOffer: null,
-    onDrawResponse: null,
-    onServerGameOver: null,
-    onRematchOffer: null,
-    onRematchDeclined: null,
-    onSpectateStart: null,
-    onDailyStart: null,
-  })
+  // Map<string, Set<Function>> — несколько слушателей на событие
+  const listeners = useRef(new Map())
 
-  const register = useCallback((name, fn) => {
-    callbacks.current[name] = fn
-    return () => { callbacks.current[name] = null }
+  /** Подписаться на событие. Возвращает функцию отписки. */
+  const on = useCallback((name, fn) => {
+    if (!listeners.current.has(name)) {
+      listeners.current.set(name, new Set())
+    }
+    listeners.current.get(name).add(fn)
+    return () => {
+      const set = listeners.current.get(name)
+      if (set) {
+        set.delete(fn)
+        if (set.size === 0) listeners.current.delete(name)
+      }
+    }
   }, [])
 
+  /** Backward-compat alias: register = on */
+  const register = on
+
+  /** Вызвать все слушатели события */
   const emit = useCallback((name, ...args) => {
-    const fn = callbacks.current[name]
-    if (fn) fn(...args)
+    const set = listeners.current.get(name)
+    if (set) {
+      for (const fn of set) {
+        try { fn(...args) } catch (e) { console.error(`[GameContext] ${name}:`, e) }
+      }
+    }
   }, [])
 
   return (
-    <GameContext.Provider value={{ register, emit }}>
+    <GameContext.Provider value={{ on, register, emit }}>
       {children}
     </GameContext.Provider>
   )
@@ -46,23 +56,4 @@ export function GameProvider({ children }) {
 
 export function useGameContext() {
   return useContext(GameContext)
-}
-
-/**
- * Хук для регистрации обработчика (вместо window.addEventListener)
- * Автоматически убирает при unmount
- */
-export function useGameEvent(name, handler) {
-  const ctx = useContext(GameContext)
-  const handlerRef = useRef(handler)
-  handlerRef.current = handler
-
-  // Регистрируем при mount, убираем при unmount
-  // Используется в useEffect вызывающего компонента
-  const register = useCallback(() => {
-    if (!ctx) return () => {}
-    return ctx.register(name, (...args) => handlerRef.current?.(...args))
-  }, [ctx, name])
-
-  return register
 }

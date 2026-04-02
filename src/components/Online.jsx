@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import * as MP from '../engine/multiplayer'
 import { useI18n } from '../engine/i18n'
+import { useGameContext } from '../engine/GameContext'
 import { getSettings } from '../engine/settings'
 import Icon from './Icon'
 
@@ -8,6 +9,7 @@ import Icon from './Icon'
 function DailyChallenge() {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
   const { lang } = useI18n()
+  const gameCtx = useGameContext()
   const en = lang === 'en'
   const [daily, setDaily] = useState(null)
   const [leaderboard, setLeaderboard] = useState([])
@@ -25,8 +27,7 @@ function DailyChallenge() {
   }, [])
 
   function startDaily() {
-    // Передаём событие в Game.jsx для запуска daily
-    window.dispatchEvent(new CustomEvent('stolbiki-daily-start', { detail: daily }))
+    if (gameCtx) gameCtx.emit('onDailyStart', daily)
   }
 
   if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 20 }}>{en ? 'Loading...' : 'Загрузка...'}</div>
@@ -111,6 +112,7 @@ function QRCode({ text, size = 160 }) {
 export default function Online() {
   const { lang } = useI18n()
   const en = lang === 'en'
+  const gameCtx = useGameContext()
   const isNative = !!window.Capacitor?.isNativePlatform?.()
   const [screen, setScreen] = useState('lobby') // lobby | waiting | playing | result | searching
   const [roomId, setRoomId] = useState('')
@@ -141,9 +143,11 @@ export default function Online() {
   const roomIdRef = useRef('')
   const playerIdxRef = useRef(-1)
   const playersRef = useRef([])
+  const gameCtxRef = useRef(gameCtx)
   useEffect(() => { roomIdRef.current = roomId }, [roomId])
   useEffect(() => { playerIdxRef.current = playerIdx }, [playerIdx])
   useEffect(() => { playersRef.current = players }, [players])
+  useEffect(() => { gameCtxRef.current = gameCtx }, [gameCtx])
 
   // Обработчик WS сообщений
   function handleWS(msg) {
@@ -175,20 +179,16 @@ export default function Online() {
           const oppIdx = playerIdxRef.current === 0 ? 1 : 0
           setOpponentSkins(msg.playerSkins[oppIdx] || null)
         }
-        // Передаём в Game через window event (используем refs — актуальные значения)
-        window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
-          detail: { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current }
-        }))
+        // Передаём в Game через GameContext (используем refs — актуальные значения)
+        gameCtxRef.current?.emit('onOnlineStart', { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current })
         break
       case 'move':
-        window.dispatchEvent(new CustomEvent('stolbiki-online-move', { detail: msg.action }))
+        gameCtxRef.current?.emit('onOnlineMove', msg.action)
         break
       case 'nextGame':
         setScores(msg.scores)
         setCurrentGame(msg.currentGame)
-        window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
-          detail: { players: playersRef.current, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true }
-        }))
+        gameCtxRef.current?.emit('onOnlineStart', { players: playersRef.current, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true })
         break
       case 'tournamentOver':
         setTournamentResult(msg)
@@ -198,34 +198,29 @@ export default function Online() {
         setMessages(prev => [...prev.slice(-50), { from: msg.from, text: msg.text, time: Date.now() }])
         break
       case 'resign':
-        window.dispatchEvent(new CustomEvent('stolbiki-online-resign', { detail: { from: msg.from } }))
+        gameCtxRef.current?.emit('onOnlineResign', { from: msg.from })
         break
       case 'serverGameOver':
         // Серверное подтверждение gameOver — обновляем счёт
         setScores(msg.scores)
-        // Если клиент ещё не показал gameOver — форсируем через событие
-        window.dispatchEvent(new CustomEvent('stolbiki-online-server-gameover', {
-          detail: { winner: msg.winner, scores: msg.scores }
-        }))
+        gameCtxRef.current?.emit('onServerGameOver', { winner: msg.winner, scores: msg.scores })
         break
       case 'drawOffer':
-        window.dispatchEvent(new CustomEvent('stolbiki-online-draw-offer', { detail: { from: msg.from } }))
+        gameCtxRef.current?.emit('onDrawOffer', { from: msg.from })
         break
       case 'drawResponse':
-        window.dispatchEvent(new CustomEvent('stolbiki-online-draw-response', { detail: { accepted: msg.accepted } }))
+        gameCtxRef.current?.emit('onDrawResponse', { accepted: msg.accepted })
         break
       case 'rematchOffer':
-        window.dispatchEvent(new CustomEvent('stolbiki-online-rematch-offer', { detail: { from: msg.from } }))
+        gameCtxRef.current?.emit('onRematchOffer', { from: msg.from })
         break
       case 'rematchDeclined':
-        window.dispatchEvent(new CustomEvent('stolbiki-online-rematch-declined'))
+        gameCtxRef.current?.emit('onRematchDeclined')
         break
       case 'rematchStart':
         setScores(msg.scores || [0, 0])
         setScreen('playing')
-        window.dispatchEvent(new CustomEvent('stolbiki-online-start', {
-          detail: { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true }
-        }))
+        gameCtxRef.current?.emit('onOnlineStart', { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true })
         break
       case 'disconnected':
         if (msg.playerIdx !== playerIdxRef.current) setStatus(en ? 'Opponent disconnected... waiting' : 'Противник отключился... ждём реконнект')
@@ -250,15 +245,13 @@ export default function Online() {
         setPlayers(msg.players || [])
         playersRef.current = msg.players || []
         setScores(msg.scores || [0, 0])
-        // Передаём состояние в Game.jsx через событие
-        window.dispatchEvent(new CustomEvent('stolbiki-spectate-start', {
-          detail: {
-            players: msg.players,
-            firstPlayer: msg.firstPlayer ?? 0,
-            gameState: msg.gameState,
-            spectators: msg.spectators,
-          }
-        }))
+        // Передаём состояние в Game.jsx через GameContext
+        gameCtxRef.current?.emit('onSpectateStart', {
+          players: msg.players,
+          firstPlayer: msg.firstPlayer ?? 0,
+          gameState: msg.gameState,
+          spectators: msg.spectators,
+        })
         break
     }
   }
@@ -398,7 +391,7 @@ export default function Online() {
             {en ? 'Find random opponent' : 'Найти случайного соперника'}
           </button>
 
-          <button className="btn" onClick={() => window.dispatchEvent(new CustomEvent('stolbiki-open-arena'))}
+          <button className="btn" onClick={() => gameCtx?.emit('openArena')}
             style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16,
               borderColor: '#ffc14540', color: 'var(--gold)' }}>
             {en ? 'Arena Tournament' : 'Турнир Arena'}

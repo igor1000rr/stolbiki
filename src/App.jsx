@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
-import { GameProvider } from './engine/GameContext'
+import { GameProvider, useGameContext } from './engine/GameContext'
 import * as API from './engine/api'
 import Icon from './components/Icon'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -70,6 +70,7 @@ function getIsAdmin() {
 export default function App() {
   const i18n = useI18nProvider()
   const { t, lang, setLang } = i18n
+  const gameCtx = useGameContext()
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
@@ -226,26 +227,21 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const handler = () => { setTab('game'); setMobileMenu(false) }
-    window.addEventListener('stolbiki-online-start', handler)
-    window.addEventListener('stolbiki-daily-start', handler)
-    const backToLobby = () => { setTab('online'); setMobileMenu(false) }
-    window.addEventListener('stolbiki-back-to-lobby', backToLobby)
-    const viewProfileHandler = (e) => { setViewProfile(e.detail?.username || null); setTab('profile'); setMobileMenu(false) }
-    window.addEventListener('stolbiki-view-profile', viewProfileHandler)
-    const openArena = () => setShowArena(true)
-    window.addEventListener('stolbiki-open-arena', openArena)
-    const openSkinShop = () => setShowSkinShop(true)
-    window.addEventListener('stolbiki-open-skinshop', openSkinShop)
-    return () => {
-      window.removeEventListener('stolbiki-online-start', handler)
-      window.removeEventListener('stolbiki-daily-start', handler)
-      window.removeEventListener('stolbiki-back-to-lobby', backToLobby)
-      window.removeEventListener('stolbiki-view-profile', viewProfileHandler)
-      window.removeEventListener('stolbiki-open-arena', openArena)
-      window.removeEventListener('stolbiki-open-skinshop', openSkinShop)
-    }
-  }, [])
+    if (!gameCtx) return
+    const unsubs = []
+    // Переключение на Game при старте онлайн/daily
+    const goToGame = () => { setTab('game'); setMobileMenu(false) }
+    unsubs.push(gameCtx.on('onOnlineStart', goToGame))
+    unsubs.push(gameCtx.on('onDailyStart', goToGame))
+    // Назад в лобби
+    unsubs.push(gameCtx.on('backToLobby', () => { setTab('online'); setMobileMenu(false) }))
+    // Просмотр профиля
+    unsubs.push(gameCtx.on('viewProfile', (username) => { setViewProfile(username || null); setTab('profile'); setMobileMenu(false) }))
+    // Открыть арену / магазин скинов
+    unsubs.push(gameCtx.on('openArena', () => setShowArena(true)))
+    unsubs.push(gameCtx.on('openSkinShop', () => setShowSkinShop(true)))
+    return () => unsubs.forEach(u => u())
+  }, [gameCtx])
 
   useEffect(() => {
     // Не редиректим сразу — даём время залогиниться (1.5 сек)
@@ -302,7 +298,6 @@ export default function App() {
   return (
     <ErrorBoundary>
     <I18nContext.Provider value={i18n}>
-    <GameProvider>
     <div className={`app ${isNative ? 'native-app' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
 
@@ -706,7 +701,6 @@ export default function App() {
         </nav>
       )}
     </div>
-    </GameProvider>
     </I18nContext.Provider>
     </ErrorBoundary>
   )

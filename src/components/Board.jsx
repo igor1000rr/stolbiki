@@ -95,7 +95,9 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
     }
 
     return () => timers.forEach(clearTimeout)
-  }, [state])
+  // Стабильный ключ: turn + кол-во закрытых (вместо ссылки на объект state)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.turn, Object.keys(state.closed).length])
 
   const standOrder = flip ? [...Array(state.numStands).keys()].reverse() : [...Array(state.numStands).keys()]
 
