@@ -153,6 +153,98 @@ export default function Settings() {
         </SettingRow>
       </section>
 
+      {/* ═══ ГЕЙМПЛЕЙ РАСШИРЕННЫЙ ═══ */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">
+          <Icon name="play" size={16} color="var(--accent)" />
+          {en ? 'Advanced gameplay' : 'Расширенный геймплей'}
+        </h3>
+
+        <SettingRow label={en ? 'Default AI difficulty' : 'Сложность AI'} desc={en ? 'Applied when starting a new game' : 'Применяется при старте новой игры'}>
+          <SegmentControl value={s.defaultDifficulty} onChange={v => update('defaultDifficulty', v)} options={[
+            { value: 'easy', label: en ? 'Easy' : 'Легко' },
+            { value: 'medium', label: en ? 'Med' : 'Средн' },
+            { value: 'hard', label: en ? 'Hard' : 'Сложно' },
+            { value: 'extreme', label: en ? 'Max' : 'Макс' },
+          ]} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Start screen' : 'Стартовый экран'} desc={en ? 'What opens when you launch the app' : 'Что открывается при запуске'}>
+          <SegmentControl value={s.defaultMode} onChange={v => update('defaultMode', v)} options={[
+            { value: 'landing', label: en ? 'Home' : 'Главная' },
+            { value: 'game', label: en ? 'Game' : 'Игра' },
+            { value: 'online', label: en ? 'Online' : 'Онлайн' },
+            { value: 'puzzles', label: en ? 'Puzzles' : 'Задачи' },
+          ]} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Auto-rematch' : 'Авто-реванш'} desc={en ? 'Start new game after result screen' : 'Автоматически начинать новую партию'}>
+          <Toggle checked={s.autoRematch} onChange={v => update('autoRematch', v)} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Confirm resign' : 'Подтверждение сдачи'} desc={en ? 'Ask before resigning' : 'Спрашивать перед сдачей партии'}>
+          <Toggle checked={s.confirmResign} onChange={v => update('confirmResign', v)} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Zen mode' : 'Zen режим'} desc={en ? 'Minimal UI — just the board' : 'Минимальный UI — только доска'}>
+          <Toggle checked={s.zenMode} onChange={v => update('zenMode', v)} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Move log' : 'Лог ходов'} desc={en ? 'Show move history during game' : 'Показывать историю ходов в игре'}>
+          <Toggle checked={s.showMoveLog} onChange={v => update('showMoveLog', v)} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Stand labels' : 'Подписи стоек'}>
+          <SegmentControl value={s.standLabels} onChange={v => update('standLabels', v)} options={[
+            { value: 'letters', label: 'A-I' },
+            { value: 'numbers', label: '1-9' },
+            { value: 'off', label: en ? 'Off' : 'Выкл' },
+          ]} />
+        </SettingRow>
+      </section>
+
+      {/* ═══ ПРИВАТНОСТЬ ═══ */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">
+          <Icon name="online" size={16} color="var(--accent)" />
+          {en ? 'Privacy & Data' : 'Приватность'}
+        </h3>
+
+        <SettingRow label={en ? 'Profile visibility' : 'Видимость профиля'}>
+          <SegmentControl value={s.profileVisibility} onChange={v => update('profileVisibility', v)} options={[
+            { value: 'public', label: en ? 'Public' : 'Все' },
+            { value: 'friends', label: en ? 'Friends' : 'Друзья' },
+            { value: 'private', label: en ? 'Private' : 'Скрыт' },
+          ]} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Show rating before match' : 'Рейтинг до матча'} desc={en ? 'Show opponent rating before online game' : 'Показывать рейтинг оппонента перед игрой'}>
+          <Toggle checked={s.showPreRating} onChange={v => update('showPreRating', v)} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Auto-save replays' : 'Авто-сохранение реплеев'} desc={en ? 'Save every game replay automatically' : 'Сохранять каждую партию автоматически'}>
+          <Toggle checked={s.autoSaveReplay} onChange={v => update('autoSaveReplay', v)} />
+        </SettingRow>
+
+        <SettingRow label={en ? 'Export data' : 'Экспорт данных'} desc={en ? 'Download all your game data as JSON' : 'Скачать все данные в JSON'}>
+          <button className="btn" onClick={async () => {
+            try {
+              const token = localStorage.getItem('stolbiki_token')
+              if (!token) return
+              const [profile, games, history] = await Promise.all([
+                fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+                fetch('/api/games?limit=9999', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+                fetch('/api/profile/rating-history', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+              ])
+              const blob = new Blob([JSON.stringify({ profile, games, ratingHistory: history, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' })
+              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'snatch-highrise-data.json'; a.click()
+            } catch {}
+          }} style={{ fontSize: 12, padding: '8px 16px' }}>
+            {en ? '📦 Download JSON' : '📦 Скачать JSON'}
+          </button>
+        </SettingRow>
+      </section>
+
       {/* ═══ ДОСТУПНОСТЬ ═══ */}
       <section className="settings-section">
         <h3 className="settings-section-title">

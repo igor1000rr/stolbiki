@@ -16,6 +16,17 @@ const DEFAULTS = {
   showFillBar: true,
   showChipCount: true,
   confirmClose: true,
+  // v4.3 — новые настройки
+  defaultDifficulty: 'medium',   // easy/medium/hard/extreme
+  defaultMode: 'landing',        // landing/game/online/puzzles
+  autoRematch: false,            // авто-реванш после партии
+  confirmResign: true,           // подтверждение сдачи
+  zenMode: false,                // минимальный UI
+  showMoveLog: true,             // лог ходов
+  standLabels: 'letters',        // letters/numbers/off
+  profileVisibility: 'public',   // public/friends/private
+  autoSaveReplay: false,         // авто-сохранение реплеев
+  showPreRating: true,           // показывать рейтинг до матча
 }
 
 export function getSettings() {
