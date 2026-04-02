@@ -4,7 +4,7 @@
     <loc>https://snatch-highrise.com/</loc>
     <xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/"/>
-    <changefreq>weekly</changefreq><priority>1.0</priority>
+    <lastmod>2026-04-02</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
   </url>
   <url>
     <loc>https://snatch-highrise.com/en/</loc>
@@ -29,4 +29,5 @@
   <url><loc>https://snatch-highrise.com/changelog</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/changelog"/><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://snatch-highrise.com/en/changelog</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/changelog"/><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://snatch-highrise.com/privacy</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/privacy"/><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://snatch-highrise.com/settings</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/settings"/><changefreq>monthly</changefreq><priority>0.4</priority></url>
 </urlset>
