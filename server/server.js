@@ -226,6 +226,11 @@ app.use('/api/puzzles', puzzlesRouter)
 app.use('/api/blog', blogRouter)
 app.use('/api/admin', createAdminRouter(rooms, matchQueue))
 
+// ═══ API 404 — неизвестные эндпоинты ═══
+app.use('/api/', (req, res) => {
+  res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` })
+})
+
 // ═══ Обработка ошибок ═══
 app.use((err, req, res, _next) => {
   console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}:`, err.message || err)
