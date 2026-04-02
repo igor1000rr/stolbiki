@@ -26,6 +26,7 @@ const app = express()
 
 // За Nginx — доверяем X-Forwarded-For для корректного req.ip
 app.set('trust proxy', 1)
+app.set('etag', 'weak') // ETag для кешируемых ответов
 
 // ═══ Security ═══
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS

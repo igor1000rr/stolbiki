@@ -73,3 +73,40 @@ describe('getDailySeed', () => {
     expect(getDailySeed()).toContain(year)
   })
 })
+
+// ═══ Дополнительные хелперы ═══
+describe('Score validation', () => {
+  function validateScore(score) {
+    if (!score || typeof score !== 'string') return false
+    const parts = score.split(':')
+    if (parts.length !== 2) return false
+    const [s1, s2] = parts.map(Number)
+    if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0 || s1 > 10 || s2 > 10) return false
+    if (s1 + s2 > 10) return false
+    return true
+  }
+
+  it('валидные счета', () => {
+    expect(validateScore('5:5')).toBe(true)
+    expect(validateScore('6:4')).toBe(true)
+    expect(validateScore('10:0')).toBe(true)
+    expect(validateScore('0:0')).toBe(true)
+  })
+
+  it('невалидные счета', () => {
+    expect(validateScore('11:0')).toBe(false)
+    expect(validateScore('6:5')).toBe(false) // сумма > 10
+    expect(validateScore('-1:5')).toBe(false)
+    expect(validateScore('abc')).toBe(false)
+    expect(validateScore('')).toBe(false)
+    expect(validateScore(null)).toBe(false)
+  })
+
+  it('граничные значения', () => {
+    expect(validateScore('0:10')).toBe(true)
+    expect(validateScore('10:0')).toBe(true)
+    expect(validateScore('5:5')).toBe(true)
+    expect(validateScore('6:4')).toBe(true)
+    expect(validateScore('7:3')).toBe(true)
+  })
+})
