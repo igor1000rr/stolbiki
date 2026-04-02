@@ -6,6 +6,7 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import jwt from 'jsonwebtoken'
 import { db, JWT_SECRET, PORT } from './db.js'
 import { rateLimit, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
@@ -129,6 +130,33 @@ app.get('/api/health', (req, res) => {
     memoryMB: Math.round(mem.heapUsed / 1024 / 1024),
     schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0,
   })
+})
+
+// ═══ Client error reporting ═══
+db.exec(`CREATE TABLE IF NOT EXISTS error_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  message TEXT, stack TEXT, component TEXT, url TEXT, ua TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+)`)
+
+app.post('/api/error-report', rateLimit(60000, 5), (req, res) => {
+  const { message, stack, component, url, ua } = req.body
+  if (!message) return res.status(400).json({ error: 'message required' })
+  let userId = null
+  try {
+    const authHeader = req.headers.authorization
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const decoded = jwt.verify(token, JWT_SECRET)
+      userId = decoded.id
+    }
+  } catch {}
+  try {
+    db.prepare('INSERT INTO error_reports (user_id, message, stack, component, url, ua) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(userId, String(message).slice(0, 500), String(stack || '').slice(0, 2000), String(component || '').slice(0, 1000), String(url || '').slice(0, 500), String(ua || '').slice(0, 200))
+  } catch {}
+  res.json({ ok: true })
 })
 
 app.get('/api/content', (req, res) => {

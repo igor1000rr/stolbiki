@@ -1218,8 +1218,16 @@ export default function Profile({ viewUsername, onClose }) {
           <div className="dash-card" style={{ marginBottom: 16 }}>
             <h3>Найти друзей</h3>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input type="text" placeholder="Введите никнейм..." value={friendSearch}
-                onChange={e => setFriendSearch(e.target.value)}
+              <input type="text" placeholder={en ? 'Username...' : 'Введите никнейм...'} value={friendSearch}
+                onChange={e => {
+                  setFriendSearch(e.target.value)
+                  // Авто-поиск с debounce 500ms
+                  const q = e.target.value.trim()
+                  if (q.length >= 2 && serverOnline) {
+                    clearTimeout(window._friendSearchTimer)
+                    window._friendSearchTimer = setTimeout(() => API.searchUsers(q).then(setSearchResults).catch(() => {}), 500)
+                  } else { setSearchResults([]) }
+                }}
                 onKeyDown={e => e.key === 'Enter' && doSearchFriends()}
                 style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #36364a',
                   background: 'var(--surface)', color: 'var(--ink)', fontSize: 13 }} />
