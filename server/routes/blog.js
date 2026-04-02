@@ -102,6 +102,7 @@ db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v40-platform'").run()
 // Удаляем дубли старых постов
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-4-security-spectator'").run()
+db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
 // Принудительное обновление всех постов (даты, заголовки, тексты)
 const updatePost = (slug, tru, ten, bru, ben, tag, date) => {
