@@ -49,6 +49,11 @@ app.use(cors({ origin: (origin, cb) => {
   else cb(new Error(`CORS: origin ${origin} не разрешён`))
 }}))
 app.use(express.json({ limit: '5mb' }))
+// Обработка невалидного JSON в теле запроса (400 вместо 500)
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Некорректный JSON' })
+  next(err)
+})
 
 // ═══ API Stats + Response Time ═══
 const apiStats = { requests: 0, errors: 0, startedAt: Date.now() }
@@ -266,6 +271,16 @@ function gracefulShutdown(signal) {
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
 process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+// ═══ Глобальный error handler (ловит все необработанные ошибки Express) ═══
+app.use((err, req, res, _next) => {
+  console.error(`[EXPRESS ERROR] ${req.method} ${req.path}:`, err.message)
+  try {
+    db.prepare('INSERT INTO error_reports (message, stack, url, ua) VALUES (?, ?, ?, ?)')
+      .run(`[SERVER] ${err.message}`.slice(0, 500), (err.stack || '').slice(0, 2000), req.originalUrl?.slice(0, 500), (req.headers['user-agent'] || '').slice(0, 200))
+  } catch {}
+  if (!res.headersSent) res.status(500).json({ error: 'Внутренняя ошибка сервера' })
+})
 
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {

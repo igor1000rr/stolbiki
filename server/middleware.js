@@ -17,10 +17,19 @@ export function rateLimit(windowMs = 60000, max = 60) {
     const entry = rateLimits.get(key)
     if (!entry || now - entry.start > windowMs) {
       rateLimits.set(key, { start: now, count: 1 })
+      res.setHeader('X-RateLimit-Limit', max)
+      res.setHeader('X-RateLimit-Remaining', max - 1)
       return next()
     }
     entry.count++
-    if (entry.count > max) return res.status(429).json({ error: 'Слишком много запросов' })
+    const remaining = Math.max(0, max - entry.count)
+    res.setHeader('X-RateLimit-Limit', max)
+    res.setHeader('X-RateLimit-Remaining', remaining)
+    if (entry.count > max) {
+      const retryAfter = Math.ceil((entry.start + windowMs - now) / 1000)
+      res.setHeader('Retry-After', retryAfter)
+      return res.status(429).json({ error: 'Слишком много запросов', retryAfter })
+    }
     next()
   }
 }
@@ -52,7 +61,9 @@ export function auth(req, res, next) {
     }
     next()
   } catch (authErr) {
-    console.error('AUTH ERROR:', authErr.message)
+    if (authErr.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Токен истёк', expired: true })
+    }
     res.status(401).json({ error: 'Неверный токен' })
   }
 }
