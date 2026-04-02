@@ -19,6 +19,7 @@ import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, 
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
 import { useGameLog } from '../engine/useGameLog'
+import { useSessionStats } from '../engine/useSessionStats'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -82,8 +83,7 @@ export default function Game() {
   const [confetti, setConfetti] = useState(false)
   const [ratingDelta, setRatingDelta] = useState(null)
   const [newAch, setNewAch] = useState(null)
-  const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0, loseStreak: 0 })
-  const [firstWinCelebration, setFirstWinCelebration] = useState(false)
+  const { sessionStats, firstWinCelebration, setFirstWinCelebration } = useSessionStats({ result, mode, humanPlayer, difficultyRef, gs })
   const [undoStack, setUndoStack] = useState([])
   // Турнирный режим
   const [tournament, setTournament] = useState(null) // { total: 3|5, games: [{won, score}], currentGame: 1 }
@@ -466,39 +466,7 @@ export default function Game() {
     })
   }, [gameCtx])
 
-  // Сессионная статистика
-  useEffect(() => {
-    if (result === null) return
-    if (result === -1) return // Ничья — не меняем статистику
-    const won = (mode === 'pvp') ? true : result === humanPlayer
-    setSessionStats(prev => ({
-      wins: prev.wins + (won ? 1 : 0),
-      losses: prev.losses + (won ? 0 : 1),
-      streak: won ? prev.streak + 1 : 0,
-      loseStreak: won ? 0 : prev.loseStreak + 1,
-    }))
-    // Streak mission: при 3 победах подряд
-    if (won && sessionStats.streak + 1 >= 3 && API.isLoggedIn()) {
-      API.missionProgress('streak_3').catch(() => {})
-    }
-    // First win celebration — один раз в жизни
-    if (won && !localStorage.getItem('stolbiki_first_win')) {
-      localStorage.setItem('stolbiki_first_win', '1')
-      setTimeout(() => { setFirstWinCelebration(true); setTimeout(() => setFirstWinCelebration(false), 5000) }, 800)
-    }
-    // Mission progress tracking
-    if (API.isLoggedIn()) {
-      API.missionProgress('play_3').catch(() => {})
-      API.missionProgress('play_5').catch(() => {})
-      if (won) {
-        API.missionProgress('win_1').catch(() => {})
-        if (mode === 'ai' && difficultyRef.current >= 200) API.missionProgress('win_ai_hard').catch(() => {})
-      }
-      if (mode === 'online') API.missionProgress('play_online').catch(() => {})
-      const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
-      if ((0 in gs.closed) && gs.closed[0] === humanPlayer) API.missionProgress('close_golden').catch(() => {})
-    }
-  }, [result]) // eslint-disable-line
+  // Сессионная статистика — extracted to useSessionStats
 
   useEffect(() => {
     const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
