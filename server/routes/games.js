@@ -20,7 +20,12 @@ router.post('/games', auth, (req, res) => {
 
   const safeTurns = Math.max(0, Math.min(500, Math.floor(+turns || 0)))
   const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
-  const safeDifficulty = Math.max(0, Math.min(400, Math.floor(+difficulty || 150)))
+  const safeDifficulty = Math.max(0, Math.min(800, Math.floor(+difficulty || 150)))
+
+  // Минимум ~10 ходов для победы (anti-cheat: нельзя завершить игру за 1 ход)
+  if (safeTurns > 0 && safeTurns < 8 && (s1 >= 6 || s2 >= 6)) {
+    return res.status(400).json({ error: 'Результат невозможен за такое количество ходов' })
+  }
 
   const now = Date.now()
   const lastSubmit = gameSubmitLimits.get(req.user.id)

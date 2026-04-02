@@ -38,6 +38,8 @@ if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
 export const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
+db.pragma('busy_timeout = 5000')  // Ждать до 5с при блокировке вместо немедленной ошибки
+db.pragma('synchronous = NORMAL') // Баланс между скоростью и надёжностью (WAL+NORMAL — безопасно)
 
 // ─── Основные таблицы ───
 db.exec(`
