@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { db } from '../db.js'
+import { db, bcrypt } from '../db.js'
 import { auth } from '../middleware.js'
 import { formatUser } from '../helpers.js'
 
@@ -36,6 +36,49 @@ router.put('/avatar', auth, (req, res) => {
   if (!avatar) return res.status(400).json({ error: 'avatar required' })
   db.prepare('UPDATE users SET avatar=? WHERE id=?').run(avatar, req.user.id)
   res.json({ ok: true })
+})
+
+// ═══ Смена пароля ═══
+router.put('/password', auth, (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Оба поля обязательны' })
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Минимум 6 символов' })
+  if (newPassword.length > 100) return res.status(400).json({ error: 'Максимум 100 символов' })
+  const user = db.prepare('SELECT password_hash FROM users WHERE id=?').get(req.user.id)
+  if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
+    return res.status(401).json({ error: 'Неверный текущий пароль' })
+  }
+  const hash = bcrypt.hashSync(newPassword, 10)
+  db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hash, req.user.id)
+  res.json({ ok: true })
+})
+
+// ═══ Экспорт данных (GDPR) ═══
+router.get('/export', auth, (req, res) => {
+  const user = db.prepare('SELECT id, username, email, rating, games_played, wins, losses, win_streak, best_streak, golden_closed, comebacks, perfect_wins, xp, level, created_at FROM users WHERE id=?').get(req.user.id)
+  const games = db.prepare('SELECT won, score, difficulty, turns, duration, mode, played_at FROM games WHERE user_id=? ORDER BY played_at DESC').all(req.user.id)
+  const achievements = db.prepare('SELECT achievement_id, unlocked_at FROM achievements WHERE user_id=?').all(req.user.id)
+  const friends = db.prepare('SELECT u.username FROM friends f JOIN users u ON u.id=f.friend_id WHERE f.user_id=? AND f.status="accepted"').all(req.user.id)
+  const replays = db.prepare('SELECT id, score, mode, turns, created_at FROM replays WHERE user_id=?').all(req.user.id)
+  res.json({ user, games, achievements, friends: friends.map(f => f.username), replays, exportedAt: new Date().toISOString() })
+})
+
+// ═══ Удаление аккаунта ═══
+router.delete('/account', auth, (req, res) => {
+  const { password } = req.body
+  if (!password) return res.status(400).json({ error: 'Пароль обязателен для подтверждения' })
+  const user = db.prepare('SELECT password_hash FROM users WHERE id=?').get(req.user.id)
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    return res.status(401).json({ error: 'Неверный пароль' })
+  }
+  const uid = req.user.id
+  // Удаляем все связанные данные
+  for (const t of ['achievements', 'games', 'friends', 'training_data', 'rating_history', 'season_ratings', 'daily_results', 'puzzle_results', 'puzzle_rush_scores', 'daily_missions', 'daily_logins', 'push_tokens', 'replays']) {
+    try { db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(uid) } catch {}
+  }
+  db.prepare('DELETE FROM friends WHERE friend_id=?').run(uid)
+  db.prepare('DELETE FROM users WHERE id=?').run(uid)
+  res.json({ ok: true, message: 'Аккаунт удалён' })
 })
 
 router.get('/rating-history', auth, (req, res) => {

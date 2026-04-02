@@ -134,6 +134,18 @@ export async function updateAvatar(avatar) {
   return await api('/profile/avatar', { method: 'PUT', body: JSON.stringify({ avatar }) })
 }
 
+export async function changePassword(currentPassword, newPassword) {
+  return await api('/profile/password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) })
+}
+
+export async function exportData() {
+  return await api('/profile/export')
+}
+
+export async function deleteAccount(password) {
+  return await api('/profile/account', { method: 'DELETE', body: JSON.stringify({ password }) })
+}
+
 // ═══ Login streak ═══
 export async function streakCheckin() {
   return await api('/streak/checkin', { method: 'POST' })
