@@ -170,4 +170,38 @@ describe('Стресс-тест движка', () => {
       expect(ns.stands[8].length).toBeGreaterThanOrEqual(11)
     }
   })
+
+  it('currentPlayer чередуется 0→1→0', () => {
+    let state = new GameState()
+    expect(state.currentPlayer).toBe(0)
+    state = applyAction(state, { placement: { 0: 1 } })
+    expect(state.currentPlayer).toBe(1)
+    state = applyAction(state, { placement: { 1: 2, 2: 1 } })
+    expect(state.currentPlayer).toBe(0)
+  })
+
+  it('isFirstTurn() верно определяет первый ход', () => {
+    const state = new GameState()
+    expect(state.isFirstTurn()).toBe(true)
+    const ns = applyAction(state, { placement: { 5: 1 } })
+    expect(ns.isFirstTurn()).toBe(false)
+  })
+
+  it('getLegalActions возвращает swap на втором ходу', () => {
+    let state = new GameState()
+    state = applyAction(state, { placement: { 3: 1 } })
+    // Второй ход — должен содержать swap option
+    const actions = getLegalActions(state)
+    const hasSwap = actions.some(a => a.swap)
+    expect(hasSwap).toBe(true)
+  })
+
+  it('swap не доступен после второго хода', () => {
+    let state = new GameState()
+    state = applyAction(state, { placement: { 3: 1 } })
+    state = applyAction(state, { placement: { 5: 2, 7: 1 } })
+    const actions = getLegalActions(state)
+    const hasSwap = actions.some(a => a.swap)
+    expect(hasSwap).toBe(false)
+  })
 })

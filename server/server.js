@@ -142,7 +142,7 @@ app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
   res.json({
     status: 'ok',
-    version: '4.4.19',
+    version: '4.4.26',
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     rooms: rooms.size,
@@ -271,6 +271,11 @@ function gracefulShutdown(signal) {
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
 process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+// ═══ 404 для неизвестных API routes ═══
+app.use('/api/', (req, res) => {
+  res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` })
+})
 
 // ═══ Глобальный error handler (ловит все необработанные ошибки Express) ═══
 app.use((err, req, res, _next) => {
