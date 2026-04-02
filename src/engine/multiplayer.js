@@ -70,8 +70,10 @@ export function send(msg) {
   if (ws?.readyState === 1) ws.send(JSON.stringify(msg))
 }
 
-export function sendMove(action) {
-  send({ type: 'move', action })
+export function sendMove(action, time) {
+  const msg = { type: 'move', action }
+  if (time) msg.time = time
+  send(msg)
 }
 
 export function sendGameOver(winner) {

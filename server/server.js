@@ -122,7 +122,7 @@ app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
   res.json({
     status: 'ok',
-    version: '4.4.8',
+    version: '4.4.10',
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     rooms: rooms.size,

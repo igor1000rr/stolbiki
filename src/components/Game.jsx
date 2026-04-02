@@ -778,9 +778,9 @@ export default function Game() {
     moveHistoryRef.current.push({ action: { ...action }, player: gs.currentPlayer })
     addLog(describeAction(action, gs.currentPlayer, t), gs.currentPlayer)
 
-    // Онлайн — отправляем ход противнику
+    // Онлайн — отправляем ход противнику (с локальным временем для sync)
     if (mode === 'online') {
-      MP.sendMove(action)
+      MP.sendMove(action, playerTime)
     }
 
     const ns = applyAction(gs, action)
@@ -1287,7 +1287,7 @@ export default function Game() {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button className="btn" onClick={() => {
               const action = { swap: true }
-              if (mode === 'online') MP.sendMove(action)
+              if (mode === 'online') MP.sendMove(action, playerTime)
               recordMove(gs, action, gs.currentPlayer)
               moveHistoryRef.current.push({ action, player: gs.currentPlayer })
               addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
