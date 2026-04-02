@@ -1,60 +1,89 @@
-# Snatch Highrise (Стойки)
+# Snatch Highrise (Перехват высотки)
 
-Стратегическая настольная игра для двух игроков. AI на основе AlphaZero (MCTS + Self-Play). Баланс **50:50**, подтверждён на **239K+ партиях**.
+Стратегическая настольная игра для двух игроков. AI на основе AlphaZero (MCTS + нейросеть 840K параметров). Баланс **50:50**, подтверждён на **239K+ партиях**.
 
-**Сайт:** https://snatch-highrise.com
+**Сайт:** https://snatch-highrise.com  
+**Версия:** 4.4.19  
+**Тесты:** 91 (vitest)  
+**API routes:** 88+
 
 ## Возможности
 
-- Игра vs AI (3 сложности), PvP, AI vs AI (спектатор)
-- ELO рейтинг, 14 ачивок с прогрессом, лидерборд
-- Друзья (поиск, запросы, принятие)
-- Симулятор баланса (до 10K партий, 6 пресетов, live графики)
-- Аналитика: GPU/CPU self-play, 30 графиков
-- Правила с SVG-иллюстрациями и интерактивным примером
-- PWA (Add to Home Screen)
+- **AI** — 4 сложности (Easy/Medium/Hard/Extreme), GPU нейросеть, MCTS 80–1500 симуляций
+- **Online** — WebSocket мультиплеер, ranked matchmaking (ELO ±200), таймеры, реконнект
+- **Турниры** — серии из 3/5 партий, live Arena
+- **Puzzle Rush** — ежедневные/еженедельные пазлы, рейтинг
+- **AI Game Review** — анализ партии после завершения
+- **33 ачивки** — бронза/серебро/золото/бриллиант, 4 уровня прогресса
+- **Ranked сезоны** — ежемесячные, top-20 лидерборд
+- **24 настройки** — сложность, таймер, скины, Zen mode, приватность
+- **15 метрик аналитики** — винрейт, тренд, активность по часам/дням
+- **8 дебютов** — openings база, swap%, тепловая карта
+- **11 тем + 17 скинов** — кастомизация блоков и стоек
+- **Маскот Снуппи** — 6 поз, CSS-анимации
+- **PWA** — Smart Service Worker, offline support
+- **Мультиязычность** — RU/EN, path routing /en/
+- **Аккаунт** — смена пароля, экспорт данных (GDPR), удаление аккаунта
 
 ## Стек
 
-**Фронт:** React + Vite, Chart.js, Web Audio API, CSS glass morphism, 30 анимаций
+**Фронт:** React 19 + Vite 6 + Capacitor (Android)  
+**Бэк:** Node.js 22 + Express + SQLite (better-sqlite3) + WebSocket (ws)  
+**AI:** MCTS + PyTorch GPU ResNet 840K params (GPU weights 3.2MB binary)  
+**CI/CD:** GitHub Actions → test → build → backup DB → deploy (PM2 + nginx)  
+**Мониторинг:** Error reporting (server DB), API stats, health endpoint
 
-**Бэк:** Node.js + Express + SQLite (better-sqlite3), JWT auth, 16 API endpoints
-
-**AI:** MCTS + Self-Play. CPU: numpy MLP 8K params, 1500 итер. GPU: PyTorch ResNet 840K params, 1146 итер, WR 97%
-
-**Инфра:** VPS (nginx + PM2), GitHub Actions CI/CD (push → deploy ~40с)
-
-## Структура
+## Архитектура
 
 ```
 src/
-  components/     # React: Game, Profile, Simulator, Dashboard, Replay, Rules, Board
-  engine/         # Движок: game.js, ai.js, hints.js, simulator.js, sounds.js, collector.js, api.js
-  data/           # Данные: dashboard.json, replays.json
-  app.css         # 1200 строк, glass morphism, 30 анимаций
+  components/     # React: Game (1489), Profile, Online, Board, GameResultPanel...
+  engine/         # Движок: game.js, ai.js, neuralnet.js, api.js, multiplayer.js
+                  # Hooks: GameContext, useGameTimer, useGameLog, useSessionStats, useKeyboardShortcuts
+  data/           # dashboard.json, replays.json
+  app.css         # 3239 строк, glass morphism, 30+ анимаций
 server/
-  server.js       # Express API (auth, games, leaderboard, friends, training)
-  ecosystem.config.cjs
-  setup-vps.sh    # Одна команда для настройки VPS
-analysis/
-  report.pdf      # PDF отчёт (2.2MB, 29 графиков)
-  report_gen.py   # Генератор отчёта
-gpu_train/
-  gpu_trainer.py  # PyTorch GPU self-play
-  gpu_checkpoint/ # Модели v50-v500
+  server.js       # Express: rooms, WS, health, stats, error-report
+  db.js           # SQLite: schema, migrations (versioned), 10 индексов
+  middleware.js   # JWT auth, rate limiting, admin check
+  routes/         # auth, profile, games, social, missions, arena, puzzles, blog, admin
+  ws.js           # WebSocket: rooms, matchmaking, spectate, timers
+tests/
+  game-engine.test.js  # 41 тест движка
+  validate.test.js     # 31 тест валидации
+  helpers.test.js      # 7 тестов хелперов
+  stress.test.js       # 12 тестов (500 рандомных партий, edge cases)
 ```
 
 ## Деплой
 
 ```bash
-# Первоначальная настройка VPS
-git clone https://github.com/igor1000rr/stolbiki.git /tmp/stolbiki
-cd /tmp/stolbiki && bash server/setup-vps.sh
+# Локальная разработка
+npm install
+npm run dev          # http://localhost:5173
+cd server && npm install && node server.js  # API: http://localhost:3001
 
-# Далее — автодеплой через GitHub Actions при push в main
+# Тесты
+npm test             # vitest run (91 тест)
+
+# Продакшн — автодеплой через GitHub Actions при push в main
+# Secrets: VPS_HOST, VPS_SSH_KEY
 ```
 
-GitHub Secrets: `VPS_HOST`, `VPS_SSH_KEY`
+## Ключевые метрики v4.4
+
+| Метрика | Значение |
+|---|---|
+| Тестов | 91 |
+| API routes | 88+ |
+| CustomEvent (legacy) | 0 (было 25) |
+| window.* globals | 0 (было 5) |
+| Polling intervals | 0 (было 4) |
+| SQL indexes | 10 |
+| GPU weights | 3.2 MB (было 8.1 MB) |
+| JWT lifetime | 7d + auto-refresh |
+| Schema migrations | versioned (3) |
+| Cache-Control | 7 endpoints |
 
 ## Автор
 

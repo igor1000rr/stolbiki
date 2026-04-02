@@ -50,13 +50,15 @@ app.use(cors({ origin: (origin, cb) => {
 }}))
 app.use(express.json({ limit: '5mb' }))
 
-// ═══ API Stats (in-memory, сбрасывается при рестарте) ═══
+// ═══ API Stats + Response Time ═══
 const apiStats = { requests: 0, errors: 0, startedAt: Date.now() }
 app.use('/api/', (req, res, next) => {
   apiStats.requests++
+  const start = Date.now()
   const origEnd = res.end
   res.end = function(...args) {
     if (res.statusCode >= 400) apiStats.errors++
+    res.setHeader('X-Response-Time', `${Date.now() - start}ms`)
     origEnd.apply(this, args)
   }
   next()
@@ -135,7 +137,7 @@ app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
   res.json({
     status: 'ok',
-    version: '4.4.10',
+    version: '4.4.19',
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     rooms: rooms.size,
