@@ -279,11 +279,6 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
               Telegram
             </a>
             <span style={{ opacity: 0.3 }}>·</span>
-            <a href="https://boosty.to/igor1000rr" target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
-              ☕ {en ? 'Support' : 'Поддержать'}
-            </a>
-            <span style={{ opacity: 0.3 }}>·</span>
             <span style={{ opacity: 0.5 }}>v4.3</span>
           </div>
         </div>
