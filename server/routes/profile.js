@@ -13,11 +13,16 @@ router.get('/', auth, (req, res) => {
   const arenaStats = db.prepare('SELECT COUNT(*) as tournaments, SUM(wins) as wins, SUM(losses) as losses FROM arena_participants WHERE user_id=?').get(req.user.id)
   let arenaTop3Count = 0
   try {
-    const tournaments = db.prepare('SELECT DISTINCT tournament_id FROM arena_participants WHERE user_id=?').all(req.user.id)
-    for (const t of tournaments) {
-      const top = db.prepare('SELECT user_id FROM arena_participants WHERE tournament_id=? ORDER BY score DESC LIMIT 3').all(t.tournament_id)
-      if (top.some(p => p.user_id === req.user.id)) arenaTop3Count++
-    }
+    // Один запрос вместо N+1: считаем турниры где юзер в top-3
+    const result = db.prepare(`
+      SELECT COUNT(*) as cnt FROM (
+        SELECT ap.tournament_id, ap.user_id,
+          RANK() OVER (PARTITION BY ap.tournament_id ORDER BY ap.score DESC) as pos
+        FROM arena_participants ap
+        WHERE ap.tournament_id IN (SELECT DISTINCT tournament_id FROM arena_participants WHERE user_id=?)
+      ) ranked WHERE ranked.user_id=? AND ranked.pos <= 3
+    `).get(req.user.id, req.user.id)
+    arenaTop3Count = result?.cnt || 0
   } catch {}
   res.json({
     ...formatUser(user), achievements,
@@ -41,7 +46,9 @@ router.get('/rating-history', auth, (req, res) => {
 // ═══ Глубокая аналитика ═══
 router.get('/analytics', auth, (req, res) => {
   const uid = req.user.id
-  const games = db.prepare('SELECT won, score, difficulty, turns, duration, closed_golden, is_comeback, mode, played_at FROM games WHERE user_id=? ORDER BY played_at DESC').all(uid)
+  // LIMIT 2000 — достаточно для аналитики, не перегружает память
+  const games = db.prepare('SELECT won, score, difficulty, turns, duration, closed_golden, is_comeback, mode, played_at FROM games WHERE user_id=? ORDER BY played_at DESC LIMIT 2000').all(uid)
+  const totalAllTime = db.prepare('SELECT COUNT(*) as c FROM games WHERE user_id=?').get(uid).c
 
   if (!games.length) return res.json({ empty: true })
 
@@ -117,6 +124,7 @@ router.get('/analytics', auth, (req, res) => {
 
   res.json({
     total: games.length,
+    totalAllTime,
     byDifficulty: byDiff,
     scores,
     avgTurns, avgDuration, totalTime,

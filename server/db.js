@@ -128,6 +128,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_id, played_at DESC);
   CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id, status);
   CREATE INDEX IF NOT EXISTS idx_blog_published ON blog_posts(published, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_rating_history_user ON rating_history(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_achievements_user ON achievements(user_id);
+  CREATE INDEX IF NOT EXISTS idx_training_user ON training_data(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_season_ratings_season ON season_ratings(season_id, rating DESC);
 
   CREATE TABLE IF NOT EXISTS seasons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -192,6 +196,8 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(user_id, puzzle_type, puzzle_id)
   );
+  CREATE INDEX IF NOT EXISTS idx_daily_seed_score ON daily_results(seed, turns ASC, duration ASC);
+  CREATE INDEX IF NOT EXISTS idx_puzzle_user_solved ON puzzle_results(user_id, solved);
 `)
 
 // ─── Миграции (безопасно — если колонка есть, не упадёт) ───

@@ -23,6 +23,9 @@ import createAdminRouter from './routes/admin.js'
 
 const app = express()
 
+// За Nginx — доверяем X-Forwarded-For для корректного req.ip
+app.set('trust proxy', 1)
+
 // ═══ Security ═══
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
@@ -167,6 +170,26 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
   console.error(`[ERROR] unhandledRejection:`, reason)
 })
+
+// Graceful shutdown: уведомляем игроков, закрываем DB
+function gracefulShutdown(signal) {
+  console.log(`\n⏳ ${signal} — graceful shutdown...`)
+  // Уведомляем всех подключённых игроков
+  for (const [id, room] of rooms) {
+    const msg = JSON.stringify({ type: 'serverShutdown' })
+    room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(msg) } catch {} })
+  }
+  server.close(() => {
+    console.log('✅ HTTP/WS сервер закрыт')
+    db.close()
+    console.log('✅ SQLite закрыт')
+    process.exit(0)
+  })
+  // Если не закрылся за 5 сек — force
+  setTimeout(() => { console.error('⚠ Force exit'); process.exit(1) }, 5000)
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {

@@ -2,11 +2,13 @@
  * Нейросеть для оценки позиции в браузере
  * 
  * GPU-сеть: ResNet 107→256→[6 ResBlocks]→64→1 (840,321 params)
- *   - gpu_weights.json (~900KB gzip), v500, self-play на GTX 1080
+ *   - gpu_weights.bin (~3.3MB, ~800KB gzip) — binary Float32
+ *   - Fallback: gpu_weights.json (~8.1MB, ~900KB gzip)
  * CPU-сеть: MLP 73→64→64→1 (8,961 params) — fallback
  *   - net_weights.json (179KB), 239K партий
  * 
- * GPU грузится lazy. Если недоступна — CPU-сеть.
+ * GPU грузится LAZY — только при выборе сложности Hard+.
+ * CPU грузится сразу при импорте.
  */
 
 import { GOLDEN_STAND, MAX_CHIPS } from './game.js'
@@ -17,8 +19,29 @@ let loadingCpu = null
 let loadingGpu = null
 let useGpu = false
 
+// ═══ Парсинг binary формата ═══
+
+function parseBinaryWeights(buffer) {
+  const view = new DataView(buffer)
+  let offset = 0
+  const numKeys = view.getUint32(offset, true); offset += 4
+  const weights = {}
+  const decoder = new TextDecoder()
+
+  for (let k = 0; k < numKeys; k++) {
+    const keyLen = view.getUint16(offset, true); offset += 2
+    const key = decoder.decode(new Uint8Array(buffer, offset, keyLen)); offset += keyLen
+    const numFloats = view.getUint32(offset, true); offset += 4
+    const data = new Float32Array(buffer, offset, numFloats); offset += numFloats * 4
+    // Копируем чтобы не зависеть от ArrayBuffer alignment
+    weights[key] = new Float32Array(data)
+  }
+  return weights
+}
+
 // ═══ Загрузка ═══
 
+/** Загружает CPU-сеть (вызывается автоматически при импорте) */
 export async function loadWeights() {
   if (!cpuWeights && !loadingCpu) {
     loadingCpu = fetch(new URL('./net_weights.json', import.meta.url))
@@ -27,15 +50,37 @@ export async function loadWeights() {
       .catch(() => {})
   }
   await loadingCpu
+  return cpuWeights
+}
 
-  if (!gpuWeights && !loadingGpu) {
-    loadingGpu = fetch(new URL('./gpu_weights.json', import.meta.url))
-      .then(r => r.json())
-      .then(data => { gpuWeights = data; useGpu = true })
-      .catch(() => {})
-  }
+/** Загружает GPU-сеть (вызывается при выборе Hard+ сложности) */
+export async function loadGpuWeights() {
+  if (gpuWeights) return gpuWeights
+  if (loadingGpu) { await loadingGpu; return gpuWeights }
+
+  loadingGpu = (async () => {
+    // Пробуем binary формат (в 2.5× меньше)
+    try {
+      const res = await fetch(new URL('./gpu_weights.bin', import.meta.url))
+      if (res.ok) {
+        const buf = await res.arrayBuffer()
+        gpuWeights = parseBinaryWeights(buf)
+        useGpu = true
+        return
+      }
+    } catch {}
+    // Fallback: JSON
+    try {
+      const res = await fetch(new URL('./gpu_weights.json', import.meta.url))
+      if (res.ok) {
+        gpuWeights = await res.json()
+        useGpu = true
+      }
+    } catch {}
+  })()
+
   await loadingGpu
-  return gpuWeights || cpuWeights
+  return gpuWeights
 }
 
 export function isReady() { return !!(gpuWeights || cpuWeights) }

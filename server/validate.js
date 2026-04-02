@@ -36,8 +36,8 @@ export function username(val) {
   return clean.length >= 2 ? clean : null
 }
 
-// Валидация password
+// Валидация password (мин 6 символов — синхронизировано с routes/auth.js)
 export function password(val) {
   if (typeof val !== 'string') return null
-  return val.length >= 4 && val.length <= 100 ? val : null
+  return val.length >= 6 && val.length <= 100 ? val : null
 }

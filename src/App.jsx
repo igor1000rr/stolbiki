@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
+import { GameProvider } from './engine/GameContext'
 import * as API from './engine/api'
 import Icon from './components/Icon'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -161,7 +162,7 @@ export default function App() {
   function doLogout() {
     localStorage.removeItem('stolbiki_profile'); localStorage.removeItem('stolbiki_token')
     setAuthUser(null); setAuthOpen(false)
-    if (typeof window.stolbikiCheckAdmin === 'function') window.stolbikiCheckAdmin()
+    setIsAdmin(false)
   }
 
   // Background profile refresh — keep level/xp/stats fresh
@@ -220,9 +221,8 @@ export default function App() {
 
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
-    window.stolbikiCheckAdmin = check
-    const interval = setInterval(check, 1000)
-    return () => { clearInterval(interval); delete window.stolbikiCheckAdmin }
+    const interval = setInterval(check, 2000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -302,6 +302,7 @@ export default function App() {
   return (
     <ErrorBoundary>
     <I18nContext.Provider value={i18n}>
+    <GameProvider>
     <div className={`app ${isNative ? 'native-app' : ''}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
 
@@ -705,6 +706,7 @@ export default function App() {
         </nav>
       )}
     </div>
+    </GameProvider>
     </I18nContext.Provider>
     </ErrorBoundary>
   )

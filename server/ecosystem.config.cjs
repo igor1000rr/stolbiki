@@ -8,7 +8,14 @@ module.exports = {
     autorestart: true,
     max_restarts: 10,
     watch: false,
-    max_memory_restart: '256M',
+    max_memory_restart: '300M',
+    kill_timeout: 5000, // Graceful shutdown: 5 сек на завершение запросов
+    listen_timeout: 8000,
+    // Логи: ротация встроенная
+    log_date_format: 'YYYY-MM-DD HH:mm:ss',
+    error_file: '/opt/stolbiki-api/logs/error.log',
+    out_file: '/opt/stolbiki-api/logs/out.log',
+    merge_logs: true,
     env: {
       NODE_ENV: 'production',
       PORT: 3001,

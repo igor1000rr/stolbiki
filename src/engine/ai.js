@@ -12,10 +12,18 @@ import {
   GameState, getValidTransfers, getValidPlacements,
   applyAction, MAX_CHIPS, MAX_PLACE, FIRST_TURN_MAX
 } from './game.js'
-import { evaluate as nnEvaluate, isReady as nnReady, isGpuReady, loadWeights } from './neuralnet.js'
+import { evaluate as nnEvaluate, isReady as nnReady, isGpuReady, loadWeights, loadGpuWeights } from './neuralnet.js'
 
-// Автозагрузка весов при импорте
+// Автозагрузка CPU-весов при импорте (маленькие, 179KB)
 loadWeights().catch(() => {})
+
+/**
+ * Предзагрузка GPU-сети для сложных уровней
+ * Вызывается из Game.jsx при выборе difficulty >= hard
+ */
+export function preloadGpuNet() {
+  loadGpuWeights().catch(() => {})
+}
 
 export function sampleRandomAction(state) {
   if (state.gameOver) return {}

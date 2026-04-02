@@ -51,8 +51,11 @@ router.get('/users/search', auth, (req, res) => {
 // ═══ Training Data ═══
 router.post('/training', auth, (req, res) => {
   const { gameData, winner, totalMoves, mode, difficulty } = req.body
+  // Ограничение размера game_data (макс 100KB)
+  const json = JSON.stringify(gameData)
+  if (json.length > 102400) return res.status(400).json({ error: 'Данные слишком большие (макс 100KB)' })
   db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, JSON.stringify(gameData), winner, totalMoves || 0, mode || 'ai', difficulty || 150)
+    .run(req.user.id, json, winner, totalMoves || 0, mode || 'ai', difficulty || 150)
   res.json({ ok: true })
 })
 

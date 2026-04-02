@@ -5,7 +5,7 @@ import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
 } from '../engine/game'
-import { mctsSearch } from '../engine/ai'
+import { mctsSearch, preloadGpuNet } from '../engine/ai'
 import { isGpuReady } from '../engine/neuralnet'
 import { getHint } from '../engine/hints'
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
@@ -13,6 +13,7 @@ import * as MP from '../engine/multiplayer'
 import * as API from '../engine/api'
 import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
+import { useGameContext } from '../engine/GameContext'
 import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick } from '../engine/sounds'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
@@ -27,6 +28,7 @@ const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 export default function Game() {
   const { t, lang } = useI18n()
   const en = lang === 'en'
+  const gameCtx = useGameContext()
   const sw = soundWin, sl = soundLose, ss = soundSwap
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
@@ -435,14 +437,14 @@ export default function Game() {
     setInfo(lang === 'en' ? `Tournament: game ${next} of ${tournament.total}` : `Турнир: партия ${next} из ${tournament.total}`)
   }
 
-  // Слушаем новые ачивки
+  // Слушаем новые ачивки через GameContext
   useEffect(() => {
-    window.stolbikiOnAchievement = (ach) => {
+    if (!gameCtx) return
+    return gameCtx.register('onAchievement', (ach) => {
       setNewAch(ach)
       setTimeout(() => setNewAch(null), 4000)
-    }
-    return () => { delete window.stolbikiOnAchievement }
-  }, [])
+    })
+  }, [gameCtx])
 
   // Сессионная статистика
   useEffect(() => {
@@ -523,11 +525,11 @@ export default function Game() {
               finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
               const won = modeRef.current === 'spectate' ? true : ns.winner === humanPlayer
               setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
-              if (typeof window.stolbikiRecordGame === 'function') {
+              if (gameCtx) {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-                window.stolbikiRecordGame(won, score, difficultyRef.current >= 400, closedGolden, false)
+                gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false)
               }
               // Турнир — запись результата (AI gameOver)
               if (tournament) {
@@ -577,6 +579,8 @@ export default function Game() {
     gsRef.current = state
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setRatingDelta(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); difficultyRef.current = d; setMode(m)
+    // Предзагрузка GPU-сети для hard+ (lazy, не блокирует)
+    if (d >= 200) preloadGpuNet()
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording()
     setGameMeta(m, d)
@@ -607,11 +611,11 @@ export default function Game() {
 
   useEffect(() => { newGame(0, 50) }, []) // eslint-disable-line
 
-  // ELO дельта — получаем от Profile через global callback
+  // ELO дельта — получаем от Profile через GameContext
   useEffect(() => {
-    window.stolbikiOnRatingDelta = (d) => setRatingDelta(d)
-    return () => { delete window.stolbikiOnRatingDelta }
-  }, [])
+    if (!gameCtx) return
+    return gameCtx.register('onRatingDelta', (d) => setRatingDelta(d))
+  }, [gameCtx])
 
   // Горячие клавиши
   useEffect(() => {
@@ -787,12 +791,12 @@ export default function Game() {
           won ? sw() : sl()
           if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
         }, 300)
-        if (typeof window.stolbikiRecordGame === 'function') {
+        if (gameCtx) {
           const w = ns.winner === humanPlayer
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          window.stolbikiRecordGame(w, score, difficulty >= 400, closedGolden, false, mode === 'online')
+          gameCtx.emit('recordGame', w, score, difficulty >= 400, closedGolden, false, mode === 'online')
         }
         // Турнир — запись результата
         if (tournament) {

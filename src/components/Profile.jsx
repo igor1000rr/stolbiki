@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import * as API from '../engine/api'
 import { useI18n } from '../engine/i18n'
+import { useGameContext } from '../engine/GameContext'
 import Icon from './Icon'
 import Mascot from './Mascot'
 
@@ -267,6 +268,7 @@ export default function Profile({ viewUsername, onClose }) {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
   const { lang } = useI18n()
   const en = lang === 'en'
+  const gameCtx = useGameContext()
   const [profile, setProfile] = useState(loadLocal)
   const [publicProfile, setPublicProfile] = useState(null)
   const [publicLoading, setPublicLoading] = useState(false)
@@ -368,7 +370,7 @@ export default function Profile({ viewUsername, onClose }) {
 
   useEffect(() => {
     if (profile) saveProfile(profile)
-    if (typeof window.stolbikiCheckAdmin === 'function') window.stolbikiCheckAdmin()
+    if (gameCtx) gameCtx.emit('checkAdmin')
   }, [profile])
 
   async function register() {
@@ -408,10 +410,10 @@ export default function Profile({ viewUsername, onClose }) {
     setProfile(null)
   }
 
-  // Записать результат партии (вызывать из Game)
-  // Экспортируется через window для связи с Game
+  // Записать результат партии (вызывается из Game через GameContext)
   useEffect(() => {
-    window.stolbikiRecordGame = (won, score, vsHardAi, closedGolden, isComeback, isOnline) => {
+    if (!gameCtx) return
+    return gameCtx.register('recordGame', (won, score, vsHardAi, closedGolden, isComeback, isOnline) => {
       setProfile(prev => {
         if (!prev) return prev
         const p = { ...prev, history: [...(prev.history || [])] }
@@ -444,9 +446,9 @@ export default function Profile({ viewUsername, onClose }) {
         const newAchIds = ALL_ACHIEVEMENTS.filter(a => a.check(p)).map(a => a.id)
         const brandNew = newAchIds.filter(id => !p.achievements.includes(id))
         p.achievements = newAchIds
-        if (brandNew.length > 0 && typeof window.stolbikiOnAchievement === 'function') {
+        if (brandNew.length > 0 && gameCtx) {
           const ach = ALL_ACHIEVEMENTS.find(a => a.id === brandNew[0])
-          if (ach) setTimeout(() => window.stolbikiOnAchievement(ach), 1500)
+          if (ach) setTimeout(() => gameCtx.emit('onAchievement', ach), 1500)
         }
         return p
       })
@@ -454,15 +456,14 @@ export default function Profile({ viewUsername, onClose }) {
       if (serverOnline && API.isLoggedIn()) {
         API.recordGame({ won, score, difficulty: vsHardAi ? 400 : 150, closedGolden, isComeback, isOnline: !!isOnline })
           .then(res => {
-            if (res?.ratingDelta && typeof window.stolbikiOnRatingDelta === 'function') {
-              window.stolbikiOnRatingDelta(res.ratingDelta)
+            if (res?.ratingDelta && gameCtx) {
+              gameCtx.emit('onRatingDelta', res.ratingDelta)
             }
           })
           .catch(() => {})
       }
-    }
-    return () => { delete window.stolbikiRecordGame }
-  }, [serverOnline])
+    })
+  }, [serverOnline, gameCtx])
 
   // ─── Публичный профиль (просмотр чужого) ───
   if (viewUsername) {

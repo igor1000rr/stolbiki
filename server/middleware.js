@@ -30,16 +30,26 @@ setInterval(() => {
   const now = Date.now()
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
   for (const [k, v] of gameSubmitLimits) { if (now - v > 60000) gameSubmitLimits.delete(k) }
+  for (const [k, v] of lastSeenCache) { if (now - v > 600000) lastSeenCache.delete(k) }
   if (rateLimits.size > 50000) rateLimits.clear()
 }, 300000)
 
 // ═══ JWT Auth ═══
+const lastSeenCache = new Map() // userId → timestamp последнего UPDATE
+const LAST_SEEN_INTERVAL = 300000 // 5 минут
+
 export function auth(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'Нужна авторизация' })
   try {
     req.user = jwt.verify(token, JWT_SECRET)
-    db.prepare(`UPDATE users SET last_seen = datetime('now') WHERE id = ?`).run(req.user.id)
+    // Обновляем last_seen не чаще раза в 5 минут — снижаем нагрузку на SQLite
+    const now = Date.now()
+    const lastUpdate = lastSeenCache.get(req.user.id)
+    if (!lastUpdate || now - lastUpdate > LAST_SEEN_INTERVAL) {
+      db.prepare(`UPDATE users SET last_seen = datetime('now') WHERE id = ?`).run(req.user.id)
+      lastSeenCache.set(req.user.id, now)
+    }
     next()
   } catch (authErr) {
     console.error('AUTH ERROR:', authErr.message)

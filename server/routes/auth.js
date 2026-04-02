@@ -5,6 +5,9 @@ import { formatUser } from '../helpers.js'
 
 const router = Router()
 
+// Админы задаются через ENV: ADMIN_USERNAMES=admin,igor (запятая-разделитель)
+const ADMIN_NAMES = (process.env.ADMIN_USERNAMES || 'admin').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+
 router.post('/register', (req, res) => {
   const { username, email, password } = req.body
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
@@ -16,8 +19,7 @@ router.post('/register', (req, res) => {
   if (existing) return res.status(409).json({ error: 'Username taken' })
 
   const hash = bcrypt.hashSync(password, 10)
-  const adminNames = ['admin']
-  const isAdmin = adminNames.includes(cleanName) ? 1 : 0
+  const isAdmin = ADMIN_NAMES.includes(cleanName.toLowerCase()) ? 1 : 0
 
   const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)').run(cleanName, email || null, hash, isAdmin)
   const token = jwt.sign({ id: result.lastInsertRowid, username: cleanName, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: '30d' })
