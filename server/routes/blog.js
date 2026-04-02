@@ -169,12 +169,14 @@ router.get('/', (req, res) => {
   const offset = (page - 1) * perPage
   const posts = db.prepare('SELECT id, slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at FROM blog_posts WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT ? OFFSET ?').all(perPage, offset)
   const total = db.prepare('SELECT COUNT(*) as c FROM blog_posts WHERE published=1').get().c
+  res.set('Cache-Control', 'public, max-age=60')
   res.json({ posts, total, page, pages: Math.ceil(total / perPage) })
 })
 
 router.get('/:slug', (req, res) => {
   const post = db.prepare('SELECT * FROM blog_posts WHERE slug=? AND published=1').get(req.params.slug)
   if (!post) return res.status(404).json({ error: 'Пост не найден' })
+  res.set('Cache-Control', 'public, max-age=120')
   res.json(post)
 })
 

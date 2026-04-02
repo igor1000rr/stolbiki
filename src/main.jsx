@@ -100,3 +100,17 @@ if (!isNative && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }
+
+// Глобальный отлов ошибок → error-report (не пойманных ErrorBoundary)
+function reportError(message, stack) {
+  try {
+    const token = localStorage.getItem('stolbiki_token')
+    fetch('/api/error-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ message: String(message).slice(0, 500), stack: String(stack || '').slice(0, 2000), url: location.href, ua: navigator.userAgent.slice(0, 200), ts: new Date().toISOString() }),
+    }).catch(() => {})
+  } catch {}
+}
+window.addEventListener('unhandledrejection', (e) => reportError(`Unhandled Promise: ${e.reason?.message || e.reason}`, e.reason?.stack))
+window.addEventListener('error', (e) => { if (e.error) reportError(e.error.message, e.error.stack) })

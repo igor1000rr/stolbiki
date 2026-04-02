@@ -226,6 +226,7 @@ router.get('/rush/leaderboard', (req, res) => {
     FROM puzzle_rush_scores pr JOIN users u ON u.id = pr.user_id
     ORDER BY pr.score DESC LIMIT 20
   `).all()
+  res.set('Cache-Control', 'public, max-age=15')
   res.json(rows)
 })
 

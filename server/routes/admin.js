@@ -173,5 +173,20 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ ok: true, added, total: items.length })
   })
 
+  // ═══ Error reports ═══
+  router.get('/errors', auth, adminOnly, (req, res) => {
+    const errors = db.prepare(`
+      SELECT e.*, u.username FROM error_reports e
+      LEFT JOIN users u ON u.id = e.user_id
+      ORDER BY e.created_at DESC LIMIT 100
+    `).all()
+    res.json(errors)
+  })
+
+  router.delete('/errors', auth, adminOnly, (req, res) => {
+    db.prepare('DELETE FROM error_reports').run()
+    res.json({ ok: true })
+  })
+
   return router
 }
