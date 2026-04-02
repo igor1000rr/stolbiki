@@ -51,6 +51,26 @@ export function isLoggedIn() {
   return !!_token
 }
 
+/** Обновляет токен если текущий ещё валиден. Вызывается раз в сутки. */
+export async function refreshToken() {
+  if (!_token) return false
+  try {
+    const data = await api('/auth/refresh', { method: 'POST' })
+    if (data.token) { setToken(data.token); return true }
+  } catch { /* Token expired — пользователь переавторизуется */ }
+  return false
+}
+
+/** Проверяет, истекает ли токен в ближайшие N секунд */
+export function tokenExpiresWithin(seconds = 86400) {
+  if (!_token) return true
+  try {
+    const payload = JSON.parse(atob(_token.split('.')[1]))
+    const exp = payload.exp * 1000 // ms
+    return Date.now() > exp - seconds * 1000
+  } catch { return true }
+}
+
 export function getUserId() {
   if (!_token) return null
   try {

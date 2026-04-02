@@ -190,6 +190,22 @@ export default function App() {
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible) }
   }, []) // eslint-disable-line
 
+  // JWT Token refresh — обновляем токен раз в сутки (срок жизни 7 дней)
+  useEffect(() => {
+    if (!API.isLoggedIn()) return
+    // Проверяем при монтировании: если токен истекает в ближайшие 2 дня — обновляем
+    if (API.tokenExpiresWithin(2 * 86400)) {
+      API.refreshToken().catch(() => {})
+    }
+    // Проверяем каждые 12 часов
+    const iv = setInterval(() => {
+      if (API.isLoggedIn() && API.tokenExpiresWithin(2 * 86400)) {
+        API.refreshToken().catch(() => {})
+      }
+    }, 12 * 3600000)
+    return () => clearInterval(iv)
+  }, []) // eslint-disable-line
+
   // Sync URL with tab (path routing)
   useEffect(() => {
     const base = lang === 'en' ? '/en/' : '/'
