@@ -113,6 +113,7 @@ router.get('/seasons/history', (req, res) => {
 router.get('/leaderboard', (req, res) => {
   const limit = Math.min(+req.query.limit || 20, 100)
   const users = db.prepare('SELECT id, username, rating, games_played, wins, losses, best_streak, level, xp FROM users ORDER BY rating DESC LIMIT ?').all(limit)
+  res.set('Cache-Control', 'public, max-age=15')
   res.json(users.map(u => ({
     username: u.username, rating: u.rating,
     games: u.games_played, wins: u.wins,

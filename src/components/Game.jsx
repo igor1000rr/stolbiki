@@ -18,6 +18,7 @@ import { useGameTimer } from '../engine/useGameTimer'
 import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick } from '../engine/sounds'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
+import { useGameLog } from '../engine/useGameLog'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -69,7 +70,7 @@ export default function Game() {
     },
     onTick: () => sk(),
   })
-  const [log, setLog] = useState([])
+  const { log, setLog, addLog, resetLog, logRef } = useGameLog(lang)
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
   const [hint, setHint] = useState(null)
@@ -109,11 +110,9 @@ export default function Game() {
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
-  const logRef = useRef(null)
 
   // Синхронизируем gsRef с gs
   useEffect(() => { gsRef.current = gs }, [gs])
-  useEffect(() => { if (logRef.current) logRef.current.scrollTop = 0 }, [log])
 
   // ─── Онлайн мультиплеер: слушаем события из Online.jsx ───
   useEffect(() => {
@@ -491,10 +490,6 @@ export default function Game() {
     if (s1 > prevScore.current[1]) { setScoreBump(1); setTimeout(() => setScoreBump(null), 700); sc() }
     prevScore.current = [s0, s1]
   }, [gs])
-
-  function addLog(text, player) {
-    setLog(prev => [{ text, player, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...prev])
-  }
 
   // ─── AI ход ───
   const runAi = useCallback((state) => {

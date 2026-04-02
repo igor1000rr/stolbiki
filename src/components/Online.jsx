@@ -132,6 +132,8 @@ export default function Online() {
   const [activeRooms, setActiveRooms] = useState([])
   const [loadingRooms, setLoadingRooms] = useState(false)
   const [opponentSkins, setOpponentSkins] = useState(null)
+  const [reconnectInfo, setReconnectInfo] = useState(null) // { attempt, maxAttempts, delay }
+  const [opponentRating, setOpponentRating] = useState(null)
 
   // Свои скины для передачи оппоненту
   function getMySkins() {
@@ -174,6 +176,7 @@ export default function Online() {
         setCurrentGame(msg.currentGame || 1)
         setScreen('playing')
         setStatus('')
+        setReconnectInfo(null)
         // Скины оппонента
         if (msg.playerSkins) {
           const oppIdx = playerIdxRef.current === 0 ? 1 : 0
@@ -225,6 +228,14 @@ export default function Online() {
       case 'disconnected':
         if (msg.playerIdx !== playerIdxRef.current) setStatus(en ? 'Opponent disconnected... waiting' : 'Противник отключился... ждём реконнект')
         break
+      case 'reconnecting':
+        setReconnectInfo({ attempt: msg.attempt, maxAttempts: msg.maxAttempts, delay: msg.delay })
+        break
+      case 'reconnectFailed':
+        setReconnectInfo(null)
+        setStatus(en ? 'Connection lost' : 'Соединение потеряно')
+        setScreen('lobby')
+        break
       case 'error':
         setError(msg.msg)
         break
@@ -236,6 +247,8 @@ export default function Online() {
         roomIdRef.current = msg.roomId
         setPlayerIdx(msg.playerIdx)
         playerIdxRef.current = msg.playerIdx
+        setOpponentRating(msg.opponentRating || null)
+        setReconnectInfo(null)
         break
       case 'matchCancelled':
         setScreen('lobby')
@@ -460,6 +473,8 @@ export default function Online() {
 
   // ─── SEARCHING ───
   if (screen === 'searching') {
+    // Получаем рейтинг юзера из localStorage
+    const userRating = (() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.rating || 1000 } catch { return 1000 } })()
     return (
       <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 130px)' } : undefined}>
         <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
@@ -473,8 +488,11 @@ export default function Online() {
           <h3 style={{ fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>
             {en ? 'Looking for opponent...' : 'Ищем соперника...'}
           </h3>
-          <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 20 }}>
-            {en ? 'You\'ll be matched with the first available player' : 'Вас соединят с первым доступным игроком'}
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>
+            {en ? 'Your rating' : 'Ваш рейтинг'}: <b style={{ color: 'var(--gold)' }}>{userRating}</b>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 20 }}>
+            {en ? 'ELO ±200, range expands over time' : 'ELO ±200, диапазон расширяется со временем'}
           </p>
           <button className="btn" onClick={cancelSearch} style={{ fontSize: 12 }}>
             {en ? 'Cancel' : 'Отмена'}
@@ -546,6 +564,24 @@ export default function Online() {
         {status && (
           <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>
             {status}
+          </div>
+        )}
+
+        {/* WS Reconnect UI */}
+        {reconnectInfo && (
+          <div style={{ textAlign: 'center', padding: '10px 16px', marginBottom: 8, borderRadius: 8,
+            background: 'rgba(255,193,69,0.08)', border: '1px solid rgba(255,193,69,0.15)' }}>
+            <div style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 600, marginBottom: 4 }}>
+              {en ? 'Reconnecting...' : 'Переподключение...'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+              {en ? `Attempt ${reconnectInfo.attempt}/${reconnectInfo.maxAttempts}` : `Попытка ${reconnectInfo.attempt}/${reconnectInfo.maxAttempts}`}
+              {reconnectInfo.delay > 0 && ` · ${reconnectInfo.delay}${en ? 's' : 'с'}`}
+            </div>
+            <div style={{ marginTop: 6, height: 3, borderRadius: 2, background: 'rgba(255,193,69,0.1)', overflow: 'hidden' }}>
+              <div style={{ width: `${(reconnectInfo.attempt / reconnectInfo.maxAttempts) * 100}%`, height: '100%',
+                background: 'var(--gold)', borderRadius: 2, transition: 'width 0.5s' }} />
+            </div>
           </div>
         )}
 

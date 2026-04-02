@@ -113,6 +113,7 @@ app.get('/api/stats', (req, res) => {
   const totalUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c
   const totalGames = db.prepare('SELECT COUNT(*) as c FROM games').get().c
   const avgRating = db.prepare('SELECT AVG(rating) as avg FROM users WHERE games_played > 0').get().avg || 1000
+  res.set('Cache-Control', 'public, max-age=30')
   res.json({ totalUsers, totalGames, avgRating: Math.round(avgRating) })
 })
 
@@ -120,7 +121,7 @@ app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
   res.json({
     status: 'ok',
-    version: '4.4.2',
+    version: '4.4.6',
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     rooms: rooms.size,
