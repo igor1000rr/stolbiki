@@ -91,6 +91,14 @@ export async function acceptFriend(userId) {
   return await api('/friends/accept', { method: 'POST', body: JSON.stringify({ userId }) })
 }
 
+export async function declineFriend(userId) {
+  return await api('/friends/decline', { method: 'POST', body: JSON.stringify({ userId }) })
+}
+
+export async function removeFriend(userId) {
+  return await api('/friends/remove', { method: 'POST', body: JSON.stringify({ userId }) })
+}
+
 export async function getFriends() {
   return await api('/friends')
 }

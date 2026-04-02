@@ -368,6 +368,22 @@ export default function Profile({ viewUsername, onClose }) {
     } catch {}
   }
 
+  async function doDeclineFriend(userId) {
+    if (!serverOnline) return
+    try {
+      await API.declineFriend(userId)
+      loadFriends()
+    } catch {}
+  }
+
+  async function doRemoveFriend(userId) {
+    if (!serverOnline) return
+    try {
+      await API.removeFriend(userId)
+      loadFriends()
+    } catch {}
+  }
+
   useEffect(() => {
     if (profile) saveProfile(profile)
     if (gameCtx) gameCtx.emit('checkAdmin')
@@ -1237,7 +1253,9 @@ export default function Profile({ viewUsername, onClose }) {
                     </div>
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{u.username}</span>
                     <button className="btn primary" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
-                      onClick={() => doAcceptFriend(u.id)}>Принять</button>
+                      onClick={() => doAcceptFriend(u.id)}>{en ? 'Accept' : 'Принять'}</button>
+                    <button className="btn" style={{ fontSize: 11, padding: '4px 10px', minHeight: 28, opacity: 0.6 }}
+                      onClick={() => doDeclineFriend(u.id)}>✕</button>
                   </div>
                 ))}
               </div>
@@ -1263,6 +1281,9 @@ export default function Profile({ viewUsername, onClose }) {
                       <div style={{ fontSize: 13, color: 'var(--ink)' }}>{f.username}</div>
                       <div style={{ fontSize: 10, color: 'var(--ink3)' }}>⭐ {f.rating}</div>
                     </div>
+                    <button className="btn" style={{ fontSize: 10, padding: '3px 8px', minHeight: 24, opacity: 0.3 }}
+                      onClick={() => { if (confirm(en ? `Remove ${f.username}?` : `Удалить ${f.username}?`)) doRemoveFriend(f.id) }}
+                      title={en ? 'Remove friend' : 'Удалить из друзей'}>✕</button>
                   </div>
                 ))}
               </div>

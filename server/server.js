@@ -58,6 +58,22 @@ app.use('/api/', rateLimit(60000, 120))
 const rooms = new Map()
 const matchQueue = []
 
+// Периодическая чистка: мёртвые комнаты и matchQueue (каждые 2 мин)
+setInterval(() => {
+  const now = Date.now()
+  // Комнаты старше 30 мин без активных игроков
+  for (const [id, room] of rooms) {
+    if (now - (room.created || 0) > 30 * 60 * 1000) {
+      const hasAlive = room.players.some(p => p.ws?.readyState === 1)
+      if (!hasAlive) rooms.delete(id)
+    }
+  }
+  // matchQueue: мёртвые WS соединения
+  for (let i = matchQueue.length - 1; i >= 0; i--) {
+    if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
+  }
+}, 120000)
+
 function generateRoomId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let id = ''
@@ -101,7 +117,17 @@ app.get('/api/stats', (req, res) => {
 })
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c, rooms: rooms.size })
+  const mem = process.memoryUsage()
+  res.json({
+    status: 'ok',
+    version: '4.4.2',
+    uptime: Math.round(process.uptime()),
+    users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
+    rooms: rooms.size,
+    matchQueue: matchQueue.length,
+    memoryMB: Math.round(mem.heapUsed / 1024 / 1024),
+    schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0,
+  })
 })
 
 app.get('/api/content', (req, res) => {

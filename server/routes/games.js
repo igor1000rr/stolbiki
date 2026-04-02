@@ -125,10 +125,19 @@ router.get('/leaderboard', (req, res) => {
 router.post('/replays', auth, (req, res) => {
   const { moves, result, score, mode, turns } = req.body
   if (!moves || !Array.isArray(moves)) return res.status(400).json({ error: 'moves обязателен' })
+  if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинный реплей (макс 500 ходов)' })
+  const movesJson = JSON.stringify(moves)
+  if (movesJson.length > 512000) return res.status(400).json({ error: 'Реплей слишком большой (макс 500KB)' })
+  // Лимит: максимум 50 реплеев на юзера
+  const count = db.prepare('SELECT COUNT(*) as c FROM replays WHERE user_id=?').get(req.user.id).c
+  if (count >= 50) {
+    // Удаляем самый старый
+    db.prepare('DELETE FROM replays WHERE id = (SELECT id FROM replays WHERE user_id=? ORDER BY created_at ASC LIMIT 1)').run(req.user.id)
+  }
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   try {
     db.prepare('INSERT INTO replays (id, user_id, moves, result, score, mode, turns) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(id, req.user.id, JSON.stringify(moves), result ?? null, score || null, mode || 'ai', turns || 0)
+      .run(id, req.user.id, movesJson, result ?? null, score || null, mode || 'ai', turns || 0)
     res.json({ id, url: `/replay/${id}` })
   } catch (e) { res.status(500).json({ error: 'Ошибка сохранения' }) }
 })

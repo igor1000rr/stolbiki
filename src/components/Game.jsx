@@ -14,6 +14,7 @@ import * as API from '../engine/api'
 import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import { useGameContext } from '../engine/GameContext'
+import { useGameTimer } from '../engine/useGameTimer'
 import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick } from '../engine/sounds'
 import Board from './Board'
 import ReplayViewer, { describeAction } from './ReplayViewer'
@@ -53,10 +54,21 @@ export default function Game() {
     const unsub = gameCtx?.on('settingsChanged', refresh)
     return () => { window.removeEventListener('focus', refresh); unsub?.() }
   }, [gameCtx])
-  // Таймеры игроков
-  const TIMER_LIMITS = { off: 0, blitz: 180, rapid: 600, classical: 1800 }
-  const timerLimit = TIMER_LIMITS[userSettings.timer] || 0
-  const [playerTime, setPlayerTime] = useState([0, 0]) // секунды оставшиеся [p0, p1]
+  // Таймеры (extracted hook)
+  const sk = soundClick // тик при <10с
+  const { timerLimit, playerTime, setPlayerTime, elapsed, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
+    timerSetting: userSettings.timer,
+    gameOver: gs.gameOver,
+    currentPlayer: gs.currentPlayer,
+    humanPlayer,
+    locked,
+    aiRunning: aiRunning?.current,
+    onTimeUp: (cp) => {
+      setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
+      setLocked(false)
+    },
+    onTick: () => sk(),
+  })
   const [log, setLog] = useState([])
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
@@ -71,8 +83,6 @@ export default function Game() {
   const [newAch, setNewAch] = useState(null)
   const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0, loseStreak: 0 })
   const [firstWinCelebration, setFirstWinCelebration] = useState(false)
-  const [gameStartTime, setGameStartTime] = useState(Date.now())
-  const [elapsed, setElapsed] = useState(0)
   const [undoStack, setUndoStack] = useState([])
   // Турнирный режим
   const [tournament, setTournament] = useState(null) // { total: 3|5, games: [{won, score}], currentGame: 1 }
@@ -127,9 +137,7 @@ export default function Game() {
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
       startRecording()
       setGameMeta('online', 0)
-      setGameStartTime(Date.now())
-      setElapsed(0)
-      if (timerLimit) setPlayerTime([timerLimit, timerLimit])
+      resetTimers()
       setUndoStack([])
       setPosEval(null)
       moveHistoryRef.current = []
@@ -374,9 +382,7 @@ export default function Game() {
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
       startRecording()
       setGameMeta('daily', 100)
-      setGameStartTime(Date.now())
-      setElapsed(0)
-      if (timerLimit) setPlayerTime([timerLimit, timerLimit])
+      resetTimers()
       setUndoStack([])
       setPosEval(null)
       moveHistoryRef.current = []

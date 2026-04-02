@@ -119,7 +119,7 @@ router.get('/analytics', auth, (req, res) => {
   const streakLine = games.slice(0, 30).map(g => g.won ? 1 : 0).reverse()
 
   // Puzzle stats
-  const puzzleStats = db.prepare('SELECT COUNT(*) as total, SUM(CASE WHEN correct=1 THEN 1 ELSE 0 END) as correct FROM puzzle_results WHERE user_id=?').get(uid)
+  const puzzleStats = db.prepare('SELECT COUNT(*) as total, SUM(CASE WHEN solved=1 THEN 1 ELSE 0 END) as correct FROM puzzle_results WHERE user_id=?').get(uid)
   const rushBest = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(uid)
 
   res.json({

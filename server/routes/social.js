@@ -25,6 +25,18 @@ router.post('/friends/accept', auth, (req, res) => {
   res.json({ ok: true })
 })
 
+router.post('/friends/decline', auth, (req, res) => {
+  const { userId } = req.body
+  db.prepare('DELETE FROM friends WHERE user_id = ? AND friend_id = ?').run(userId, req.user.id)
+  res.json({ ok: true })
+})
+
+router.post('/friends/remove', auth, (req, res) => {
+  const { userId } = req.body
+  db.prepare('DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)').run(req.user.id, userId, userId, req.user.id)
+  res.json({ ok: true })
+})
+
 router.get('/friends', auth, (req, res) => {
   const friends = db.prepare(`
     SELECT u.id, u.username, u.rating, u.last_seen, f.status

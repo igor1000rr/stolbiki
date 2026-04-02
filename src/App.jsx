@@ -130,8 +130,13 @@ export default function App() {
 
   useEffect(() => {
     const check = () => { try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); setAuthUser(p?.name ? p : null) } catch { setAuthUser(null) } }
-    const iv = setInterval(check, 2000)
-    return () => clearInterval(iv)
+    // StorageEvent: кросс-табовая синхронизация (мгновенно)
+    const onStorage = (e) => { if (e.key === 'stolbiki_profile' || e.key === 'stolbiki_token') check() }
+    window.addEventListener('storage', onStorage)
+    // Проверка при возврате на вкладку
+    const onVisible = () => { if (!document.hidden) check() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible) }
   }, [])
 
   useEffect(() => {
@@ -166,17 +171,23 @@ export default function App() {
     setIsAdmin(false)
   }
 
-  // Background profile refresh — keep level/xp/stats fresh
+  // Background profile refresh — keep level/xp/stats fresh (только когда вкладка видна)
   useEffect(() => {
     if (!API.isLoggedIn()) return
-    const refresh = () => API.getProfile().then(p => {
-      const merged = { ...p, name: p.username }
-      localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
-      setAuthUser(merged)
-    }).catch(() => {})
+    const refresh = () => {
+      if (document.hidden) return // Не тратим запросы на фоновую вкладку
+      API.getProfile().then(p => {
+        const merged = { ...p, name: p.username }
+        localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
+        setAuthUser(merged)
+      }).catch(() => {})
+    }
     refresh() // once on mount
     const iv = setInterval(refresh, 120000) // every 2 min
-    return () => clearInterval(iv)
+    // Обновляем при возврате на вкладку
+    const onVisible = () => { if (!document.hidden) refresh() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible) }
   }, []) // eslint-disable-line
 
   // Sync URL with tab (path routing)
@@ -222,8 +233,11 @@ export default function App() {
 
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
-    const interval = setInterval(check, 2000)
-    return () => clearInterval(interval)
+    const onStorage = (e) => { if (e.key === 'stolbiki_profile') check() }
+    window.addEventListener('storage', onStorage)
+    const onVisible = () => { if (!document.hidden) check() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible) }
   }, [])
 
   useEffect(() => {

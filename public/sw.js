@@ -1,4 +1,12 @@
-// Service Worker — network-first, минимальный кеш
+/**
+ * Service Worker — Smart caching strategy
+ *
+ * - Hashed assets (Vite *.js, *.css): cache-first (immutable, fastest)
+ * - Navigation: network-first → fallback to cached /index.html (offline PWA)
+ * - Images/fonts: stale-while-revalidate (быстро из кеша, обновляем в фоне)
+ * - API/WS: сквозной пропуск (не кешируем)
+ * - NN weights (.json, .bin): cache-first (большие, редко меняются)
+ */
 const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
 
 self.addEventListener('install', () => self.skipWaiting())
@@ -11,12 +19,13 @@ self.addEventListener('activate', e => {
 })
 
 self.addEventListener('fetch', e => {
-  // Не кешируем API, WebSocket, навигацию
-  if (e.request.url.includes('/api/') || e.request.url.includes('/ws')) return
-  if (e.request.mode === 'navigate') return
+  const url = e.request.url
 
-  // Только статику (JS, CSS, шрифты, картинки) — network-first
-  if (e.request.method === 'GET' && /\.(js|css|woff2?|png|webp|ico|svg)(\?|$)/.test(e.request.url)) {
+  // ═══ Пропуск: API, WebSocket ═══
+  if (url.includes('/api/') || url.includes('/ws')) return
+
+  // ═══ Навигация: network-first → cached shell (offline PWA) ═══
+  if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request).then(res => {
         if (res.ok) {
@@ -24,7 +33,52 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone))
         }
         return res
-      }).catch(() => caches.match(e.request))
+      }).catch(() => caches.match('/index.html') || caches.match(e.request))
     )
+    return
+  }
+
+  if (e.request.method !== 'GET') return
+
+  // ═══ Hashed assets (Vite): cache-first (иммутабельные — хеш в имени) ═══
+  if (/\/assets\/.*\.(js|css)(\?|$)/.test(url)) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached
+        return fetch(e.request).then(res => {
+          if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()))
+          return res
+        })
+      })
+    )
+    return
+  }
+
+  // ═══ NN weights (.json, .bin в engine): cache-first ═══
+  if (/\.(bin|npz)(\?|$)/.test(url) || (url.includes('weights') && /\.json(\?|$)/.test(url))) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached
+        return fetch(e.request).then(res => {
+          if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()))
+          return res
+        })
+      })
+    )
+    return
+  }
+
+  // ═══ Картинки, шрифты: stale-while-revalidate ═══
+  if (/\.(png|webp|ico|svg|woff2?|pdf)(\?|$)/.test(url)) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const fetchPromise = fetch(e.request).then(res => {
+          if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()))
+          return res
+        }).catch(() => cached)
+        return cached || fetchPromise
+      })
+    )
+    return
   }
 })
