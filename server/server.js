@@ -50,6 +50,18 @@ app.use(cors({ origin: (origin, cb) => {
 }}))
 app.use(express.json({ limit: '5mb' }))
 
+// ═══ API Stats (in-memory, сбрасывается при рестарте) ═══
+const apiStats = { requests: 0, errors: 0, startedAt: Date.now() }
+app.use('/api/', (req, res, next) => {
+  apiStats.requests++
+  const origEnd = res.end
+  res.end = function(...args) {
+    if (res.statusCode >= 400) apiStats.errors++
+    origEnd.apply(this, args)
+  }
+  next()
+})
+
 // ═══ Global Rate Limits ═══
 app.use('/api/auth', rateLimit(60000, 20))
 app.use('/api/games', rateLimit(60000, 60))
@@ -129,6 +141,7 @@ app.get('/api/health', (req, res) => {
     matchQueue: matchQueue.length,
     memoryMB: Math.round(mem.heapUsed / 1024 / 1024),
     schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0,
+    api: { requests: apiStats.requests, errors: apiStats.errors, uptimeHours: Math.round((Date.now() - apiStats.startedAt) / 3600000 * 10) / 10 },
   })
 })
 
