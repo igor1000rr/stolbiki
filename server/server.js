@@ -126,8 +126,9 @@ app.get('/api/stats', (req, res) => {
   const totalUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c
   const totalGames = db.prepare('SELECT COUNT(*) as c FROM games').get().c
   const avgRating = db.prepare('SELECT AVG(rating) as avg FROM users WHERE games_played > 0').get().avg || 1000
+  const activeRooms = [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length
   res.set('Cache-Control', 'public, max-age=30')
-  res.json({ totalUsers, totalGames, avgRating: Math.round(avgRating) })
+  res.json({ totalUsers, totalGames, avgRating: Math.round(avgRating), activeRooms, matchQueue: matchQueue.length })
 })
 
 app.get('/api/health', (req, res) => {

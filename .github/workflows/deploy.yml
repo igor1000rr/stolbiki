@@ -19,11 +19,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          # Без cache — всегда чистый билд
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Run Tests
+        run: npx vitest run
 
       - name: Build Frontend
         run: |
-          npm ci
           VITE_API_URL=/api npm run build
           # Инъекция build hash в Service Worker
           BUILD_HASH=$(git rev-parse --short HEAD)-$(date +%s)
@@ -60,7 +65,13 @@ jobs:
           script: |
             set -e
             cd /opt/stolbiki-api
-            mkdir -p logs
+            mkdir -p logs backups
+            # Бэкап БД перед деплоем
+            if [ -f data/stolbiki.db ]; then
+              sqlite3 data/stolbiki.db ".backup backups/pre-deploy-$(date +%Y%m%d_%H%M%S).db"
+              # Оставляем последние 7 бэкапов
+              ls -t backups/pre-deploy-*.db 2>/dev/null | tail -n +8 | xargs rm -f 2>/dev/null || true
+            fi
             npm install --omit=dev
             pm2 restart ecosystem.config.cjs 2>/dev/null || \
               pm2 start ecosystem.config.cjs
