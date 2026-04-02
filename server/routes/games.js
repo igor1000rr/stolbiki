@@ -95,8 +95,25 @@ router.post('/games', auth, (req, res) => {
 
 router.get('/games', auth, (req, res) => {
   const limit = Math.min(+req.query.limit || 20, 50)
-  const games = db.prepare('SELECT * FROM games WHERE user_id = ? ORDER BY played_at DESC LIMIT ?').all(req.user.id, limit)
-  res.json(games)
+  const offset = Math.max(0, +req.query.offset || 0)
+  const games = db.prepare('SELECT * FROM games WHERE user_id = ? ORDER BY played_at DESC LIMIT ? OFFSET ?').all(req.user.id, limit, offset)
+  const total = db.prepare('SELECT COUNT(*) as c FROM games WHERE user_id = ?').get(req.user.id).c
+  res.json({ games, total, limit, offset })
+})
+
+// Статистика по сложности AI
+router.get('/games/stats', auth, (req, res) => {
+  const stats = db.prepare(`
+    SELECT difficulty,
+      COUNT(*) as games,
+      SUM(CASE WHEN won=1 THEN 1 ELSE 0 END) as wins,
+      ROUND(AVG(turns), 1) as avgTurns,
+      ROUND(AVG(duration), 0) as avgDuration
+    FROM games WHERE user_id=? AND mode='ai'
+    GROUP BY difficulty ORDER BY difficulty
+  `).all(req.user.id)
+  res.set('Cache-Control', 'private, max-age=10')
+  res.json(stats)
 })
 
 // ═══ Seasons / Leaderboard ═══

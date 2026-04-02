@@ -178,3 +178,38 @@ describe('password', () => {
     expect(password('P@ss!w0rd#')).toBe('P@ss!w0rd#')
   })
 })
+
+// ═══ Edge cases ═══
+describe('Edge cases', () => {
+  it('sanitize: nested tags', () => {
+    expect(sanitize('<<script>>')).toBe('')
+    expect(sanitize('<div<div>>')).toBe('')
+  })
+
+  it('sanitize: unicode сохраняется', () => {
+    expect(sanitize('Привет 世界 🎮')).toBe('Привет 世界 🎮')
+  })
+
+  it('str: пустая строка', () => {
+    expect(str('')).toBe('')
+    expect(str('   ')).toBe('')
+  })
+
+  it('num: Infinity и -Infinity', () => {
+    expect(num(Infinity, 0, 100)).toBe(100)
+    expect(num(-Infinity, 0, 100)).toBe(0)
+  })
+
+  it('username: ровно 2 символа (минимум)', () => {
+    expect(username('ab')).toBe('ab')
+    expect(username('яя')).toBe('яя')
+  })
+
+  it('slug: смешанный регистр сохраняется', () => {
+    expect(slug('Hello-World')).toBe('Hello-World')
+  })
+
+  it('password: пробелы допускаются', () => {
+    expect(password('pass word 123')).toBe('pass word 123')
+  })
+})

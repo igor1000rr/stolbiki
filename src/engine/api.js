@@ -108,8 +108,12 @@ export async function recordGame(data) {
   return await api('/games', { method: 'POST', body: JSON.stringify(data) })
 }
 
-export async function getGameHistory(limit = 20) {
-  return await api(`/games?limit=${limit}`)
+export async function getGameHistory(limit = 20, offset = 0) {
+  return await api(`/games?limit=${limit}&offset=${offset}`)
+}
+
+export async function getGameStats() {
+  return await api('/games/stats')
 }
 
 // ═══ Leaderboard ═══
