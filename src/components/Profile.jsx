@@ -3,6 +3,8 @@ import * as API from '../engine/api'
 import { useI18n } from '../engine/i18n'
 import { useGameContext } from '../engine/GameContext'
 import Icon from './Icon'
+import ProfileAccount from './ProfileAccount'
+import ProfileFriends from './ProfileFriends'
 import Mascot from './Mascot'
 
 // Аватары — SVG символы
@@ -276,10 +278,8 @@ export default function Profile({ viewUsername, onClose }) {
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
   const [loginMode, setLoginMode] = useState(false)
-  const [friendSearch, setFriendSearch] = useState('')
   const [error, setError] = useState('')
   const [serverOnline, setServerOnline] = useState(false)
-  const [searchResults, setSearchResults] = useState([])
   const [friendsList, setFriendsList] = useState([])
   const [pendingFriends, setPendingFriends] = useState([])
   const [serverLeaderboard, setServerLeaderboard] = useState(null)
@@ -291,12 +291,6 @@ export default function Profile({ viewUsername, onClose }) {
   const [streakData, setStreakData] = useState(null)
   const [missionsData, setMissionsData] = useState(null)
   const [analyticsData, setAnalyticsData] = useState(null)
-  // Account management
-  const [currentPass, setCurrentPass] = useState('')
-  const [newPass, setNewPass] = useState('')
-  const [deletePass, setDeletePass] = useState('')
-  const [accountMsg, setAccountMsg] = useState('')
-  const [accountLoading, setAccountLoading] = useState(false)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
@@ -350,45 +344,7 @@ export default function Profile({ viewUsername, onClose }) {
     } catch {}
   }
 
-  async function doSearchFriends() {
-    if (!friendSearch.trim() || friendSearch.length < 2) return
-    if (!serverOnline) return
-    try {
-      setSearchResults(await API.searchUsers(friendSearch))
-    } catch { setSearchResults([]) }
-  }
-
-  async function doAddFriend(username) {
-    if (!serverOnline) return
-    try {
-      await API.sendFriendRequest(username)
-      setSearchResults(prev => prev.filter(u => u.username !== username))
-    } catch (e) { setError(e.message) }
-  }
-
-  async function doAcceptFriend(userId) {
-    if (!serverOnline) return
-    try {
-      await API.acceptFriend(userId)
-      loadFriends()
-    } catch {}
-  }
-
-  async function doDeclineFriend(userId) {
-    if (!serverOnline) return
-    try {
-      await API.declineFriend(userId)
-      loadFriends()
-    } catch {}
-  }
-
-  async function doRemoveFriend(userId) {
-    if (!serverOnline) return
-    try {
-      await API.removeFriend(userId)
-      loadFriends()
-    } catch {}
-  }
+  // Друзья — логика в ProfileFriends.jsx
 
   useEffect(() => {
     if (profile) saveProfile(profile)
@@ -1213,182 +1169,10 @@ export default function Profile({ viewUsername, onClose }) {
       )}
 
       {/* ─── Друзья ─── */}
-      {tab === 'friends' && (
-        <div>
-          <div className="dash-card" style={{ marginBottom: 16 }}>
-            <h3>Найти друзей</h3>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input type="text" placeholder={en ? 'Username...' : 'Введите никнейм...'} value={friendSearch}
-                onChange={e => {
-                  setFriendSearch(e.target.value)
-                  // Авто-поиск с debounce 500ms
-                  const q = e.target.value.trim()
-                  if (q.length >= 2 && serverOnline) {
-                    clearTimeout(window._friendSearchTimer)
-                    window._friendSearchTimer = setTimeout(() => API.searchUsers(q).then(setSearchResults).catch(() => {}), 500)
-                  } else { setSearchResults([]) }
-                }}
-                onKeyDown={e => e.key === 'Enter' && doSearchFriends()}
-                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #36364a',
-                  background: 'var(--surface)', color: 'var(--ink)', fontSize: 13 }} />
-              <button className="btn primary" style={{ padding: '8px 16px' }} onClick={doSearchFriends}>Найти</button>
-            </div>
-            {!serverOnline && <p style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8 }}>Поиск доступен при подключённом сервере</p>}
-            {searchResults.length > 0 && (
-              <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
-                {searchResults.map(u => (
-                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #6db4ff, #9b59b6)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                      {u.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{u.username}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Рейтинг: {u.rating}</div>
-                    </div>
-                    <button className="btn" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
-                      onClick={() => doAddFriend(u.username)}>+ Добавить</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Входящие запросы */}
-          {pendingFriends.length > 0 && (
-            <div className="dash-card" style={{ marginBottom: 16 }}>
-              <h3>Запросы в друзья ({pendingFriends.length})</h3>
-              <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-                {pendingFriends.map(u => (
-                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                    background: 'rgba(61,214,140,0.04)', borderRadius: 8, border: '1px solid rgba(61,214,140,0.1)' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--surface2)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
-                      {u.username.charAt(0).toUpperCase()}
-                    </div>
-                    <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{u.username}</span>
-                    <button className="btn primary" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
-                      onClick={() => doAcceptFriend(u.id)}>{en ? 'Accept' : 'Принять'}</button>
-                    <button className="btn" style={{ fontSize: 11, padding: '4px 10px', minHeight: 28, opacity: 0.6 }}
-                      onClick={() => doDeclineFriend(u.id)}>✕</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="dash-card">
-            <h3>Мои друзья ({friendsList.length})</h3>
-            {friendsList.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink3)' }}>
-                
-                <div style={{ fontSize: 13 }}>{en ? 'No friends yet. Search by username!' : 'Пока нет друзей. Найдите игроков по нику!'}</div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
-                {friendsList.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #6db4ff, #9b59b6)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                      {f.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: 'var(--ink)' }}>{f.username}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink3)' }}>⭐ {f.rating}</div>
-                    </div>
-                    <button className="btn" style={{ fontSize: 10, padding: '3px 8px', minHeight: 24, opacity: 0.3 }}
-                      onClick={() => { if (confirm(en ? `Remove ${f.username}?` : `Удалить ${f.username}?`)) doRemoveFriend(f.id) }}
-                      title={en ? 'Remove friend' : 'Удалить из друзей'}>✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {tab === 'friends' && <ProfileFriends en={en} serverOnline={serverOnline} friendsList={friendsList} pendingFriends={pendingFriends} onRefresh={loadFriends} onError={setError} />}
 
       {/* ─── Аккаунт ─── */}
-      {tab === 'account' && (
-        <div style={{ maxWidth: 500, margin: '0 auto' }}>
-          {accountMsg && (
-            <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: 12,
-              background: accountMsg.includes('✓') ? 'rgba(61,214,140,0.08)' : 'rgba(255,99,99,0.08)',
-              color: accountMsg.includes('✓') ? 'var(--green)' : 'var(--p2)',
-              border: `1px solid ${accountMsg.includes('✓') ? 'rgba(61,214,140,0.2)' : 'rgba(255,99,99,0.2)'}` }}>
-              {accountMsg}
-            </div>
-          )}
-
-          <div className="dash-card" style={{ marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, marginBottom: 12 }}>{en ? 'Change password' : 'Смена пароля'}</h3>
-            <div style={{ display: 'grid', gap: 8 }}>
-              <input type="password" placeholder={en ? 'Current password' : 'Текущий пароль'}
-                value={currentPass} onChange={e => setCurrentPass(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--surface2)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13 }} />
-              <input type="password" placeholder={en ? 'New password (min 6)' : 'Новый пароль (мин 6)'}
-                value={newPass} onChange={e => setNewPass(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--surface2)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13 }} />
-              <button className="btn primary" disabled={accountLoading || !currentPass || newPass.length < 6}
-                onClick={async () => {
-                  setAccountLoading(true); setAccountMsg('')
-                  try {
-                    await API.changePassword(currentPass, newPass)
-                    setAccountMsg(en ? '✓ Password changed' : '✓ Пароль изменён')
-                    setCurrentPass(''); setNewPass('')
-                  } catch (e) { setAccountMsg(e.message || 'Error') }
-                  setAccountLoading(false)
-                }}
-                style={{ fontSize: 13, padding: '10px 0', justifyContent: 'center' }}>
-                {accountLoading ? '...' : en ? 'Change' : 'Изменить'}
-              </button>
-            </div>
-          </div>
-
-          <div className="dash-card" style={{ marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, marginBottom: 8 }}>{en ? 'Export data' : 'Экспорт данных'}</h3>
-            <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
-              {en ? 'Download all your data as JSON.' : 'Скачайте все данные в формате JSON.'}
-            </p>
-            <button className="btn" onClick={async () => {
-              try {
-                const data = await API.exportData()
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a'); a.href = url; a.download = `snatch-highrise-${profile?.name || 'data'}.json`; a.click()
-                URL.revokeObjectURL(url)
-                setAccountMsg(en ? '✓ Data exported' : '✓ Данные экспортированы')
-              } catch (e) { setAccountMsg(e.message || 'Error') }
-            }} style={{ fontSize: 13, padding: '10px 16px' }}>
-              {en ? 'Download JSON' : 'Скачать JSON'}
-            </button>
-          </div>
-
-          <div className="dash-card" style={{ border: '1px solid rgba(255,99,99,0.15)' }}>
-            <h3 style={{ fontSize: 14, marginBottom: 8, color: 'var(--p2)' }}>{en ? 'Delete account' : 'Удаление аккаунта'}</h3>
-            <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
-              {en ? 'Irreversible. All data permanently deleted.' : 'Необратимо. Все данные удаляются навсегда.'}
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input type="password" placeholder={en ? 'Confirm password' : 'Пароль'}
-                value={deletePass} onChange={e => setDeletePass(e.target.value)}
-                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,99,99,0.2)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13 }} />
-              <button className="btn" disabled={accountLoading || !deletePass}
-                onClick={async () => {
-                  if (!confirm(en ? 'Are you sure? Cannot be undone!' : 'Уверены? Нельзя отменить!')) return
-                  setAccountLoading(true); setAccountMsg('')
-                  try {
-                    await API.deleteAccount(deletePass)
-                    localStorage.removeItem('stolbiki_profile'); localStorage.removeItem('stolbiki_token')
-                    location.reload()
-                  } catch (e) { setAccountMsg(e.message || 'Error'); setAccountLoading(false) }
-                }}
-                style={{ fontSize: 12, padding: '8px 16px', color: 'var(--p2)', borderColor: 'rgba(255,99,99,0.3)' }}>
-                {en ? 'Delete' : 'Удалить'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {tab === 'account' && <ProfileAccount en={en} profileName={profile?.name} />}
     </div>
   )
 }
