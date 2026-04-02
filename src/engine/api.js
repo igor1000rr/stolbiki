@@ -9,7 +9,7 @@ const TOKEN_KEY = 'stolbiki_token'
 let _token = localStorage.getItem(TOKEN_KEY)
 
 function setToken(t) { _token = t; if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY) }
-function getToken() { return _token }
+export function getToken() { return _token }
 
 async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json' }
