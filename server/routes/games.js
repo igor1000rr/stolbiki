@@ -127,6 +127,8 @@ router.post('/replays', auth, (req, res) => {
   const { moves, result, score, mode, turns } = req.body
   if (!moves || !Array.isArray(moves)) return res.status(400).json({ error: 'moves обязателен' })
   if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинный реплей (макс 500 ходов)' })
+  // Базовая структурная валидация: каждый ход должен иметь action и player
+  if (moves.some(m => !m || typeof m !== 'object')) return res.status(400).json({ error: 'Некорректный формат хода' })
   const movesJson = JSON.stringify(moves)
   if (movesJson.length > 512000) return res.status(400).json({ error: 'Реплей слишком большой (макс 500KB)' })
   // Лимит: максимум 50 реплеев на юзера

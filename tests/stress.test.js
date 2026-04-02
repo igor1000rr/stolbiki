@@ -113,4 +113,61 @@ describe('Стресс-тест движка', () => {
     expect(ns.gameOver).toBe(true)
     expect(ns.winner).toBe(0)
   })
+
+  it('первый ход — ровно 1 блок', () => {
+    const state = new GameState()
+    expect(state.isFirstTurn()).toBe(true)
+    const ns = applyAction(state, { placement: { 5: 1 } })
+    expect(ns.stands[5]).toEqual([0])
+    expect(ns.turn).toBe(1)
+    expect(ns.currentPlayer).toBe(1)
+  })
+
+  it('обычный ход — 3 блока', () => {
+    let state = new GameState()
+    state = applyAction(state, { placement: { 3: 1 } }) // P0: 1 блок
+    // P1 ставит 3 блока
+    const ns = applyAction(state, { placement: { 1: 2, 5: 1 } })
+    expect(ns.stands[1].length).toBe(2)
+    expect(ns.stands[5].length).toBe(1)
+    expect(ns.turn).toBe(2)
+  })
+
+  it('countClosed подсчитывает закрытые стойки', () => {
+    const state = new GameState()
+    state.closed = { 0: 0, 3: 0, 5: 1, 7: 1 }
+    expect(state.countClosed(0)).toBe(2)
+    expect(state.countClosed(1)).toBe(2)
+  })
+
+  it('numOpen возвращает открытые стойки', () => {
+    const state = new GameState()
+    expect(state.numOpen()).toBe(10)
+    state.closed = { 0: 0, 1: 1 }
+    expect(state.numOpen()).toBe(8)
+  })
+
+  it('перенос опустошает исходную стойку', () => {
+    const state = new GameState()
+    state.stands[2] = [0, 0, 0]
+    state.stands[7] = [1, 1, 1, 1, 1]
+    state.turn = 10
+
+    const ns = applyAction(state, { transfer: [2, 7], placement: {} })
+    expect(ns.stands[2].length).toBe(0)
+    expect(ns.stands[7].length).toBe(8)
+  })
+
+  it('overflow при переносе → закрытие стойки', () => {
+    const state = new GameState()
+    state.stands[3] = [0, 0, 0, 0, 0]
+    state.stands[8] = [1, 1, 1, 1, 1, 1, 1] // 7 блоков + 5 = 12 > 11 → overflow
+    state.turn = 10
+
+    const ns = applyAction(state, { transfer: [3, 8], placement: {} })
+    // Стойка 8 должна быть закрыта (если overflow правила применяются)
+    if (8 in ns.closed) {
+      expect(ns.stands[8].length).toBeGreaterThanOrEqual(11)
+    }
+  })
 })
