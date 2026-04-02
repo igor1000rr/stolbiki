@@ -23,6 +23,7 @@ const VERSIONS = [
       { type: 'fix', text: 'Board.jsx: useEffect deps → stable key (turn + closed count)' },
       { type: 'fix', text: 'Replay: лимит 500 ходов, 500KB, авто-удаление старых (макс 50 на юзера)' },
       { type: 'fix', text: 'Rooms/matchQueue: периодическая чистка мёртвых соединений' },
+      { type: 'new', text: 'Тесты: 41 → 85 (+44). validate.js (31), helpers (7), стресс-тест (6 — 500 рандомных партий)' },
     ],
     changes_en: [
       { type: 'new', text: 'GameContext v2: multi-listener EventEmitter — 25 CustomEvents → clean architecture' },
@@ -37,6 +38,7 @@ const VERSIONS = [
       { type: 'fix', text: 'Board.jsx: useEffect deps → stable key (turn + closed count)' },
       { type: 'fix', text: 'Replay: limit 500 moves, 500KB, auto-delete old ones (max 50 per user)' },
       { type: 'fix', text: 'Rooms/matchQueue: periodic cleanup of dead connections' },
+      { type: 'new', text: 'Tests: 41 → 85 (+44). validate.js (31), helpers (7), stress test (6 — 500 random games)' },
     ],
   },
   {

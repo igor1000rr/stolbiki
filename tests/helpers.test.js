@@ -1,0 +1,75 @@
+/**
+ * Тесты хелперов (чистые функции)
+ * getDailySeed и seededRandom не зависят от DB —
+ * копируем напрямую чтобы избежать better-sqlite3 import
+ */
+
+import { describe, it, expect } from 'vitest'
+
+// ═══ Копия из server/helpers.js (чистые функции без DB) ═══
+function getDailySeed() {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
+}
+
+function seededRandom(seed) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0
+  return () => { h = (h * 16807 + 0) % 2147483647; return (h & 0x7fffffff) / 0x7fffffff }
+}
+
+// ═══ seededRandom ═══
+describe('seededRandom', () => {
+  it('детерминистичен — один seed → одинаковый результат', () => {
+    const rng1 = seededRandom('test-seed')
+    const rng2 = seededRandom('test-seed')
+    for (let i = 0; i < 10; i++) {
+      expect(rng1()).toBe(rng2())
+    }
+  })
+
+  it('разные seed → разные последовательности', () => {
+    const rng1 = seededRandom('seed-A')
+    const rng2 = seededRandom('seed-B')
+    const vals1 = Array.from({ length: 5 }, () => rng1())
+    const vals2 = Array.from({ length: 5 }, () => rng2())
+    expect(vals1).not.toEqual(vals2)
+  })
+
+  it('значения в диапазоне [0, 1)', () => {
+    const rng = seededRandom('range-test')
+    for (let i = 0; i < 100; i++) {
+      const v = rng()
+      expect(v).toBeGreaterThanOrEqual(0)
+      expect(v).toBeLessThan(1)
+    }
+  })
+
+  it('равномерное распределение (грубая проверка)', () => {
+    const rng = seededRandom('distribution')
+    let below = 0, above = 0
+    for (let i = 0; i < 1000; i++) {
+      if (rng() < 0.5) below++; else above++
+    }
+    expect(below).toBeGreaterThan(350)
+    expect(above).toBeGreaterThan(350)
+  })
+})
+
+// ═══ getDailySeed ═══
+describe('getDailySeed', () => {
+  it('возвращает строку вида YYYY-M-D', () => {
+    const seed = getDailySeed()
+    expect(typeof seed).toBe('string')
+    expect(seed).toMatch(/^\d{4}-\d{1,2}-\d{1,2}$/)
+  })
+
+  it('одинаковый результат при повторном вызове', () => {
+    expect(getDailySeed()).toBe(getDailySeed())
+  })
+
+  it('содержит текущий год', () => {
+    const year = new Date().getFullYear().toString()
+    expect(getDailySeed()).toContain(year)
+  })
+})
