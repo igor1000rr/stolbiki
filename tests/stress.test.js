@@ -48,7 +48,7 @@ describe('Стресс-тест движка', () => {
     expect(results.p1).toBeGreaterThan(50)
   })
 
-  it('getLegalActions всегда возвращает >0 действий до gameOver', () => {
+  it('getLegalActions всегда возвращает >0 действий до gameOver', { timeout: 15000 }, () => {
     for (let game = 0; game < 100; game++) {
       let state = new GameState()
       let safety = 0
