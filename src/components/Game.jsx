@@ -636,11 +636,22 @@ export default function Game() {
   // Горячие клавиши
   useEffect(() => {
     function handleKey(e) {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return
+      // Подтверждение хода
       if (e.key === 'Enter' && canConfirm && isMyTurn && phase === 'place') { e.preventDefault(); confirmTurn() }
+      // Отмена переноса
       if (e.key === 'Escape' && inTransferMode) cancelTransfer()
+      // Новая игра
       if (e.key === 'n' && (gs.gameOver || result !== null)) newGame()
+      // Undo (PvP)
       if (e.key === 'z' && mode === 'pvp' && undoStack.length > 0) undoMove()
+      // Стойки 1-9, 0=10 (★ = golden = стойка 0)
+      if (!locked && !gs.gameOver && /^[0-9]$/.test(e.key)) {
+        const standIdx = e.key === '0' ? 0 : parseInt(e.key)
+        if (standIdx >= 0 && standIdx < gs.numStands) onStandClick(standIdx)
+      }
+      // Подсказка
+      if (e.key === 'h' && !e.ctrlKey && !e.metaKey && !locked && !gs.gameOver) requestHint?.()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -1398,11 +1409,11 @@ export default function Game() {
           <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn} title="Enter">{ t('game.confirm') } ⏎</button>
         )}
         {hintMode && isMyTurn && (
-          <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}>
+          <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }} title="H">
             {hintLoading ? '...' : (t('game.hint'))}
           </button>
         )}
-        <button className="btn" onClick={() => newGame()}>{t('game.newGame')}</button>
+        <button className="btn" onClick={() => newGame()} title="N">{t('game.newGame')}</button>
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
           <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">
             ↩ Undo

@@ -34,7 +34,7 @@ export default class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: 400, margin: '0 auto' }}>
-          <img src="/mascot/shock.webp" alt="Ошибка" width={100} height={100} style={{ objectFit: 'contain', marginBottom: 16, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
+          <img src="/mascot/shock.webp" alt="Ошибка" width={100} height={100} loading="lazy" style={{ objectFit: 'contain', marginBottom: 16, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
           <h2 style={{ fontSize: 20, color: 'var(--ink)', margin: '0 0 8px' }}>Что-то пошло не так</h2>
           <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 20px' }}>
             {this.state.error?.message || 'Неизвестная ошибка'}
