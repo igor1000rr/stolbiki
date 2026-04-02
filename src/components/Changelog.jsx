@@ -31,6 +31,10 @@ const VERSIONS = [
       { type: 'fix', text: 'Board.jsx: useEffect deps → stable key, rooms/matchQueue cleanup' },
       { type: 'fix', text: 'Cache-Control: 6 endpoints (blog, stats, leaderboard, rush, content)' },
       { type: 'fix', text: 'Graceful shutdown, PM2 logs, CI/CD server/ directory, backup sqlite3' },
+      { type: 'fix', text: 'Game.jsx: 1723→1489. Extracted: GameResultPanel, useSessionStats, useKeyboardShortcuts' },
+      { type: 'fix', text: 'Profile.jsx: 1394→1178. Extracted: ProfileAccount, ProfileFriends' },
+      { type: 'new', text: 'Games API: пагинация (offset+total), статистика по сложности AI' },
+      { type: 'new', text: 'Тесты: 91→98 (+7 edge cases: sanitize, unicode, Infinity)' },
     ],
     changes_en: [
       { type: 'new', text: 'GameContext v2: multi-listener EventEmitter — 25 CustomEvents → 0' },
@@ -53,6 +57,10 @@ const VERSIONS = [
       { type: 'fix', text: 'Board.jsx: useEffect deps → stable key, rooms/matchQueue cleanup' },
       { type: 'fix', text: 'Cache-Control: 6 endpoints (blog, stats, leaderboard, rush, content)' },
       { type: 'fix', text: 'Graceful shutdown, PM2 logs, CI/CD server/ directory, backup sqlite3' },
+      { type: 'fix', text: 'Game.jsx: 1723→1489. Extracted: GameResultPanel, useSessionStats, useKeyboardShortcuts' },
+      { type: 'fix', text: 'Profile.jsx: 1394→1178. Extracted: ProfileAccount, ProfileFriends' },
+      { type: 'new', text: 'Games API: pagination (offset+total), stats by AI difficulty' },
+      { type: 'new', text: 'Tests: 91→98 (+7 edge cases: sanitize, unicode, Infinity)' },
     ],
   },
   {
