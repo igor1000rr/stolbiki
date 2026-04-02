@@ -117,10 +117,8 @@ export default function Game() {
   // ─── Онлайн мультиплеер: слушаем события из Online.jsx ───
   useEffect(() => {
     function handleOnlineStart(e) {
-      const { players, firstPlayer, roomId, playerIdx, nextGame } = e.detail
-      requestNotificationPermission() // Запрашиваем разрешение для уведомлений
-      // Кто первый ходит = синие (currentPlayer=0 в GameState)
-      // firstPlayer — индекс игрока в комнате, который играет синими
+      const { players, firstPlayer, roomId, playerIdx, nextGame, timer, ratings } = e.detail
+      requestNotificationPermission()
       const myColor = (playerIdx === (firstPlayer ?? 0)) ? 0 : 1
       onlineRef.current = { roomId, playerIdx, myColor }
       setOnlineRoom(roomId)
@@ -137,6 +135,10 @@ export default function Game() {
       startRecording()
       setGameMeta('online', 0)
       resetTimers()
+      // Онлайн-таймер от сервера (минуты → секунды)
+      if (timer && timer > 0) {
+        setPlayerTime([timer * 60, timer * 60])
+      }
       setUndoStack([])
       setPosEval(null)
       moveHistoryRef.current = []
@@ -147,7 +149,8 @@ export default function Game() {
 
       const myName = players[playerIdx] || t('game.you')
       const oppName = players[1 - playerIdx] || t('game.opponent')
-      setLog([{ text: `Онлайн: ${myName} vs ${oppName}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      const ratingStr = ratings ? ` (${ratings[playerIdx]} vs ${ratings[1 - playerIdx]})` : ''
+      setLog([{ text: `Онлайн: ${myName} vs ${oppName}${ratingStr}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
 
       if (state.currentPlayer === myColor) {
         setLocked(false)
@@ -221,11 +224,24 @@ export default function Game() {
     const unsubscribers = []
     if (gameCtx) {
       unsubscribers.push(gameCtx.register('onOnlineStart', (detail) => handleOnlineStart({ detail })))
-      unsubscribers.push(gameCtx.register('onOnlineMove', (action) => {
+      unsubscribers.push(gameCtx.register('onOnlineMove', (action, serverTime) => {
         // Online mode: обработка хода оппонента
         handleOnlineMove({ detail: action })
         // Spectate mode: обработка хода любого игрока
         handleSpectateMove({ detail: action })
+        // Синхронизация таймера от сервера
+        if (serverTime && Array.isArray(serverTime)) {
+          setPlayerTime([Math.round(serverTime[0]), Math.round(serverTime[1])])
+        }
+      }))
+      // Время вышло (серверное)
+      unsubscribers.push(gameCtx.register('onTimeUp', ({ loser }) => {
+        const myIdx = onlineRef.current?.playerIdx ?? 0
+        const won = loser !== myIdx
+        setResult(won ? (onlineRef.current?.myColor ?? 0) : 1 - (onlineRef.current?.myColor ?? 0))
+        setPhase('done'); setLocked(false)
+        setInfo(won ? t('game.oppTimeUp') : t('game.timeUp'))
+        setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
       }))
     }
 

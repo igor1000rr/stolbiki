@@ -183,10 +183,13 @@ export default function Online() {
           setOpponentSkins(msg.playerSkins[oppIdx] || null)
         }
         // Передаём в Game через GameContext (используем refs — актуальные значения)
-        gameCtxRef.current?.emit('onOnlineStart', { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current })
+        gameCtxRef.current?.emit('onOnlineStart', { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, timer: msg.timer || null, ratings: msg.ratings || null })
         break
       case 'move':
-        gameCtxRef.current?.emit('onOnlineMove', msg.action)
+        gameCtxRef.current?.emit('onOnlineMove', msg.action, msg.time || null)
+        break
+      case 'timeUp':
+        gameCtxRef.current?.emit('onTimeUp', { loser: msg.loser, time: msg.time })
         break
       case 'nextGame':
         setScores(msg.scores)
