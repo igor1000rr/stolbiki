@@ -207,71 +207,76 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
 
       {/* ═══ DOWNLOAD + FEATURES ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef}>
-          <div className="l-download-card" style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <div className="l-dl-mascot-float">
-              <Mascot pose="wave" size={130} large animate={false} style={{ flexShrink: 0 }} />
+        <h2 className="l-title">{en ? 'Get the game' : 'Получить игру'}</h2>
+        <div className={`l-feat-grid ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          {/* Mobile app */}
+          <div className="l-feat-card" style={{ '--i': 0, '--color': '#4a9eff' }}>
+            <div className="l-feat-visual">
+              <svg viewBox="0 0 120 48" className="l-feat-svg">
+                <rect x="42" y="2" width="36" height="44" rx="6" fill="none" stroke="#4a9eff" strokeWidth="1.5" opacity="0.4"/>
+                <rect x="46" y="8" width="28" height="30" rx="2" fill="#4a9eff10" stroke="#4a9eff30" strokeWidth="0.5"/>
+                {[0,1,2,3,4].map(i => <rect key={i} className="l-bar-wave" x={49+i*5} y={32-[8,14,10,16,12][i]} width={3} height={[8,14,10,16,12][i]} rx={1} fill="#4a9eff" opacity="0.6" style={{animationDelay:`${i*0.15}s`,transformOrigin:`${49+i*5+1.5}px 32px`}}/>)}
+                <circle cx="60" cy="42" r="2" fill="#4a9eff" className="l-feat-pulse"/>
+                <circle cx="18" cy="12" r="6" fill="none" stroke="#3dd68c40" strokeWidth="1"/>
+                <circle cx="18" cy="12" r="2.5" fill="#3dd68c" className="l-feat-pulse" style={{animationDelay:'0.3s'}}/>
+                <path d="M18 20 L18 36" stroke="#3dd68c30" strokeWidth="1" strokeDasharray="3 2" className="l-feat-dash"/>
+                <text x="18" y="42" fill="#3dd68c80" fontSize="6" textAnchor="middle">sync</text>
+                <circle cx="102" cy="12" r="6" fill="none" stroke="#ffc14540" strokeWidth="1"/>
+                <circle cx="102" cy="12" r="2.5" fill="#ffc145" className="l-feat-pulse" style={{animationDelay:'0.6s'}}/>
+                <text x="102" y="42" fill="#ffc14580" fontSize="6" textAnchor="middle">offline</text>
+              </svg>
             </div>
-            <div style={{ flex: '1 1 300px', textAlign: 'center' }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
-                {en ? 'Play on your phone' : 'Играйте на телефоне'}
-              </h2>
-              <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 18px' }}>
-                {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
-              </p>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <div className="l-dl-btn">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                  <div><div className="l-dl-sub">Download on the</div><div className="l-dl-name">App Store</div></div>
-                  <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
-                </div>
-                <div className="l-dl-btn">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
-                  <div><div className="l-dl-sub">GET IT ON</div><div className="l-dl-name">Google Play</div></div>
-                  <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
-                </div>
+            <div className="l-feat-title" style={{ color: '#4a9eff' }}>{en ? 'Mobile app' : 'Мобильное приложение'}</div>
+            <div className="l-feat-desc">{en ? 'Same account. Offline AI. Coming to App Store & Google Play.' : 'Тот же аккаунт. Офлайн AI. Скоро в App Store и Google Play.'}</div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
+              <div className="l-dl-btn" style={{ padding: '6px 12px', fontSize: 10 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                <div><div className="l-dl-name" style={{fontSize:10}}>iOS</div></div>
+                <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
+              </div>
+              <div className="l-dl-btn" style={{ padding: '6px 12px', fontSize: 10 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
+                <div><div className="l-dl-name" style={{fontSize:10}}>Android</div></div>
+                <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className={`l-info-cards ${dlVis ? 'in' : ''}`}>
-          <a href="/print-and-play.pdf" target="_blank" className="l-info-card" style={{ cursor: 'pointer', textDecoration: 'none' }}>
-            <svg viewBox="0 0 48 48" width="44" height="44" style={{ flexShrink: 0 }}>
-              <rect x="8" y="4" width="32" height="40" rx="4" fill="none" stroke="var(--accent)" strokeWidth="1.5" opacity="0.3"/>
-              <line x1="16" y1="16" x2="32" y2="16" stroke="var(--accent)" strokeWidth="1.5" opacity="0.4"/>
-              <line x1="16" y1="22" x2="28" y2="22" stroke="var(--accent)" strokeWidth="1.5" opacity="0.3"/>
-              <line x1="16" y1="28" x2="30" y2="28" stroke="var(--accent)" strokeWidth="1.5" opacity="0.2"/>
-              <path className="l-feat-dash" d="M24 34 L24 44" stroke="var(--accent)" strokeWidth="2" strokeDasharray="3 2"/>
-              <path d="M20 40 L24 44 L28 40" fill="none" stroke="var(--accent)" strokeWidth="2" className="l-feat-pulse"/>
-            </svg>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'PDF: board, blocks, rules' : 'PDF: поле, блоки, правила'}</div>
+          {/* Print & Play */}
+          <a href="/print-and-play.pdf" target="_blank" className="l-feat-card" style={{ '--i': 1, '--color': '#3dd68c', textDecoration: 'none', cursor: 'pointer' }}>
+            <div className="l-feat-visual">
+              <svg viewBox="0 0 120 48" className="l-feat-svg">
+                <rect x="30" y="2" width="28" height="36" rx="3" fill="none" stroke="#3dd68c" strokeWidth="1.5" opacity="0.3"/>
+                <rect x="62" y="6" width="28" height="36" rx="3" fill="none" stroke="#3dd68c" strokeWidth="1.5" opacity="0.2"/>
+                {[0,1,2,3].map(i => <line key={i} x1={36} y1={10+i*6} x2={50} y2={10+i*6} stroke="#3dd68c" strokeWidth="1" opacity={0.5-i*0.1}/>)}
+                <rect x="66" y="12" width="20" height="14" rx="2" fill="#3dd68c10" stroke="#3dd68c40" strokeWidth="0.5"/>
+                {[0,1,2,3,4].map(i => <rect key={i} className="l-bar-wave" x={68+i*4} y={24-[6,10,8,12,7][i]} width={2} height={[6,10,8,12,7][i]} rx={1} fill="#3dd68c" opacity="0.5" style={{animationDelay:`${i*0.2}s`,transformOrigin:`${68+i*4+1}px 24px`}}/>)}
+                <path d="M44 38 L44 46" stroke="#3dd68c" strokeWidth="2" className="l-feat-dash"/>
+                <path d="M40 44 L44 48 L48 44" fill="none" stroke="#3dd68c" strokeWidth="1.5" className="l-feat-pulse"/>
+              </svg>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{en ? 'Download' : 'Скачать'} →</div>
+            <div className="l-feat-title" style={{ color: '#3dd68c' }}>Print & Play</div>
+            <div className="l-feat-desc">{en ? 'PDF: game board, 110 blocks, full rules. Print and play at the table!' : 'PDF: игровое поле, 110 блоков, правила. Распечатай и играй!'}</div>
           </a>
-          <div className="l-info-card">
-            <svg viewBox="0 0 48 48" width="44" height="44" style={{ flexShrink: 0 }}>
-              <path d="M24 4 L40 14 L40 30 C40 38 24 44 24 44 C24 44 8 38 8 30 L8 14 Z" fill="none" stroke="var(--green)" strokeWidth="1.5" opacity="0.3"/>
-              <path className="l-feat-pulse" d="M24 4 L40 14 L40 30 C40 38 24 44 24 44 C24 44 8 38 8 30 L8 14 Z" fill="var(--green)" opacity="0.08"/>
-              <path d="M16 24 L22 30 L34 18" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="l-review-mark" style={{animationDelay:'0s'}}/>
-            </svg>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Free forever' : 'Бесплатно навсегда'}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'No ads, no paywalls' : 'Без рекламы и стен'}</div>
+
+          {/* Free & indie */}
+          <div className="l-feat-card" style={{ '--i': 2, '--color': '#ffc145' }}>
+            <div className="l-feat-visual">
+              <svg viewBox="0 0 120 48" className="l-feat-svg">
+                <path d="M40 6 L54 6 C58 6 60 8 60 12 L60 36 C60 40 58 42 54 42 L40 42 C36 42 34 40 34 36 L34 12 C34 8 36 6 40 6Z" fill="none" stroke="#ffc145" strokeWidth="1" opacity="0.2"/>
+                <text x="47" y="28" fill="#ffc145" fontSize="20" fontWeight="800" textAnchor="middle" opacity="0.8" className="l-feat-pulse">$0</text>
+                <path d="M12 20 L22 14 L22 26 Z" fill="#ff606680" className="l-feat-pulse" style={{animationDelay:'0.2s'}}/>
+                <line x1="12" y1="20" x2="22" y2="20" stroke="#ff606640" strokeWidth="3"/>
+                <text x="17" y="36" fill="#ff606060" fontSize="5" textAnchor="middle">no ads</text>
+                <circle cx="97" cy="16" r="8" fill="none" stroke="#e040fb40" strokeWidth="1"/>
+                <circle cx="97" cy="16" r="3" fill="#e040fb" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/>
+                <circle cx="105" cy="32" r="6" fill="none" stroke="#3dd68c40" strokeWidth="1"/>
+                <circle cx="105" cy="32" r="2" fill="#3dd68c" className="l-feat-pulse" style={{animationDelay:'0.8s'}}/>
+                <text x="101" y="44" fill="#3dd68c60" fontSize="5" textAnchor="middle">indie</text>
+              </svg>
             </div>
-          </div>
-          <div className="l-info-card">
-            <svg viewBox="0 0 48 48" width="44" height="44" style={{ flexShrink: 0 }}>
-              <path className="l-heart-beat" d="M24 38 C16 30 8 24 8 18 C8 12 12 8 18 8 C21 8 23 10 24 12 C25 10 27 8 30 8 C36 8 40 12 40 18 C40 24 32 30 24 38Z" fill="var(--gold)" opacity="0.15"/>
-              <path d="M24 38 C16 30 8 24 8 18 C8 12 12 8 18 8 C21 8 23 10 24 12 C25 10 27 8 30 8 C36 8 40 12 40 18 C40 24 32 30 24 38Z" fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.4"/>
-              {[0,1,2].map(i => <circle key={i} className="l-feat-pulse" cx={16+i*8} cy={24} r="2" fill="var(--gold)" style={{animationDelay:`${i*0.4}s`}}/>)}
-            </svg>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Made with love' : 'Сделано с душой'}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'Indie project, 2 people' : 'Инди-проект, 2 человека'}</div>
-            </div>
+            <div className="l-feat-title" style={{ color: '#ffc145' }}>{en ? 'Free. No ads. Indie.' : 'Бесплатно. Без рекламы.'}</div>
+            <div className="l-feat-desc">{en ? 'Made by 2 people with love. No paywalls, no tracking. Pure strategy.' : 'Сделано двумя людьми с душой. Без стен, без трекинга. Чистая стратегия.'}</div>
           </div>
         </div>
       </section>
