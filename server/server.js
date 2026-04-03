@@ -150,7 +150,7 @@ app.get('/api/health', (req, res) => {
   const activeRooms = [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length
   res.json({
     status: 'ok',
-    version: '4.4.68',
+    version: '4.4.69',
     node: process.version,
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
@@ -247,11 +247,15 @@ app.use('/api/', (req, res) => {
   res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` })
 })
 
-// ═══ Обработка ошибок ═══
+// ═══ Глобальный error handler ═══
 app.use((err, req, res, _next) => {
   console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}:`, err.message || err)
   if (err.message?.startsWith('CORS:')) return res.status(403).json({ error: err.message })
-  res.status(500).json({ error: 'Внутренняя ошибка сервера' })
+  try {
+    db.prepare('INSERT INTO error_reports (message, stack, url, ua) VALUES (?, ?, ?, ?)')
+      .run(`[SERVER] ${err.message}`.slice(0, 500), (err.stack || '').slice(0, 2000), req.originalUrl?.slice(0, 500), (req.headers['user-agent'] || '').slice(0, 200))
+  } catch {}
+  if (!res.headersSent) res.status(500).json({ error: 'Внутренняя ошибка сервера' })
 })
 
 process.on('uncaughtException', (err) => {
@@ -282,21 +286,6 @@ function gracefulShutdown(signal) {
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
 process.on('SIGINT', () => gracefulShutdown('SIGINT'))
-
-// ═══ 404 для неизвестных API routes ═══
-app.use('/api/', (req, res) => {
-  res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` })
-})
-
-// ═══ Глобальный error handler (ловит все необработанные ошибки Express) ═══
-app.use((err, req, res, _next) => {
-  console.error(`[EXPRESS ERROR] ${req.method} ${req.path}:`, err.message)
-  try {
-    db.prepare('INSERT INTO error_reports (message, stack, url, ua) VALUES (?, ?, ?, ?)')
-      .run(`[SERVER] ${err.message}`.slice(0, 500), (err.stack || '').slice(0, 2000), req.originalUrl?.slice(0, 500), (req.headers['user-agent'] || '').slice(0, 200))
-  } catch {}
-  if (!res.headersSent) res.status(500).json({ error: 'Внутренняя ошибка сервера' })
-})
 
 // ═══ Старт ═══
 server.listen(PORT, '0.0.0.0', () => {

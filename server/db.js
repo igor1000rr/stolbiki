@@ -659,6 +659,46 @@ if (!blog35) {
   console.log('Блог: добавлен пост v3.5')
 }
 
+// ─── Блог-пост v4.4.69 ───
+const blog4469 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-4-69-code-audit'").get()
+if (!blog4469) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v4-4-69-code-audit',
+    'v4.4.69 — Аудит кода, очистка, Node 22',
+    'v4.4.69 — Code audit, cleanup, Node 22',
+    `Технический аудит всей кодовой базы: сервер, клиент, CI/CD, инфраструктура.
+
+**Node.js 22:** VPS обновлён с Node 20 на 22.22.2. Capacitor CLI требует 22+, CI уже использовал 22 — теперь всё синхронизировано. better-sqlite3 пересобран под новый ABI.
+
+**–8.1MB из репо:** Удалён мёртвый gpu_weights.json — в коде загружается только бинарный формат gpu_weights.bin (3.3MB). JSON-копия весов не использовалась, но попадала в каждый билд.
+
+**Мёртвый код:** Удалены дублированные 404 и error handlers в server.js (4 handler'а вместо 2), дублирующий setInterval очистки в middleware.js, фейковый aggregateRating из JSON-LD.
+
+**PM2 оптимизация:** Переключён на fork mode — cluster mode с 1 инстансом и SQLite добавлял лишний overhead без пользы.
+
+**Vite chunks:** AI-движок и chart-библиотеки выделены в отдельные чанки. Основной бандл стал легче, тяжёлые модули кешируются отдельно.
+
+**ELO-график:** Добавлены линии рейтинг-тиров (1200/1500/1800) и точка текущего рейтинга. Визуально понятно, до какого ранга осталось расти.`,
+    `Full code audit of the entire codebase: server, client, CI/CD, infrastructure.
+
+**Node.js 22:** VPS upgraded from Node 20 to 22.22.2. Capacitor CLI requires 22+, CI already used 22 — now everything is in sync. better-sqlite3 rebuilt for new ABI.
+
+**–8.1MB from repo:** Removed dead gpu_weights.json — code only loads binary gpu_weights.bin (3.3MB). The JSON copy was unused but included in every build.
+
+**Dead code:** Removed duplicate 404 and error handlers in server.js (4 handlers instead of 2), duplicate setInterval cleanup in middleware.js, fake aggregateRating from JSON-LD.
+
+**PM2 optimization:** Switched to fork mode — cluster mode with 1 instance and SQLite added overhead with no benefit.
+
+**Vite chunks:** AI engine and chart libraries split into separate chunks. Main bundle is lighter, heavy modules cached separately.
+
+**ELO chart:** Added rating tier lines (1200/1500/1800) and current rating dot. Visually clear how far to the next rank.`,
+    'update', 1, 1
+  )
+  // Убираем pinned с предыдущих постов
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-4-69-code-audit'").run()
+  console.log('Блог: добавлен пост v4.4.69')
+}
+
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
 db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
 

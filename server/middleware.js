@@ -10,17 +10,6 @@ export const rateLimits = new Map()
 const gameSubmitLimits = new Map()
 export { gameSubmitLimits }
 
-// Очистка устаревших записей каждые 5 мин (memory leak prevention)
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, entry] of rateLimits) {
-    if (now - entry.start > 120000) rateLimits.delete(key) // 2 мин
-  }
-  for (const [key, ts] of gameSubmitLimits) {
-    if (now - ts > 60000) gameSubmitLimits.delete(key) // 1 мин
-  }
-}, 300000)
-
 export function rateLimit(windowMs = 60000, max = 60) {
   return (req, res, next) => {
     const key = req.ip + ':' + req.path
@@ -45,7 +34,11 @@ export function rateLimit(windowMs = 60000, max = 60) {
   }
 }
 
-// Чистка каждые 5 минут
+// ═══ JWT Auth ═══
+const lastSeenCache = new Map() // userId → timestamp последнего UPDATE
+const LAST_SEEN_INTERVAL = 300000 // 5 минут
+
+// Очистка устаревших записей каждые 5 мин (memory leak prevention)
 setInterval(() => {
   const now = Date.now()
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
@@ -53,10 +46,6 @@ setInterval(() => {
   for (const [k, v] of lastSeenCache) { if (now - v > 600000) lastSeenCache.delete(k) }
   if (rateLimits.size > 50000) rateLimits.clear()
 }, 300000)
-
-// ═══ JWT Auth ═══
-const lastSeenCache = new Map() // userId → timestamp последнего UPDATE
-const LAST_SEEN_INTERVAL = 300000 // 5 минут
 
 export function auth(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '')

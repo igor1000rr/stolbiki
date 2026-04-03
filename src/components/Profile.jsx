@@ -189,9 +189,9 @@ function RatingChart({ data }) {
   if (!data || data.length < 2) return null
   const pts = [...data].reverse().slice(-50) // последние 50, хронологически
   const ratings = pts.map(p => p.rating)
-  const min = Math.min(...ratings) - 20
-  const max = Math.max(...ratings) + 20
-  const w = 100, h = 40
+  const min = Math.min(...ratings, 950) - 30
+  const max = Math.max(...ratings, 1050) + 30
+  const w = 100, h = 50
   const points = ratings.map((r, i) => {
     const x = (i / (ratings.length - 1)) * w
     const y = h - ((r - min) / (max - min)) * h
@@ -201,22 +201,43 @@ function RatingChart({ data }) {
   const firstR = ratings[0]
   const color = lastR >= firstR ? 'var(--green)' : 'var(--p2)'
 
+  // Линии рейтинг-тиров (только если попадают в диапазон)
+  const tiers = [
+    { r: 1200, label: '1200', color: 'var(--purple)' },
+    { r: 1500, label: '1500', color: 'var(--gold)' },
+    { r: 1800, label: '1800', color: 'var(--p2)' },
+  ].filter(t => t.r > min && t.r < max)
+
   return (
     <div>
-      <svg viewBox={`-2 -2 ${w + 4} ${h + 4}`} style={{ width: '100%', height: 80 }} preserveAspectRatio="none">
+      <svg viewBox={`-2 -2 ${w + 4} ${h + 4}`} style={{ width: '100%', height: 90 }} preserveAspectRatio="none">
         <defs>
           <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.2" />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
+        {/* Линии тиров */}
+        {tiers.map(t => {
+          const y = h - ((t.r - min) / (max - min)) * h
+          return <g key={t.r}>
+            <line x1="0" y1={y} x2={w} y2={y} stroke={t.color} strokeWidth="0.3" strokeDasharray="2,2" opacity="0.5" />
+            <text x={w + 1} y={y + 1} fontSize="3" fill={t.color} opacity="0.7">{t.label}</text>
+          </g>
+        })}
         <polygon points={`0,${h} ${points} ${w},${h}`} fill="url(#rg)" />
         <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Точка на последнем значении */}
+        {(() => {
+          const lx = w
+          const ly = h - ((lastR - min) / (max - min)) * h
+          return <circle cx={lx} cy={ly} r="1.5" fill={color} />
+        })()}
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--ink3)' }}>
-        <span>{min + 20}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--ink3)', marginTop: 2 }}>
+        <span>{firstR}</span>
         <span>{pts.length} {pts.length === 1 ? 'game' : 'games'}</span>
-        <span>{max - 20}</span>
+        <span style={{ fontWeight: 600, color }}>{lastR}</span>
       </div>
     </div>
   )

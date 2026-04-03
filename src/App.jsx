@@ -42,23 +42,27 @@ function LazyFallback() {
 }
 
 const ADMIN_NAMES = ['admin']
-const APP_VERSION = '4.4'
+const APP_VERSION = '4.4.69'
 const WHATS_NEW = {
   ru: [
-    'Emoji-реакции в онлайн-играх: 👍🔥😮😂💪🎉',
-    'Счётчик зрителей в онлайн-партии',
-    '🔊 Быстрое вкл/выкл звука',
-    'Горячие клавиши: ? для справки',
-    '7 поз Snappy: think, wave, celebrate, sad, point, shock',
-    '157 тестов, dist –59%',
+    'Удалён мёртвый код: –8.1MB из билда',
+    'Объединены дублированные error handlers',
+    'PM2 fork mode вместо cluster (SQLite)',
+    'Удалён фейковый aggregateRating из JSON-LD',
+    'Очистка middleware: убран дублирующий setInterval',
+    'ELO-график в профиле',
+    'Тосты при получении ачивок',
+    'Vite: оптимизация чанков (recharts, engine отдельно)',
   ],
   en: [
-    'Emoji reactions in online games: 👍🔥😮😂💪🎉',
-    'Spectator count in online matches',
-    '🔊 Quick sound toggle',
-    'Keyboard shortcuts: ? for help',
-    '7 Snappy poses: think, wave, celebrate, sad, point, shock',
-    '157 tests, dist –59%',
+    'Removed dead code: –8.1MB from build',
+    'Merged duplicate error handlers',
+    'PM2 fork mode instead of cluster (SQLite)',
+    'Removed fake aggregateRating from JSON-LD',
+    'Middleware cleanup: removed duplicate setInterval',
+    'ELO graph in profile',
+    'Achievement unlock toasts',
+    'Vite: chunk optimization (recharts, engine split)',
   ],
 }
 const THEMES = [
@@ -711,7 +715,7 @@ export default function App() {
               <button className="m-more-item" onClick={() => go('changelog')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                 <span>Changelog</span>
-                <span className="m-more-value">v3.7</span>
+                <span className="m-more-value">v4.4.69</span>
               </button>
 
               <div className="m-more-section">{en ? 'About' : 'О приложении'}</div>
@@ -767,7 +771,7 @@ export default function App() {
             <span className="site-footer-divider" />
             <a href="/privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
             <span className="site-footer-divider" />
-            <span style={{ opacity: 0.3 }}>v4.4</span>
+            <span style={{ opacity: 0.3 }}>v4.4.69</span>
           </div>
         </div>
       </footer>}

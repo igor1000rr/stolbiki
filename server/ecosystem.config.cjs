@@ -5,6 +5,7 @@ module.exports = {
     cwd: '/opt/stolbiki-api',
     env_file: '/opt/stolbiki-api/.env',
     instances: 1,
+    exec_mode: 'fork', // SQLite = один писатель, cluster не нужен
     autorestart: true,
     max_restarts: 10,
     watch: false,

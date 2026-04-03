@@ -63,3 +63,6 @@ stolbiki-report.docx
 android/keystore.properties
 *.keystore
 *.jks
+
+# Мёртвый JSON формат весов (используется только .bin)
+src/engine/gpu_weights.json
