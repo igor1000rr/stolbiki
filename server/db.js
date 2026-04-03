@@ -866,6 +866,43 @@ if (!blog461) {
   console.log('Блог: добавлен пост v4.6.1')
 }
 
+// ─── Блог-пост v4.6.2 ───
+const blog462 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-2-analytics-gdpr'").get()
+if (!blog462) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v4-6-2-analytics-gdpr',
+    'v4.6.2 — Аналитика, GDPR, retention, Android',
+    'v4.6.2 — Analytics, GDPR, retention, Android',
+    `Финальный polish перед запуском.
+
+**Встроенная аналитика.** 9 событий трекинга без внешних сервисов: pageview, game_start, game_end, share_card, ai_review, auth, friend_challenge, setting_change, matchmaking. Админка: таб «Аналитика» с графиками по дням, таблицами страниц и событий, устройствами (Mobile/Desktop), активными юзерами.
+
+**GDPR Cookie Consent.** Баннер для EU-пользователей: «Cookies для авторизации и настроек, без трекинга». Кнопка OK + ссылка на Privacy Policy.
+
+**Retention фичи.** 🔥 Hot streak badge при 3+ победах подряд. Кнопка «Реванш!» при проигрыше AI (мгновенный рематч). Live badge на лендинге — сколько игроков онлайн и партий сегодня. Нарастающий XP за ежедневный вход: 5→10→15→20→25→30→50 за 7 дней.
+
+**Auto-tutorial.** Новые веб-пользователи автоматически попадают в уроки при первом переходе на Game.
+
+**Правки от Александра.** Текст правил обновлён: «Переносятся верхние блоки» и «свои и чужие блоки». Имена игроков: Player/Snappy в AI-режиме.
+
+**Техническое.** –37 строк мёртвого CSS (автосканирование 282 классов). +7 DB индексов. WS maxPayload 16KB. Arena try-catch. Android: +3 permissions, HTTPS enforced.`,
+    `Final polish before launch.
+
+**Built-in analytics.** 9 tracking events without external services: pageview, game_start, game_end, share_card, ai_review, auth, friend_challenge, setting_change, matchmaking. Admin: Analytics tab with daily charts, page/event tables, device breakdown, active users.
+
+**GDPR Cookie Consent.** EU user banner: "Cookies for auth and settings only, no tracking." OK button + Privacy Policy link.
+
+**Retention features.** Hot streak badge on 3+ consecutive wins. "Rematch!" button on AI loss. Live badge on landing showing online players and today's games. Escalating daily XP: 5→50 over 7 days.
+
+**Auto-tutorial.** New web users automatically enter Lessons on first Game tab visit.
+
+**Technical.** -37 lines dead CSS. +7 DB indexes. WS maxPayload 16KB. Arena error handling. Android: +3 permissions, HTTPS enforced.`,
+    'update', 1, 1
+  )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-2-analytics-gdpr'").run()
+  console.log('Блог: добавлен пост v4.6.2')
+}
+
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
 db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
 

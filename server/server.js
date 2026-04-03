@@ -152,7 +152,7 @@ app.get('/api/health', (req, res) => {
   const activeRooms = [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length
   res.json({
     status: 'ok',
-    version: '4.6.1',
+    version: '4.6.2',
     node: process.version,
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
