@@ -237,19 +237,44 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <svg viewBox="0 0 200 300" width="200" style={{ filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.4))' }}>
-              <rect x="40" y="10" width="120" height="280" rx="20" fill="var(--surface2)" stroke="rgba(255,255,255,0.08)" strokeWidth="2"/>
-              <rect x="50" y="40" width="100" height="200" rx="4" fill="#0d0d14"/>
-              {[0,1,2,3,4,5,6,7,8,9].map(i => <rect key={i} className="l-bar-wave" x={58+i*9} y={200-[30,50,40,60,35,55,45,65,38,52][i]} width={5} height={[30,50,40,60,35,55,45,65,38,52][i]} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.7" style={{animationDelay:`${i*0.12}s`,transformOrigin:`${58+i*9+2.5}px 200px`}}/>)}
-              <text x="100" y="70" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" opacity="0.6">SNATCH HIGHRISE</text>
-              <text x="100" y="220" textAnchor="middle" fill="var(--ink3)" fontSize="7">
-                {en ? 'Snappy vs You — 4:3' : 'Snappy vs Вы — 4:3'}
-              </text>
-              <circle cx="100" cy="265" r="8" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"/>
-              <circle cx="100" cy="265" r="3" fill="#4a9eff" className="l-feat-pulse"/>
-              <circle cx="72" cy="25" r="3" fill="#3dd68c" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/>
-              <circle cx="100" cy="25" r="3" fill="#ffc145" className="l-feat-pulse" style={{animationDelay:'1s'}}/>
-              <circle cx="128" cy="25" r="3" fill="#ff6066" className="l-feat-pulse" style={{animationDelay:'1.5s'}}/>
+            <svg viewBox="0 0 180 340" width="180" style={{ filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.5))' }}>
+              {/* Корпус */}
+              <rect x="16" y="8" width="148" height="324" rx="28" fill="#1a1a2e" stroke="rgba(255,255,255,0.12)" strokeWidth="2"/>
+              {/* Боковые кнопки */}
+              <rect x="14" y="80" width="2" height="24" rx="1" fill="rgba(255,255,255,0.08)"/>
+              <rect x="14" y="120" width="2" height="40" rx="1" fill="rgba(255,255,255,0.08)"/>
+              <rect x="164" y="100" width="2" height="32" rx="1" fill="rgba(255,255,255,0.08)"/>
+              {/* Экран */}
+              <rect x="22" y="16" width="136" height="308" rx="22" fill="#0a0a12"/>
+              {/* Dynamic Island */}
+              <rect x="66" y="22" width="48" height="16" rx="8" fill="#1a1a2e"/>
+              <circle cx="82" cy="30" r="3" fill="#0a0a12" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+              {/* Статус бар */}
+              <text x="38" y="34" fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="600">9:41</text>
+              <g transform="translate(134,27)">
+                <rect x="0" y="0" width="10" height="6" rx="1" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/>
+                <rect x="1" y="1" width="7" height="4" rx="0.5" fill="rgba(61,214,140,0.6)"/>
+                <rect x="10" y="1.5" width="1.5" height="3" rx="0.5" fill="rgba(255,255,255,0.3)"/>
+              </g>
+              {/* Контент — игровое поле */}
+              <text x="90" y="62" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="700" opacity="0.7">SNATCH HIGHRISE</text>
+              <text x="90" y="75" textAnchor="middle" fill="var(--accent)" fontSize="6" opacity="0.5">vs Snappy · Easy</text>
+              {/* Счёт */}
+              <text x="65" y="96" textAnchor="middle" fill="#4a9eff" fontSize="18" fontWeight="800">4</text>
+              <text x="90" y="94" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="12">:</text>
+              <text x="115" y="96" textAnchor="middle" fill="#ff6066" fontSize="18" fontWeight="800">3</text>
+              {/* Игровое поле — 10 столбиков */}
+              <rect x="30" y="108" width="120" height="140" rx="10" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>
+              {[0,1,2,3,4,5,6,7,8,9].map(i => <rect key={i} className="l-bar-wave" x={36+i*11} y={228-[35,55,45,70,40,60,50,72,42,58][i]} width={7} height={[35,55,45,70,40,60,50,72,42,58][i]} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.75" style={{animationDelay:`${i*0.12}s`,transformOrigin:`${36+i*11+3.5}px 228px`}}/>)}
+              {/* Буквы стоек */}
+              {['★','A','B','C','D','E','F','G','H','I'].map((l,i) => <text key={i} x={39.5+i*11} y={242} textAnchor="middle" fill="rgba(255,255,255,0.15)" fontSize="5">{l}</text>)}
+              {/* Кнопки внизу */}
+              <rect x="42" y="258" width="36" height="18" rx="6" fill="rgba(74,158,255,0.15)" stroke="#4a9eff40" strokeWidth="0.5"/>
+              <text x="60" y="270" textAnchor="middle" fill="#4a9eff" fontSize="6" fontWeight="600">{en?'Confirm':'Ход'}</text>
+              <rect x="84" y="258" width="26" height="18" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+              <text x="97" y="270" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="6">{en?'New':'Новая'}</text>
+              {/* Home indicator */}
+              <rect x="70" y="312" width="40" height="4" rx="2" fill="rgba(255,255,255,0.15)"/>
             </svg>
           </div>
         </div>
