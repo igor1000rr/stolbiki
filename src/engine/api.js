@@ -252,3 +252,25 @@ export function captureReferralCode() {
 export function getSavedReferralCode() {
   return localStorage.getItem('stolbiki_ref') || null
 }
+
+// ═══ Аналитика ═══
+let _sessionId = null
+function getSessionId() {
+  if (!_sessionId) {
+    _sessionId = sessionStorage.getItem('stolbiki_sid') || crypto.randomUUID?.() || Math.random().toString(36).slice(2)
+    sessionStorage.setItem('stolbiki_sid', _sessionId)
+  }
+  return _sessionId
+}
+
+export function track(event, page, meta) {
+  try {
+    const headers = { 'Content-Type': 'application/json' }
+    const t = getToken()
+    if (t) headers['Authorization'] = `Bearer ${t}`
+    navigator.sendBeacon?.('/api/track', new Blob([JSON.stringify({
+      event, page, sessionId: getSessionId(), meta
+    })], { type: 'application/json' })) ||
+    fetch('/api/track', { method: 'POST', headers, body: JSON.stringify({ event, page, sessionId: getSessionId(), meta }), keepalive: true }).catch(() => {})
+  } catch {}
+}

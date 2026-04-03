@@ -357,7 +357,11 @@ export default function App() {
       return
     }
     setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' })
+    API.track('pageview', id)
   }
+
+  // Track initial page view
+  useEffect(() => { API.track('pageview', tab) }, []) // eslint-disable-line
 
   // Rate popup — проверяем при возврате на главный экран
   useEffect(() => {

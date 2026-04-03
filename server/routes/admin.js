@@ -233,5 +233,68 @@ export default function createAdminRouter(rooms, matchQueue) {
     }
   })
 
+  // ═══ Аналитика поведения ═══
+  router.get('/analytics', auth, adminOnly, (req, res) => {
+    const days = Math.min(+req.query.days || 7, 90)
+    const since = `datetime('now', '-${days} days')`
+
+    // Просмотры страниц
+    const pageViews = db.prepare(`
+      SELECT page, COUNT(*) as views, COUNT(DISTINCT session_id) as sessions
+      FROM analytics_events WHERE event='pageview' AND created_at > ${since}
+      GROUP BY page ORDER BY views DESC
+    `).all()
+
+    // Популярные события
+    const topEvents = db.prepare(`
+      SELECT event, COUNT(*) as count, COUNT(DISTINCT session_id) as sessions
+      FROM analytics_events WHERE created_at > ${since}
+      GROUP BY event ORDER BY count DESC LIMIT 20
+    `).all()
+
+    // По дням
+    const byDay = db.prepare(`
+      SELECT date(created_at) as day, COUNT(*) as events, COUNT(DISTINCT session_id) as sessions,
+        COUNT(DISTINCT user_id) as users
+      FROM analytics_events WHERE created_at > ${since}
+      GROUP BY day ORDER BY day
+    `).all()
+
+    // Активные юзеры
+    const activeUsers = db.prepare(`
+      SELECT u.username, u.rating, COUNT(e.id) as events, MAX(e.created_at) as last_seen
+      FROM analytics_events e JOIN users u ON u.id = e.user_id
+      WHERE e.created_at > ${since} AND e.user_id IS NOT NULL
+      GROUP BY e.user_id ORDER BY events DESC LIMIT 30
+    `).all()
+
+    // User agents (устройства)
+    const devices = db.prepare(`
+      SELECT
+        CASE
+          WHEN ua LIKE '%Mobile%' OR ua LIKE '%Android%' OR ua LIKE '%iPhone%' THEN 'Mobile'
+          WHEN ua LIKE '%Tablet%' OR ua LIKE '%iPad%' THEN 'Tablet'
+          ELSE 'Desktop'
+        END as device,
+        COUNT(DISTINCT session_id) as sessions
+      FROM analytics_events WHERE created_at > ${since}
+      GROUP BY device ORDER BY sessions DESC
+    `).all()
+
+    // Среднее время сессии (если есть session_start и session_end)
+    const avgSession = db.prepare(`
+      SELECT session_id, MIN(created_at) as first_event, MAX(created_at) as last_event,
+        COUNT(*) as event_count
+      FROM analytics_events WHERE created_at > ${since} AND session_id != ''
+      GROUP BY session_id HAVING event_count > 1
+      ORDER BY first_event DESC LIMIT 100
+    `).all()
+
+    const totalEvents = db.prepare(`SELECT COUNT(*) as c FROM analytics_events WHERE created_at > ${since}`).get()?.c || 0
+    const totalSessions = db.prepare(`SELECT COUNT(DISTINCT session_id) as c FROM analytics_events WHERE created_at > ${since} AND session_id != ''`).get()?.c || 0
+
+    res.json({ pageViews, topEvents, byDay, activeUsers, devices, avgSession, totalEvents, totalSessions, days })
+  })
+
   return router
 }

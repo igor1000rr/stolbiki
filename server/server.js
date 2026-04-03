@@ -166,6 +166,26 @@ app.get('/api/health', (req, res) => {
   })
 })
 
+// ═══ Analytics tracking ═══
+const trackStmt = db.prepare('INSERT INTO analytics_events (event, page, user_id, session_id, meta, ip, ua) VALUES (?, ?, ?, ?, ?, ?, ?)')
+app.post('/api/track', (req, res) => {
+  try {
+    const { event, page, sessionId, meta } = req.body
+    if (!event || typeof event !== 'string') return res.status(400).json({ error: 'event required' })
+    let userId = null
+    const authHeader = req.headers.authorization
+    if (authHeader) {
+      try { userId = jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET).id } catch {}
+    }
+    trackStmt.run(
+      event.slice(0, 50), (page || '').slice(0, 50), userId,
+      (sessionId || '').slice(0, 36), JSON.stringify(meta || {}).slice(0, 500),
+      req.ip, (req.headers['user-agent'] || '').slice(0, 200)
+    )
+    res.json({ ok: true })
+  } catch { res.json({ ok: true }) }
+})
+
 // ═══ Client error reporting ═══
 db.exec(`CREATE TABLE IF NOT EXISTS error_reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

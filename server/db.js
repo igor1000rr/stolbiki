@@ -304,6 +304,24 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_arena_matches_tournament ON arena_matches(tournament_id, round);
 `)
 
+// ─── Аналитика (события пользователей) ───
+db.exec(`
+  CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event TEXT NOT NULL,
+    page TEXT,
+    user_id INTEGER,
+    session_id TEXT,
+    meta TEXT,
+    ip TEXT,
+    ua TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event, created_at);
+  CREATE INDEX IF NOT EXISTS idx_analytics_page ON analytics_events(page, created_at);
+  CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id);
+`)
+
 // ─── Таблицы (CREATE IF NOT EXISTS — идемпотентны) ───
 
 db.exec(`
