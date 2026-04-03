@@ -205,3 +205,56 @@ describe('Стресс-тест движка', () => {
     expect(hasSwap).toBe(false)
   })
 })
+
+// ═══ Дополнительные стресс-тесты ═══
+describe('Stress: game completion', () => {
+  it('10 партий с рандомным первым игроком', () => {
+    for (let game = 0; game < 10; game++) {
+      let state = new GameState()
+      let safety = 0
+      while (!state.gameOver && safety < 300) {
+        const actions = getLegalActions(state)
+        expect(actions.length).toBeGreaterThan(0)
+        const action = actions[Math.floor(Math.random() * actions.length)]
+        state = applyAction(state, action)
+        safety++
+      }
+      // Партия завершена
+      expect(state.gameOver).toBe(true)
+      expect([0, 1]).toContain(state.winner)
+      // Победитель закрыл >= проигравшего (golden stand решает ничью)
+      const loser = 1 - state.winner
+      expect(state.countClosed(state.winner)).toBeGreaterThanOrEqual(state.countClosed(loser))
+    }
+  })
+
+  it('партия со swap на 2-м ходу', () => {
+    let state = new GameState()
+    // P0 ставит 1 блок
+    state = applyAction(state, { placement: { 5: 1 } })
+    // P1 делает swap
+    state = applyAction(state, { swap: true })
+    // Цвета поменялись — P0 теперь играет за P1's блоки
+    expect(state.turn).toBe(2)
+    expect(state.currentPlayer).toBe(0)
+    // Продолжаем рандомно
+    let safety = 0
+    while (!state.gameOver && safety < 300) {
+      const actions = getLegalActions(state)
+      state = applyAction(state, actions[Math.floor(Math.random() * actions.length)])
+      safety++
+    }
+    expect(state.gameOver).toBe(true)
+  })
+
+  it('все стойки закрываются одним цветом', () => {
+    const state = new GameState()
+    // Форсируем: P0 закрывает 6 стоек
+    for (let i = 0; i < 6; i++) state.closed[i] = 0
+    state.turn = 30
+    const ns = applyAction(state, { placement: {} })
+    expect(ns.gameOver).toBe(true)
+    expect(ns.winner).toBe(0)
+    expect(ns.countClosed(0)).toBe(6)
+  })
+})

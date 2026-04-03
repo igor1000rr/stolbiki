@@ -110,3 +110,27 @@ describe('Score validation', () => {
     expect(validateScore('7:3')).toBe(true)
   })
 })
+
+// ═══ Дополнительные helper тесты ═══
+describe('seededRandom edge cases', () => {
+  it('seed 0 даёт детерминированный результат', () => {
+    const r1 = seededRandom(0)
+    const r2 = seededRandom(0)
+    expect(r1()).toBe(r2())
+    expect(r1()).toBe(r2())
+  })
+
+  it('отрицательный seed работает', () => {
+    const r = seededRandom(-12345)
+    const val = r()
+    expect(val).toBeGreaterThanOrEqual(0)
+    expect(val).toBeLessThan(1)
+  })
+
+  it('большой seed работает', () => {
+    const r = seededRandom(999999999)
+    const val = r()
+    expect(val).toBeGreaterThanOrEqual(0)
+    expect(val).toBeLessThan(1)
+  })
+})
