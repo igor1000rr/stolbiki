@@ -113,8 +113,8 @@ export default function Rules() {
             {en ? '1. Transfer' : '1. Перемещение блоков'}
           </div>
           <Bullet>{en ? 'Can make one transfer or skip this action' : 'Можно сделать один перенос или пропустить действие'}</Bullet>
-          <Bullet>{en ? 'The top group of same-color blocks transfers whole — cannot split' : 'Переносится верхняя группа блоков одного цвета — группа переносится целиком, делить её нельзя'}</Bullet>
-          <Bullet>{en ? "Can transfer your blocks and opponent's blocks" : 'Можно переносить свои блоки и блоки соперника'}</Bullet>
+          <Bullet>{en ? 'Top blocks of the same color transfer as a group — cannot split' : 'Переносятся верхние блоки одного цвета — группа переносится целиком, делить её нельзя'}</Bullet>
+          <Bullet>{en ? "Can transfer your own and opponent's blocks" : 'Можно переносить свои и чужие блоки'}</Bullet>
           <Bullet>{en ? 'Target: empty stand or stand with same color on top' : 'Куда: на пустую стойку или на блоки такого же цвета сверху'}</Bullet>
           <Bullet>{en ? 'Max 11 blocks per stand, excess removed from the game' : 'На стойке не может быть больше 11 блоков, остальные убираются из игры'}</Bullet>
         </div>

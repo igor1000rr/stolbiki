@@ -1125,12 +1125,20 @@ export default function Game() {
 
       <div className="scoreboard">
         <div className="score-player">
-          <div className="score-label">{lang === 'en' ? 'Blue' : 'Синие'}</div>
+          <div className="score-label">{mode === 'ai'
+            ? (humanPlayer === 0
+              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || (en ? 'Player' : 'Игрок'))
+              : 'Snappy')
+            : (en ? 'Blue' : 'Синие')}</div>
           <div className={`score-num p0 ${scoreBump === 0 ? 'score-bump' : ''}`}>{gs.countClosed(0)}</div>
         </div>
         <div className="score-sep">:</div>
         <div className="score-player">
-          <div className="score-label">{lang === 'en' ? 'Red' : 'Красные'}</div>
+          <div className="score-label">{mode === 'ai'
+            ? (humanPlayer === 1
+              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || (en ? 'Player' : 'Игрок'))
+              : 'Snappy')
+            : (en ? 'Red' : 'Красные')}</div>
           <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
         </div>
         <button onClick={() => gameCtx?.emit('openSkinShop')}

@@ -215,9 +215,9 @@ body::before {
 .nav-more-divider { height: 1px; background: var(--surface2); margin: 4px 8px; }
 .nav-more-row { display: flex; align-items: center; padding: 6px 14px; gap: 4px; flex-wrap: wrap; }
 .nav-more-theme {
-  font-size: 10px; padding: 3px 8px; border-radius: 4px; border: none; cursor: pointer;
+  font-size: 12px; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer;
   background: var(--surface2); color: var(--ink3); font-family: 'Outfit', sans-serif;
-  transition: all 0.15s;
+  transition: all 0.15s; display: flex; align-items: center; gap: 4px;
 }
 .nav-more-theme.active { background: var(--accent); color: #fff; }
 .nav-more-theme:hover { background: var(--surface3); }
