@@ -605,8 +605,6 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-.log-p0 { color: var(--p1); font-weight: 500; }
-.log-p1 { color: var(--p2); font-weight: 500; }
 
 /* ═══════════════════════════════════════════
    GAME RESULT — wow момент

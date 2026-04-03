@@ -28,12 +28,6 @@
 [data-theme="minimal"] .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 [data-theme="minimal"] .dash-card { background: var(--surface); border-color: var(--surface2); }
 [data-theme="minimal"] .game-result { background: var(--surface); border-color: var(--surface2); }
-[data-theme="minimal"] .l-ai-banner { border-color: rgba(0,113,227,0.15); background: linear-gradient(135deg, rgba(0,113,227,0.04), transparent); }
-[data-theme="minimal"] .l-split { background: var(--surface); border-color: var(--surface2); }
-[data-theme="minimal"] .l-who-block { background: var(--surface); }
-[data-theme="minimal"] .l-print-banner { background: linear-gradient(135deg, var(--accent), #0060c0); }
-[data-theme="minimal"] .l-card { background: var(--surface); border-color: var(--surface2); }
-[data-theme="minimal"] .l-aud-card { background: var(--surface); border-color: var(--surface2); }
 [data-theme="minimal"] .l-faq-item, [data-theme="minimal"] .l-qa-row { border-color: var(--surface2); }
 [data-theme="minimal"] .l-final { border-top-color: var(--surface2); }
 [data-theme="minimal"] .setting-row { border-color: rgba(0,0,0,0.04); }
@@ -49,7 +43,6 @@
 [data-theme="minimal"] .header-auth-user { background: var(--surface2); border-color: var(--surface3); }
 [data-theme="minimal"] .l-hero-glow { display: none; }
 [data-theme="minimal"] .l-cta-glow, [data-theme="minimal"] .l-final-glow { display: none; }
-[data-theme="minimal"] .l-print { background: var(--surface); border-color: var(--surface2); }
 
 
 /* ═══ Ocean — глубокое море ═══ */
@@ -295,6 +288,4 @@
 [data-theme="retro"] .nav-more-menu { background: rgba(10,10,0,0.95); border: 1px solid rgba(118,255,3,0.12); border-radius: 2px; }
 [data-theme="retro"] .score-num { font-family: monospace; text-shadow: 0 0 6px currentColor; }
 [data-theme="retro"] .game-info { font-family: monospace; text-shadow: 0 0 4px var(--accent-glow); }
-[data-theme="retro"] .site-logo-text { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
-[data-theme="retro"] ::selection { background: rgba(118,255,3,0.2); }
 

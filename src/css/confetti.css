@@ -354,8 +354,6 @@
   .dash-table th, .dash-table td { padding: 4px 6px; }
   .replay-tabs { flex-wrap: wrap; gap: 4px; }
   .replay-tabs button { font-size: 10px; padding: 6px 8px; }
-  .sim-params { grid-template-columns: 1fr 1fr !important; }
-}
 
 /* Большие телефоны */
 @media (max-width: 560px) {
@@ -368,8 +366,6 @@
   .l-num-val { font-size: 28px; }
   .l-section { padding: 24px 0 18px; }
   .l-title { font-size: 18px; }
-  .l-ai-metric-val { font-size: 20px; }
-  .game-settings { gap: 6px; }
   .game-settings select { font-size: 11px; padding: 6px 10px; }
 }
 
