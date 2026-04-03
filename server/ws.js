@@ -251,6 +251,11 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           gameState: gs ? { stands: gs.stands, closed: gs.closed, currentPlayer: gs.currentPlayer, turn: gs.turn, swapAvailable: gs.swapAvailable, gameOver: gs.gameOver, winner: gs.winner } : null,
           spectators: room.spectators.filter(s => s.readyState === 1).length,
         }))
+        // Уведомляем игроков о новом зрителе
+        const specCount = room.spectators.filter(s => s.readyState === 1).length
+        room.players.forEach(p => {
+          if (p.ws?.readyState === 1) p.ws.send(JSON.stringify({ type: 'spectatorCount', count: specCount }))
+        })
       }
 
       // ─── MOVE (серверная валидация) ───
@@ -328,6 +333,23 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
             p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))
           }
         })
+      }
+
+      // ─── EMOJI REACTIONS ───
+      if (msg.type === 'reaction' && playerRoom && msg.emoji) {
+        const ALLOWED = ['👍', '🔥', '😮', '😂', '💪', '🎉']
+        const emoji = ALLOWED.includes(msg.emoji) ? msg.emoji : null
+        if (emoji) {
+          playerRoom.players.forEach((p, i) => {
+            if (i !== playerIdx && p.ws?.readyState === 1) {
+              p.ws.send(JSON.stringify({ type: 'reaction', emoji, from: playerIdx }))
+            }
+          })
+          // Спектаторам тоже
+          playerRoom.spectators?.forEach(s => {
+            if (s.ws?.readyState === 1) s.ws.send(JSON.stringify({ type: 'reaction', emoji, from: playerIdx }))
+          })
+        }
       }
 
       // ─── DRAW ───

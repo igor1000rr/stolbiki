@@ -121,6 +121,12 @@ export default function Online() {
       case 'chat':
         setMessages(prev => [...prev.slice(-50), { from: msg.from, text: msg.text, time: Date.now() }])
         break
+      case 'reaction':
+        gameCtxRef.current?.emit('onReaction', { emoji: msg.emoji, from: msg.from })
+        break
+      case 'spectatorCount':
+        gameCtxRef.current?.emit('onSpectatorCount', { count: msg.count })
+        break
       case 'resign':
         gameCtxRef.current?.emit('onOnlineResign', { from: msg.from })
         break

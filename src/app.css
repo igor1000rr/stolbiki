@@ -3240,3 +3240,6 @@ body.native-body { animation: none !important; }
 
 /* MascotLoader float animation */
 @keyframes float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.02); } }
+
+/* Emoji reaction float animation */
+@keyframes emojiFloat { 0% { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) scale(1.5) translateY(-80px); } }

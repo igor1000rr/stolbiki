@@ -22,6 +22,12 @@ const VERSIONS = [
       { type: 'new', text: 'Graceful shutdown: уведомление WS игроков, закрытие DB, PM2 log rotation' },
       { type: 'new', text: 'DB maintenance: ежедневная очистка error_reports, WAL checkpoint, sqlite pragmas' },
       // Рефактор компонентов
+      { type: 'new', text: 'Emoji-реакции в онлайн-игре: 👍🔥😮😂💪🎉 с floating-анимацией' },
+      { type: 'new', text: 'Счётчик зрителей в онлайн-партии: 👁 N при наличии спектаторов' },
+      { type: 'new', text: '🔊 Быстрое вкл/выкл звука в game toolbar без захода в настройки' },
+      { type: 'new', text: 'Emoji reactions in online game: 👍🔥😮😂💪🎉 with floating animation' },
+      { type: 'new', text: 'Spectator count in online games: 👁 N when spectators are watching' },
+      { type: 'new', text: '🔊 Quick sound toggle in game toolbar' },
       { type: 'fix', text: 'Game.jsx: 1723 → 1489 (–234). Extracted: GameResultPanel, useSessionStats, useGameTimer, useGameLog' },
       { type: 'fix', text: 'Profile.jsx: 1394 → 979 (–415). Extracted: ProfileAccount, ProfileFriends, ProfileAnalytics' },
       { type: 'fix', text: 'Online.jsx: 696 → 614 (–82). Extracted: DailyChallenge' },

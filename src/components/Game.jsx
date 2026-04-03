@@ -92,6 +92,8 @@ export default function Game() {
   const [drawOffered, setDrawOffered] = useState(false)
   const [rematchOffered, setRematchOffered] = useState(false)  // получили предложение рематча
   const [rematchPending, setRematchPending] = useState(false)  // отправили предложение, ждём ответ
+  const [floatingEmoji, setFloatingEmoji] = useState(null) // { emoji, key }
+  const [spectatorCount, setSpectatorCount] = useState(0)
   const onlineRef = useRef(null) // { roomId, playerIdx, myColor }
   const gsRef = useRef(gs) // актуальное состояние для WS обработчиков
   const aiRunning = useRef(false)
@@ -306,6 +308,11 @@ export default function Game() {
     if (gameCtx) {
       unsubscribers.push(gameCtx.register('onRematchOffer', handleRematchOffer))
       unsubscribers.push(gameCtx.register('onRematchDeclined', handleRematchDeclined))
+      unsubscribers.push(gameCtx.register('onReaction', ({ emoji }) => {
+        setFloatingEmoji({ emoji, key: Date.now() })
+        setTimeout(() => setFloatingEmoji(null), 2000)
+      }))
+      unsubscribers.push(gameCtx.register('onSpectatorCount', ({ count }) => setSpectatorCount(count)))
     }
 
     // ─── Спектатор: наблюдение за чужой игрой ───
@@ -897,6 +904,7 @@ export default function Game() {
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
           background: 'rgba(61,214,140,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(61,214,140,0.15)' }}>
           <span style={{ fontSize: isNative ? 11 : 12, color: 'var(--green)', fontWeight: 600 }}>{lang === 'en' ? 'Online' : 'Онлайн'} — {onlinePlayers.join(' vs ')}</span>
+          {spectatorCount > 0 && <span style={{ fontSize: 10, color: 'var(--ink3)', marginLeft: 8 }}>👁 {spectatorCount}</span>}
         </div>
       )}
       {mode === 'spectate-online' && (
@@ -1377,6 +1385,34 @@ export default function Game() {
           {soundOn ? '🔊' : '🔇'}
         </button>
       </div>
+
+      {/* Emoji reactions — online */}
+      {mode === 'online' && !gs.gameOver && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 6 }}>
+          {['👍', '🔥', '😮', '😂', '💪', '🎉'].map(e => (
+            <button key={e} onClick={() => MP.send({ type: 'reaction', emoji: e })}
+              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8,
+                padding: '4px 6px', fontSize: 16, cursor: 'pointer', transition: 'transform 0.15s' }}
+              onMouseDown={ev => ev.currentTarget.style.transform = 'scale(1.3)'}
+              onMouseUp={ev => ev.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={ev => ev.currentTarget.style.transform = 'scale(1)'}
+              aria-label={`React ${e}`}>
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Floating emoji from opponent */}
+      {floatingEmoji && (
+        <div key={floatingEmoji.key} style={{
+          position: 'fixed', top: '30%', left: '50%', transform: 'translateX(-50%)',
+          fontSize: 64, zIndex: 9999, pointerEvents: 'none',
+          animation: 'emojiFloat 2s ease-out forwards',
+        }}>
+          {floatingEmoji.emoji}
+        </div>
+      )}
 
       {isMyTurn && !gs.gameOver && !isNative && (
         <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--ink3)', marginTop: 4 }}>
