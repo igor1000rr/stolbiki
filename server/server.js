@@ -45,10 +45,13 @@ app.use(helmet({
     },
   },
 }))
-app.use(cors({ origin: (origin, cb) => {
-  if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true)
-  else cb(new Error(`CORS: origin ${origin} не разрешён`))
-}}))
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true)
+    else cb(new Error(`CORS: origin ${origin} не разрешён`))
+  },
+  maxAge: 3600, // Кешируем preflight OPTIONS на 1 час
+}))
 app.use(express.json({ limit: '5mb' }))
 // Обработка невалидного JSON в теле запроса (400 вместо 500)
 app.use((err, req, res, next) => {
@@ -141,16 +144,20 @@ app.get('/api/stats', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
+  const activeRooms = [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length
   res.json({
     status: 'ok',
-    version: '4.4.26',
+    version: '4.4.32',
+    node: process.version,
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,
     rooms: rooms.size,
+    activeRooms,
     matchQueue: matchQueue.length,
     memoryMB: Math.round(mem.heapUsed / 1024 / 1024),
     schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0,
     api: { requests: apiStats.requests, errors: apiStats.errors, uptimeHours: Math.round((Date.now() - apiStats.startedAt) / 3600000 * 10) / 10 },
+    rateLimits: rateLimits.size,
   })
 })
 
