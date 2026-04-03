@@ -652,3 +652,7 @@
   to { transform: rotate(360deg); }
 }
 
+
+/* ═══ Game page wrapper — центрирование на широких экранах ═══ */
+.game-page-wrap { max-width: 900px; margin: 0 auto; }
+@media (min-width: 1600px) { .game-page-wrap { max-width: 1000px; } }
