@@ -140,7 +140,8 @@ export default function App() {
   })
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
-  const [installPrompt, setInstallPrompt] = useState(null) // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [cookieOk, setCookieOk] = useState(() => !!cookieOk) // PWA install prompt
 
   // Native-only states
   const [showOnboarding, setShowOnboarding] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
@@ -901,6 +902,30 @@ export default function App() {
             </button>
           ))}
         </nav>
+      )}
+
+      {/* Cookie consent (GDPR) */}
+      {!isNative && !cookieOk && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
+          background: 'var(--surface)', borderTop: '1px solid var(--surface2)',
+          padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.3)', fontSize: 12, color: 'var(--ink2)',
+        }}>
+          <span style={{ flex: 1 }}>
+            {en
+              ? 'We use cookies for authentication and game preferences. No tracking.'
+              : 'Мы используем cookies для авторизации и настроек игры. Без трекинга.'}
+          </span>
+          <button className="btn primary" style={{ fontSize: 11, padding: '6px 16px', flexShrink: 0 }}
+            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true) }}>
+            OK
+          </button>
+          <button className="btn" style={{ fontSize: 11, padding: '6px 12px', flexShrink: 0 }}
+            onClick={() => go('privacy')}>
+            {en ? 'More' : 'Подробнее'}
+          </button>
+        </div>
       )}
 
     </div>
