@@ -105,6 +105,7 @@ export default function App() {
   const [showLessons, setShowLessons] = useState(false)
   const [showArena, setShowArena] = useState(false)
   const [showSkinShop, setShowSkinShop] = useState(false)
+  const [swUpdate, setSwUpdate] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
   const [installPrompt, setInstallPrompt] = useState(null) // PWA install prompt
@@ -199,6 +200,14 @@ export default function App() {
     // Скрываем кнопку после установки
     window.addEventListener('appinstalled', () => setInstallPrompt(null))
     return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  // PWA Update — показываем toast при обновлении Service Worker
+  useEffect(() => {
+    if (isNative) return
+    const handler = () => setSwUpdate(true)
+    window.addEventListener('stolbiki-sw-update', handler)
+    return () => window.removeEventListener('stolbiki-sw-update', handler)
   }, [])
 
   // JWT Token refresh — обновляем токен раз в сутки (срок жизни 7 дней)
@@ -740,6 +749,29 @@ export default function App() {
             </button>
           ))}
         </nav>
+      )}
+
+      {/* SW Update Toast */}
+      {swUpdate && (
+        <div style={{
+          position: 'fixed', bottom: isNative ? 80 : 20, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, background: 'var(--surface)', border: '1px solid var(--green)',
+          borderRadius: 12, padding: '12px 20px', display: 'flex', gap: 12, alignItems: 'center',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)', animation: 'fadeIn 0.3s ease',
+          maxWidth: 360, width: '90%',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>
+            {lang === 'en' ? 'Update available' : 'Доступно обновление'}
+          </span>
+          <button className="btn primary" onClick={() => location.reload()}
+            style={{ fontSize: 12, padding: '6px 16px', whiteSpace: 'nowrap' }}>
+            {lang === 'en' ? 'Refresh' : 'Обновить'}
+          </button>
+          <button onClick={() => setSwUpdate(false)}
+            style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>
+            ✕
+          </button>
+        </div>
       )}
     </div>
     </I18nContext.Provider>
