@@ -87,6 +87,18 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               <Icon name="download" size={16} />{en ? 'Install app' : 'Установить'}
             </button>
           )}
+          {publicStats && (
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12, fontSize: 11, color: 'var(--ink3)' }}>
+              {publicStats.onlinePlayers > 0 && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulseDot 2s infinite' }} />
+                  {publicStats.onlinePlayers} {en ? 'online' : 'онлайн'}
+                </span>
+              )}
+              {publicStats.todayGames > 0 && <span>{publicStats.todayGames} {en ? 'games today' : 'партий сегодня'}</span>}
+              <span>{publicStats.totalUsers} {en ? 'players' : 'игроков'}</span>
+            </div>
+          )}
         </div>
       </section>
 

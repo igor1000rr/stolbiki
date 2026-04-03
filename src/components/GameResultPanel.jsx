@@ -50,13 +50,22 @@ export default function GameResultPanel({
           {ratingDelta > 0 ? '+' : ''}{ratingDelta} ELO
         </div>
       )}
+      {sessionStats?.streak >= 3 && won && (
+        <div style={{ fontSize: isNative ? 16 : 13, color: 'var(--gold)', marginTop: 8, fontWeight: 600, animation: 'fadeIn 0.5s' }}>
+          🔥 {lang === 'en' ? `${sessionStats.streak} win streak!` : `${sessionStats.streak} побед подряд!`}
+        </div>
+      )}
       <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>
         {!tournament && (
           <button className="btn primary" onClick={() => {
             if (mode === 'online' || mode === 'spectate-online') gameCtx?.emit('backToLobby')
             else newGame()
           }} style={{ fontSize: isNative ? 16 : 12, padding: isNative ? '14px 24px' : '8px 16px', justifyContent: 'center' }}>
-            {(mode === 'online' || mode === 'spectate-online') ? (t('game.backToLobby')) : (t('game.anotherGame'))}
+            {(mode === 'online' || mode === 'spectate-online')
+              ? (t('game.backToLobby'))
+              : (mode === 'ai' && !won && !isDraw)
+                ? (lang === 'en' ? 'Rematch!' : 'Реванш!')
+                : (t('game.anotherGame'))}
           </button>
         )}
         {mode === 'online' && !tournament && !rematchPending && (

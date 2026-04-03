@@ -106,7 +106,7 @@ router.post('/streak/checkin', auth, (req, res) => {
     .run(streak, best, today, freeze, req.user.id)
   try { db.prepare('INSERT OR IGNORE INTO daily_logins (user_id, date) VALUES (?, ?)').run(req.user.id, today) } catch {}
 
-  const streakXP = streak >= 30 ? 50 : streak >= 7 ? 20 : streak >= 3 ? 10 : 5
+  const streakXP = [5, 10, 15, 20, 25, 30, 50][Math.min(streak - 1, 6)]
   addXP(req.user.id, streakXP)
 
   const calendar = db.prepare('SELECT date FROM daily_logins WHERE user_id=? ORDER BY date DESC LIMIT 30').all(req.user.id)
