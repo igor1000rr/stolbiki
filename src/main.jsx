@@ -97,18 +97,7 @@ createRoot(document.getElementById('root')).render(
 // PWA Service Worker (только в браузере, не в native app)
 if (!isNative && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(reg => {
-      // Проверяем обновления при каждом визите
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing
-        newWorker?.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-            // Новая версия установлена — показываем уведомление
-            window.dispatchEvent(new CustomEvent('stolbiki-sw-update'))
-          }
-        })
-      })
-    }).catch(() => {})
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }
 
