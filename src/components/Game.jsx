@@ -25,7 +25,7 @@ import { useKeyboardShortcuts } from '../engine/useKeyboardShortcuts'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
-import { startTitleBlink, sp, st, sc, sw, sl, ss, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
+import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 
 const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
