@@ -678,3 +678,51 @@ describe('Swap mechanics', () => {
     expect(actions.some(a => a.swap)).toBe(false)
   })
 })
+
+// ═══ Placement validation ═══
+describe('Placement validation', () => {
+  it('нельзя ставить на закрытую стойку', () => {
+    const gs = new GameState()
+    gs.closed = { 3: 0 }
+    gs.turn = 10
+    const placements = getValidPlacements(gs)
+    placements.forEach(p => {
+      expect(p).not.toHaveProperty('3')
+    })
+  })
+
+  it('первый ход: ровно 1 блок на 1 стойку (non-empty)', () => {
+    const gs = new GameState()
+    const placements = getValidPlacements(gs).filter(p => Object.keys(p).length > 0)
+    expect(placements.length).toBeGreaterThan(0)
+    placements.forEach(p => {
+      const total = Object.values(p).reduce((s, v) => s + v, 0)
+      expect(total).toBe(FIRST_TURN_MAX)
+      expect(Object.keys(p).length).toBe(1)
+    })
+  })
+
+  it('MAX_PLACE блоков на обычном ходу', () => {
+    let gs = new GameState()
+    gs = applyAction(gs, { placement: { 0: 1 } })
+    const placements = getValidPlacements(gs)
+    placements.forEach(p => {
+      const total = Object.values(p).reduce((s, v) => s + v, 0)
+      expect(total).toBeLessThanOrEqual(MAX_PLACE)
+    })
+  })
+})
+
+// ═══ Transfer + closing ═══
+describe('Transfer closing rules', () => {
+  it('перенос закрывает стойку при достижении MAX_CHIPS', () => {
+    const stands = emptyStands()
+    stands[0] = [0, 0, 0] // 3 блока P0
+    stands[1] = Array(8).fill(0) // 8 блоков P0, всего будет 11
+    const gs = makeState(stands, { currentPlayer: 0 })
+    const ns = applyAction(gs, { transfer: [0, 1], placement: {} })
+    expect(1 in ns.closed).toBe(true)
+    expect(ns.closed[1]).toBe(0) // P0 закрыл
+    expect(ns.stands[0].length).toBe(0) // Источник пуст
+  })
+})
