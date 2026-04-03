@@ -39,6 +39,7 @@ const Admin = lazy(() => import('./components/Admin'))
 const Changelog = lazy(() => import('./components/Changelog'))
 const Onboarding = lazy(() => import('./components/Onboarding'))
 const Privacy = lazy(() => import('./components/Privacy'))
+const Terms = lazy(() => import('./components/Terms'))
 import SplashScreen from './components/SplashScreen'
 
 function LazyFallback() {
@@ -104,7 +105,7 @@ export default function App() {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
   // Path routing: /game, /en/game, /rules, /en/rules...
-  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','sim','dash','replay','admin','changelog','blog']
+  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog']
 
   function getTabFromPath() {
     const path = location.pathname.replace(/^\/en\/?/, '/').replace(/^\/+/, '')
@@ -762,6 +763,7 @@ export default function App() {
           {tab === 'admin' && isAdmin && <Admin />}
           {tab === 'changelog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
           {tab === 'rules' && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
+          {tab === 'terms' && <Suspense fallback={<LazyFallback />}><Terms /></Suspense>}
           {tab === 'privacy' && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
           {tab === 'more' && isNative && (
             <div className="m-more-page">
@@ -877,6 +879,8 @@ export default function App() {
             <a href="/print-and-play.pdf" target="_blank" rel="noopener">Print & Play</a>
             <span className="site-footer-divider" />
             <a href="/privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
+            <span style={{ color: 'var(--surface3)' }}>|</span>
+            <a href="/terms" onClick={(e) => { e.preventDefault(); go('terms') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Terms' : 'Условия'}</a>
             <span className="site-footer-divider" />
             <span style={{ opacity: 0.3 }}>v4.6.2</span>
           </div>

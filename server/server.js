@@ -321,6 +321,8 @@ function dbMaintenance() {
   try {
     // Удаляем ошибки старше 30 дней
     db.prepare("DELETE FROM error_reports WHERE created_at < datetime('now', '-30 days')").run()
+    // Аналитика: 90 дней retention (как в Privacy Policy)
+    db.prepare("DELETE FROM analytics_events WHERE created_at < datetime('now', '-90 days')").run()
     // Удаляем пустые training_data старше 90 дней
     db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND game_data IS NULL").run()
     // WAL checkpoint для уменьшения размера WAL файла
