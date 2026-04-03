@@ -12,7 +12,7 @@ const VERSIONS = [
     title_en: 'Architecture audit — 57 commits, 157 tests, dist –59%',
     changes_ru: [
       // Тесты и сборка
-      { type: 'new', text: 'Тесты: 41 → 157 (+116). Движок, валидация, стресс, swap, placement, transfer, edge cases' },
+      { type: 'new', text: 'Тесты: 41 → 164 (+123). Движок, валидация, стресс, swap, placement, transfer, edge cases' },
       { type: 'new', text: 'dist: 14MB → 5.8MB (–59%) — GPU weights только binary, убран JSON fallback 8.1MB' },
       { type: 'new', text: 'CI/CD: test → build → backup DB → deploy. npm cache, BUILD_HASH для SW' },
       // Архитектура
@@ -64,9 +64,11 @@ const VERSIONS = [
       { type: 'fix', text: 'Cache-Control: 7 endpoints (blog, stats, leaderboard). ETag, X-Response-Time' },
       { type: 'fix', text: 'CORS preflight cache 1ч, rate limiter cleanup, Nginx gzip level 6' },
       { type: 'fix', text: 'Nginx: HTML no-cache+no-store, assets max-age=1y+immutable, WS timeout 3600s' },
+      { type: 'fix', text: 'CSS cleanup: 49 dead rules removed (–150 lines), 3246→3095' },
+      { type: 'fix', text: 'CSS cleanup: 49 dead rules удалены (–150 строк), 3246→3095' },
     ],
     changes_en: [
-      { type: 'new', text: 'Tests: 41 → 157 (+116). Engine, validation, stress, swap, placement, transfer, edge cases' },
+      { type: 'new', text: 'Tests: 41 → 164 (+123). Engine, validation, stress, swap, placement, transfer, edge cases' },
       { type: 'new', text: 'dist: 14MB → 5.8MB (–59%) — GPU weights binary only, removed 8.1MB JSON fallback' },
       { type: 'new', text: 'CI/CD: test → build → backup DB → deploy. npm cache, BUILD_HASH for SW' },
       { type: 'new', text: 'GameContext v2: EventEmitter — 25 CustomEvents → 0, 5 window globals → 0, 4 polling → 0' },
@@ -100,6 +102,7 @@ const VERSIONS = [
       { type: 'fix', text: 'Cache-Control: 7 endpoints (blog, stats, leaderboard). ETag, X-Response-Time' },
       { type: 'fix', text: 'CORS preflight cache 1h, rate limiter cleanup, Nginx gzip level 6' },
       { type: 'fix', text: 'Nginx: HTML no-cache+no-store, assets max-age=1y+immutable, WS timeout 3600s' },
+      { type: 'fix', text: 'CSS cleanup: 49 dead rules удалены (–150 строк), 3246→3095' },
     ],
   },
   {
