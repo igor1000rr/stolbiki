@@ -802,6 +802,41 @@ if (!blog460) {
   console.log('Блог: добавлен пост v4.6.0')
 }
 
+// ─── Блог-пост v4.6.1 ───
+const blog461 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-1-10m-spectator'").get()
+if (!blog461) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v4-6-1-10m-spectator',
+    'v4.6.1 — 10M партий, spectator chat, сезонные награды',
+    'v4.6.1 — 10M games, spectator chat, season rewards',
+    `Масштабное обновление с аналитикой и социальными фичами.
+
+**10M self-play партий.** Мы запустили 10 миллионов партий для анализа баланса. Результат: P0 36.35% vs P1 36.33% — идеальный баланс с разницей 0.012%. Ни одного разгрома (10-0) из 10M партий. 54% партий заканчиваются плотно (±2). Золотая стойка не даёт преимущества — 50/50. Вывод: в Snatch Highrise нет доминирующей стратегии, побеждает тактика.
+
+**AI v5 задеплоен.** Checkpoint v1493 — 850 новых итераций обучения на GPU. Нейросеть 840K параметров стала ещё сильнее. Extreme (1500 симуляций) — почти непобедим.
+
+**Spectator chat.** Зрители теперь могут писать в чат во время наблюдения за партией. Сообщения видны игрокам и другим зрителям.
+
+**Сезонные награды.** Top-10 в рейтинговом сезоне получают эксклюзивные достижения: champion, silver, bronze, top10. Автоматическая раздача при завершении сезона.
+
+**+4 сложные головоломки.** Difficulty 4-5: «Тотальный контроль», «Блокада», «Мастер-план» — до 5 ходов. Для настоящих мастеров.`,
+    `Major update with analytics and social features.
+
+**10M self-play games.** We ran 10 million games to analyze balance. Result: P0 36.35% vs P1 36.33% — perfect balance with 0.012% difference. Zero sweeps (10-0) out of 10M games. 54% of games end tight (±2). Golden stand doesn't give advantage — 50/50. Conclusion: there's no dominant strategy in Snatch Highrise, tactics win.
+
+**AI v5 deployed.** Checkpoint v1493 — 850 new GPU training iterations. 840K parameter neural network is even stronger. Extreme (1500 simulations) — nearly unbeatable.
+
+**Spectator chat.** Viewers can now chat while watching a game. Messages visible to players and other spectators.
+
+**Season rewards.** Top-10 in ranked season receive exclusive achievements: champion, silver, bronze, top10. Auto-distributed when season ends.
+
+**+4 hard puzzles.** Difficulty 4-5: "Total control", "Blockade", "Master plan" — up to 5 moves. For true masters.`,
+    'update', 1, 1
+  )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-1-10m-spectator'").run()
+  console.log('Блог: добавлен пост v4.6.1')
+}
+
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
 db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
 

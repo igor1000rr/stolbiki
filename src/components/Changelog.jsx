@@ -8,9 +8,11 @@ const VERSIONS = [
   {
     version: '4.6.1',
     date: '2026-04-03',
-    title_ru: 'Spectator chat, сезонные награды, сложные головоломки, SEO',
-    title_en: 'Spectator chat, season rewards, hard puzzles, SEO',
+    title_ru: '10M партий, AI v5, spectator chat, сезонные награды',
+    title_en: '10M games, AI v5, spectator chat, season rewards',
     changes_ru: [
+      { type: 'new', text: '10M self-play партий: идеальный баланс (P0 36.35% vs P1 36.33%), 0 разгромов, 54% плотных' },
+      { type: 'new', text: 'AI v5 задеплоен: checkpoint v1493 (+850 итераций обучения на GPU)' },
       { type: 'new', text: 'Spectator chat: зрители могут писать в чат во время наблюдения за партией' },
       { type: 'new', text: 'Сезонные награды: top-10 в сезоне получают эксклюзивные достижения (champion/silver/bronze)' },
       { type: 'new', text: 'Головоломки: +4 новых шаблона (сложность 4-5, до 5 ходов, «Мастер-план»)' },
@@ -18,6 +20,8 @@ const VERSIONS = [
       { type: 'fix', text: 'Миграция БД v5: таблица season_rewards для сезонных наград' },
     ],
     changes_en: [
+      { type: 'new', text: '10M self-play games: perfect balance (P0 36.35% vs P1 36.33%), 0 sweeps, 54% tight' },
+      { type: 'new', text: 'AI v5 deployed: checkpoint v1493 (+850 training iterations on GPU)' },
       { type: 'new', text: 'Spectator chat: viewers can send messages while watching a game' },
       { type: 'new', text: 'Season rewards: top-10 in season get exclusive achievements (champion/silver/bronze)' },
       { type: 'new', text: 'Puzzles: +4 new templates (difficulty 4-5, up to 5 moves, "Master Plan")' },
