@@ -236,33 +236,38 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
 
         <div className={`l-info-cards ${dlVis ? 'in' : ''}`}>
-          <a href="/print-and-play.pdf" target="_blank" className="l-info-card" style={{ cursor: 'pointer', textDecoration: 'none' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '' }}>
-            <div className="l-info-icon" style={{ background: 'rgba(59,184,168,0.1)' }}>
-              <Icon name="download" size={20} color="var(--accent)" />
-            </div>
+          <a href="/print-and-play.pdf" target="_blank" className="l-info-card" style={{ cursor: 'pointer', textDecoration: 'none' }}>
+            <svg viewBox="0 0 48 48" width="44" height="44" style={{ flexShrink: 0 }}>
+              <rect x="8" y="4" width="32" height="40" rx="4" fill="none" stroke="var(--accent)" strokeWidth="1.5" opacity="0.3"/>
+              <line x1="16" y1="16" x2="32" y2="16" stroke="var(--accent)" strokeWidth="1.5" opacity="0.4"/>
+              <line x1="16" y1="22" x2="28" y2="22" stroke="var(--accent)" strokeWidth="1.5" opacity="0.3"/>
+              <line x1="16" y1="28" x2="30" y2="28" stroke="var(--accent)" strokeWidth="1.5" opacity="0.2"/>
+              <path className="l-feat-dash" d="M24 34 L24 44" stroke="var(--accent)" strokeWidth="2" strokeDasharray="3 2"/>
+              <path d="M20 40 L24 44 L28 40" fill="none" stroke="var(--accent)" strokeWidth="2" className="l-feat-pulse"/>
+            </svg>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                {en ? 'PDF: board, blocks, rules' : 'PDF: поле, блоки, правила'}
-              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'PDF: board, blocks, rules' : 'PDF: поле, блоки, правила'}</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{en ? 'Download' : 'Скачать'} →</div>
           </a>
           <div className="l-info-card">
-            <div className="l-info-icon" style={{ background: 'rgba(61,214,140,0.1)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
+            <svg viewBox="0 0 48 48" width="44" height="44" style={{ flexShrink: 0 }}>
+              <path d="M24 4 L40 14 L40 30 C40 38 24 44 24 44 C24 44 8 38 8 30 L8 14 Z" fill="none" stroke="var(--green)" strokeWidth="1.5" opacity="0.3"/>
+              <path className="l-feat-pulse" d="M24 4 L40 14 L40 30 C40 38 24 44 24 44 C24 44 8 38 8 30 L8 14 Z" fill="var(--green)" opacity="0.08"/>
+              <path d="M16 24 L22 30 L34 18" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="l-review-mark" style={{animationDelay:'0s'}}/>
+            </svg>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Free forever' : 'Бесплатно навсегда'}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'No ads, no paywalls' : 'Без рекламы и стен'}</div>
             </div>
           </div>
           <div className="l-info-card">
-            <div className="l-info-icon" style={{ background: 'rgba(255,193,69,0.1)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
+            <svg viewBox="0 0 48 48" width="44" height="44" style={{ flexShrink: 0 }}>
+              <path className="l-heart-beat" d="M24 38 C16 30 8 24 8 18 C8 12 12 8 18 8 C21 8 23 10 24 12 C25 10 27 8 30 8 C36 8 40 12 40 18 C40 24 32 30 24 38Z" fill="var(--gold)" opacity="0.15"/>
+              <path d="M24 38 C16 30 8 24 8 18 C8 12 12 8 18 8 C21 8 23 10 24 12 C25 10 27 8 30 8 C36 8 40 12 40 18 C40 24 32 30 24 38Z" fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.4"/>
+              {[0,1,2].map(i => <circle key={i} className="l-feat-pulse" cx={16+i*8} cy={24} r="2" fill="var(--gold)" style={{animationDelay:`${i*0.4}s`}}/>)}
+            </svg>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Made with love' : 'Сделано с душой'}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'Indie project, 2 people' : 'Инди-проект, 2 человека'}</div>
