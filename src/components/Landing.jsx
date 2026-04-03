@@ -166,7 +166,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       {/* ═══ SCREENSHOTS — 6 тем, блоки ставятся по одному ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'The game in action' : 'Игра в действии'}</h2>
-        <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 720, margin: '0 auto' }}>
+        <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 960, margin: '0 auto' }}>
           {[
             { theme: 'Dark', bg: '#0c0c12', surface: '#1a1a2a', p1: '#4a9eff', p2: '#ff6066' },
             { theme: 'Neon', bg: '#05050a', surface: '#0f0f22', p1: '#00e5ff', p2: '#ff3090' },

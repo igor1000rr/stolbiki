@@ -12,12 +12,12 @@
 .l-hero-title {
   font-size: 40px; font-weight: 700; color: var(--ink); line-height: 1.12;
   margin-bottom: 16px; font-family: 'DM Serif Display', serif;
-  max-width: 640px; margin-left: auto; margin-right: auto;
+  max-width: 800px; margin-left: auto; margin-right: auto;
   opacity: 0; transform: translateY(20px); transition: all 0.7s ease 0.4s;
 }
 .l-hero.in .l-hero-title { opacity: 1; transform: translateY(0); }
 .l-hero-sub {
-  font-size: 16px; color: var(--ink2); line-height: 1.75; max-width: 600px; margin: 0 auto 14px;
+  font-size: 16px; color: var(--ink2); line-height: 1.75; max-width: 720px; margin: 0 auto 14px;
   opacity: 0; transform: translateY(16px); transition: all 0.7s ease 0.55s;
 }
 .l-hero.in .l-hero-sub { opacity: 1; transform: translateY(0); }
@@ -47,7 +47,7 @@
 .l-num-sep { width: 1px; height: 36px; background: var(--surface3); flex-shrink: 0; }
 
 /* ═══ STEPS ═══ */
-.l-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 900px; margin: 0 auto; position: relative; }
+.l-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 1100px; margin: 0 auto; position: relative; }
 .l-steps-line {
   position: absolute; top: 19px; left: 16%; right: 16%; height: 2px;
   background: var(--surface3); transform: scaleX(0); transition: transform 0.8s ease 0.3s; transform-origin: left;
@@ -83,7 +83,7 @@
 /* ═══ PRINT BANNER ═══ */
 
 /* ═══ QA (FAQ) ═══ */
-.l-qa { max-width: 700px; margin: 0 auto; }
+.l-qa { max-width: 900px; margin: 0 auto; }
 .l-qa-row {
   display: flex; gap: 16px; padding: 18px 0;
   border-bottom: 1px solid var(--surface2);
@@ -162,7 +162,7 @@
 
 /* ═══ Features 3×2 grid ═══ */
 .l-feat-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   opacity: 0; transform: translateY(30px); transition: all 0.6s ease;
 }
 .l-feat-grid.in { opacity: 1; transform: none; }
@@ -214,6 +214,7 @@
 .l-review-bar { animation: reviewBar 3.6s ease-in-out infinite; }
 @keyframes reviewBar { 0%,10% { width: 0; } 80% { width: 82px; } 90%,100% { width: 82px; opacity: 0.3; } }
 
+@media (max-width: 1024px) { .l-feat-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 768px) { .l-feat-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .l-feat-grid { grid-template-columns: 1fr; } }
 
@@ -241,3 +242,15 @@
 @media (max-width: 600px) {
 }
 
+
+/* ═══ Large screens (2K+) ═══ */
+@media (min-width: 1600px) {
+  .l-hero-title { font-size: 52px; }
+  .l-hero-sub { font-size: 18px; max-width: 860px; }
+  .l-feat-card { padding: 24px; }
+  .l-feat-title { font-size: 16px; }
+  .l-feat-desc { font-size: 13px; }
+  .l-title { font-size: 28px; }
+  .l-step { padding: 28px 20px; }
+  .l-final h2 { font-size: 38px; }
+}
