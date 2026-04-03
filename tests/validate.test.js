@@ -279,3 +279,25 @@ describe('Boundary stress', () => {
     expect(num(50.5, 0, 100)).toBe(50.5)
   })
 })
+
+// ═══ Security edge cases ═══
+describe('Security edge cases', () => {
+  it('sanitize: script с атрибутами', () => {
+    expect(sanitize('<script src="evil.js">alert(1)</script>')).toBe('alert(1)')
+    expect(sanitize('<img onerror="alert(1)" src=x>')).toBe('')
+  })
+
+  it('sanitize: HTML entities не декодируются', () => {
+    const result = sanitize('&lt;script&gt;')
+    expect(result).toBe('&lt;script&gt;')
+  })
+
+  it('str: null → null', () => {
+    expect(str(null)).toBeNull()
+    expect(str(undefined)).toBeNull()
+  })
+
+  it('password: unicode допускается', () => {
+    expect(password('пароль123')).toBe('пароль123')
+  })
+})
