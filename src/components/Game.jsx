@@ -99,7 +99,7 @@ export default function Game() {
   const prevScore = useRef([0, 0])
 
   const sk = soundClick // тик при <10с
-  const { timerLimit, playerTime, setPlayerTime, elapsed, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
+  const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
     timerSetting: userSettings.timer,
     gameOver: gs.gameOver,
     currentPlayer: gs.currentPlayer,
@@ -570,9 +570,7 @@ export default function Game() {
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording()
     setGameMeta(m, d)
-    setGameStartTime(Date.now())
-    setElapsed(0)
-    if (timerLimit) setPlayerTime([timerLimit, timerLimit])
+    resetTimers()
     setUndoStack([])
     if (m === 'pvp') {
       setLog([{ text: lang === 'en' ? 'New game: player vs player' : 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
@@ -605,32 +603,7 @@ export default function Game() {
 
   // Горячие клавиши — extracted hook
 
-  // Таймер
-  useEffect(() => {
-    if (gs.gameOver) return
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - gameStartTime) / 1000)), 1000)
-    return () => clearInterval(t)
-  }, [gameStartTime, gs.gameOver])
-
-  // Таймер игроков (блиц/рапид)
-  useEffect(() => {
-    if (!timerLimit || gs.gameOver || locked || aiRunning.current) return
-    const cp = gs.currentPlayer
-    const iv = setInterval(() => {
-      setPlayerTime(prev => {
-        const next = [...prev]
-        next[cp] = Math.max(0, prev[cp] - 1)
-        // Тиканье при <10с (только для текущего игрока-человека)
-        if (next[cp] <= 10 && next[cp] > 0 && cp === humanPlayer) sk()
-        if (next[cp] <= 0) {
-          setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
-          setLocked(false)
-        }
-        return next
-      })
-    }, 1000)
-    return () => clearInterval(iv)
-  }, [timerLimit, gs.gameOver, gs.currentPlayer, locked])
+  // Таймеры (elapsed + player) управляются useGameTimer hook
 
   // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
   // Автоподтверждение — когда макс фишек расставлены
@@ -788,7 +761,7 @@ export default function Game() {
           fetch('/api/daily/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
-            body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - gameStartTime) / 1000), won: w }),
+            body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - timerStartTime) / 1000), won: w }),
           }).catch(() => {})
           setDailyMode(false)
         }
