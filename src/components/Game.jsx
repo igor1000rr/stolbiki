@@ -58,20 +58,6 @@ export default function Game() {
     return () => { window.removeEventListener('focus', refresh); unsub?.() }
   }, [gameCtx])
   // Таймеры (extracted hook)
-  const sk = soundClick // тик при <10с
-  const { timerLimit, playerTime, setPlayerTime, elapsed, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
-    timerSetting: userSettings.timer,
-    gameOver: gs.gameOver,
-    currentPlayer: gs.currentPlayer,
-    humanPlayer,
-    locked,
-    aiRunning: aiRunning?.current,
-    onTimeUp: (cp) => {
-      setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
-      setLocked(false)
-    },
-    onTick: () => sk(),
-  })
   const { log, setLog, addLog, resetLog, logRef } = useGameLog(lang)
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
@@ -111,6 +97,21 @@ export default function Game() {
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
+
+  const sk = soundClick // тик при <10с
+  const { timerLimit, playerTime, setPlayerTime, elapsed, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
+    timerSetting: userSettings.timer,
+    gameOver: gs.gameOver,
+    currentPlayer: gs.currentPlayer,
+    humanPlayer,
+    locked,
+    aiRunning: aiRunning?.current,
+    onTimeUp: (cp) => {
+      setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
+      setLocked(false)
+    },
+    onTick: () => sk(),
+  })
 
   // Синхронизируем gsRef с gs
   useEffect(() => { gsRef.current = gs }, [gs])
