@@ -59,7 +59,7 @@ cp server/ecosystem.config.cjs /opt/stolbiki-api/ 2>/dev/null || cp ecosystem.co
 # ─── Зависимости ───
 cd /opt/stolbiki-api
 echo "→ Устанавливаю зависимости..."
-npm install --production
+npm install --omit=dev
 
 # ─── JWT Secret ───
 JWT_FILE=/opt/stolbiki-api/.env
