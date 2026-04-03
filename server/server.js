@@ -8,7 +8,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import jwt from 'jsonwebtoken'
 import { db, JWT_SECRET, PORT } from './db.js'
-import { rateLimit, auth } from './middleware.js'
+import { rateLimit, rateLimits, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
 
 // ═══ Route imports ═══
@@ -311,7 +311,7 @@ function dbMaintenance() {
     // Удаляем ошибки старше 30 дней
     db.prepare("DELETE FROM error_reports WHERE created_at < datetime('now', '-30 days')").run()
     // Удаляем пустые training_data старше 90 дней
-    db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND moves IS NULL").run()
+    db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND game_data IS NULL").run()
     // WAL checkpoint для уменьшения размера WAL файла
     db.pragma('wal_checkpoint(TRUNCATE)')
     console.log(`🔧 DB maintenance done: ${new Date().toISOString()}`)
