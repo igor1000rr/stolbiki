@@ -313,6 +313,7 @@ export default function Profile({ viewUsername, onClose }) {
   const [streakData, setStreakData] = useState(null)
   const [missionsData, setMissionsData] = useState(null)
   const [analyticsData, setAnalyticsData] = useState(null)
+  const [referralData, setReferralData] = useState(null)
 
   // Проверяем сервер при старте
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
@@ -348,6 +349,8 @@ export default function Profile({ viewUsername, onClose }) {
     API.getStreak().then(setStreakData).catch(() => {})
     // Daily missions
     API.getMissions().then(setMissionsData).catch(() => {})
+    // Рефералы
+    API.getReferrals().then(setReferralData).catch(() => {})
   }, [serverOnline]) // eslint-disable-line
 
   // Загрузка аналитики при переключении на вкладку
@@ -590,7 +593,10 @@ export default function Profile({ viewUsername, onClose }) {
     { id: 'achievements', label: `${en ? 'Achievements' : 'Ачивки'} (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
     { id: 'leaderboard', label: en ? 'Ranking' : 'Рейтинг' },
     { id: 'friends', label: en ? 'Friends' : 'Друзья' },
-    ...(serverOnline && API.isLoggedIn() ? [{ id: 'account', label: en ? 'Account' : 'Аккаунт' }] : []),
+    ...(serverOnline && API.isLoggedIn() ? [
+      { id: 'referrals', label: en ? 'Invite' : 'Пригласить' },
+      { id: 'account', label: en ? 'Account' : 'Аккаунт' },
+    ] : []),
   ]
 
   return (
@@ -996,6 +1002,84 @@ export default function Profile({ viewUsername, onClose }) {
       {tab === 'friends' && <ProfileFriends en={en} serverOnline={serverOnline} friendsList={friendsList} pendingFriends={pendingFriends} onRefresh={loadFriends} onError={setError} />}
 
       {/* ─── Аккаунт ─── */}
+      {/* ─── Рефералы ─── */}
+      {tab === 'referrals' && referralData && (() => {
+        const refLink = referralData.link || ''
+        const refCode = referralData.code || ''
+        return (
+          <div className="dash-card" style={{ padding: 20 }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🎁</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>
+                {en ? 'Invite friends' : 'Пригласи друзей'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>
+                {en ? '+100 XP for each invited player' : '+100 XP за каждого приглашённого'}
+              </div>
+            </div>
+
+            {/* Реферальная ссылка */}
+            <div style={{ background: 'var(--bg2)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {refLink}
+              </div>
+              <button className="btn primary" onClick={() => {
+                navigator.clipboard?.writeText(refLink)
+                  .then(() => setError(en ? 'Link copied!' : 'Ссылка скопирована!'))
+                  .catch(() => {})
+              }} style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}>
+                {en ? 'Copy' : 'Скопировать'}
+              </button>
+            </div>
+
+            {/* Кнопка поделиться */}
+            {navigator.share && (
+              <button className="btn" onClick={() => {
+                navigator.share({
+                  title: 'Snatch Highrise',
+                  text: en
+                    ? `Play Snatch Highrise — strategy board game with AI! Use my code: ${refCode}`
+                    : `Играй в Snatch Highrise — стратегическая настолка с AI! Мой код: ${refCode}`,
+                  url: refLink,
+                }).catch(() => {})
+              }} style={{ width: '100%', fontSize: 13, padding: '12px 0', justifyContent: 'center', marginBottom: 16, borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+                {en ? '📤 Share invite' : '📤 Поделиться'}
+              </button>
+            )}
+
+            {/* Код */}
+            <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>
+              {en ? 'Your code' : 'Ваш код'}: <span style={{ fontWeight: 700, color: 'var(--gold)', letterSpacing: 1 }}>{refCode}</span>
+            </div>
+
+            {/* Статистика */}
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', padding: '12px 20px', background: 'var(--bg2)', borderRadius: 10, flex: 1 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)' }}>{referralData.count}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Invited' : 'Приглашено'}</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px 20px', background: 'var(--bg2)', borderRadius: 10, flex: 1 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)' }}>+{referralData.totalXP}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>XP</div>
+              </div>
+            </div>
+
+            {/* Список приглашённых */}
+            {referralData.referrals?.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>{en ? 'Your referrals' : 'Приглашённые'}</div>
+                {referralData.referrals.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--surface2)', fontSize: 13 }}>
+                    <span style={{ color: 'var(--ink)' }}>{r.username}</span>
+                    <span style={{ color: 'var(--green)', fontSize: 12 }}>+{r.xp} XP</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {tab === 'account' && <ProfileAccount en={en} profileName={profile?.name} />}
     </div>
   )

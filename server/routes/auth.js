@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import { db, JWT_SECRET, bcrypt } from '../db.js'
-import { formatUser } from '../helpers.js'
+import { formatUser, addXP } from '../helpers.js'
 import { auth } from '../middleware.js'
 
 const router = Router()
@@ -10,9 +10,14 @@ const router = Router()
 const ADMIN_NAMES = (process.env.ADMIN_USERNAMES || 'admin').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
 
 const TOKEN_EXPIRY = '7d' // Было 30d — снижено для безопасности
+const REFERRAL_XP = 100 // XP реферреру за каждого приглашённого
+
+function generateReferralCode(username, id) {
+  return username.slice(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, '') + id.toString(36).toUpperCase()
+}
 
 router.post('/register', (req, res) => {
-  const { username, email, password } = req.body
+  const { username, email, password, referralCode } = req.body
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
   const cleanName = String(username).trim().replace(/[<>&"']/g, '')
   if (cleanName.length < 2 || cleanName.length > 20) return res.status(400).json({ error: 'Username: 2-20 chars' })
@@ -24,9 +29,30 @@ router.post('/register', (req, res) => {
   const hash = bcrypt.hashSync(password, 10)
   const isAdmin = ADMIN_NAMES.includes(cleanName.toLowerCase()) ? 1 : 0
 
-  const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)').run(cleanName, email || null, hash, isAdmin)
-  const token = jwt.sign({ id: result.lastInsertRowid, username: cleanName, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
-  res.json({ token, user: { id: result.lastInsertRowid, username: cleanName, rating: 1000, isAdmin: !!isAdmin } })
+  // Проверяем реферальный код
+  let referrerId = null
+  if (referralCode) {
+    const referrer = db.prepare('SELECT id FROM users WHERE referral_code = ?').get(String(referralCode).trim().toUpperCase())
+    if (referrer) referrerId = referrer.id
+  }
+
+  const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin, referred_by) VALUES (?, ?, ?, ?, ?)').run(cleanName, email || null, hash, isAdmin, referrerId)
+  const userId = result.lastInsertRowid
+
+  // Генерируем реферальный код
+  const refCode = generateReferralCode(cleanName, userId)
+  db.prepare('UPDATE users SET referral_code=? WHERE id=?').run(refCode, userId)
+
+  // Начисляем XP рефереру
+  if (referrerId) {
+    try {
+      db.prepare('INSERT INTO referrals (referrer_id, referred_id, xp_rewarded) VALUES (?, ?, ?)').run(referrerId, userId, REFERRAL_XP)
+      addXP(referrerId, REFERRAL_XP)
+    } catch {} // UNIQUE constraint — повторная регистрация
+  }
+
+  const token = jwt.sign({ id: userId, username: cleanName, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  res.json({ token, user: { id: userId, username: cleanName, rating: 1000, isAdmin: !!isAdmin, referralCode: refCode } })
 })
 
 router.post('/login', (req, res) => {

@@ -247,8 +247,32 @@ runMigration(3, () => {
 })
 
 // Следующие миграции добавлять так:
-// runMigration(4, 'ALTER TABLE ...')
-// runMigration(5, () => { db.exec(...); db.exec(...) })
+// runMigration(N, 'ALTER TABLE ...')
+// runMigration(N, () => { db.exec(...); db.exec(...) })
+
+// Миграция 4: реферальная система
+runMigration(4, () => {
+  try { db.exec('ALTER TABLE users ADD COLUMN referral_code TEXT UNIQUE') } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN referred_by INTEGER') } catch {}
+  db.exec(`CREATE TABLE IF NOT EXISTS referrals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    referrer_id INTEGER NOT NULL,
+    referred_id INTEGER NOT NULL,
+    xp_rewarded INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(referred_id),
+    FOREIGN KEY (referrer_id) REFERENCES users(id),
+    FOREIGN KEY (referred_id) REFERENCES users(id)
+  )`)
+  db.exec('CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)')
+  // Генерируем реф-коды для существующих юзеров
+  const users = db.prepare('SELECT id, username FROM users WHERE referral_code IS NULL').all()
+  const update = db.prepare('UPDATE users SET referral_code=? WHERE id=?')
+  for (const u of users) {
+    const code = u.username.slice(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, '') + u.id.toString(36).toUpperCase()
+    update.run(code, u.id)
+  }
+})
 
 console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 3`)
 
@@ -697,6 +721,33 @@ if (!blog4469) {
   // Убираем pinned с предыдущих постов
   db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-5-0-code-audit'").run()
   console.log('Блог: добавлен пост v4.5.0')
+}
+
+// ─── Блог-пост v4.5.1 ───
+const blog451 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-5-1-virality'").get()
+if (!blog451) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v4-5-1-virality',
+    'v4.5.1 — Share-карточки и реферальная система',
+    'v4.5.1 — Share cards and referral system',
+    `Виральные фичи — чтобы игроки приводили игроков.
+
+**Share-карточка:** После каждой партии можно поделиться красивой карточкой с результатом. На ней: имя игрока, рейтинг, изменение ELO, сложность AI, визуальное состояние стоек и брендинг. Работает через Canvas → PNG → Web Share API (или скачивание).
+
+**Реферальная система:** У каждого игрока есть уникальный код и ссылка. Отправляете другу — он регистрируется по вашей ссылке, вы получаете +100 XP. В профиле новая вкладка «Пригласить»: ссылка, код, кнопка «Поделиться», количество приглашённых и заработанный XP.
+
+**Как работает:** Ссылка вида snatch-highrise.com?ref=CODE. При переходе код сохраняется в localStorage. При регистрации — автоматически привязывается к аккаунту.`,
+    `Viral features — so players bring more players.
+
+**Share card:** After each game you can share a beautiful result card. It shows: player name, rating, ELO change, AI difficulty, visual stand state, and branding. Works via Canvas → PNG → Web Share API (or download).
+
+**Referral system:** Every player gets a unique code and link. Send it to a friend — they register via your link, you get +100 XP. New "Invite" tab in profile: link, code, share button, referral count and earned XP.
+
+**How it works:** Link format: snatch-highrise.com?ref=CODE. On visit, the code is saved to localStorage. On registration — automatically linked to the account.`,
+    'update', 1, 1
+  )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug NOT IN ('v4-5-1-virality')").run()
+  console.log('Блог: добавлен пост v4.5.1')
 }
 
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание

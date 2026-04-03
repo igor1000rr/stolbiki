@@ -1,7 +1,11 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import { GameProvider } from './engine/GameContext'
+import { captureReferralCode } from './engine/api'
 import App from './App'
+
+// Ловим ?ref=XXX из URL до рендера
+captureReferralCode()
 
 // Error Boundary
 class ErrorBoundary extends Component {

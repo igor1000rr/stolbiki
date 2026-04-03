@@ -86,7 +86,11 @@ export default function GameResultPanel({
         )}
         <button className="btn" onClick={async () => {
           try {
-            const c = generateShareImage(gs, won, isDraw, s0, s1)
+            const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
+            const c = generateShareImage(gs, won, isDraw, s0, s1, {
+              playerName: profile?.name, rating: profile?.rating, ratingDelta,
+              difficulty, moves: gs.turn, elapsed, mode,
+            })
             const blob = await new Promise(r => c.toBlob(r, 'image/png'))
             const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })
             if (navigator.canShare?.({ files: [file] })) navigator.share({ text: shareText, files: [file] }).catch(() => {})

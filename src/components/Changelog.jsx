@@ -6,6 +6,26 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.5.1',
+    date: '2026-04-03',
+    title_ru: 'Виральность — share-карточки и реферальная система',
+    title_en: 'Virality — share cards and referral system',
+    changes_ru: [
+      { type: 'new', text: 'Share-карточка: имя игрока, рейтинг, сложность AI, стойки, брендинг' },
+      { type: 'new', text: 'Реферальная система: уникальный код, ссылка ?ref=, +100 XP за каждого приглашённого' },
+      { type: 'new', text: 'Вкладка «Пригласить» в профиле: ссылка, код, кнопка «Поделиться», статистика' },
+      { type: 'new', text: 'Автоматический захват ?ref= из URL при первом визите' },
+      { type: 'new', text: 'Миграция БД v4: таблица referrals, referral_code для каждого юзера' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Share card: player name, rating, AI difficulty, stands, branding' },
+      { type: 'new', text: 'Referral system: unique code, ?ref= link, +100 XP per invited player' },
+      { type: 'new', text: '"Invite" tab in profile: link, code, share button, stats' },
+      { type: 'new', text: 'Auto-capture ?ref= from URL on first visit' },
+      { type: 'new', text: 'DB migration v4: referrals table, referral_code for each user' },
+    ],
+  },
+  {
     version: '4.5.0',
     date: '2026-04-03',
     title_ru: 'Аудит кода — очистка, оптимизация, Node 22',

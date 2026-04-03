@@ -47,8 +47,10 @@ async function api(path, options = {}, _retried = false) {
 
 // ═══ Auth ═══
 export async function register(username, password) {
-  const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) })
+  const referralCode = getSavedReferralCode()
+  const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ username, password, referralCode }) })
   setToken(data.token)
+  if (referralCode) localStorage.removeItem('stolbiki_ref') // Код использован
   return data.user
 }
 
@@ -211,4 +213,29 @@ export async function checkServer() {
   } catch {
     return false
   }
+}
+
+// ═══ Рефералы ═══
+export async function getReferrals() {
+  return await api('/profile/referrals')
+}
+
+/** Сохраняет реферальный код из URL (?ref=XXX) в localStorage */
+export function captureReferralCode() {
+  try {
+    const params = new URLSearchParams(location.search)
+    const ref = params.get('ref')
+    if (ref) {
+      localStorage.setItem('stolbiki_ref', ref.trim().toUpperCase())
+      // Убираем ?ref= из URL
+      const url = new URL(location.href)
+      url.searchParams.delete('ref')
+      history.replaceState(null, '', url.pathname + url.search)
+    }
+  } catch {}
+}
+
+/** Возвращает сохранённый реферальный код (для передачи при регистрации) */
+export function getSavedReferralCode() {
+  return localStorage.getItem('stolbiki_ref') || null
 }
