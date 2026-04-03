@@ -6,7 +6,7 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
-    version: '4.4.69',
+    version: '4.5.0',
     date: '2026-04-03',
     title_ru: 'Аудит кода — очистка, оптимизация, Node 22',
     title_en: 'Code audit — cleanup, optimization, Node 22',
@@ -17,7 +17,7 @@ const VERSIONS = [
       { type: 'fix', text: 'Удалён дублирующий setInterval очистки в middleware.js' },
       { type: 'fix', text: 'PM2: exec_mode fork вместо cluster (SQLite = один писатель)' },
       { type: 'fix', text: 'Удалён фейковый aggregateRating из JSON-LD (Google manual action risk)' },
-      { type: 'fix', text: 'Исправлен v3.7 → v4.4.69 в native More tab' },
+      { type: 'fix', text: 'Исправлен v3.7 → v4.5.0 в native More tab' },
       { type: 'fix', text: 'setup-vps.sh обновлён на Node.js 22' },
       { type: 'new', text: 'Vite: manual chunks — engine и charts выделены в отдельные чанки' },
       { type: 'new', text: 'ELO-график: линии рейтинг-тиров (1200/1500/1800), точка текущего рейтинга' },
@@ -30,7 +30,7 @@ const VERSIONS = [
       { type: 'fix', text: 'Removed duplicate setInterval cleanup in middleware.js' },
       { type: 'fix', text: 'PM2: fork mode instead of cluster (SQLite = single writer)' },
       { type: 'fix', text: 'Removed fake aggregateRating from JSON-LD (Google manual action risk)' },
-      { type: 'fix', text: 'Fixed v3.7 → v4.4.69 in native More tab' },
+      { type: 'fix', text: 'Fixed v3.7 → v4.5.0 in native More tab' },
       { type: 'fix', text: 'setup-vps.sh updated to Node.js 22' },
       { type: 'new', text: 'Vite: manual chunks — engine and charts split into separate chunks' },
       { type: 'new', text: 'ELO chart: rating tier lines (1200/1500/1800), current rating dot' },

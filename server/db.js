@@ -659,13 +659,13 @@ if (!blog35) {
   console.log('Блог: добавлен пост v3.5')
 }
 
-// ─── Блог-пост v4.4.69 ───
-const blog4469 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-4-69-code-audit'").get()
+// ─── Блог-пост v4.5.0 ───
+const blog4469 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-5-0-code-audit'").get()
 if (!blog4469) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-4-69-code-audit',
-    'v4.4.69 — Аудит кода, очистка, Node 22',
-    'v4.4.69 — Code audit, cleanup, Node 22',
+    'v4-5-0-code-audit',
+    'v4.5.0 — Аудит кода, очистка, Node 22',
+    'v4.5.0 — Code audit, cleanup, Node 22',
     `Технический аудит всей кодовой базы: сервер, клиент, CI/CD, инфраструктура.
 
 **Node.js 22:** VPS обновлён с Node 20 на 22.22.2. Capacitor CLI требует 22+, CI уже использовал 22 — теперь всё синхронизировано. better-sqlite3 пересобран под новый ABI.
@@ -695,8 +695,8 @@ if (!blog4469) {
     'update', 1, 1
   )
   // Убираем pinned с предыдущих постов
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-4-69-code-audit'").run()
-  console.log('Блог: добавлен пост v4.4.69')
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-5-0-code-audit'").run()
+  console.log('Блог: добавлен пост v4.5.0')
 }
 
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
