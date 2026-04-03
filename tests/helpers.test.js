@@ -134,3 +134,30 @@ describe('seededRandom edge cases', () => {
     expect(val).toBeLessThan(1)
   })
 })
+
+// ═══ Timestamp и дата ═══
+describe('Date utilities', () => {
+  it('getDailySeed формат YYYY-M-D', () => {
+    const seed = getDailySeed()
+    // Формат: "2026-4-3" или "2026-12-25"
+    const parts = seed.split('-')
+    expect(parts.length).toBe(3)
+    const year = parseInt(parts[0])
+    const month = parseInt(parts[1])
+    const day = parseInt(parts[2])
+    expect(year).toBeGreaterThanOrEqual(2024)
+    expect(month).toBeGreaterThanOrEqual(1)
+    expect(month).toBeLessThanOrEqual(12)
+    expect(day).toBeGreaterThanOrEqual(1)
+    expect(day).toBeLessThanOrEqual(31)
+  })
+
+  it('seededRandom 1000 значений — все в [0,1)', () => {
+    const rng = seededRandom(42)
+    for (let i = 0; i < 1000; i++) {
+      const val = rng()
+      expect(val).toBeGreaterThanOrEqual(0)
+      expect(val).toBeLessThan(1)
+    }
+  })
+})
