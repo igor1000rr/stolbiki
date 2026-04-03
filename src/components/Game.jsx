@@ -604,14 +604,6 @@ export default function Game() {
   }, [gameCtx])
 
   // Горячие клавиши — extracted hook
-  useKeyboardShortcuts({
-    canConfirm, isMyTurn, phase, confirmTurn,
-    inTransferMode, cancelTransfer,
-    gameOver: gs.gameOver, result, newGame,
-    mode, undoStack, undoMove,
-    locked, numStands: gs.numStands, onStandClick,
-    requestHint,
-  })
 
   // Таймер
   useEffect(() => {
@@ -866,6 +858,15 @@ export default function Game() {
   const isMyTurn = (mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer) && !gs.gameOver && !aiRunning.current && !locked
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
+
+  useKeyboardShortcuts({
+    canConfirm, isMyTurn, phase, confirmTurn,
+    inTransferMode, cancelTransfer,
+    gameOver: gs.gameOver, result, newGame,
+    mode, undoStack, undoMove,
+    locked, numStands: gs.numStands, onStandClick,
+    requestHint,
+  })
 
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('stolbiki_tutorial_seen'))
 
