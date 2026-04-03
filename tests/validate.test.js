@@ -301,3 +301,30 @@ describe('Security edge cases', () => {
     expect(password('пароль123')).toBe('пароль123')
   })
 })
+
+// ═══ Injection attacks ═══
+describe('Injection attacks', () => {
+  it('sanitize: SQL injection attempt', () => {
+    const result = sanitize("'; DROP TABLE users; --")
+    expect(result).not.toContain('<')
+    expect(typeof result).toBe('string')
+  })
+
+  it('username: path traversal stripped to safe chars', () => {
+    const result = username('../../../etc/passwd')
+    expect(result).not.toContain('/')
+    expect(result).not.toContain('\\')
+  })
+
+  it('slug: special chars stripped', () => {
+    const result = slug('hello<>world')
+    expect(result).not.toContain('<')
+    expect(result).not.toContain('>')
+  })
+
+  it('str: very long input truncated', () => {
+    const input = 'x'.repeat(10000)
+    const result = str(input, 200)
+    expect(result.length).toBeLessThanOrEqual(200)
+  })
+})

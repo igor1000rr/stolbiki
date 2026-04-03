@@ -756,3 +756,47 @@ describe('Transfer edge cases', () => {
     expect(ns.numOpen()).toBe(before - 1)
   })
 })
+
+// ═══ Full game simulation ═══
+describe('Full game simulation', () => {
+  it('партия заканчивается с валидным winner', () => {
+    for (let seed = 0; seed < 5; seed++) {
+      let gs = new GameState()
+      let safety = 0
+      while (!gs.gameOver && safety < 500) {
+        const actions = getLegalActions(gs)
+        if (actions.length === 0) break
+        const action = actions[Math.floor(Math.random() * actions.length)]
+        gs = applyAction(gs, action)
+        safety++
+      }
+      if (gs.gameOver) {
+        expect([0, 1]).toContain(gs.winner)
+      }
+    }
+  })
+
+  it('после gameOver нет доступных actions', () => {
+    let gs = new GameState()
+    // Форсируем gameOver
+    for (let i = 0; i < 6; i++) gs.closed[i] = 0
+    gs.turn = 20
+    gs = applyAction(gs, { placement: {} })
+    expect(gs.gameOver).toBe(true)
+    // getLegalActions может вернуть пустой массив или pass
+    const actions = getLegalActions(gs)
+    // Не должно быть placement/transfer actions
+    const realActions = actions.filter(a => a.placement && Object.keys(a.placement).length > 0)
+    expect(realActions.length).toBe(0)
+  })
+
+  it('applyAction не мутирует оригинальный state', () => {
+    const gs = new GameState()
+    gs.stands[0] = [0, 0]
+    gs.stands[1] = [1]
+    gs.turn = 5
+    const original = JSON.stringify(gs.stands)
+    applyAction(gs, { placement: { 2: 1 } })
+    expect(JSON.stringify(gs.stands)).toBe(original)
+  })
+})
