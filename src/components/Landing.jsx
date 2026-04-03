@@ -207,35 +207,41 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
 
       {/* ═══ DOWNLOAD + FEATURES ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 28, padding: '40px 36px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Mascot pose="wave" size={130} large animate={false} style={{ flexShrink: 0 }} />
-          <div style={{ flex: '1 1 300px', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
-              {en ? 'Play on your phone' : 'Играйте на телефоне'}
-            </h2>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 18px' }}>
-              {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
-            </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <div className="l-dl-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                <div><div className="l-dl-sub">Download on the</div><div className="l-dl-name">App Store</div></div>
-                <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
-              </div>
-              <div className="l-dl-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
-                <div><div className="l-dl-sub">GET IT ON</div><div className="l-dl-name">Google Play</div></div>
-                <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
+        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef}>
+          <div className="l-download-card" style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div className="l-dl-mascot-float">
+              <Mascot pose="wave" size={130} large animate={false} style={{ flexShrink: 0 }} />
+            </div>
+            <div style={{ flex: '1 1 300px', textAlign: 'center' }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
+                {en ? 'Play on your phone' : 'Играйте на телефоне'}
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 18px' }}>
+                {en ? 'Same account, same progress, offline AI mode' : 'Тот же аккаунт, тот же прогресс, офлайн-режим с AI'}
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <div className="l-dl-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <div><div className="l-dl-sub">Download on the</div><div className="l-dl-name">App Store</div></div>
+                  <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
+                </div>
+                <div className="l-dl-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-1.12L20.16 12l-2.44-2L15.45 12.27l2.27 2.27v-.04zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
+                  <div><div className="l-dl-sub">GET IT ON</div><div className="l-dl-name">Google Play</div></div>
+                  <span className="l-dl-badge">{en ? 'Soon' : 'Скоро'}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 16 }}>
-          <a href="/print-and-play.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)', textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface3)'; e.currentTarget.style.transform = '' }}>
-            <Icon name="download" size={20} color="var(--accent)" />
+        <div className={`l-info-cards ${dlVis ? 'in' : ''}`}>
+          <a href="/print-and-play.pdf" target="_blank" className="l-info-card" style={{ cursor: 'pointer', textDecoration: 'none' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '' }}>
+            <div className="l-info-icon" style={{ background: 'rgba(59,184,168,0.1)' }}>
+              <Icon name="download" size={20} color="var(--accent)" />
+            </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
@@ -244,15 +250,19 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </div>
             <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{en ? 'Download' : 'Скачать'} →</div>
           </a>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div className="l-info-card">
+            <div className="l-info-icon" style={{ background: 'rgba(61,214,140,0.1)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Free forever' : 'Бесплатно навсегда'}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'No ads, no paywalls' : 'Без рекламы и стен'}</div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <div className="l-info-card">
+            <div className="l-info-icon" style={{ background: 'rgba(255,193,69,0.1)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Made with love' : 'Сделано с душой'}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'Indie project, 2 people' : 'Инди-проект, 2 человека'}</div>
