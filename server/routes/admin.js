@@ -190,5 +190,48 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ ok: true })
   })
 
+  // ═══ Рефералы — статистика ═══
+  router.get('/referrals', auth, adminOnly, (req, res) => {
+    const total = db.prepare('SELECT COUNT(*) as c FROM referrals').get()?.c || 0
+    const totalXP = db.prepare('SELECT SUM(xp_rewarded) as s FROM referrals').get()?.s || 0
+    const byDay = db.prepare(`
+      SELECT date(created_at) as day, COUNT(*) as count
+      FROM referrals WHERE created_at > datetime('now', '-30 days')
+      GROUP BY day ORDER BY day
+    `).all()
+    const topReferrers = db.prepare(`
+      SELECT u.username, u.rating, COUNT(r.id) as referral_count, SUM(r.xp_rewarded) as total_xp
+      FROM referrals r JOIN users u ON u.id = r.referrer_id
+      GROUP BY r.referrer_id ORDER BY referral_count DESC LIMIT 20
+    `).all()
+    const recent = db.prepare(`
+      SELECT r.created_at, u1.username as referrer, u2.username as referred, r.xp_rewarded
+      FROM referrals r JOIN users u1 ON u1.id = r.referrer_id JOIN users u2 ON u2.id = r.referred_id
+      ORDER BY r.created_at DESC LIMIT 50
+    `).all()
+    res.json({ total, totalXP, byDay, topReferrers, recent })
+  })
+
+  // ═══ Challenges — статистика ═══
+  router.get('/challenges', auth, adminOnly, (req, res) => {
+    try {
+      const total = db.prepare('SELECT COUNT(*) as c FROM challenges').get()?.c || 0
+      const byStatus = db.prepare('SELECT status, COUNT(*) as count FROM challenges GROUP BY status').all()
+      const byDay = db.prepare(`
+        SELECT date(created_at) as day, COUNT(*) as count
+        FROM challenges WHERE created_at > datetime('now', '-30 days')
+        GROUP BY day ORDER BY day
+      `).all()
+      const recent = db.prepare(`
+        SELECT c.status, c.room_id, c.created_at, u1.username as from_user, u2.username as to_user
+        FROM challenges c JOIN users u1 ON u1.id = c.from_id JOIN users u2 ON u2.id = c.to_id
+        ORDER BY c.created_at DESC LIMIT 50
+      `).all()
+      res.json({ total, byStatus, byDay, recent })
+    } catch {
+      res.json({ total: 0, byStatus: [], byDay: [], recent: [] })
+    }
+  })
+
   return router
 }

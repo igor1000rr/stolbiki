@@ -1055,6 +1055,84 @@ function ContentTab() {
 }
 
 // ═══ MAIN ═══
+// ═══ Рефералы ═══
+function ReferralsTab() {
+  const [data, setData] = useState(null)
+  useEffect(() => { api('/admin/referrals').then(setData).catch(() => {}) }, [])
+  if (!data) return <div style={{ color: 'var(--ink3)' }}>Загрузка...</div>
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        <div style={S.metric('var(--accent)')}><div style={S.metricVal('var(--ink)')}>{data.total}</div><div style={S.metricLabel}>Всего рефералов</div></div>
+        <div style={S.metric('var(--accent)')}><div style={{ ...S.metricVal('var(--ink)'), color: 'var(--gold)' }}>+{data.totalXP}</div><div style={S.metricLabel}>XP выдано</div></div>
+        <div style={S.metric('var(--accent)')}><div style={S.metricVal('var(--ink)')}>{data.topReferrers?.length || 0}</div><div style={S.metricLabel}>Реферреров</div></div>
+      </div>
+      {data.topReferrers?.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 8 }}>Топ реферреров</h3>
+          {data.topReferrers.map((r, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--surface2)', fontSize: 12 }}>
+              <span style={{ color: 'var(--ink3)', width: 20 }}>{i + 1}.</span>
+              <span style={{ flex: 1, color: 'var(--ink)' }}>{r.username}</span>
+              <span style={{ color: 'var(--ink3)' }}>{r.rating} ELO</span>
+              <span style={{ color: 'var(--green)', fontWeight: 600 }}>{r.referral_count} чел.</span>
+              <span style={{ color: 'var(--gold)' }}>+{r.total_xp} XP</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {data.recent?.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 8 }}>Последние</h3>
+          {data.recent.slice(0, 20).map((r, i) => (
+            <div key={i} style={{ fontSize: 11, color: 'var(--ink3)', padding: '4px 0', borderBottom: '1px solid var(--surface)' }}>
+              <span style={{ color: 'var(--green)' }}>{r.referrer}</span> → <span style={{ color: 'var(--ink)' }}>{r.referred}</span>
+              <span style={{ marginLeft: 8, color: 'var(--gold)' }}>+{r.xp_rewarded} XP</span>
+              <span style={{ float: 'right' }}>{new Date(r.created_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ═══ Вызовы (Challenges) ═══
+function ChallengesTab() {
+  const [data, setData] = useState(null)
+  useEffect(() => { api('/admin/challenges').then(setData).catch(() => {}) }, [])
+  if (!data) return <div style={{ color: 'var(--ink3)' }}>Загрузка...</div>
+  const statusColors = { pending: 'var(--gold)', accepted: 'var(--green)', declined: 'var(--p2)', expired: 'var(--ink3)' }
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12, marginBottom: 20 }}>
+        <div style={S.metric('var(--accent)')}><div style={S.metricVal('var(--ink)')}>{data.total}</div><div style={S.metricLabel}>Всего вызовов</div></div>
+        {data.byStatus?.map(s => (
+          <div key={s.status} style={S.metric('var(--accent)')}>
+            <div style={{ ...S.metricVal('var(--ink)'), color: statusColors[s.status] || 'var(--ink)' }}>{s.count}</div>
+            <div style={S.metricLabel}>{s.status}</div>
+          </div>
+        ))}
+      </div>
+      {data.recent?.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 8 }}>Последние</h3>
+          {data.recent.slice(0, 30).map((c, i) => (
+            <div key={i} style={{ fontSize: 11, color: 'var(--ink3)', padding: '4px 0', borderBottom: '1px solid var(--surface)', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ color: 'var(--ink)' }}>{c.from_user}</span>
+              <span>→</span>
+              <span style={{ color: 'var(--ink)' }}>{c.to_user}</span>
+              <span style={{ color: statusColors[c.status], fontWeight: 600 }}>{c.status}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 10 }}>{c.room_id}</span>
+              <span style={{ fontSize: 10 }}>{new Date(c.created_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const TABS = [
   { id: 'overview', label: 'Обзор', icon: '◉' },
   { id: 'content', label: 'Контент', icon: '✏' },
@@ -1065,6 +1143,8 @@ const TABS = [
   { id: 'achievements', label: 'Ачивки', icon: '★' },
   { id: 'seasons', label: 'Сезоны', icon: '☾' },
   { id: 'training', label: 'Обуч. данные', icon: '⟁' },
+  { id: 'referrals', label: 'Рефералы', icon: '🎁' },
+  { id: 'challenges', label: 'Вызовы', icon: '⚔' },
   { id: 'server', label: 'Сервер', icon: '⚙' },
 ]
 
@@ -1110,6 +1190,8 @@ export default function Admin() {
         {tab === 'achievements' && <AchievementsTab />}
         {tab === 'seasons' && <SeasonsTab />}
         {tab === 'training' && <TrainingTab />}
+        {tab === 'referrals' && <ReferralsTab />}
+        {tab === 'challenges' && <ChallengesTab />}
         {tab === 'server' && <ServerTab />}
       </div>
     )
@@ -1139,6 +1221,8 @@ export default function Admin() {
         {tab === 'achievements' && <AchievementsTab />}
         {tab === 'seasons' && <SeasonsTab />}
         {tab === 'training' && <TrainingTab />}
+        {tab === 'referrals' && <ReferralsTab />}
+        {tab === 'challenges' && <ChallengesTab />}
         {tab === 'server' && <ServerTab />}
       </main>
     </div>
