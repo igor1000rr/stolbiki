@@ -152,6 +152,54 @@ const PUZZLE_TEMPLATES = [
         desc_ru: 'Достройте золотую ★ и перехватите высотку', desc_en: 'Complete golden ★ and capture a highrise' }
     }
   },
+  // ─── Сложные (4 хода) — комбинация переносов и размещений ───
+  { difficulty: 4, maxMoves: 4, title_ru: 'Тотальный контроль', title_en: 'Total control',
+    gen: (rng) => {
+      const stands = Array.from({length:10}, () => [])
+      const targets = [1 + Math.floor(rng() * 3), 4 + Math.floor(rng() * 3), 7 + Math.floor(rng() * 2)]
+      targets.forEach((t, i) => {
+        stands[t] = [...Array(2 + Math.floor(rng() * 2)).fill(1), ...Array(5 + i).fill(0)]
+      })
+      const srcs = [0, 9].filter(i => !targets.includes(i))
+      srcs.forEach(s => { stands[s] = Array(3).fill(0) })
+      return { stands, goal: { minClosed: 3, maxMoves: 4 },
+        desc_ru: 'Достройте 3 высотки за 4 хода', desc_en: 'Complete 3 highrises in 4 moves' }
+    }
+  },
+  { difficulty: 4, maxMoves: 4, title_ru: 'Блокада', title_en: 'Blockade',
+    gen: (rng) => {
+      const stands = Array.from({length:10}, () => [])
+      // Враг близок к победе — нужно перехватить
+      stands[0] = [...Array(7).fill(1), ...Array(2).fill(0)]
+      const enemy = 2 + Math.floor(rng() * 6)
+      stands[enemy] = [...Array(8).fill(0), ...Array(2).fill(1)]
+      const src = enemy === 5 ? 8 : 5
+      stands[src] = Array(4).fill(0)
+      return { stands, goal: { closedByPlayer: { 0: 0, [enemy]: 0 }, maxMoves: 4 },
+        desc_ru: 'Перехватите вражескую высотку и достройте золотую', desc_en: 'Capture enemy highrise and complete golden' }
+    }
+  },
+  // ─── Экстрим (5 ходов) ───
+  { difficulty: 5, maxMoves: 5, title_ru: 'Мастер-план', title_en: 'Master plan',
+    gen: (rng) => {
+      const stands = Array.from({length:10}, () => [])
+      const targets = []
+      for (let i = 0; i < 4 && targets.length < 4; i++) {
+        const t = Math.floor(rng() * 10)
+        if (!targets.includes(t)) targets.push(t)
+      }
+      targets.forEach(t => {
+        stands[t] = [...Array(1 + Math.floor(rng() * 3)).fill(1), ...Array(6 + Math.floor(rng() * 2)).fill(0)]
+      })
+      for (let i = 0; i < 10; i++) {
+        if (!targets.includes(i) && stands[i].length === 0 && rng() > 0.5) {
+          stands[i] = Array(2 + Math.floor(rng() * 2)).fill(0)
+        }
+      }
+      return { stands, goal: { minClosed: 4, maxMoves: 5 },
+        desc_ru: 'Достройте 4 высотки за 5 ходов — требуется идеальная стратегия', desc_en: 'Complete 4 highrises in 5 moves — perfect strategy required' }
+    }
+  },
 ]
 
 function puzzleSeededRandom(seed) {

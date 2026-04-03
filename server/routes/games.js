@@ -132,6 +132,32 @@ router.get('/seasons/history', (req, res) => {
   res.json(seasons)
 })
 
+// ═══ Сезонные награды ═══
+// Проверяем завершённые сезоны и раздаём награды top-10
+router.get('/seasons/rewards', auth, (req, res) => {
+  // Раздаём награды за прошлые сезоны (если ещё не розданы)
+  const pastSeasons = db.prepare("SELECT * FROM seasons WHERE active=0 AND end_date < date('now')").all()
+  for (const season of pastSeasons) {
+    const already = db.prepare('SELECT COUNT(*) as c FROM season_rewards WHERE season_id=?').get(season.id)
+    if (already.c > 0) continue // Уже розданы
+    // Top-10 игроков сезона
+    const top = db.prepare('SELECT user_id, rating FROM season_ratings WHERE season_id=? AND games >= 5 ORDER BY rating DESC LIMIT 10').all(season.id)
+    const rewardMap = { 1: 'season_champion', 2: 'season_silver', 3: 'season_bronze' }
+    const insert = db.prepare('INSERT OR IGNORE INTO season_rewards (user_id, season_id, placement, reward_type, reward_id) VALUES (?, ?, ?, ?, ?)')
+    top.forEach((p, i) => {
+      const reward = rewardMap[i + 1] || 'season_top10'
+      insert.run(p.user_id, season.id, i + 1, 'achievement', reward)
+    })
+  }
+  // Возвращаем награды текущего юзера
+  const myRewards = db.prepare(`
+    SELECT sr.placement, sr.reward_type, sr.reward_id, sr.claimed, s.name as season_name
+    FROM season_rewards sr JOIN seasons s ON s.id = sr.season_id
+    WHERE sr.user_id = ? ORDER BY s.start_date DESC
+  `).all(req.user.id)
+  res.json(myRewards)
+})
+
 router.get('/leaderboard', (req, res) => {
   const limit = Math.min(+req.query.limit || 20, 100)
   const users = db.prepare('SELECT id, username, rating, games_played, wins, losses, best_streak, level, xp FROM users ORDER BY rating DESC LIMIT ?').all(limit)

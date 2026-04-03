@@ -1,33 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url>
-    <loc>https://snatch-highrise.com/</loc>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/"/>
-    <lastmod>2026-04-02</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://snatch-highrise.com/en/</loc>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/"/>
-    <changefreq>weekly</changefreq><priority>1.0</priority>
-  </url>
-  <url><loc>https://snatch-highrise.com/game</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/game"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://snatch-highrise.com/en/game</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/game"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://snatch-highrise.com/rules</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/rules"/><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://snatch-highrise.com/en/rules</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/rules"/><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://snatch-highrise.com/online</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/online"/><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://snatch-highrise.com/en/online</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/online"/><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://snatch-highrise.com/puzzles</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/puzzles"/><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://snatch-highrise.com/en/puzzles</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/puzzles"/><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://snatch-highrise.com/blog</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/blog"/><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://snatch-highrise.com/en/blog</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/blog"/><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://snatch-highrise.com/profile</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/profile"/><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://snatch-highrise.com/en/profile</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/profile"/><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://snatch-highrise.com/openings</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/openings"/><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/en/openings</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/openings"/><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://snatch-highrise.com/changelog</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/changelog"/><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://snatch-highrise.com/en/changelog</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/changelog"/><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://snatch-highrise.com/privacy</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/privacy"/><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://snatch-highrise.com/settings</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/settings"/><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://snatch-highrise.com/</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/"/><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://snatch-highrise.com/en/</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/"/><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://snatch-highrise.com/game</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/game"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://snatch-highrise.com/en/game</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/game"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://snatch-highrise.com/online</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/online"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://snatch-highrise.com/en/online</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/online"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://snatch-highrise.com/puzzles</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/puzzles"/><lastmod>2026-04-03</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://snatch-highrise.com/en/puzzles</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/puzzles"/><lastmod>2026-04-03</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://snatch-highrise.com/rules</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/rules"/><lastmod>2026-04-03</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://snatch-highrise.com/en/rules</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/rules"/><lastmod>2026-04-03</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://snatch-highrise.com/blog</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/blog"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://snatch-highrise.com/en/blog</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/blog"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://snatch-highrise.com/profile</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/profile"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://snatch-highrise.com/en/profile</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/profile"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://snatch-highrise.com/openings</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/openings"/><lastmod>2026-04-03</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://snatch-highrise.com/en/openings</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/openings"/><lastmod>2026-04-03</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://snatch-highrise.com/settings</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/settings"/><lastmod>2026-04-03</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://snatch-highrise.com/en/settings</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/settings"/><lastmod>2026-04-03</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://snatch-highrise.com/changelog</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/changelog"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://snatch-highrise.com/en/changelog</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/changelog"/><lastmod>2026-04-03</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://snatch-highrise.com/privacy</loc><xhtml:link rel="alternate" hreflang="en" href="https://snatch-highrise.com/en/privacy"/><lastmod>2026-04-03</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://snatch-highrise.com/en/privacy</loc><xhtml:link rel="alternate" hreflang="ru" href="https://snatch-highrise.com/privacy"/><lastmod>2026-04-03</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

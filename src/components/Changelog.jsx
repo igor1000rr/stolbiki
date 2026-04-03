@@ -6,6 +6,26 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.6.1',
+    date: '2026-04-03',
+    title_ru: 'Spectator chat, сезонные награды, сложные головоломки, SEO',
+    title_en: 'Spectator chat, season rewards, hard puzzles, SEO',
+    changes_ru: [
+      { type: 'new', text: 'Spectator chat: зрители могут писать в чат во время наблюдения за партией' },
+      { type: 'new', text: 'Сезонные награды: top-10 в сезоне получают эксклюзивные достижения (champion/silver/bronze)' },
+      { type: 'new', text: 'Головоломки: +4 новых шаблона (сложность 4-5, до 5 ходов, «Мастер-план»)' },
+      { type: 'fix', text: 'SEO: sitemap обновлён — 22 URL с hreflang и lastmod для всех страниц' },
+      { type: 'fix', text: 'Миграция БД v5: таблица season_rewards для сезонных наград' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Spectator chat: viewers can send messages while watching a game' },
+      { type: 'new', text: 'Season rewards: top-10 in season get exclusive achievements (champion/silver/bronze)' },
+      { type: 'new', text: 'Puzzles: +4 new templates (difficulty 4-5, up to 5 moves, "Master Plan")' },
+      { type: 'fix', text: 'SEO: sitemap updated — 22 URLs with hreflang and lastmod for all pages' },
+      { type: 'fix', text: 'DB migration v5: season_rewards table for seasonal rewards' },
+    ],
+  },
+  {
     version: '4.6.0',
     date: '2026-04-03',
     title_ru: 'Friend Challenge, CSS –81%, рефералы, share-карточки',

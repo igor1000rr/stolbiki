@@ -274,7 +274,24 @@ runMigration(4, () => {
   }
 })
 
-console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 3`)
+// Миграция 5: сезонные награды
+runMigration(5, () => {
+  db.exec(`CREATE TABLE IF NOT EXISTS season_rewards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    season_id INTEGER NOT NULL,
+    placement INTEGER NOT NULL,
+    reward_type TEXT NOT NULL,
+    reward_id TEXT NOT NULL,
+    claimed INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, season_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (season_id) REFERENCES seasons(id)
+  )`)
+})
+
+console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 5`)
 
 // ─── Таблицы (CREATE IF NOT EXISTS — идемпотентны) ───
 

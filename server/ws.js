@@ -328,11 +328,21 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       if (msg.type === 'chat' && playerRoom && msg.text) {
         const text = String(msg.text).replace(/<[^>]*>/g, '').slice(0, 50).trim()
         if (!text) return
-        playerRoom.players.forEach((p, i) => {
-          if (i !== playerIdx && p.ws?.readyState === 1) {
-            p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))
-          }
-        })
+        if (isSpectator) {
+          // Spectator chat — рассылаем всем (игрокам + зрителям)
+          const name = wsUser?.username || 'Spectator'
+          const chatMsg = JSON.stringify({ type: 'chat', text, from: -1, spectator: true, name })
+          playerRoom.players.forEach(p => { if (p.ws?.readyState === 1) p.ws.send(chatMsg) })
+          broadcastToSpectators(playerRoom, chatMsg)
+        } else {
+          // Обычный чат игрока
+          playerRoom.players.forEach((p, i) => {
+            if (i !== playerIdx && p.ws?.readyState === 1) {
+              p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))
+            }
+          })
+          broadcastToSpectators(playerRoom, { type: 'chat', text, from: playerIdx })
+        }
       }
 
       // ─── EMOJI REACTIONS ───
