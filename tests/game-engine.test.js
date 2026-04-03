@@ -726,3 +726,33 @@ describe('Transfer closing rules', () => {
     expect(ns.stands[0].length).toBe(0) // Источник пуст
   })
 })
+
+// ═══ Transfer edge cases ═══
+describe('Transfer edge cases', () => {
+  it('нельзя переносить на ту же стойку', () => {
+    const stands = emptyStands()
+    stands[5] = [0, 0, 0]
+    const gs = makeState(stands)
+    const transfers = getValidTransfers(gs)
+    transfers.forEach(t => expect(t[0]).not.toBe(t[1]))
+  })
+
+  it('пустые стойки не являются источником переноса', () => {
+    const gs = new GameState()
+    gs.turn = 10
+    const transfers = getValidTransfers(gs)
+    transfers.forEach(([src]) => {
+      expect(gs.stands[src].length).toBeGreaterThan(0)
+    })
+  })
+
+  it('перенос уменьшает numOpen при закрытии', () => {
+    const stands = emptyStands()
+    stands[0] = [0, 0]
+    stands[1] = Array(9).fill(0) // 9+2=11 → закрытие
+    const gs = makeState(stands, { currentPlayer: 0 })
+    const before = gs.numOpen()
+    const ns = applyAction(gs, { transfer: [0, 1], placement: {} })
+    expect(ns.numOpen()).toBe(before - 1)
+  })
+})

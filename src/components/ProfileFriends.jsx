@@ -97,7 +97,7 @@ export default function ProfileFriends({ en, serverOnline, friendsList, pendingF
                 <button className="btn primary" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28 }}
                   onClick={() => doAccept(u.id)}>{en ? 'Accept' : 'Принять'}</button>
                 <button className="btn" style={{ fontSize: 11, padding: '4px 10px', minHeight: 28, opacity: 0.6 }}
-                  onClick={() => doDecline(u.id)}>✕</button>
+                  onClick={() => doDecline(u.id)} aria-label={en ? 'Decline' : 'Отклонить'}>✕</button>
               </div>
             ))}
           </div>

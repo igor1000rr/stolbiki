@@ -40,9 +40,12 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", 'https://mc.yandex.ru'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru', 'https://api.qrserver.com'],
       connectSrc: ["'self'", 'ws:', 'wss:', 'https://mc.yandex.ru'],
     },
+  },
+  permissionsPolicy: {
+    features: { camera: [], microphone: [], geolocation: [] },
   },
 }))
 app.use(cors({
