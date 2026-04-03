@@ -280,120 +280,68 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ PRINT & PLAY + FREE ═══ */}
+      {/* ═══ PRINT & PLAY + ABOUT ═══ */}
       <section className="l-section">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <a href="/print-and-play.pdf" target="_blank" style={{ textDecoration: 'none', display: 'block', padding: '36px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', transition: 'border-color 0.3s, transform 0.3s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,214,140,0.4)'; e.currentTarget.style.transform = 'translateY(-4px)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.transform = '' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-              <svg viewBox="0 0 240 120" width="240">
-                {/* Ножницы */}
-                <g className="l-feat-dash" style={{transformOrigin:'20px 20px'}}>
-                  <line x1="10" y1="10" x2="30" y2="30" stroke="#3dd68c" strokeWidth="1.5" opacity="0.4"/>
-                  <line x1="30" y1="10" x2="10" y2="30" stroke="#3dd68c" strokeWidth="1.5" opacity="0.4"/>
-                  <circle cx="8" cy="8" r="4" fill="none" stroke="#3dd68c" strokeWidth="1" opacity="0.3"/>
-                  <circle cx="32" cy="8" r="4" fill="none" stroke="#3dd68c" strokeWidth="1" opacity="0.3"/>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <svg viewBox="0 0 160 80" width="180">
+                {/* Поле */}
+                <rect x="10" y="5" width="60" height="70" rx="8" fill="#0d0d14" stroke="#3dd68c" strokeWidth="1" opacity="0.4"/>
+                {[0,1,2,3,4,5,6,7,8].map(i => <rect key={i} className="l-bar-wave" x={16+i*6} y={60-[18,28,22,32,20,30,24,34,26][i]} width={4} height={[18,28,22,32,20,30,24,34,26][i]} rx={1.5} fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.7" style={{animationDelay:`${i*0.1}s`,transformOrigin:`${16+i*6+2}px 60px`}}/>)}
+                {/* Блоки */}
+                <g transform="translate(85,10)">
+                  {[0,1,2].map(r => [0,1,2,3,4].map(c => <rect key={`${r}-${c}`} x={c*13} y={r*13} width={11} height={11} rx={2.5}
+                    fill={(r+c)%2===0?'#4a9eff18':'#ff606618'} stroke={(r+c)%2===0?'#4a9eff35':'#ff606635'} strokeWidth="0.5"
+                    className="l-feat-pulse" style={{animationDelay:`${(r*5+c)*0.1}s`}}/>))}
+                  <text x="32" y="55" textAnchor="middle" fill="#3dd68c80" fontSize="6">110 {en?'blocks':'блоков'}</text>
                 </g>
-                {/* Игровое поле */}
-                <rect x="50" y="8" width="80" height="104" rx="8" fill="#0d0d14" stroke="#3dd68c" strokeWidth="1.5" opacity="0.3"/>
-                <text x="90" y="24" textAnchor="middle" fill="#3dd68c" fontSize="7" fontWeight="700" opacity="0.6">GAME BOARD</text>
-                {/* 10 миниатюрных стоек */}
-                {[0,1,2,3,4,5,6,7,8,9].map(i => (
-                  <g key={i}>
-                    <rect x={56+i*7} y={95-[20,30,25,35,22,32,28,38,24,34][i]} width={4} height={[20,30,25,35,22,32,28,38,24,34][i]} rx={1}
-                      fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.6" className="l-bar-wave"
-                      style={{animationDelay:`${i*0.1}s`,transformOrigin:`${56+i*7+2}px 95px`}}/>
-                    <text x={58+i*7} y={103} textAnchor="middle" fill="rgba(255,255,255,0.15)" fontSize="4">{i===0?'★':'ABCDEFGHI'[i-1]}</text>
-                  </g>
-                ))}
-                {/* Блоки для вырезания */}
-                <g transform="translate(145,15)">
-                  <text x="35" y="0" textAnchor="middle" fill="#3dd68c" fontSize="6" fontWeight="600" opacity="0.5">110 {en?'BLOCKS':'БЛОКОВ'}</text>
-                  {[0,1,2,3,4].map(r => [0,1,2,3,4,5].map(c => {
-                    const isBlue = (r+c)%2===0
-                    return <rect key={`${r}-${c}`} x={c*12} y={6+r*12} width={10} height={10} rx={2}
-                      fill={isBlue?'#4a9eff20':'#ff606620'} stroke={isBlue?'#4a9eff40':'#ff606640'} strokeWidth="0.5"
-                      className="l-feat-pulse" style={{animationDelay:`${(r*6+c)*0.08}s`}}/>
-                  }))}
-                </g>
-                {/* Стрелка скачивания */}
-                <path d="M90 112 L90 120" stroke="#3dd68c" strokeWidth="2" strokeDasharray="3 2" className="l-feat-dash"/>
-                <path d="M85 118 L90 123 L95 118" fill="none" stroke="#3dd68c" strokeWidth="2" className="l-feat-pulse"/>
+                {/* Стрелка */}
+                <path d="M80 68 L80 78" stroke="#3dd68c" strokeWidth="2" strokeDasharray="3 2" className="l-feat-dash"/>
+                <path d="M76 76 L80 80 L84 76" fill="none" stroke="#3dd68c" strokeWidth="1.5" className="l-feat-pulse"/>
               </svg>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: '#3dd68c', marginBottom: 10 }}>
-                🖨️ Print & Play
-              </h3>
-              <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 14 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: '#3dd68c', marginBottom: 10 }}>Print & Play</h3>
+              <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>
                 {en
-                  ? 'Download the free PDF — game board, 110 blocks to cut out, and full rules. Grab scissors and play at the table!'
-                  : 'Скачайте бесплатный PDF — игровое поле, 110 блоков для вырезания и полные правила. Берите ножницы и играйте за столом!'}
+                  ? 'Free PDF with game board, 110 blocks and rules. Print, cut, play!'
+                  : 'Бесплатный PDF с полем, 110 блоками и правилами. Распечатай, вырежи, играй!'}
               </p>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-                {(en ? ['Game board','110 blocks','Full rules','Free'] : ['Игровое поле','110 блоков','Правила','Бесплатно']).map((t,i) => (
-                  <span key={i} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'rgba(61,214,140,0.1)', color: '#3dd68c', fontWeight: 500 }}>{t}</span>
-                ))}
-              </div>
               <span style={{ fontSize: 15, color: '#3dd68c', fontWeight: 700 }}>{en ? 'Download PDF' : 'Скачать PDF'} →</span>
             </div>
           </a>
 
           <div style={{ padding: '36px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-              <svg viewBox="0 0 240 120" width="240">
-                {/* Большой $0 */}
-                <text x="120" y="55" textAnchor="middle" fill="#ffc145" fontSize="48" fontWeight="800" opacity="0.15">FREE</text>
-                <text x="120" y="55" textAnchor="middle" fill="#ffc145" fontSize="48" fontWeight="800" opacity="0.6" className="l-feat-pulse">FREE</text>
-                {/* Зачёркнутая реклама */}
-                <g transform="translate(20,70)">
-                  <rect x="0" y="0" width="40" height="20" rx="4" fill="#ff606615" stroke="#ff606630" strokeWidth="0.5"/>
-                  <text x="20" y="14" textAnchor="middle" fill="#ff6066" fontSize="7" opacity="0.5">AD</text>
-                  <line x1="0" y1="10" x2="40" y2="10" stroke="#ff6066" strokeWidth="1.5" className="l-feat-dash"/>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <svg viewBox="0 0 160 80" width="180">
+                {/* Два игрока */}
+                <circle cx="50" cy="30" r="14" fill="none" stroke="#4a9eff" strokeWidth="1" opacity="0.3"/>
+                <circle cx="50" cy="30" r="5" fill="#4a9eff" className="l-feat-pulse"/>
+                <circle cx="110" cy="30" r="14" fill="none" stroke="#ff6066" strokeWidth="1" opacity="0.3"/>
+                <circle cx="110" cy="30" r="5" fill="#ff6066" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/>
+                {/* Связь */}
+                <line x1="64" y1="30" x2="96" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="4 3" className="l-feat-dash"/>
+                <circle className="l-packet" cx="64" cy="30" r="2.5" fill="#ffc145"/>
+                {/* Сердце */}
+                <g transform="translate(68,52)">
+                  <path className="l-heart-beat" d="M12 18 C8 14 2 11 2 7 C2 4 4 2 7 2 C9 2 11 4 12 6 C13 4 15 2 17 2 C20 2 22 4 22 7 C22 11 16 14 12 18Z" fill="#ffc14540" stroke="#ffc14560" strokeWidth="0.5"/>
                 </g>
-                {/* Зачёркнутый трекер */}
-                <g transform="translate(70,70)">
-                  <rect x="0" y="0" width="40" height="20" rx="4" fill="#e040fb15" stroke="#e040fb30" strokeWidth="0.5"/>
-                  <text x="20" y="14" textAnchor="middle" fill="#e040fb" fontSize="6" opacity="0.5">TRACK</text>
-                  <line x1="0" y1="10" x2="40" y2="10" stroke="#e040fb" strokeWidth="1.5" className="l-feat-dash"/>
-                </g>
-                {/* Зачёркнутый paywall */}
-                <g transform="translate(120,70)">
-                  <rect x="0" y="0" width="40" height="20" rx="4" fill="#4a9eff15" stroke="#4a9eff30" strokeWidth="0.5"/>
-                  <text x="20" y="14" textAnchor="middle" fill="#4a9eff" fontSize="6" opacity="0.5">PAY</text>
-                  <line x1="0" y1="10" x2="40" y2="10" stroke="#4a9eff" strokeWidth="1.5" className="l-feat-dash"/>
-                </g>
-                {/* Сердце indie */}
-                <g transform="translate(175,68)">
-                  <path className="l-heart-beat" d="M20 22 C14 16 6 12 6 8 C6 4 9 2 12 2 C15 2 17 4 20 7 C23 4 25 2 28 2 C31 2 34 4 34 8 C34 12 26 16 20 22Z" fill="#ffc14530" stroke="#ffc14560" strokeWidth="0.5"/>
-                  <text x="20" y="30" textAnchor="middle" fill="#ffc14580" fontSize="5" fontWeight="600">indie</text>
-                </g>
-                {/* Пульсирующие галочки */}
-                {[0,1,2,3].map(i => (
-                  <g key={i} transform={`translate(${30+i*55},100)`}>
-                    <circle className="l-feat-pulse" cx="10" cy="6" r="4" fill={['#3dd68c','#3dd68c','#3dd68c','#ffc145'][i]} opacity="0.3" style={{animationDelay:`${i*0.25}s`}}/>
-                    <text x="10" y="8" textAnchor="middle" fill={['#3dd68c','#3dd68c','#3dd68c','#ffc145'][i]} fontSize="7" fontWeight="700" className="l-review-mark" style={{animationDelay:`${i*0.3}s`}}>✓</text>
-                    <text x="10" y="18" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="4.5">
-                      {(en?['free','safe','open','love']:['бесплатно','безопасно','открыто','с душой'])[i]}
-                    </text>
-                  </g>
-                ))}
+                {/* Подписи */}
+                <text x="50" y="55" textAnchor="middle" fill="#4a9eff80" fontSize="6">{en?'you':'вы'}</text>
+                <text x="110" y="55" textAnchor="middle" fill="#ff606680" fontSize="6">Snappy</text>
+                <text x="80" y="76" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="6">{en?'made with love':'сделано с душой'}</text>
               </svg>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: '#ffc145', marginBottom: 10 }}>
-                {en ? '100% free. Zero ads.' : '100% бесплатно. Ноль рекламы.'}
-              </h3>
-              <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 14 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: '#ffc145', marginBottom: 10 }}>{en ? 'Indie project' : 'Инди-проект'}</h3>
+              <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7 }}>
                 {en
-                  ? 'Snatch Highrise is an indie project made by 2 people who love board games. No investors, no monetization, no dark patterns. Just pure strategy.'
-                  : 'Snatch Highrise — инди-проект двух людей, которые любят настольные игры. Без инвесторов, без монетизации, без тёмных паттернов. Чистая стратегия.'}
+                  ? 'Built by 2 people who love board games. No ads, no paywalls. Free to play, supported by the community.'
+                  : 'Создан двумя людьми, которые любят настольные игры. Без рекламы и платных стен. Бесплатная игра при поддержке сообщества.'}
               </p>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#3dd68c' }}>$0</span>
-                <span style={{ fontSize: 12, color: 'var(--ink3)', alignSelf: 'center' }}>{en ? 'forever' : 'навсегда'}</span>
-              </div>
             </div>
           </div>
         </div>
