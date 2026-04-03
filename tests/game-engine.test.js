@@ -574,3 +574,49 @@ describe('Advanced edge cases', () => {
     }
   })
 })
+
+// ═══ Constants + combined actions ═══
+describe('Constants & combined actions', () => {
+  it('NUM_STANDS = 10', () => {
+    expect(NUM_STANDS).toBe(10)
+  })
+
+  it('GOLDEN_STAND = 0', () => {
+    expect(GOLDEN_STAND).toBe(0)
+  })
+
+  it('MAX_CHIPS = 11', () => {
+    expect(MAX_CHIPS).toBe(11)
+  })
+
+  it('placement на 3 разных стойки', () => {
+    let gs = new GameState()
+    gs = applyAction(gs, { placement: { 0: 1 } }) // P0 first turn
+    const ns = applyAction(gs, { placement: { 1: 1, 2: 1, 3: 1 } })
+    expect(ns.stands[1]).toEqual([1])
+    expect(ns.stands[2]).toEqual([1])
+    expect(ns.stands[3]).toEqual([1])
+  })
+
+  it('transfer + placement в одном ходу', () => {
+    const gs = new GameState()
+    gs.stands[0] = [0, 0]
+    gs.stands[1] = [0, 0, 0, 0, 0]
+    gs.turn = 10
+    const ns = applyAction(gs, { transfer: [0, 1], placement: { 3: 1 } })
+    expect(ns.stands[0].length).toBe(0)
+    expect(ns.stands[1].length).toBe(7)
+    expect(ns.stands[3].length).toBe(1)
+  })
+
+  it('стойка достигает MAX_CHIPS при переносе → закрытие', () => {
+    const gs = new GameState()
+    gs.stands[5] = Array(MAX_CHIPS - 2).fill(0) // 9 блоков
+    gs.stands[3] = [0, 0] // 2 блока для переноса
+    gs.turn = 20
+    const ns = applyAction(gs, { transfer: [3, 5], placement: {} })
+    // 9+2=11=MAX_CHIPS → стойка закрыта
+    expect(5 in ns.closed).toBe(true)
+    expect(ns.closed[5]).toBe(0) // Закрыта за P0
+  })
+})
