@@ -31,7 +31,7 @@ export default function DailyChallenge() {
     if (gameCtx) gameCtx.emit('onDailyStart', daily)
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 20 }}><div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/hero.webp" alt="" width={40} height={40} style={{ objectFit: 'contain' }} /></div></div>
+  if (loading) return <div style={{ textAlign: 'center', padding: 20 }}><div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/wave.webp" alt="" width={40} height={40} style={{ objectFit: 'contain' }} /></div></div>
   if (!daily) return null
 
   const dateStr = daily.date || daily.seed

@@ -45,7 +45,7 @@ export default function Arena({ onClose, onJoinMatch }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)',
       display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: 'var(--ink2)', textAlign: 'center', padding: 20 }}>
-        <div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/hero.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} /></div>
+        <div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/celebrate.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} /></div>
       </div>
     </div>
   )

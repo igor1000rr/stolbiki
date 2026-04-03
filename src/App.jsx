@@ -36,7 +36,7 @@ import SplashScreen from './components/SplashScreen'
 function LazyFallback() {
   return <div style={{ textAlign: 'center', padding: '32px 16px' }}>
     <div style={{ animation: 'float 1.5s ease-in-out infinite' }}>
-      <img src="/mascot/hero.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} />
+      <img src="/mascot/think.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} />
     </div>
   </div>
 }
