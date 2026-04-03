@@ -869,7 +869,7 @@ export default function Game() {
   }
 
   return (
-    <div className={isNative ? 'native-game-wrapper' : 'game-page-wrap'}>
+    <div className={isNative ? 'native-game-wrapper' : ''}>
       {/* Туториал для новых игроков */}
       {showTutorial && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isNative ? 12 : 20, overflowY: 'auto' }}

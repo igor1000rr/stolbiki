@@ -87,10 +87,6 @@ body::before {
   z-index: 1;
 }
 
-/* Страничный контент — центрирование на широких экранах */
-.page-wrap { max-width: 900px; margin: 0 auto; }
-@media (min-width: 1600px) { .page-wrap { max-width: 1000px; } }
-
 /* ═══════════════════════════════════════════
    SITE HEADER
    ═══════════════════════════════════════════ */
@@ -245,8 +241,8 @@ body::before {
 
 /* Подвал */
 .site-footer {
-  border-top: 1px solid var(--surface2); padding: 20px 0 12px;
-  margin-top: 40px;
+  border-top: 1px solid var(--surface2); padding: 24px 0 16px;
+  margin-top: 56px;
 }
 .site-footer-inner {
   display: flex; justify-content: space-between; align-items: center;
@@ -384,6 +380,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   display: flex;
   gap: 16px;
   justify-content: center;
+  margin-bottom: 24px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }

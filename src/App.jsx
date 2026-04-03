@@ -748,21 +748,21 @@ export default function App() {
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
-          <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><div className='page-wrap'><Online /></div></div>
+          <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><div ><Online /></div></div>
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
-          {tab === 'puzzles' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Puzzles /></div>}
-          {tab === 'openings' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
-          {tab === 'blog' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
-          {tab === 'settings' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
-          {tab === 'profile' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
+          {tab === 'puzzles' && <div style={isNative ? { padding: '0 8px' } : undefined}><Puzzles /></div>}
+          {tab === 'openings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
+          {tab === 'blog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
+          {tab === 'settings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
+          {tab === 'profile' && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
           {tab === 'sim' && isAdmin && <Simulator />}
           {tab === 'dash' && isAdmin && <Dashboard />}
           {tab === 'replay' && isAdmin && <Replay />}
           {tab === 'admin' && isAdmin && <Admin />}
-          {tab === 'changelog' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
-          {tab === 'rules' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
-          {tab === 'privacy' && <div className={isNative ? '' : 'page-wrap'} style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
+          {tab === 'changelog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
+          {tab === 'rules' && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
+          {tab === 'privacy' && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
           {tab === 'more' && isNative && (
             <div className="m-more-page">
               {authUser && (
