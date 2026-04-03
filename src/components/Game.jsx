@@ -1127,7 +1127,7 @@ export default function Game() {
         <div className="score-player">
           <div className="score-label">{mode === 'ai'
             ? (humanPlayer === 0
-              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || (en ? 'Player' : 'Игрок'))
+              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || t('game.player'))
               : 'Snappy')
             : (en ? 'Blue' : 'Синие')}</div>
           <div className={`score-num p0 ${scoreBump === 0 ? 'score-bump' : ''}`}>{gs.countClosed(0)}</div>
@@ -1136,7 +1136,7 @@ export default function Game() {
         <div className="score-player">
           <div className="score-label">{mode === 'ai'
             ? (humanPlayer === 1
-              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || (en ? 'Player' : 'Игрок'))
+              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || t('game.player'))
               : 'Snappy')
             : (en ? 'Red' : 'Красные')}</div>
           <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
@@ -1191,7 +1191,7 @@ export default function Game() {
             })}
           </div>
           <span style={{ fontSize: 9, color: 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {lang === 'en' ? 'Move' : 'Ход'} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+            {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
           </span>
         </div>
       ) : (
@@ -1210,7 +1210,7 @@ export default function Game() {
           })}
         </div>
         <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink3)', marginBottom: 6 }}>
-          {lang === 'en' ? 'Turn' : 'Ход'} {gs.turn} · {lang === 'en' ? 'Open' : 'Открыто'}: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+          {t('game.turn')} {gs.turn} · {t('game.open')}: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
         </div>
         </>
       )}

@@ -41,7 +41,7 @@ export default function GameResultPanel({
       }</span>
       <div style={{ fontSize: isNative ? 44 : 32, fontWeight: 700, margin: isNative ? '12px 0' : '6px 0', color: 'var(--ink)' }}>{s0} : {s1}</div>
       <div style={{ fontSize: isNative ? 12 : 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
-        <span>{lang === 'en' ? 'Moves' : 'Ходов'}: {gs.turn}</span>
+        <span>{t('game.moves')}: {gs.turn}</span>
         <span>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
         {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {lang === 'en' ? 'Golden' : 'Золотая'}</span>}
       </div>
@@ -52,7 +52,7 @@ export default function GameResultPanel({
       )}
       {sessionStats?.streak >= 3 && won && (
         <div style={{ fontSize: isNative ? 16 : 13, color: 'var(--gold)', marginTop: 8, fontWeight: 600, animation: 'fadeIn 0.5s' }}>
-          🔥 {lang === 'en' ? `${sessionStats.streak} win streak!` : `${sessionStats.streak} побед подряд!`}
+          🔥 {sessionStats.streak} {t('game.winStreak')}
         </div>
       )}
       <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>
@@ -64,7 +64,7 @@ export default function GameResultPanel({
             {(mode === 'online' || mode === 'spectate-online')
               ? (t('game.backToLobby'))
               : (mode === 'ai' && !won && !isDraw)
-                ? (lang === 'en' ? 'Rematch!' : 'Реванш!')
+                ? t('game.rematch')
                 : (t('game.anotherGame'))}
           </button>
         )}
@@ -82,7 +82,7 @@ export default function GameResultPanel({
         )}
         {mode === 'ai' && !tournament && (
           <button className="btn" onClick={() => newGame(humanPlayer === 0 ? 1 : 0, difficulty, mode)} style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 20px' : '8px 14px', justifyContent: 'center' }}>
-            {lang === 'en' ? 'Switch side' : 'Сменить сторону'}
+            {t('game.switchSide')}
           </button>
         )}
         {mode === 'ai' && !won && !isDraw && sessionStats.loseStreak >= 3 && difficulty > 50 && (
@@ -90,7 +90,7 @@ export default function GameResultPanel({
             const easier = difficulty >= 400 ? 200 : difficulty >= 200 ? 100 : 50
             newGame(humanPlayer, easier, mode)
           }} style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 20px' : '8px 14px', justifyContent: 'center', borderColor: 'var(--gold)', color: 'var(--gold)', animation: 'fadeIn 0.5s ease' }}>
-            {lang === 'en' ? 'Try easier?' : 'Попробовать полегче?'}
+            {t('game.tryEasier')}
           </button>
         )}
         <button className="btn" onClick={async () => {

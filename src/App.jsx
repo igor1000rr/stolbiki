@@ -348,7 +348,15 @@ export default function App() {
     }
   }, [isAdmin, tab])
 
-  function go(id) { setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  function go(id) {
+    // Auto-tutorial: первый раз на Game → показать уроки
+    if (id === 'game' && !isNative && !localStorage.getItem('stolbiki_played')) {
+      localStorage.setItem('stolbiki_played', '1')
+      setShowLessons(true)
+      return
+    }
+    setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Rate popup — проверяем при возврате на главный экран
   useEffect(() => {
@@ -570,7 +578,7 @@ export default function App() {
               <div style={{ position: 'relative' }}>
                 <button onClick={() => { setNotifOpen(v => !v); setAuthOpen(false) }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', position: 'relative', color: 'var(--ink2)', fontSize: 18 }}
-                  aria-label="Notifications">
+                  aria-label="Notifications" title="Notifications">
                   🔔
                   {notifCount > 0 && (
                     <span style={{
@@ -839,7 +847,7 @@ export default function App() {
       </main>
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
-      {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => setShowLessons(false)} /></Suspense>}
+      {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => { setShowLessons(false); setTab('game') }} /></Suspense>}
       {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} /></Suspense>}
       {showSkinShop && <Suspense fallback={<LazyFallback />}><SkinShop onClose={() => setShowSkinShop(false)} userLevel={authUser?.level || 1} currentTheme={theme} onThemeChange={setTheme} /></Suspense>}
 
