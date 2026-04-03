@@ -3,7 +3,7 @@
  * 
  * GPU-сеть: ResNet 107→256→[6 ResBlocks]→64→1 (840,321 params)
  *   - gpu_weights.bin (~3.3MB, ~800KB gzip) — binary Float32
- *   - Fallback: gpu_weights.json (~8.1MB, ~900KB gzip)
+ *   - gpu_weights.bin (~3.2MB, ~800KB gzip) — binary формат
  * CPU-сеть: MLP 73→64→64→1 (8,961 params) — fallback
  *   - net_weights.json (179KB), 239K партий
  * 
@@ -59,21 +59,11 @@ export async function loadGpuWeights() {
   if (loadingGpu) { await loadingGpu; return gpuWeights }
 
   loadingGpu = (async () => {
-    // Пробуем binary формат (в 2.5× меньше)
     try {
       const res = await fetch(new URL('./gpu_weights.bin', import.meta.url))
       if (res.ok) {
         const buf = await res.arrayBuffer()
         gpuWeights = parseBinaryWeights(buf)
-        useGpu = true
-        return
-      }
-    } catch {}
-    // Fallback: JSON
-    try {
-      const res = await fetch(new URL('./gpu_weights.json', import.meta.url))
-      if (res.ok) {
-        gpuWeights = await res.json()
         useGpu = true
       }
     } catch {}
