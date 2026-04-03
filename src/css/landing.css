@@ -338,3 +338,9 @@
   45% { transform: scale(1.1); }
   60% { transform: scale(1); }
 }
+
+/* Download grid responsive */
+@media (max-width: 768px) {
+  .l-download.in > div { grid-template-columns: 1fr !important; }
+  .l-download.in > div > div:last-child svg { width: 140px; }
+}
