@@ -213,3 +213,38 @@ describe('Edge cases', () => {
     expect(password('pass word 123')).toBe('pass word 123')
   })
 })
+
+// ═══ Комбинированные edge cases ═══
+describe('Combined validation', () => {
+  it('sanitize → str pipeline (сохраняет текст, удаляет теги)', () => {
+    const raw = '<b>Hello</b> World <script>evil</script>'
+    const s = str(sanitize(raw), 50)
+    expect(s).toBe('Hello World evil') // sanitize удаляет теги, но сохраняет текст внутри
+    expect(s.includes('<')).toBe(false)
+  })
+
+  it('username с HTML — strip теги, сохранить текст', () => {
+    // sanitize в username удаляет <>, оставляет текст
+    expect(username('<script>admin')).toBe('scriptadmin')
+  })
+
+  it('username с пробелами — trim', () => {
+    expect(username('  test  ')).toBe('test')
+  })
+
+  it('num с NaN → null', () => {
+    expect(num(NaN, 5, 100)).toBeNull() // NaN не число → null
+  })
+
+  it('str с числом → null (ожидает строку)', () => {
+    expect(str(12345)).toBeNull() // typeof 12345 !== 'string'
+  })
+
+  it('slug допускает цифры в начале', () => {
+    expect(slug('123-abc')).toBe('123-abc')
+  })
+
+  it('slug с пробелами → strip (не null)', () => {
+    expect(slug('hello world')).toBe('helloworld') // пробелы удаляются
+  })
+})
