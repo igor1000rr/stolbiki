@@ -10,6 +10,17 @@ export const rateLimits = new Map()
 const gameSubmitLimits = new Map()
 export { gameSubmitLimits }
 
+// Очистка устаревших записей каждые 5 мин (memory leak prevention)
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of rateLimits) {
+    if (now - entry.start > 120000) rateLimits.delete(key) // 2 мин
+  }
+  for (const [key, ts] of gameSubmitLimits) {
+    if (now - ts > 60000) gameSubmitLimits.delete(key) // 1 мин
+  }
+}, 300000)
+
 export function rateLimit(windowMs = 60000, max = 60) {
   return (req, res, next) => {
     const key = req.ip + ':' + req.path

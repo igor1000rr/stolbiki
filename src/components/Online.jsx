@@ -339,6 +339,11 @@ export default function Online() {
 
   useEffect(() => () => MP.disconnect(), [])
 
+  // Авто-загрузка активных комнат при входе в лобби
+  useEffect(() => {
+    if (screen === 'lobby') loadActiveRooms()
+  }, [screen])
+
   // Из Game.jsx: кнопка "В лобби" после завершения онлайн-партии
   useEffect(() => {
     const back = () => backToLobby()
@@ -380,7 +385,13 @@ export default function Online() {
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
           
           <h3 style={{ fontSize: 18, marginBottom: 4, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
-          <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
+          <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 12 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
+          {activeRooms.length > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--green)', marginBottom: 12, display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulse 2s ease infinite' }} />
+              {activeRooms.length} {en ? 'game' : 'игр'}{activeRooms.length > 1 && (en ? 's' : '')} {en ? 'live' : 'сейчас'}
+            </div>
+          )}
 
           {error && <div style={{ color: 'var(--p2)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
 
