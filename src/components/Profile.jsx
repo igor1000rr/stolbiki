@@ -641,6 +641,62 @@ export default function Profile({ viewUsername, onClose }) {
                   <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
                 </div>
               </div>
+              {/* Share profile button */}
+              <button onClick={async () => {
+                const c = document.createElement('canvas')
+                c.width = 600; c.height = 320
+                const ctx = c.getContext('2d')
+                const f = "'Outfit', sans-serif"
+                // Фон
+                const g = ctx.createLinearGradient(0, 0, 0, 320)
+                g.addColorStop(0, '#0e0e18'); g.addColorStop(1, '#18182a')
+                ctx.fillStyle = g; ctx.fillRect(0, 0, 600, 320)
+                ctx.fillStyle = 'var(--accent)' === 'var(--accent)' ? '#3bb8a8' : '#3bb8a8'
+                ctx.fillRect(0, 0, 600, 3)
+                // Имя
+                ctx.fillStyle = '#eae8f2'; ctx.font = `bold 26px ${f}`; ctx.textAlign = 'center'
+                ctx.fillText(profile.name, 300, 50)
+                // Рейтинг
+                ctx.fillStyle = '#ffc145'; ctx.font = `bold 64px ${f}`
+                ctx.fillText(String(profile.rating), 300, 130)
+                ctx.fillStyle = '#6e6a82'; ctx.font = `14px ${f}`
+                ctx.fillText('ELO', 300, 152)
+                // Статы
+                const stats = [
+                  [profile.gamesPlayed || 0, en ? 'Games' : 'Партий'],
+                  [profile.wins || 0, en ? 'Wins' : 'Побед'],
+                  [profile.bestStreak || 0, en ? 'Best streak' : 'Лучшая серия'],
+                  [unlockedAch.length, en ? 'Achievements' : 'Ачивки'],
+                ]
+                stats.forEach(([val, label], i) => {
+                  const x = 80 + i * 130
+                  ctx.fillStyle = '#eae8f2'; ctx.font = `bold 22px ${f}`
+                  ctx.fillText(String(val), x, 200)
+                  ctx.fillStyle = '#6e6a82'; ctx.font = `10px ${f}`
+                  ctx.fillText(label, x, 218)
+                })
+                // Уровень
+                if (profile.level > 1) {
+                  ctx.fillStyle = '#3bb8a8'; ctx.font = `bold 14px ${f}`
+                  ctx.fillText(`Level ${profile.level}`, 300, 258)
+                }
+                // Брендинг
+                ctx.fillStyle = '#3d3d50'; ctx.font = `12px ${f}`
+                ctx.fillText('snatch-highrise.com', 300, 300)
+                // Share
+                try {
+                  const blob = await new Promise(r => c.toBlob(r, 'image/png'))
+                  const file = new File([blob], 'profile.png', { type: 'image/png' })
+                  if (navigator.canShare?.({ files: [file] })) navigator.share({ text: `${profile.name} — ${profile.rating} ELO — snatch-highrise.com`, files: [file] })
+                  else if (navigator.share) navigator.share({ text: `${profile.name} — ${profile.rating} ELO — snatch-highrise.com` })
+                  else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'profile.png'; a.click() }
+                } catch {}
+              }} style={{
+                position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.08)', border: 'none',
+                borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)',
+              }}>
+                📤 {en ? 'Share' : 'Поделиться'}
+              </button>
             </div>
             {/* Streak + Calendar inside same card */}
             <div style={{ padding: '0 20px 16px' }}>
@@ -962,6 +1018,35 @@ export default function Profile({ viewUsername, onClose }) {
 
       {/* ─── Лидерборд ─── */}
       {tab === 'leaderboard' && (
+        <>
+        {/* Рейтинг среди друзей */}
+        {friendsList.length > 0 && (
+          <div className="dash-card" style={{ marginBottom: 16 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>👥</span> {en ? 'Friends ranking' : 'Среди друзей'}
+            </h3>
+            <div style={{ marginTop: 8 }}>
+              {[...(profile ? [{ username: profile.name || profile.username, rating: profile.rating || 1000, isMe: true }] : []),
+                ...friendsList.map(f => ({ username: f.username, rating: f.rating, isMe: false }))
+              ].sort((a, b) => b.rating - a.rating).map((p, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                  background: p.isMe ? 'rgba(74,158,255,0.08)' : 'transparent',
+                  borderBottom: '1px solid var(--surface2)', borderRadius: p.isMe ? 8 : 0,
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? 'var(--gold)' : i === 1 ? 'var(--silver)' : i === 2 ? 'var(--bronze)' : 'var(--ink3)', minWidth: 24 }}>
+                    {i + 1}.
+                  </span>
+                  <span style={{ flex: 1, fontSize: 13, color: p.isMe ? 'var(--p1-light)' : 'var(--ink)', fontWeight: p.isMe ? 700 : 400 }}>
+                    {p.username} {p.isMe && <span style={{ fontSize: 9, color: 'var(--ink3)' }}>(вы)</span>}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{p.rating}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Глобальный рейтинг */}
         <div className="dash-card">
           <h3>{en ? 'Leaderboard' : 'Рейтинг игроков'}</h3>
           <table className="dash-table" style={{ marginTop: 8, fontSize: 12 }}>
@@ -996,6 +1081,7 @@ export default function Profile({ viewUsername, onClose }) {
             {serverOnline ? `${leaderboard.length} ${en ? 'players' : 'игроков'}` : (en ? 'Offline — demo data' : 'Оффлайн — демо-данные')}
           </p>
         </div>
+        </>
       )}
 
       {/* ─── Друзья ─── */}

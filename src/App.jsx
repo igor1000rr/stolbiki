@@ -161,6 +161,9 @@ export default function App() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const authRef = useRef(null)
+  const [notifCount, setNotifCount] = useState(0)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifData, setNotifData] = useState({ friends: [], challenges: [] })
 
   useEffect(() => {
     const check = () => { try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); setAuthUser(p?.name ? p : null) } catch { setAuthUser(null) } }
@@ -290,6 +293,24 @@ export default function App() {
       }).catch(() => {})
     }
   }, [])
+
+  // Notification polling — входящие запросы в друзья + вызовы
+  useEffect(() => {
+    if (!API.isLoggedIn()) return
+    const loadNotifs = () => {
+      Promise.all([
+        API.getFriends().catch(() => ({ pending: [] })),
+        API.getChallenges().catch(() => []),
+      ]).then(([friendsData, challenges]) => {
+        const friends = friendsData.pending || []
+        setNotifData({ friends, challenges })
+        setNotifCount(friends.length + challenges.length)
+      })
+    }
+    loadNotifs()
+    const iv = setInterval(loadNotifs, 15000)
+    return () => clearInterval(iv)
+  }, []) // eslint-disable-line
 
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
@@ -544,6 +565,65 @@ export default function App() {
 
           {/* Auth + Lang + burger */}
           <div className="site-actions">
+            {/* Notification bell */}
+            {authUser && (
+              <div style={{ position: 'relative' }}>
+                <button onClick={() => { setNotifOpen(v => !v); setAuthOpen(false) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', position: 'relative', color: 'var(--ink2)', fontSize: 18 }}
+                  aria-label="Notifications">
+                  🔔
+                  {notifCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%',
+                      background: 'var(--p2)', color: '#fff', fontSize: 9, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{notifCount}</span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, width: 280, marginTop: 8,
+                    background: 'var(--surface)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 200, overflow: 'hidden',
+                  }}>
+                    <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--surface2)', fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
+                      {en ? 'Notifications' : 'Уведомления'} {notifCount > 0 && `(${notifCount})`}
+                    </div>
+                    {notifData.challenges.map(ch => (
+                      <div key={ch.id} style={{ padding: '10px 14px', borderBottom: '1px solid var(--surface2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 16 }}>⚔️</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, color: 'var(--ink)' }}>{ch.from_username}</div>
+                          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'challenges you!' : 'вызывает вас!'}</div>
+                        </div>
+                        <button className="btn primary" style={{ fontSize: 10, padding: '4px 10px' }}
+                          onClick={() => { window.location.href = `/?room=${ch.room_id}`; setNotifOpen(false) }}>
+                          {en ? 'Accept' : 'Принять'}
+                        </button>
+                      </div>
+                    ))}
+                    {notifData.friends.map(f => (
+                      <div key={f.id} style={{ padding: '10px 14px', borderBottom: '1px solid var(--surface2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 16 }}>👋</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, color: 'var(--ink)' }}>{f.username}</div>
+                          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'friend request' : 'запрос в друзья'}</div>
+                        </div>
+                        <button className="btn primary" style={{ fontSize: 10, padding: '4px 10px' }}
+                          onClick={() => { go('profile'); setNotifOpen(false) }}>
+                          {en ? 'View' : 'Открыть'}
+                        </button>
+                      </div>
+                    ))}
+                    {notifCount === 0 && (
+                      <div style={{ padding: '20px 14px', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
+                        {en ? 'No new notifications' : 'Нет новых уведомлений'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {/* Auth indicator */}
             <div className="header-auth" ref={authRef}>
               {authUser ? (
