@@ -620,3 +620,36 @@ describe('Constants & combined actions', () => {
     expect(ns.closed[5]).toBe(0) // Закрыта за P0
   })
 })
+
+// ═══ GameState API completeness ═══
+describe('GameState API', () => {
+  it('new GameState() — все стойки пусты', () => {
+    const gs = new GameState()
+    gs.stands.forEach(s => expect(s.length).toBe(0))
+    expect(Object.keys(gs.closed).length).toBe(0)
+    expect(gs.turn).toBe(0)
+    expect(gs.currentPlayer).toBe(0)
+    expect(gs.gameOver).toBe(false)
+  })
+
+  it('openStands() исключает закрытые', () => {
+    const gs = new GameState()
+    gs.closed = { 0: 0, 5: 1, 9: 0 }
+    const open = gs.openStands()
+    expect(open).not.toContain(0)
+    expect(open).not.toContain(5)
+    expect(open).not.toContain(9)
+    expect(open.length).toBe(7)
+  })
+
+  it('countClosed возвращает 0 для нового состояния', () => {
+    const gs = new GameState()
+    expect(gs.countClosed(0)).toBe(0)
+    expect(gs.countClosed(1)).toBe(0)
+  })
+
+  it('numStands = NUM_STANDS', () => {
+    const gs = new GameState()
+    expect(gs.numStands).toBe(NUM_STANDS)
+  })
+})

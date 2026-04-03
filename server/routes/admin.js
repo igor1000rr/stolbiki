@@ -31,6 +31,8 @@ export default function createAdminRouter(rooms, matchQueue) {
       puzzles: { total: totalPuzzles, solved: solvedPuzzles }, blog: blogPosts,
       achievements: totalAchievements, rooms: rooms.size, matchQueue: matchQueue.length,
       uptime: process.uptime(), memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      errors: db.prepare('SELECT COUNT(*) as c FROM error_reports').get()?.c || 0,
+      replays: db.prepare('SELECT COUNT(*) as c FROM replays').get()?.c || 0,
       charts: { regByDay, gamesByDay }, topPlayers,
     })
   })
