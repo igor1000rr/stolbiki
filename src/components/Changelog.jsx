@@ -6,6 +6,24 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.5.2',
+    date: '2026-04-03',
+    title_ru: 'CSS рефакторинг — app.css разделён на модули',
+    title_en: 'CSS refactor — app.css split into modules',
+    changes_ru: [
+      { type: 'fix', text: 'app.css: 3093 → 2064 строк (–33%). Выделены landing.css, themes.css, native.css' },
+      { type: 'fix', text: 'Landing: 261 строк в отдельном файле (hero, steps, features, FAQ, CTA)' },
+      { type: 'fix', text: 'Темы: 298 строк (ocean, sunset, forest, royal, sakura, neon, wood, arctic, retro, light)' },
+      { type: 'fix', text: 'Native: 470 строк Capacitor-стилей в отдельном файле' },
+    ],
+    changes_en: [
+      { type: 'fix', text: 'app.css: 3093 → 2064 lines (–33%). Extracted landing.css, themes.css, native.css' },
+      { type: 'fix', text: 'Landing: 261 lines in separate file (hero, steps, features, FAQ, CTA)' },
+      { type: 'fix', text: 'Themes: 298 lines (ocean, sunset, forest, royal, sakura, neon, wood, arctic, retro, light)' },
+      { type: 'fix', text: 'Native: 470 lines of Capacitor styles in separate file' },
+    ],
+  },
+  {
     version: '4.5.1',
     date: '2026-04-03',
     title_ru: 'Виральность — share-карточки и реферальная система',

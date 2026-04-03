@@ -9,6 +9,9 @@ import { useNetworkStatus } from './engine/network'
 import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
 import { initPush } from './engine/push'
 import './app.css'
+import './css/landing.css'
+import './css/themes.css'
+import './css/native.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
 const Game = lazy(() => import('./components/Game'))
@@ -42,7 +45,7 @@ function LazyFallback() {
 }
 
 const ADMIN_NAMES = ['admin']
-const APP_VERSION = '4.5.1'
+const APP_VERSION = '4.5.2'
 const WHATS_NEW = {
   ru: [
     'Удалён мёртвый код: –8.1MB из билда',
@@ -715,7 +718,7 @@ export default function App() {
               <button className="m-more-item" onClick={() => go('changelog')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                 <span>Changelog</span>
-                <span className="m-more-value">v4.5.1</span>
+                <span className="m-more-value">v4.5.2</span>
               </button>
 
               <div className="m-more-section">{en ? 'About' : 'О приложении'}</div>
@@ -771,7 +774,7 @@ export default function App() {
             <span className="site-footer-divider" />
             <a href="/privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
             <span className="site-footer-divider" />
-            <span style={{ opacity: 0.3 }}>v4.5.1</span>
+            <span style={{ opacity: 0.3 }}>v4.5.2</span>
           </div>
         </div>
       </footer>}

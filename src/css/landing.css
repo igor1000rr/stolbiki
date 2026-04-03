@@ -1,0 +1,263 @@
+/* Стили Landing page — извлечены из app.css */
+
+/* ═══ HERO ═══ */
+.l-hero { text-align: center; padding: 56px 0 36px; position: relative; overflow: hidden; }
+.l-hero-glow {
+  position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 300px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(59,184,168,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.l-hero.in .l-bar { height: var(--h); }
+.l-hero-title {
+  font-size: 40px; font-weight: 700; color: var(--ink); line-height: 1.12;
+  margin-bottom: 16px; font-family: 'DM Serif Display', serif;
+  max-width: 640px; margin-left: auto; margin-right: auto;
+  opacity: 0; transform: translateY(20px); transition: all 0.7s ease 0.4s;
+}
+.l-hero.in .l-hero-title { opacity: 1; transform: translateY(0); }
+.l-hero-sub {
+  font-size: 16px; color: var(--ink2); line-height: 1.75; max-width: 600px; margin: 0 auto 14px;
+  opacity: 0; transform: translateY(16px); transition: all 0.7s ease 0.55s;
+}
+.l-hero.in .l-hero-sub { opacity: 1; transform: translateY(0); }
+.l-hero-meta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 11px; color: var(--ink3); margin-bottom: 28px;
+  opacity: 0; transition: opacity 0.5s ease 0.7s;
+}
+.l-hero.in .l-hero-meta { opacity: 1; }
+.l-hero-btns {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  opacity: 0; transform: translateY(12px); transition: all 0.6s ease 0.8s;
+}
+.l-hero.in .l-hero-btns { opacity: 1; transform: translateY(0); }
+
+/* ═══ NUMBERS ═══ */
+.l-numbers {
+  display: flex; justify-content: center; align-items: center; gap: 0;
+  padding: 28px 0; margin-bottom: 56px;
+  border-top: 1px solid var(--surface2); border-bottom: 1px solid var(--surface2);
+  opacity: 0; transform: translateY(12px); transition: all 0.6s ease;
+}
+.l-numbers.in { opacity: 1; transform: translateY(0); }
+.l-num { text-align: center; padding: 0 32px; }
+.l-num-val { display: block; font-size: 28px; font-weight: 800; color: var(--accent); font-family: 'DM Serif Display', serif; }
+.l-num-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; display: block; }
+.l-num-sep { width: 1px; height: 36px; background: var(--surface3); flex-shrink: 0; }
+
+/* ═══ STEPS ═══ */
+.l-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 900px; margin: 0 auto; position: relative; }
+.l-steps-line {
+  position: absolute; top: 19px; left: 16%; right: 16%; height: 2px;
+  background: var(--surface3); transform: scaleX(0); transition: transform 0.8s ease 0.3s; transform-origin: left;
+}
+.l-steps.in .l-steps-line { transform: scaleX(1); }
+.l-step { text-align: center; position: relative; opacity: 0; transform: translateY(16px); transition: all 0.5s ease; transition-delay: calc(0.3s + var(--i) * 0.15s); }
+.l-steps.in .l-step { opacity: 1; transform: translateY(0); }
+.l-step-n {
+  width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  background: var(--bg); border: 2px solid var(--surface3); position: relative; z-index: 1;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.l-step:hover .l-step-n { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-glow); }
+.l-step-body { padding: 0 16px; }
+.l-step-t { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+.l-step-d { font-size: 12px; color: var(--ink3); line-height: 1.65; }
+
+/* ═══ EDITORIAL SHOWCASE ═══ */
+.l-showcase.in { opacity: 1; transform: translateY(0); }
+
+/* AI Banner */
+.l-ai-top h3 { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0; }
+.l-ai-metric:first-child { padding-left: 0; }
+.l-ai-metric:last-child { border-right: none; }
+
+/* Split */
+.l-split-head h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin: 0; }
+.l-split-item p { font-size: 12px; color: var(--ink3); line-height: 1.65; margin: 0; }
+
+/* Extras — horizontal rows */
+.l-showcase.in .l-extra { opacity: 1; transform: translateX(0); }
+.l-extra:last-child { border-bottom: none; }
+.l-extra strong { font-size: 13px; color: var(--ink); white-space: nowrap; }
+.l-extra span { font-size: 12px; color: var(--ink3); }
+
+/* ═══ WHO (Audience) ═══ */
+.l-who.in .l-who-block { opacity: 1; transform: translateY(0); }
+.l-who-block:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.12); transform: translateY(-3px); }
+.l-who-content p { font-size: 12px; color: var(--ink3); line-height: 1.6; margin: 6px 0 0; }
+.l-who-head strong { font-size: 14px; }
+
+/* ═══ PRINT BANNER ═══ */
+.l-print-banner:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59,184,168,0.2); }
+.l-print-text strong { display: block; font-size: 17px; color: #fff; margin-bottom: 4px; }
+.l-print-text span { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.6; }
+.l-print-banner:hover .l-print-cta { background: rgba(255,255,255,0.25); }
+
+/* ═══ QA (FAQ) ═══ */
+.l-qa { max-width: 700px; margin: 0 auto; }
+.l-qa-row {
+  display: flex; gap: 16px; padding: 18px 0;
+  border-bottom: 1px solid var(--surface2);
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition-delay: calc(var(--i) * 0.06s);
+}
+.l-qa.in .l-qa-row { opacity: 1; transform: translateY(0); }
+.l-qa-row:last-child { border-bottom: none; }
+.l-qa-num {
+  font-size: 20px; font-weight: 800; color: var(--surface3); font-family: 'DM Serif Display', serif;
+  min-width: 36px; flex-shrink: 0; transition: color 0.2s;
+}
+.l-qa-row:hover .l-qa-num { color: var(--accent); }
+.l-qa-q { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.l-qa-a { font-size: 12px; color: var(--ink3); line-height: 1.6; }
+
+/* ═══ FINAL CTA ═══ */
+.l-final {
+  text-align: center; padding: 64px 0 32px; position: relative; overflow: hidden;
+  border-top: 1px solid var(--surface2);
+}
+.l-final-glow {
+  position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%);
+  width: 500px; height: 250px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(59,184,168,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.l-final h2 { font-size: 32px; font-weight: 700; color: var(--ink); margin-bottom: 10px; position: relative; }
+.l-final p { font-size: 14px; color: var(--ink3); margin-bottom: 28px; position: relative; }
+
+/* ═══ MOBILE ═══ */
+@media (max-width: 680px) {
+  .l-hero { padding: 36px 0 24px; }
+  .l-hero-title { font-size: 28px; }
+  .l-hero-sub { font-size: 14px; }
+  .l-numbers { flex-wrap: wrap; gap: 16px; }
+  .l-num-sep { display: none; }
+  .l-num { padding: 0 16px; }
+  .l-steps { grid-template-columns: 1fr; gap: 20px; }
+  .l-steps-line { display: none; }
+  .l-step { display: flex; align-items: flex-start; gap: 16px; text-align: left; }
+  .l-step-n { margin: 0; flex-shrink: 0; }
+  .l-step-body { padding: 0; }
+  .l-qa { padding: 0 4px; }
+  .l-final h2 { font-size: 24px; }
+}
+
+/* ═══ Landing: Theme cards + Download ═══ */
+.l-screens { opacity: 0; transform: translateY(30px); transition: all 0.6s ease; }
+.l-screens.in { opacity: 1; transform: none; }
+.l-theme-card { transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s; }
+.l-theme-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.1) !important; }
+/* Блоки падают сверху по одному — один раз */
+.l-block-place { opacity: 0; transform: translateY(-20px) scale(0.5); }
+.l-screens.in .l-block-place { animation: blockDrop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes blockDrop { to { opacity: 0.85; transform: translateY(0) scale(1); } }
+@media (max-width: 600px) { .l-screens { grid-template-columns: repeat(2, 1fr) !important; } }
+@media (max-width: 380px) { .l-screens { grid-template-columns: 1fr !important; max-width: 240px !important; } }
+.l-download { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
+.l-download.in { opacity: 1; transform: none; }
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+/* Hero mascot — прячем на узких экранах */
+@media (max-width: 600px) { .l-hero-mascot { display: none !important; } }
+
+/* ═══ Bento Grid — Features ═══ */
+.l-bento.in { opacity: 1; transform: none; }
+.l-bento-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+@media (max-width: 700px) {
+}
+@media (max-width: 480px) {
+}
+
+/* Download mascot — на мобильных прячем */
+@media (max-width: 600px) { .l-dl-mascot { display: none !important; } }
+
+/* ═══ Features 3×2 grid ═══ */
+.l-feat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  opacity: 0; transform: translateY(30px); transition: all 0.6s ease;
+}
+.l-feat-grid.in { opacity: 1; transform: none; }
+.l-feat-card {
+  background: rgba(26,26,42,0.6); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px; padding: 20px; text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  opacity: 0; animation: featCardIn 0.5s ease forwards;
+  animation-delay: calc(var(--i) * 0.08s);
+}
+.l-feat-grid:not(.in) .l-feat-card { animation: none; }
+.l-feat-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+@keyframes featCardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.l-feat-visual { height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.l-feat-svg { width: 100%; height: 100%; overflow: visible; }
+.l-feat-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.l-feat-desc { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+
+/* Анимации для SVG элементов внутри карточек */
+
+/* AI + Arena: столбики волнообразно качаются */
+.l-bar-wave { animation: barWave 2s ease-in-out infinite; }
+.l-feat-grid:not(.in) .l-bar-wave { animation: none; opacity: 0; }
+@keyframes barWave { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(0.5); } }
+
+/* Online: точки пульсируют, пунктир бежит, пакет летит */
+.l-feat-pulse { animation: pulseDot 2s ease-in-out infinite; }
+@keyframes pulseDot { 0%,100% { r: 3; opacity: 0.8; } 50% { r: 5; opacity: 1; } }
+.l-feat-dash { animation: dashMove 2s linear infinite; }
+@keyframes dashMove { to { stroke-dashoffset: -14; } }
+.l-packet { animation: packetFly 2.5s ease-in-out infinite; }
+@keyframes packetFly { 0%,10% { cx: 30; opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 90%,100% { cx: 90; opacity: 0; } }
+
+/* Puzzles: ? мигает, ✓ появляется, полоска заполняется */
+.l-puzzle-q { animation: puzzleBlink 3s ease-in-out infinite; }
+@keyframes puzzleBlink { 0%,40% { opacity: 1; } 50%,90% { opacity: 0.2; } 100% { opacity: 1; } }
+.l-puzzle-a { animation: puzzleSolve 3s ease-in-out infinite; }
+@keyframes puzzleSolve { 0%,40% { opacity: 0; transform: scale(0); } 50% { opacity: 1; transform: scale(1.3); } 60%,100% { opacity: 1; transform: scale(1); } }
+.l-puzzle-bar { animation: puzzleBar 3s ease-in-out infinite; }
+@keyframes puzzleBar { 0% { width: 0; } 50% { width: 50px; } 100% { width: 70px; } }
+
+/* Skins: точки волнообразно прыгают */
+.l-skin-dot { animation: skinBounce 2s ease-in-out infinite; }
+@keyframes skinBounce { 0%,100% { cy: 20; } 50% { cy: 14; } }
+
+/* AI Review: отметки появляются по очереди, полоска заполняется */
+.l-review-mark { animation: reviewAppear 3.6s ease-in-out infinite; opacity: 0; }
+@keyframes reviewAppear { 0%,10% { opacity: 0; transform: scale(0); } 20% { opacity: 1; transform: scale(1.2); } 30%,80% { opacity: 1; transform: scale(1); } 90%,100% { opacity: 0; } }
+.l-review-bar { animation: reviewBar 3.6s ease-in-out infinite; }
+@keyframes reviewBar { 0%,10% { width: 0; } 80% { width: 82px; } 90%,100% { width: 82px; opacity: 0.3; } }
+
+@media (max-width: 768px) { .l-feat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .l-feat-grid { grid-template-columns: 1fr; } }
+
+/* ═══ Download section — animated gradient border ═══ */
+@keyframes dlBorderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.l-dl-btn {
+  display: flex; align-items: center; gap: 12px; position: relative;
+  padding: 12px 18px; border-radius: 12px;
+  background: linear-gradient(135deg, #1a1a2e, #222240);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+}
+.l-dl-btn:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
+.l-dl-sub { font-size: 9px; color: rgba(255,255,255,0.5); line-height: 1; margin-bottom: 2px; text-align: left; }
+.l-dl-name { font-size: 16px; font-weight: 700; color: #fff; line-height: 1.1; text-align: left; }
+.l-dl-badge {
+  position: absolute; top: -8px; right: -8px;
+  font-size: 9px; padding: 2px 8px; border-radius: 8px;
+  background: var(--p1); color: #fff; font-weight: 600;
+}
+@media (max-width: 600px) {
+}
+
