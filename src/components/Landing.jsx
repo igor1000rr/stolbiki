@@ -425,21 +425,28 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       {/* ═══ ABOUT + CTA — combined rich ending ═══ */}
       <section className="l-final">
         <div className="l-final-glow" />
-        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+        {/* Animated background elements */}
+        <svg viewBox="0 0 800 400" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.15 }}>
+          {[...Array(20)].map((_, i) => <rect key={i} className="l-bar-wave" x={40+i*38} y={350-[60,100,80,120,70,110,90,130,75,105,85,115,65,125,95,135,72,108,88,118][i]} width={12} height={[60,100,80,120,70,110,90,130,75,105,85,115,65,125,95,135,72,108,88,118][i]} rx={3} fill={i%2===0?'#4a9eff':'#ff6066'} style={{animationDelay:`${i*0.15}s`,transformOrigin:`${40+i*38+6}px 350px`}}/>)}
+          {[0,1,2,3,4,5].map(i => <circle key={i} className="l-feat-pulse" cx={80+i*130} cy={30+i*15} r={4} fill={['#3dd68c','#ffc145','#e040fb','#4a9eff','#ff6066','#3dd68c'][i]} style={{animationDelay:`${i*0.5}s`}}/>)}
+        </svg>
+        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Mascot pose="celebrate" size={120} large className="mascot-bounce" style={{ display: 'block', margin: '0 auto 20px' }} />
-          <h2 style={{ fontSize: 32, margin: '0 0 12px' }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
-          <p style={{ fontSize: 15, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 28px', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
+          <h2 style={{ fontSize: 36, margin: '0 0 12px', fontWeight: 800 }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
+          <p style={{ fontSize: 15, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 auto 32px', maxWidth: 480 }}>
             {en
-              ? 'Join a community of strategy lovers. AI trained on 10M+ games is waiting for you.'
+              ? 'Join a community of strategy lovers. AI trained on 10M+ games is waiting.'
               : 'Присоединяйтесь к сообществу любителей стратегий. AI, обученный на 10M+ партиях, ждёт вас.'}
           </p>
 
-          <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay} style={{ marginBottom: 32, fontSize: 17, padding: '16px 48px' }}>
-            <Icon name="play" size={20} color="#fff" />{en ? 'Play free' : 'Играть бесплатно'}
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
+            <button className="btn primary" onClick={onPlay} style={{ fontSize: 18, padding: '16px 52px', borderRadius: 14, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 10, boxShadow: '0 0 40px rgba(59,184,168,0.3), 0 8px 24px rgba(0,0,0,0.3)' }}>
+              <Icon name="play" size={20} color="#fff" />{en ? 'Play free' : 'Играть бесплатно'}
+            </button>
+          </div>
 
-          {/* Animated stats */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 32, flexWrap: 'wrap' }}>
+          {/* Stats */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 40, marginBottom: 36, flexWrap: 'wrap' }}>
             {[
               { val: '10M+', label: en ? 'games analyzed' : 'партий', color: '#4a9eff' },
               { val: '50:50', label: en ? 'perfect balance' : 'баланс', color: '#3dd68c' },
@@ -447,14 +454,14 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               { val: '11', label: en ? 'themes' : 'тем', color: '#e040fb' },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* Social links */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+          {/* Social */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
             {[
               { name: 'Reddit', url: 'https://reddit.com/r/boardgames', color: '#ff6066' },
               { name: 'Telegram', url: 'https://t.me/igor1000rr', color: '#4a9eff' },
@@ -462,25 +469,24 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               { name: 'BGG', url: 'https://boardgamegeek.com', color: '#ffc145' },
             ].map(s => (
               <a key={s.name} href={s.url} target="_blank" rel="noopener" style={{
-                fontSize: 11, padding: '6px 14px', borderRadius: 8,
-                background: `${s.color}10`, border: `1px solid ${s.color}25`, color: s.color,
+                fontSize: 12, padding: '7px 16px', borderRadius: 8,
+                background: `${s.color}10`, border: `1px solid ${s.color}30`, color: s.color,
                 textDecoration: 'none', fontWeight: 600, transition: 'transform 0.2s, background 0.2s'
               }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = `${s.color}20` }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = `${s.color}25` }}
                 onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = `${s.color}10` }}>
                 {s.name}
               </a>
             ))}
           </div>
 
-          {/* Tech stack */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 16, opacity: 0.5 }}>
+          {/* Tech */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 12, opacity: 0.4 }}>
             {['React', 'Node.js', 'AlphaZero', 'WebSocket', 'SQLite', 'Capacitor'].map(t => (
               <span key={t} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--ink3)' }}>{t}</span>
             ))}
           </div>
-
-          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.4 }}>v4.6.2</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.3 }}>v4.6.2</div>
         </div>
       </section>
     </div>
