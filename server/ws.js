@@ -11,7 +11,7 @@ import { GameState, applyAction, getLegalActions } from './game-engine.js'
 
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
-  const wss = new WebSocketServer({ server, path: '/ws' })
+  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16384 })
 
   // Верификация WS-клиента по токену
   function wsAuth(token) {

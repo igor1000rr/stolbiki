@@ -6,14 +6,16 @@ import { addXP } from '../helpers.js'
 const router = Router()
 
 router.get('/current', (req, res) => {
-  let t = db.prepare("SELECT * FROM arena_tournaments WHERE status IN ('waiting','playing') ORDER BY created_at DESC LIMIT 1").get()
-  if (!t) {
-    db.prepare("INSERT INTO arena_tournaments (status, rounds, max_players) VALUES ('waiting', 4, 16)").run()
-    t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
-  }
-  const participants = db.prepare('SELECT ap.*, u.rating, u.avatar FROM arena_participants ap JOIN users u ON u.id=ap.user_id WHERE ap.tournament_id=? ORDER BY ap.score DESC, ap.buchholz DESC').all(t.id)
-  const matches = db.prepare('SELECT * FROM arena_matches WHERE tournament_id=? ORDER BY round, id').all(t.id)
-  res.json({ tournament: t, participants, matches })
+  try {
+    let t = db.prepare("SELECT * FROM arena_tournaments WHERE status IN ('waiting','playing') ORDER BY created_at DESC LIMIT 1").get()
+    if (!t) {
+      db.prepare("INSERT INTO arena_tournaments (status, rounds, max_players) VALUES ('waiting', 4, 16)").run()
+      t = db.prepare("SELECT * FROM arena_tournaments WHERE status='waiting' ORDER BY id DESC LIMIT 1").get()
+    }
+    const participants = db.prepare('SELECT ap.*, u.rating, u.avatar FROM arena_participants ap JOIN users u ON u.id=ap.user_id WHERE ap.tournament_id=? ORDER BY ap.score DESC, ap.buchholz DESC').all(t.id)
+    const matches = db.prepare('SELECT * FROM arena_matches WHERE tournament_id=? ORDER BY round, id').all(t.id)
+    res.json({ tournament: t, participants, matches })
+  } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 router.post('/join', auth, (req, res) => {
