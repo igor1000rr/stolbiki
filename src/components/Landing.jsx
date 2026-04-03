@@ -205,9 +205,9 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ DOWNLOAD + PRINT ═══ */}
+      {/* ═══ DOWNLOAD + FEATURES ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 28, padding: '36px 32px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 28, padding: '40px 36px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', flexWrap: 'wrap', justifyContent: 'center' }}>
           <Mascot pose="wave" size={130} large animate={false} style={{ flexShrink: 0 }} />
           <div style={{ flex: '1 1 300px', textAlign: 'center' }}>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
@@ -231,26 +231,31 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 16 }}>
-          <a href="/print-and-play.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)', textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 16 }}>
+          <a href="/print-and-play.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)', textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface3)'; e.currentTarget.style.transform = '' }}>
             <Icon name="download" size={20} color="var(--accent)" />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                {en ? 'PDF: board + 110 blocks + rules' : 'PDF: поле + 110 блоков + правила'}
+                {en ? 'PDF: board, blocks, rules' : 'PDF: поле, блоки, правила'}
               </div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>→</div>
+            <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{en ? 'Download' : 'Скачать'} →</div>
           </a>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'No ads. Free forever.' : 'Без рекламы. Навсегда.'}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                {en ? 'No paywalls, no tracking, pure strategy' : 'Без платных стен, без трекинга, чистая стратегия'}
-              </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Free forever' : 'Бесплатно навсегда'}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'No ads, no paywalls' : 'Без рекламы и стен'}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'Made with love' : 'Сделано с душой'}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{en ? 'Indie project, 2 people' : 'Инди-проект, 2 человека'}</div>
             </div>
           </div>
         </div>
