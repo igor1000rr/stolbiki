@@ -293,6 +293,17 @@ runMigration(5, () => {
 
 console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 5`)
 
+// ─── Индексы (идемпотентны) ───
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_daily_logins_user ON daily_logins(user_id, date DESC);
+  CREATE INDEX IF NOT EXISTS idx_daily_missions_user ON daily_missions(user_id, date);
+  CREATE INDEX IF NOT EXISTS idx_replays_user ON replays(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_season_rewards_user ON season_rewards(user_id, season_id);
+  CREATE INDEX IF NOT EXISTS idx_puzzle_rush_user ON puzzle_rush_scores(user_id, score DESC);
+  CREATE INDEX IF NOT EXISTS idx_arena_parts_tournament ON arena_participants(tournament_id, score DESC);
+  CREATE INDEX IF NOT EXISTS idx_arena_matches_tournament ON arena_matches(tournament_id, round);
+`)
+
 // ─── Таблицы (CREATE IF NOT EXISTS — идемпотентны) ───
 
 db.exec(`
