@@ -135,6 +135,7 @@ export default function Game() {
       const state = new GameState()
       gsRef.current = state
       setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
+    API.track('game_start', 'game', { mode, difficulty: difficultyRef.current })
       setScoreBump(null); setHumanPlayer(myColor); setMode('online')
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
       startRecording()
@@ -524,6 +525,7 @@ export default function Game() {
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
                 gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false)
+                API.track('game_end', 'game', { won, score, difficulty: difficultyRef.current, mode: 'ai' })
               }
               // Турнир — запись результата (AI gameOver)
               if (tournament) {

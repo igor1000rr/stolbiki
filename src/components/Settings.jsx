@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
+import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import Icon from './Icon'
 import { DEFAULTS, getSettings, saveSettings, applySettings } from '../engine/settings'
@@ -46,6 +47,7 @@ export default function Settings() {
   const [s, setS] = useState(load)
 
   function update(key, val) {
+    API.track('setting_change', 'settings', { key, val: String(val).slice(0, 20) })
     const ns = { ...s, [key]: val }
     setS(ns)
     save(ns)

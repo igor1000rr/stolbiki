@@ -23,6 +23,7 @@ export default function ProfileFriends({ en, serverOnline, friendsList, pendingF
 
   async function doChallenge(friendId, friendName) {
     try {
+      API.track('friend_challenge', 'profile', { friendId })
       const data = await API.challengeFriend(friendId)
       setChallengeSent({ roomId: data.roomId, name: friendName })
     } catch (e) { onError?.(e.message) }

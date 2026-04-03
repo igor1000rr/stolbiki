@@ -4,6 +4,7 @@
  */
 import { useState } from 'react'
 import { useI18n } from '../engine/i18n'
+import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
 

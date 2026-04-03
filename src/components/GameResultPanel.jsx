@@ -102,6 +102,7 @@ export default function GameResultPanel({
             })
             const blob = await new Promise(r => c.toBlob(r, 'image/png'))
             const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })
+            API.track('share_card', 'game', { won, isDraw })
             if (navigator.canShare?.({ files: [file] })) navigator.share({ text: shareText, files: [file] }).catch(() => {})
             else if (navigator.share) navigator.share({ text: shareText }).catch(() => {})
             else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'stolbiki-result.png'; a.click(); URL.revokeObjectURL(url) }
@@ -133,7 +134,7 @@ export default function GameResultPanel({
           </button>
         )}
         {moveHistoryRef.current.length > 2 && (
-          <button className="btn" onClick={() => setShowReview(true)} style={{
+          <button className="btn" onClick={() => { setShowReview(true); API.track('ai_review', 'game') }} style={{
             fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px',
             borderColor: 'var(--purple)', color: 'var(--purple)', justifyContent: 'center',
           }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import * as MP from '../engine/multiplayer'
 import { useI18n } from '../engine/i18n'
+import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings } from '../engine/settings'
 import Icon from './Icon'
@@ -228,7 +229,7 @@ export default function Online() {
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
     setScreen('searching')
-    MP.findMatch(playerName.trim(), handleWS, getMySkins())
+    API.track('matchmaking', 'online'); MP.findMatch(playerName.trim(), handleWS, getMySkins())
   }
 
   function cancelSearch() {
