@@ -8,8 +8,8 @@ const VERSIONS = [
   {
     version: '4.4',
     date: '2026-04-02',
-    title_ru: 'Архитектурный аудит — 12 коммитов, 40+ фиксов, 85 тестов',
-    title_en: 'Architecture audit — 12 commits, 40+ fixes, 85 tests',
+    title_ru: 'Архитектурный аудит — 40+ коммитов, 119 тестов, dist –59%',
+    title_en: 'Architecture audit — 40+ commits, 119 tests, dist –59%',
     changes_ru: [
       { type: 'new', text: 'GameContext v2: multi-listener EventEmitter — 25 CustomEvent → 0' },
       { type: 'new', text: 'GPU weights: 8.1MB JSON → 3.2MB binary (–60%), lazy load для Hard+' },
@@ -34,7 +34,10 @@ const VERSIONS = [
       { type: 'fix', text: 'Game.jsx: 1723→1489. Extracted: GameResultPanel, useSessionStats, useKeyboardShortcuts' },
       { type: 'fix', text: 'Profile.jsx: 1394→1178. Extracted: ProfileAccount, ProfileFriends' },
       { type: 'new', text: 'Games API: пагинация (offset+total), статистика по сложности AI' },
-      { type: 'new', text: 'Тесты: 91→98 (+7 edge cases: sanitize, unicode, Infinity)' },
+      { type: 'new', text: 'Тесты: 41→119 (+78). validate, helpers, stress, engine, score validation' },
+      { type: 'fix', text: 'dist: 14MB→5.8MB (–59%) — убран JSON fallback GPU weights, только binary' },
+      { type: 'new', text: 'PWA Install Prompt: кнопка «Установить» на landing' },
+      { type: 'fix', text: 'Online lobby: live games indicator, авто-загрузка активных комнат' },
     ],
     changes_en: [
       { type: 'new', text: 'GameContext v2: multi-listener EventEmitter — 25 CustomEvents → 0' },
@@ -60,7 +63,10 @@ const VERSIONS = [
       { type: 'fix', text: 'Game.jsx: 1723→1489. Extracted: GameResultPanel, useSessionStats, useKeyboardShortcuts' },
       { type: 'fix', text: 'Profile.jsx: 1394→1178. Extracted: ProfileAccount, ProfileFriends' },
       { type: 'new', text: 'Games API: pagination (offset+total), stats by AI difficulty' },
-      { type: 'new', text: 'Tests: 91→98 (+7 edge cases: sanitize, unicode, Infinity)' },
+      { type: 'new', text: 'Tests: 41→119 (+78). validate, helpers, stress, engine, score validation' },
+      { type: 'fix', text: 'dist: 14MB→5.8MB (–59%) — removed JSON fallback GPU weights, binary only' },
+      { type: 'new', text: 'PWA Install Prompt: "Install" button on landing' },
+      { type: 'fix', text: 'Online lobby: live games indicator, auto-load active rooms' },
     ],
   },
   {
