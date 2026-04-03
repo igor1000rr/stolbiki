@@ -107,6 +107,7 @@ export default function App() {
   const [showSkinShop, setShowSkinShop] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
+  const [installPrompt, setInstallPrompt] = useState(null) // PWA install prompt
 
   // Native-only states
   const [showOnboarding, setShowOnboarding] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
@@ -189,6 +190,16 @@ export default function App() {
     document.addEventListener('visibilitychange', onVisible)
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible) }
   }, []) // eslint-disable-line
+
+  // PWA Install Prompt — перехватываем событие для кнопки «Установить»
+  useEffect(() => {
+    if (isNative) return
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e) }
+    window.addEventListener('beforeinstallprompt', handler)
+    // Скрываем кнопку после установки
+    window.addEventListener('appinstalled', () => setInstallPrompt(null))
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
 
   // JWT Token refresh — обновляем токен раз в сутки (срок жизни 7 дней)
   useEffect(() => {
@@ -567,7 +578,7 @@ export default function App() {
 
       <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
-          {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowLessons(true)} publicStats={publicStats} />}
+          {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowLessons(true)} publicStats={publicStats} installPrompt={installPrompt} />}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>

@@ -38,7 +38,7 @@ function Counter({ end, suffix = '', duration = 1200 }) {
   return <span ref={ref}>{typeof end === 'string' && end.includes('K') ? `${val}K+` : val}{suffix}</span>
 }
 
-export default function Landing({ onPlay, onTutorial, publicStats }) {
+export default function Landing({ onPlay, onTutorial, publicStats, installPrompt }) {
   const { lang } = useI18n()
   const en = lang === 'en'
   const { c } = useContent(lang)
@@ -81,6 +81,12 @@ export default function Landing({ onPlay, onTutorial, publicStats }) {
           <button className="btn l-btn-lg" onClick={onTutorial}>
             <Icon name="rules" size={16} />{c('landing.learn_btn', en ? 'Learn in 2 min' : 'Обучение за 2 мин')}
           </button>
+          {installPrompt && (
+            <button className="btn l-btn-lg" onClick={() => { installPrompt.prompt(); installPrompt.userChoice.then(() => {}) }}
+              style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
+              <Icon name="download" size={16} />{en ? 'Install app' : 'Установить'}
+            </button>
+          )}
         </div>
       </section>
 
