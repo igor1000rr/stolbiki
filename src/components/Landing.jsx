@@ -425,35 +425,62 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       {/* ═══ ABOUT + CTA — combined rich ending ═══ */}
       <section className="l-final">
         <div className="l-final-glow" />
-        <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-          <Mascot pose="celebrate" size={110} large className="mascot-bounce" style={{ display: 'block', margin: '0 auto 16px' }} />
-          <h2 style={{ fontSize: 28, margin: '0 0 10px' }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
-          <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 24px' }}>
+        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+          <Mascot pose="celebrate" size={120} large className="mascot-bounce" style={{ display: 'block', margin: '0 auto 20px' }} />
+          <h2 style={{ fontSize: 32, margin: '0 0 12px' }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
+          <p style={{ fontSize: 15, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 28px', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
             {en
-              ? 'Project at the intersection of board game design and AI. Neural network trained via self-play on 10M+ games. New features every week.'
-              : 'Проект на стыке дизайна настольных игр и AI. Нейросеть обучена через self-play на 10M+ партиях. Новые фичи каждую неделю.'}
+              ? 'Join a community of strategy lovers. AI trained on 10M+ games is waiting for you.'
+              : 'Присоединяйтесь к сообществу любителей стратегий. AI, обученный на 10M+ партиях, ждёт вас.'}
           </p>
 
-          <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay} style={{ marginBottom: 28, fontSize: 16, padding: '14px 40px' }}>
-            <Icon name="play" size={18} color="#fff" />{en ? 'Start now' : 'Начать'}
+          <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay} style={{ marginBottom: 32, fontSize: 17, padding: '16px 48px' }}>
+            <Icon name="play" size={20} color="#fff" />{en ? 'Play free' : 'Играть бесплатно'}
           </button>
 
-          {/* Tech badges */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
-            {['React', 'Node.js', 'AlphaZero', 'WebSocket', 'SQLite', 'Capacitor'].map(t => (
-              <span key={t} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'var(--ink3)' }}>{t}</span>
+          {/* Animated stats */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 32, flexWrap: 'wrap' }}>
+            {[
+              { val: '10M+', label: en ? 'games analyzed' : 'партий', color: '#4a9eff' },
+              { val: '50:50', label: en ? 'perfect balance' : 'баланс', color: '#3dd68c' },
+              { val: '33', label: en ? 'achievements' : 'ачивки', color: '#ffc145' },
+              { val: '11', label: en ? 'themes' : 'тем', color: '#e040fb' },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>{s.label}</div>
+              </div>
             ))}
           </div>
 
-          {/* Links row */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12, color: 'var(--ink3)', flexWrap: 'wrap' }}>
-            <a href="https://t.me/igor1000rr" target="_blank" rel="noopener" style={{ color: 'var(--ink3)', textDecoration: 'none', opacity: 0.7, transition: 'opacity 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.7}>
-              Telegram
-            </a>
-            <span style={{ opacity: 0.3 }}>·</span>
-            <span style={{ opacity: 0.5 }}>v4.3</span>
+          {/* Social links */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+            {[
+              { name: 'Reddit', url: 'https://reddit.com/r/boardgames', color: '#ff6066' },
+              { name: 'Telegram', url: 'https://t.me/igor1000rr', color: '#4a9eff' },
+              { name: 'TikTok', url: 'https://tiktok.com', color: '#e040fb' },
+              { name: 'BGG', url: 'https://boardgamegeek.com', color: '#ffc145' },
+            ].map(s => (
+              <a key={s.name} href={s.url} target="_blank" rel="noopener" style={{
+                fontSize: 11, padding: '6px 14px', borderRadius: 8,
+                background: `${s.color}10`, border: `1px solid ${s.color}25`, color: s.color,
+                textDecoration: 'none', fontWeight: 600, transition: 'transform 0.2s, background 0.2s'
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = `${s.color}20` }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = `${s.color}10` }}>
+                {s.name}
+              </a>
+            ))}
           </div>
+
+          {/* Tech stack */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 16, opacity: 0.5 }}>
+            {['React', 'Node.js', 'AlphaZero', 'WebSocket', 'SQLite', 'Capacitor'].map(t => (
+              <span key={t} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--ink3)' }}>{t}</span>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.4 }}>v4.6.2</div>
         </div>
       </section>
     </div>
