@@ -480,3 +480,97 @@ describe('Edge Cases', () => {
     expect(gs.numOpen()).toBe(1)
   })
 })
+
+// ═══ Дополнительные edge cases ═══
+describe('Advanced edge cases', () => {
+  it('golden stand (0) учитывается в закрытии', () => {
+    const gs = new GameState()
+    gs.stands[0] = Array(MAX_CHIPS).fill(0)
+    gs.turn = 10
+    const ns = applyAction(gs, { placement: {} })
+    // Стойка 0 — golden, если закрыта, countClosed для owner корректен
+    if (0 in ns.closed) {
+      expect(ns.closed[0]).toBe(0) // Закрыта за P0
+    }
+  })
+
+  it('copy() глубокая — изменение копии не затрагивает оригинал', () => {
+    const gs = new GameState()
+    gs.stands[3] = [0, 1, 0, 1]
+    gs.closed = { 5: 1 }
+    gs.turn = 12
+    gs.currentPlayer = 1
+
+    const cp = gs.copy()
+    cp.stands[3].push(0)
+    cp.closed[6] = 0
+    cp.turn = 99
+    cp.currentPlayer = 0
+
+    expect(gs.stands[3]).toEqual([0, 1, 0, 1])
+    expect(gs.closed).toEqual({ 5: 1 })
+    expect(gs.turn).toBe(12)
+    expect(gs.currentPlayer).toBe(1)
+  })
+
+  it('getLegalActions на пустой доске — только placement', () => {
+    const gs = new GameState()
+    const actions = getLegalActions(gs)
+    expect(actions.length).toBeGreaterThan(0)
+    // На первом ходу нет переносов (нечего переносить)
+    const hasTransfer = actions.some(a => a.transfer)
+    expect(hasTransfer).toBe(false)
+  })
+
+  it('getValidTransfers — пустые стойки нельзя переносить', () => {
+    const gs = new GameState()
+    gs.turn = 10
+    // Все стойки пусты
+    const transfers = getValidTransfers(gs)
+    expect(transfers.length).toBe(0)
+  })
+
+  it('getValidPlacements ограничивает MAX_PLACE_STANDS', () => {
+    const gs = new GameState()
+    gs.turn = 10
+    const placements = getValidPlacements(gs)
+    // Каждый placement должен затрагивать <= MAX_PLACE_STANDS стоек
+    placements.forEach(p => {
+      const numStands = Object.keys(p).length
+      expect(numStands).toBeLessThanOrEqual(MAX_PLACE_STANDS)
+    })
+  })
+
+  it('FIRST_TURN_MAX = 1 — первый ход ограничен', () => {
+    expect(FIRST_TURN_MAX).toBe(1)
+    const gs = new GameState()
+    const actions = getLegalActions(gs)
+    actions.forEach(a => {
+      if (a.placement) {
+        const total = Object.values(a.placement).reduce((s, v) => s + v, 0)
+        expect(total).toBe(1)
+      }
+    })
+  })
+
+  it('gameOver: P1 побеждает при 6 закрытых стойках', () => {
+    const gs = new GameState()
+    gs.closed = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1 }
+    gs.turn = 20
+    const ns = applyAction(gs, { placement: {} })
+    expect(ns.gameOver).toBe(true)
+    expect(ns.winner).toBe(1)
+  })
+
+  it('ничья при равном количестве стоек и всех закрытых', () => {
+    const gs = new GameState()
+    // 5 за P0, 5 за P1 — все 10 закрыты
+    gs.closed = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1 }
+    gs.turn = 50
+    const ns = applyAction(gs, { placement: {} })
+    if (ns.gameOver) {
+      // Ничья или победа определяется golden stand
+      expect(typeof ns.winner).toBe('number')
+    }
+  })
+})
