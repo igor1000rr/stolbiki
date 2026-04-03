@@ -3,12 +3,42 @@
  * Извлечён из Profile.jsx
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as API from '../engine/api'
 
 export default function ProfileFriends({ en, serverOnline, friendsList, pendingFriends, onRefresh, onError }) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
+  const [challenges, setChallenges] = useState([])
+  const [challengeSent, setChallengeSent] = useState(null)
+
+  // Polling входящих вызовов каждые 5 сек
+  useEffect(() => {
+    if (!serverOnline || !API.isLoggedIn()) return
+    const load = () => API.getChallenges().then(setChallenges).catch(() => {})
+    load()
+    const iv = setInterval(load, 5000)
+    return () => clearInterval(iv)
+  }, [serverOnline])
+
+  async function doChallenge(friendId, friendName) {
+    try {
+      const data = await API.challengeFriend(friendId)
+      setChallengeSent({ roomId: data.roomId, name: friendName })
+    } catch (e) { onError?.(e.message) }
+  }
+
+  async function doAcceptChallenge(ch) {
+    try {
+      const data = await API.respondChallenge(ch.id, true)
+      if (data.roomId) window.location.href = `/?room=${data.roomId}`
+    } catch {}
+  }
+
+  async function doDeclineChallenge(ch) {
+    try { await API.respondChallenge(ch.id, false) } catch {}
+    setChallenges(prev => prev.filter(c => c.id !== ch.id))
+  }
 
   async function doSearch() {
     if (!search.trim() || search.length < 2 || !serverOnline) return
@@ -82,6 +112,44 @@ export default function ProfileFriends({ en, serverOnline, friendsList, pendingF
       </div>
 
       {/* Входящие запросы */}
+      {/* Входящие вызовы */}
+      {challenges.length > 0 && (
+        <div className="dash-card" style={{ marginBottom: 16, borderColor: 'rgba(255,193,69,0.2)' }}>
+          <h3 style={{ color: 'var(--gold)' }}>{en ? 'Incoming challenges' : 'Входящие вызовы'}</h3>
+          <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+            {challenges.map(ch => (
+              <div key={ch.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                background: 'rgba(255,193,69,0.06)', borderRadius: 8, border: '1px solid rgba(255,193,69,0.15)' }}>
+                <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
+                  ⚔️ <strong>{ch.from_username}</strong> ({ch.from_rating})
+                </span>
+                <button className="btn primary" style={{ fontSize: 11, padding: '6px 14px' }}
+                  onClick={() => doAcceptChallenge(ch)}>{en ? 'Accept' : 'Принять'}</button>
+                <button className="btn" style={{ fontSize: 11, padding: '6px 10px', opacity: 0.6 }}
+                  onClick={() => doDeclineChallenge(ch)}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Вызов отправлен */}
+      {challengeSent && (
+        <div className="dash-card" style={{ marginBottom: 16, textAlign: 'center', borderColor: 'rgba(59,184,168,0.2)' }}>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 8 }}>
+            {en ? `Challenge sent to ${challengeSent.name}!` : `Вызов отправлен ${challengeSent.name}!`}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+            {en ? 'Room' : 'Комната'}: <strong>{challengeSent.roomId}</strong>
+          </div>
+          <button className="btn primary" style={{ marginTop: 8, fontSize: 12 }}
+            onClick={() => { window.location.href = `/?room=${challengeSent.roomId}` }}>
+            {en ? 'Go to room' : 'Перейти в комнату'}
+          </button>
+        </div>
+      )}
+
+      {/* Запросы в друзья */}
       {pendingFriends.length > 0 && (
         <div className="dash-card" style={{ marginBottom: 16 }}>
           <h3>{en ? 'Friend requests' : 'Запросы в друзья'} ({pendingFriends.length})</h3>
@@ -123,6 +191,8 @@ export default function ProfileFriends({ en, serverOnline, friendsList, pendingF
                   <div style={{ fontSize: 13, color: 'var(--ink)' }}>{f.username}</div>
                   <div style={{ fontSize: 10, color: 'var(--ink3)' }}>⭐ {f.rating}</div>
                 </div>
+                <button className="btn" style={{ fontSize: 11, padding: '4px 12px', minHeight: 28, borderColor: 'var(--gold)', color: 'var(--gold)' }}
+                  onClick={() => doChallenge(f.id, f.username)}>⚔️ {en ? 'Challenge' : 'Вызвать'}</button>
                 <button className="btn" style={{ fontSize: 10, padding: '3px 8px', minHeight: 24, opacity: 0.3 }}
                   onClick={() => { if (confirm(en ? `Remove ${f.username}?` : `Удалить ${f.username}?`)) doRemove(f.id) }}
                   title={en ? 'Remove friend' : 'Удалить из друзей'}>✕</button>

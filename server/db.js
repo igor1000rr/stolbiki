@@ -750,6 +750,41 @@ if (!blog451) {
   console.log('Блог: добавлен пост v4.5.1')
 }
 
+// ─── Блог-пост v4.6.0 ───
+const blog460 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-0-challenge-css'").get()
+if (!blog460) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v4-6-0-challenge-css',
+    'v4.6.0 — Вызов друзьям, CSS –81%, рефералы',
+    'v4.6.0 — Friend Challenge, CSS –81%, referrals',
+    `Большое обновление: социальные фичи + масштабный рефакторинг.
+
+**Вызов друзьям:** Теперь можно бросить вызов конкретному другу из списка друзей. Кнопка «Вызвать» создаёт комнату, друг видит входящий вызов с таймером 5 минут. Принял — оба попадают в игру.
+
+**Share-карточка:** После партии можно поделиться красивой карточкой (680×400) с именем, рейтингом, ELO-дельтой, сложностью AI и визуальным состоянием стоек. Шрифт Outfit, тёмный градиент, акцент-бар по результату.
+
+**Реферальная система:** Уникальный код и ссылка для каждого игрока. Друг регистрируется по ссылке — вы получаете +100 XP. Новая вкладка «Пригласить» в профиле с копированием, шарингом и статистикой.
+
+**CSS рефакторинг:** app.css разделён с 3093 до 595 строк (–81%). Создано 8 модулей: game.css (доска), landing.css, themes.css (10 тем), native.css (Capacitor) и др.
+
+**Инфраструктура:** Node.js 22, HTTPS с HSTS, UFW firewall, SQLite бэкапы каждые 6 часов, PM2 fork mode, Vite chunk splitting.`,
+    `Major update: social features + massive refactoring.
+
+**Friend Challenge:** Challenge a specific friend from your friends list. The "Challenge" button creates a room, your friend sees an incoming challenge with a 5-minute timer. Accept — both enter the game.
+
+**Share Card:** After a game, share a beautiful card (680×400) with name, rating, ELO delta, AI difficulty, and visual stand state. Outfit font, dark gradient, accent bar by result.
+
+**Referral System:** Unique code and link for every player. Friend registers via your link — you get +100 XP. New "Invite" tab in profile with copy, share, and stats.
+
+**CSS Refactor:** app.css split from 3093 to 595 lines (–81%). Created 8 modules: game.css (board), landing.css, themes.css (10 themes), native.css (Capacitor) etc.
+
+**Infrastructure:** Node.js 22, HTTPS with HSTS, UFW firewall, SQLite backups every 6h, PM2 fork mode, Vite chunk splitting.`,
+    'update', 1, 1
+  )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-0-challenge-css'").run()
+  console.log('Блог: добавлен пост v4.6.0')
+}
+
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
 db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
 

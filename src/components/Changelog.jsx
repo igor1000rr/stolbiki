@@ -6,6 +6,32 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.6.0',
+    date: '2026-04-03',
+    title_ru: 'Friend Challenge, CSS –81%, рефералы, share-карточки',
+    title_en: 'Friend Challenge, CSS –81%, referrals, share cards',
+    changes_ru: [
+      { type: 'new', text: 'Friend Challenge: кнопка «Вызвать» в друзьях, входящие вызовы с таймером, создание комнаты' },
+      { type: 'new', text: 'Share-карточка: имя игрока, рейтинг, ELO дельта, сложность AI, шрифт Outfit (680×400 canvas)' },
+      { type: 'new', text: 'Реферальная система: уникальный код, ссылка ?ref=, +100 XP, вкладка «Пригласить»' },
+      { type: 'new', text: 'Поле «Код друга» при регистрации (ручной ввод + автозаполнение из URL)' },
+      { type: 'fix', text: 'app.css: 3093 → 595 строк (–81%). Разделён на 8 модулей: game, landing, themes, native и др.' },
+      { type: 'fix', text: 'Node.js 20→22, PM2 fork, HTTPS+HSTS, UFW firewall, sqlite3 бэкап каждые 6ч' },
+      { type: 'fix', text: 'Vite chunks (engine/charts), удалён gpu_weights.json (–8.1MB), дубликаты handlers' },
+      { type: 'fix', text: 'ELO-график с линиями тиров, исправлены англ. дубликаты в changelog' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Friend Challenge: "Challenge" button in friends, incoming challenges with timer, room creation' },
+      { type: 'new', text: 'Share card: player name, rating, ELO delta, AI difficulty, Outfit font (680×400 canvas)' },
+      { type: 'new', text: 'Referral system: unique code, ?ref= link, +100 XP, "Invite" tab in profile' },
+      { type: 'new', text: 'Referral code field in registration (manual input + auto-fill from URL)' },
+      { type: 'fix', text: 'app.css: 3093 → 595 lines (–81%). Split into 8 modules: game, landing, themes, native etc.' },
+      { type: 'fix', text: 'Node.js 20→22, PM2 fork, HTTPS+HSTS, UFW firewall, sqlite3 backup every 6h' },
+      { type: 'fix', text: 'Vite chunks (engine/charts), removed gpu_weights.json (–8.1MB), duplicate handlers' },
+      { type: 'fix', text: 'ELO chart with tier lines, fixed English duplicates in changelog' },
+    ],
+  },
+  {
     version: '4.5.2',
     date: '2026-04-03',
     title_ru: 'CSS рефакторинг — app.css разделён на модули',

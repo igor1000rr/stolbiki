@@ -51,6 +51,53 @@ router.get('/friends', auth, (req, res) => {
   res.json({ friends, pending })
 })
 
+// ═══ Friend Challenge ═══
+router.post('/friends/challenge', auth, (req, res) => {
+  const { friendId } = req.body
+  if (!friendId) return res.status(400).json({ error: 'friendId обязателен' })
+  // Проверяем дружбу
+  const friendship = db.prepare("SELECT * FROM friends WHERE user_id=? AND friend_id=? AND status='accepted'").get(req.user.id, friendId)
+  if (!friendship) return res.status(403).json({ error: 'Не в друзьях' })
+  // Генерируем комнату
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let roomId = ''
+  for (let i = 0; i < 6; i++) roomId += chars[Math.floor(Math.random() * chars.length)]
+  // Сохраняем вызов
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_id INTEGER NOT NULL, to_id INTEGER NOT NULL,
+      room_id TEXT NOT NULL, status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (from_id) REFERENCES users(id),
+      FOREIGN KEY (to_id) REFERENCES users(id)
+    )`)
+  } catch {}
+  // Отменяем старые вызовы от этого юзера
+  db.prepare("UPDATE challenges SET status='expired' WHERE from_id=? AND status='pending'").run(req.user.id)
+  db.prepare('INSERT INTO challenges (from_id, to_id, room_id) VALUES (?, ?, ?)').run(req.user.id, friendId, roomId)
+  const fromUser = db.prepare('SELECT username FROM users WHERE id=?').get(req.user.id)
+  res.json({ roomId, from: fromUser?.username })
+})
+
+router.get('/friends/challenges', auth, (req, res) => {
+  const challenges = db.prepare(`
+    SELECT c.id, c.room_id, c.created_at, u.username as from_username, u.rating as from_rating
+    FROM challenges c JOIN users u ON u.id = c.from_id
+    WHERE c.to_id = ? AND c.status = 'pending' AND c.created_at > datetime('now', '-5 minutes')
+    ORDER BY c.created_at DESC
+  `).all(req.user.id)
+  res.json(challenges)
+})
+
+router.post('/friends/challenge/respond', auth, (req, res) => {
+  const { challengeId, accept } = req.body
+  const challenge = db.prepare('SELECT * FROM challenges WHERE id=? AND to_id=? AND status=?').get(challengeId, req.user.id, 'pending')
+  if (!challenge) return res.status(404).json({ error: 'Вызов не найден или истёк' })
+  db.prepare('UPDATE challenges SET status=? WHERE id=?').run(accept ? 'accepted' : 'declined', challengeId)
+  res.json({ ok: true, roomId: accept ? challenge.room_id : null })
+})
+
 // ═══ Search ═══
 router.get('/users/search', auth, (req, res) => {
   const q = req.query.q

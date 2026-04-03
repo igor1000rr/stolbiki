@@ -220,6 +220,19 @@ export async function getReferrals() {
   return await api('/profile/referrals')
 }
 
+// ═══ Friend Challenge ═══
+export async function challengeFriend(friendId) {
+  return await api('/friends/challenge', { method: 'POST', body: JSON.stringify({ friendId }) })
+}
+
+export async function getChallenges() {
+  return await api('/friends/challenges')
+}
+
+export async function respondChallenge(challengeId, accept) {
+  return await api('/friends/challenge/respond', { method: 'POST', body: JSON.stringify({ challengeId, accept }) })
+}
+
 /** Сохраняет реферальный код из URL (?ref=XXX) в localStorage */
 export function captureReferralCode() {
   try {
