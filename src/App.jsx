@@ -710,7 +710,7 @@ export default function App() {
             <span className="site-footer-divider" />
             <a href="/privacy" onClick={(e) => { e.preventDefault(); go('privacy') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Privacy' : 'Конфиденциальность'}</a>
             <span className="site-footer-divider" />
-            <span style={{ opacity: 0.3 }}>v4.1</span>
+            <span style={{ opacity: 0.3 }}>v4.4</span>
           </div>
         </div>
       </footer>}

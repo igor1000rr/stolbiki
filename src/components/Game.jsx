@@ -1371,11 +1371,16 @@ export default function Game() {
             {t('game.offerDraw')}
           </button>
         )}
+        <button className="btn" onClick={() => setSoundOnState(p => !p)}
+          style={{ fontSize: 13, opacity: 0.5, padding: '6px 8px', minWidth: 0 }}
+          aria-label={soundOn ? 'Mute' : 'Unmute'} title={soundOn ? 'Mute' : 'Unmute'}>
+          {soundOn ? '🔊' : '🔇'}
+        </button>
       </div>
 
       {isMyTurn && !gs.gameOver && !isNative && (
         <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--ink3)', marginTop: 4 }}>
-          {lang === 'en' ? 'Enter — confirm · Esc — cancel transfer · N — new game' : 'Enter — подтвердить · Esc — отмена переноса · N — новая игра'}
+          {lang === 'en' ? 'Enter — confirm · Esc — cancel transfer · N — new game · ? — shortcuts' : 'Enter — подтвердить · Esc — отмена переноса · N — новая игра · ? — клавиши'}
         </div>
       )}
 
