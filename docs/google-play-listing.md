@@ -4,98 +4,91 @@
 Snatch Highrise — Strategy Board Game
 
 ## Short Description (80 chars)
-Strategy board game with AI. Online multiplayer, puzzles, daily challenges. Free!
+Strategy board game with AlphaZero AI. 10M+ games analyzed. Free, no ads.
 
 ## Full Description (4000 chars max)
 
 ### EN
-Snatch Highrise is a deep strategy board game where two players compete to build and control highrises. Powered by an AlphaZero-style neural network AI that learns from millions of self-play games.
+Snatch Highrise is a deep strategy board game where two players compete to build and control highrises. Powered by an AlphaZero-style neural network trained on 10 million self-play games.
 
 🏗️ GAMEPLAY
-Place blocks on 10 stands, transfer stacks to complete highrises. Close the majority of stands to win. Simple rules, infinite depth — like Go meets Jenga.
+10 stands, 11 blocks each. Place blocks, transfer stacks, complete highrises. Simple to learn in 2 minutes — impossible to master. Perfectly balanced: 50:50 confirmed across 10M+ simulated games.
 
 🤖 AI OPPONENTS
-• 5 difficulty levels from Beginner to AlphaZero
-• GPU-accelerated neural network (MCTS + deep learning)
-• AI Game Review — see the best move on every turn
+• 4 difficulty levels: Easy → Extreme (1500 MCTS simulations)
+• Neural network AI with 840K parameters
+• AI Game Review — every move rated: Excellent → Blunder (like chess.com)
+• Accuracy percentage after each game
 
 🌐 ONLINE MULTIPLAYER
-• Play with friends or find opponents by rating (ELO ±200)
-• Emoji reactions during games 👍🔥😮
-• Spectate live matches with real-time updates
-• Tournaments and arena mode
+• Play with friends or find opponents by ELO rating
+• Friend Challenge — send a direct challenge
+• Emoji reactions during games
+• Spectator mode with chat
+• Arena tournaments (Swiss system)
 
 🧩 PUZZLES & CHALLENGES
-• Daily Challenge — same position for everyone, compete on leaderboard
-• Puzzle Rush — solve as many as you can in 3 minutes
-• 500+ unique puzzle positions
+• 14 puzzle templates (difficulty 1-5, up to 5 moves)
+• Daily Challenge — same position for everyone
+• Puzzle Rush — solve as many as possible in 3 minutes
+• 3 daily missions for XP
 
-📊 PROFILE & STATS
-• ELO rating system with seasonal rankings
-• 20+ achievements with progress tracking
-• Detailed analytics: win rate, streaks, favorite openings
-• Friends system with online status
+📊 PROFILE & PROGRESSION
+• ELO rating with seasonal rankings
+• 33 achievements with progress tracking
+• Levels 1-50 with escalating daily XP (5→50)
+• Login streak with 30-day calendar
+• Share cards for matches (680×400) and profiles (600×320)
+• Referral system: invite friends, earn +100 XP each
 
 🎨 CUSTOMIZATION
-• 6 visual themes
-• Custom board skins
-• Snappy the raccoon mascot with 7 poses
+• 11 visual themes (Dark, Ocean, Neon, Sakura, Retro...)
+• 8 chip skins + 9 stand skins (unlocked by level)
+• Snappy the raccoon mascot (7 poses)
 
 🔒 PRIVACY
-• No ads, no tracking, no data selling
-• Open source game engine
-• GDPR: export or delete your data anytime
+• No ads. No tracking. No data selling.
+• Cookie consent (GDPR compliant)
+• Export or delete your data anytime
 
-Free to play. No paywalls. No ads. Just pure strategy.
+Free to play. No paywalls. Pure strategy.
 
 ### RU
-Перехват высотки — глубокая стратегическая настольная игра, где два игрока соревнуются в строительстве высоток. AI работает на нейросети в стиле AlphaZero.
+Snatch Highrise — глубокая стратегическая настольная игра, где два игрока соревнуются за контроль над высотками. AI нейросеть обучена на 10 миллионах партий.
 
 🏗️ ГЕЙМПЛЕЙ
-Ставьте блоки на 10 стоек, переносите стопки для завершения высоток. Закройте большинство стоек — и победа ваша. Простые правила, бесконечная глубина.
+10 стоек, 11 блоков. Ставьте блоки, переносите группы, закрывайте высотки. Правила за 2 минуты — мастерство на всю жизнь. Идеальный баланс 50:50, подтверждён на 10M+ партиях.
 
-🤖 AI-ПРОТИВНИКИ
-• 5 уровней сложности от Новичка до AlphaZero
-• GPU-нейросеть (MCTS + deep learning)
-• Обзор партии — лучший ход AI на каждом ходу
+🤖 AI
+• 4 уровня сложности: Лёгкая → Экстрим (1500 симуляций MCTS)
+• Нейросеть 840K параметров
+• AI Анализ — каждый ход: Отличный → Грубая ошибка (как на chess.com)
 
 🌐 ОНЛАЙН
-• Играйте с друзьями или ищите по рейтингу (ELO ±200)
-• Emoji-реакции во время партий 👍🔥😮
-• Наблюдайте за партиями в реальном времени
-• Турниры и арена
+• Играйте с друзьями или по рейтингу ELO
+• Вызов другу — создайте комнату мгновенно
+• Режим наблюдателя с чатом
+• Арена (Swiss турниры)
 
-🧩 ПАЗЛЫ
-• Ежедневный челлендж — одинаковая позиция для всех
-• Puzzle Rush — реши максимум за 3 минуты
-• 500+ уникальных позиций
+🧩 ГОЛОВОЛОМКИ
+• 14 шаблонов (сложность 1-5, до 5 ходов)
+• Ежедневный вызов + Puzzle Rush (3 мин)
+• 3 миссии в день за XP
 
 📊 ПРОФИЛЬ
-• Рейтинг ELO с сезонными рангами
-• 20+ достижений с прогрессом
-• Аналитика: винрейт, серии, открытия
-• Друзья с онлайн-статусом
+• ELO рейтинг, 33 ачивки, уровни 1-50
+• Нарастающий XP за streak (5→50)
+• Share-карточки матчей и профиля
+• Рефералы: пригласи друга → +100 XP
 
-Бесплатно. Без рекламы. Без ограничений. Чистая стратегия.
+🎨 КАСТОМИЗАЦИЯ
+• 11 тем, 17 скинов (по уровню)
+• Маскот Снуппи (7 поз)
+
+Бесплатно. Без рекламы. Чистая стратегия.
 
 ## Category
 Board Games / Strategy
 
-## Content Rating
-Everyone (E)
-
-## Screenshots needed
-1. Game board with AI (main gameplay)
-2. Online multiplayer match
-3. Profile with stats
-4. Puzzle Rush
-5. Daily Challenge leaderboard
-6. Settings/themes
-7. Achievements
-8. Landing page with Snappy
-
-## Feature Graphic (1024×500)
-Snappy mascot + game board + "Strategy Board Game with AI" text
-
-## App Icon
-Already have: icon-512.webp (95KB)
+## Tags
+board game, strategy, abstract, AI, neural network, multiplayer, puzzles, free
