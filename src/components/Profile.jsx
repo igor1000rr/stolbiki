@@ -448,7 +448,9 @@ export default function Profile({ viewUsername, onClose }) {
   if (viewUsername) {
     if (publicLoading) return (
       <div className="dash-card" style={{ maxWidth: 500, margin: isNative ? '12px auto' : '40px auto', textAlign: 'center', padding: isNative ? 24 : 40 }}>
-        <div style={{ fontSize: 14, color: 'var(--ink3)' }}>{en ? 'Loading...' : 'Загрузка...'}</div>
+        <div style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/wave.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} /></div>
+        </div>
       </div>
     )
     if (!publicProfile) return (

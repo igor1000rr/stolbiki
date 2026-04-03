@@ -4,7 +4,7 @@
  */
 
 export default function ProfileAnalytics({ en, data }) {
-  if (!data) return <div className="dash-card" style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>{en ? 'Loading...' : 'Загрузка...'}</div>
+  if (!data) return <div className="dash-card" style={{ textAlign: 'center', padding: 32 }}><div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/point.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} /></div></div>
   if (data.empty) return <div className="dash-card" style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>{en ? 'Play some games first!' : 'Сначала сыграйте несколько партий!'}</div>
 
   const analyticsData = data

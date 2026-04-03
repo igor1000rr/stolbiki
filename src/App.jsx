@@ -34,11 +34,9 @@ const Privacy = lazy(() => import('./components/Privacy'))
 import SplashScreen from './components/SplashScreen'
 
 function LazyFallback() {
-  return <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink3)' }}>
-    <div style={{ display: 'inline-flex', gap: 4 }}>
-      {[0, 0.15, 0.3].map((d, i) => (
-        <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: `pulse 0.8s ease ${d}s infinite` }} />
-      ))}
+  return <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+    <div style={{ animation: 'float 1.5s ease-in-out infinite' }}>
+      <img src="/mascot/hero.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} />
     </div>
   </div>
 }
