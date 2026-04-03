@@ -21,7 +21,6 @@ import GameResultPanel from './GameResultPanel'
 import ReplayViewer, { describeAction } from './ReplayViewer'
 import { useGameLog } from '../engine/useGameLog'
 import { useSessionStats } from '../engine/useSessionStats'
-import { useKeyboardShortcuts } from '../engine/useKeyboardShortcuts'
 import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 const GameReview = lazy(() => import('./GameReview'))
 
@@ -859,13 +858,22 @@ export default function Game() {
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
-  useKeyboardShortcuts({
-    canConfirm, isMyTurn, phase, confirmTurn,
-    inTransferMode, cancelTransfer,
-    gameOver: gs.gameOver, result, newGame,
-    mode, undoStack, undoMove,
-    locked, numStands: gs.numStands, onStandClick,
-    requestHint,
+  // Горячие клавиши (inlined — не extracted hook, чтобы избежать TDZ)
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'Enter' && canConfirm && isMyTurn && phase === 'place') { e.preventDefault(); confirmTurn() }
+      if (e.key === 'Escape' && inTransferMode) cancelTransfer()
+      if (e.key === 'n' && (gs.gameOver || result !== null)) newGame()
+      if (e.key === 'z' && mode === 'pvp' && undoStack.length > 0) undoMove()
+      if (!locked && !gs.gameOver && /^[0-9]$/.test(e.key)) {
+        const standIdx = e.key === '0' ? 0 : parseInt(e.key)
+        if (standIdx >= 0 && standIdx < gs.numStands) onStandClick(standIdx)
+      }
+      if (e.key === 'h' && !e.ctrlKey && !e.metaKey && !locked && !gs.gameOver) requestHint?.()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
   })
 
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('stolbiki_tutorial_seen'))
