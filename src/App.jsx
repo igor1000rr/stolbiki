@@ -141,7 +141,7 @@ export default function App() {
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null) // username для публичного профиля
   const [installPrompt, setInstallPrompt] = useState(null)
-  const [cookieOk, setCookieOk] = useState(() => !!cookieOk) // PWA install prompt
+  const [cookieOk, setCookieOk] = useState(() => !!localStorage.getItem('stolbiki_cookies'))
 
   // Native-only states
   const [showOnboarding, setShowOnboarding] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
