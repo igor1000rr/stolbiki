@@ -67,8 +67,8 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </h1>
         <p className="l-hero-sub">
           {en
-            ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 1M games, challenge friends, or print and play at the table.'
-            : '10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 1M партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
+            ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 10M games, challenge friends, or print and play at the table.'
+            : '10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 10M партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
         </p>
         <div className="l-hero-meta">
           <span className="beta-badge">beta</span>
@@ -92,7 +92,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
 
       {/* ═══ NUMBERS — count-up animation ═══ */}
       <section className={`l-numbers ${numVis ? 'in' : ''}`} ref={numRef}>
-        <div className="l-num"><span className="l-num-val"><Counter end="1" suffix="M+" /></span><span className="l-num-label">{c('landing.stat_games', en ? 'games analyzed' : 'партий')}</span></div>
+        <div className="l-num"><span className="l-num-val"><Counter end="10" suffix="M+" /></span><span className="l-num-label">{c('landing.stat_games', en ? 'games analyzed' : 'партий')}</span></div>
         <div className="l-num-sep" />
         <div className="l-num"><span className="l-num-val"><Counter end="97" suffix="%" /></span><span className="l-num-label">{c('landing.stat_winrate', en ? 'AI win rate' : 'винрейт AI')}</span></div>
         <div className="l-num-sep" />
@@ -125,7 +125,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         <h2 className="l-title">{c('landing.features_title', en ? "What's inside" : 'Что внутри')}</h2>
         <div className={`l-feat-grid ${featVis ? 'in' : ''}`} ref={featRef}>
           {[
-            { color: '#4a9eff', title: en ? 'AlphaZero AI' : 'AI нейросеть', desc: en ? 'Trained on 1M games. 4 difficulty levels.' : 'Обучена на 1M партиях. 4 уровня сложности.',
+            { color: '#4a9eff', title: en ? 'AlphaZero AI' : 'AI нейросеть', desc: en ? 'Trained on 10M games. 4 difficulty levels.' : 'Обучена на 10M партиях. 4 уровня сложности.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[18,32,24,40,28,36,20,44,30,22].map((h,i)=><rect key={i} className="l-bar-wave" x={4+i*12} y={48-h} width={8} height={h} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} style={{animationDelay:`${i*0.15}s`,transformOrigin:`${4+i*12+4}px 48px`}}/>)}</svg> },
             { color: '#3dd68c', title: en ? 'Online' : 'Онлайн', desc: en ? 'Link to a friend — play in seconds. No signup.' : 'Ссылка другу — игра через секунды. Без регистрации.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><circle cx="30" cy="24" r="10" fill="none" stroke="#3dd68c" strokeWidth="1.5" opacity="0.5"/><circle cx="90" cy="24" r="10" fill="none" stroke="#4a9eff" strokeWidth="1.5" opacity="0.5"/><line x1="40" y1="24" x2="80" y2="24" stroke="#3dd68c50" strokeWidth="1" strokeDasharray="4 3" className="l-feat-dash"/><circle cx="30" cy="24" r="3" fill="#3dd68c" className="l-feat-pulse"/><circle cx="90" cy="24" r="3" fill="#4a9eff" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/><circle className="l-packet" cx="30" cy="24" r="2" fill="#ffc145"/></svg> },
@@ -245,7 +245,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при 5:5. Контроль — ключевая стратегия.'],
             [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes — PWA. Add to home screen, play offline.' : 'Да — PWA. Добавьте на экран, играйте оффлайн.'],
             [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first block, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
-            [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '50:50 balance. Confirmed across 1M games.' : '50:50 баланс. Проверено на 1M партиях.'],
+            [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '50:50 balance. Confirmed across 10M games.' : '50:50 баланс. Проверено на 10M партиях.'],
             [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely free. No ads, no paywalls.' : 'Полностью. Без рекламы, без подвохов.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
@@ -267,8 +267,8 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           <h2 style={{ fontSize: 28, margin: '0 0 10px' }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
           <p style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 0 24px' }}>
             {en
-              ? 'Project at the intersection of board game design and AI. Neural network trained via self-play on 1M+ games. New features every week.'
-              : 'Проект на стыке дизайна настольных игр и AI. Нейросеть обучена через self-play на 1M+ партиях. Новые фичи каждую неделю.'}
+              ? 'Project at the intersection of board game design and AI. Neural network trained via self-play on 10M+ games. New features every week.'
+              : 'Проект на стыке дизайна настольных игр и AI. Нейросеть обучена через self-play на 10M+ партиях. Новые фичи каждую неделю.'}
           </p>
 
           <button className="btn primary l-btn-lg l-btn-glow" onClick={onPlay} style={{ marginBottom: 28, fontSize: 16, padding: '14px 40px' }}>
