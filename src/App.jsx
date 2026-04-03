@@ -49,7 +49,7 @@ const WHATS_NEW = {
     'Счётчик зрителей в онлайн-партии',
     '🔊 Быстрое вкл/выкл звука',
     'Горячие клавиши: ? для справки',
-    'Загрузка: Снуппи вместо текста',
+    '7 поз Snappy: think, wave, celebrate, sad, point, shock',
     '157 тестов, dist –59%',
   ],
   en: [
@@ -57,7 +57,7 @@ const WHATS_NEW = {
     'Spectator count in online matches',
     '🔊 Quick sound toggle',
     'Keyboard shortcuts: ? for help',
-    'Loading: Snoopy mascot instead of text',
+    '7 Snappy poses: think, wave, celebrate, sad, point, shock',
     '157 tests, dist –59%',
   ],
 }
