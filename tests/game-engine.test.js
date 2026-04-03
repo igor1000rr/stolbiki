@@ -653,3 +653,28 @@ describe('GameState API', () => {
     expect(gs.numStands).toBe(NUM_STANDS)
   })
 })
+
+// ═══ Swap mechanics ═══
+describe('Swap mechanics', () => {
+  it('swap инвертирует все блоки на доске', () => {
+    let state = new GameState()
+    state = applyAction(state, { placement: { 3: 1 } }) // P0 ставит на 3
+    expect(state.stands[3]).toEqual([0]) // Блок P0
+    state = applyAction(state, { swap: true }) // P1 делает swap
+    expect(state.stands[3]).toEqual([1]) // Теперь блок P1
+  })
+
+  it('swap меняет currentPlayer', () => {
+    let state = new GameState()
+    state = applyAction(state, { placement: { 0: 1 } })
+    expect(state.currentPlayer).toBe(1)
+    state = applyAction(state, { swap: true })
+    expect(state.currentPlayer).toBe(0) // Обратно к P0
+  })
+
+  it('swap недоступен на первом ходу', () => {
+    const state = new GameState()
+    const actions = getLegalActions(state)
+    expect(actions.some(a => a.swap)).toBe(false)
+  })
+})

@@ -248,3 +248,34 @@ describe('Combined validation', () => {
     expect(slug('hello world')).toBe('helloworld') // пробелы удаляются
   })
 })
+
+// ═══ Boundary stress ═══
+describe('Boundary stress', () => {
+  it('str с длинным input → обрезается', () => {
+    const long = 'a'.repeat(500)
+    const result = str(long, 100)
+    expect(result.length).toBeLessThanOrEqual(100)
+  })
+
+  it('sanitize с 1000 тегов', () => {
+    const malicious = '<b>'.repeat(500) + 'text' + '</b>'.repeat(500)
+    const result = sanitize(malicious)
+    expect(result.includes('<')).toBe(false)
+    expect(result).toContain('text')
+  })
+
+  it('username обрезается до 30 символов', () => {
+    expect(username('a'.repeat(30))).toBe('a'.repeat(30))
+    expect(username('a'.repeat(50)).length).toBe(30) // truncated
+  })
+
+  it('slug с дефисами и цифрами', () => {
+    expect(slug('v4-4-update-2026')).toBe('v4-4-update-2026')
+  })
+
+  it('num с граничными значениями', () => {
+    expect(num(0, 0, 100)).toBe(0)
+    expect(num(100, 0, 100)).toBe(100)
+    expect(num(50.5, 0, 100)).toBe(50.5)
+  })
+})
