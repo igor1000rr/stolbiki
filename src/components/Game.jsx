@@ -15,7 +15,7 @@ import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import { useGameContext } from '../engine/GameContext'
 import { useGameTimer } from '../engine/useGameTimer'
-import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick } from '../engine/sounds'
+import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick, setMuted } from '../engine/sounds'
 import Board from './Board'
 import GameResultPanel from './GameResultPanel'
 import ReplayViewer, { describeAction } from './ReplayViewer'
@@ -44,11 +44,12 @@ export default function Game() {
   const difficultyRef = useRef(150)
   const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
   const [soundOn, setSoundOnState] = useState(true)
-  useEffect(() => { setSoundOn(soundOn) }, [soundOn])
+  useEffect(() => { setSoundOn(soundOn); setMuted(!soundOn) }, [soundOn])
   // Настройки из Settings
   const [userSettings, setUserSettings] = useState(() => getSettings())
   useEffect(() => {
     setSoundOn(soundOn && userSettings.soundPack !== 'off')
+    setMuted(!soundOn || userSettings.soundPack === 'off')
   }, [userSettings, soundOn])
   // Обновляем настройки мгновенно (focus + GameContext)
   useEffect(() => {

@@ -920,8 +920,8 @@ export default function App() {
           <span style={{ fontSize: 18, flexShrink: 0 }}>🍪</span>
           <span style={{ flex: 1, lineHeight: 1.5 }}>
             {en
-              ? 'Cookies for auth & preferences only. No tracking.'
-              : 'Cookies только для авторизации и настроек. Без трекинга.'}
+              ? 'We use cookies and Yandex Metrika for analytics. No personal data is sold.'
+              : 'Cookies для авторизации + Яндекс Метрика для аналитики. Данные не продаём.'}
           </span>
           <button className="btn primary" style={{ fontSize: 12, padding: '8px 20px', flexShrink: 0, borderRadius: 8 }}
             onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true) }}>

@@ -1,6 +1,10 @@
 // Генерация звуков через Web Audio API — никаких файлов не нужно
 let ctx = null
 let unlocked = false
+let _muted = false
+
+export function setMuted(v) { _muted = !!v }
+export function isMuted() { return _muted }
 
 function getCtx() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -27,6 +31,7 @@ function unlock() {
 })
 
 function playTone(freq, duration, type = 'sine', volume = 0.15) {
+  if (_muted) return
   try {
     const c = getCtx()
     if (c.state === 'suspended') c.resume()
