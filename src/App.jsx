@@ -911,23 +911,26 @@ export default function App() {
       {/* Cookie consent (GDPR) */}
       {!isNative && !cookieOk && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
-          background: 'var(--surface)', borderTop: '1px solid var(--surface2)',
-          padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12,
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.3)', fontSize: 12, color: 'var(--ink2)',
+          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+          background: 'var(--surface)', border: '1px solid var(--surface3)',
+          padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14,
+          borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          fontSize: 13, color: 'var(--ink2)', maxWidth: 600, width: 'calc(100% - 32px)',
         }}>
-          <span style={{ flex: 1 }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>🍪</span>
+          <span style={{ flex: 1, lineHeight: 1.5 }}>
             {en
-              ? 'We use cookies for authentication and game preferences. No tracking.'
-              : 'Мы используем cookies для авторизации и настроек игры. Без трекинга.'}
+              ? 'Cookies for auth & preferences only. No tracking.'
+              : 'Cookies только для авторизации и настроек. Без трекинга.'}
           </span>
-          <button className="btn primary" style={{ fontSize: 11, padding: '6px 16px', flexShrink: 0 }}
+          <button className="btn primary" style={{ fontSize: 12, padding: '8px 20px', flexShrink: 0, borderRadius: 8 }}
             onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true) }}>
             OK
           </button>
-          <button className="btn" style={{ fontSize: 11, padding: '6px 12px', flexShrink: 0 }}
-            onClick={() => go('privacy')}>
-            {en ? 'More' : 'Подробнее'}
+          <button style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 16, padding: 4, flexShrink: 0 }}
+            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true) }}
+            aria-label="Close">
+            ✕
           </button>
         </div>
       )}

@@ -85,7 +85,12 @@ body::before {
   padding: 20px 40px 80px;
   position: relative;
   z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
+.app > main, .app > .app-content { flex: 1; }
 
 /* ═══════════════════════════════════════════
    SITE HEADER
@@ -237,7 +242,7 @@ body::before {
 @keyframes fadeDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 
 /* Контент */
-.site-content { min-height: 60vh; padding: 24px 0; }
+.site-content { flex: 1; padding: 24px 0; }
 
 /* Подвал */
 .site-footer {
