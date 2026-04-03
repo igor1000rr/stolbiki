@@ -205,9 +205,9 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ DOWNLOAD ═══ */}
+      {/* ═══ DOWNLOAD + PRINT ═══ */}
       <section className="l-section">
-        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 28, padding: '32px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'flex', alignItems: 'center', gap: 28, padding: '36px 32px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', flexWrap: 'wrap', justifyContent: 'center' }}>
           <Mascot pose="wave" size={130} large animate={false} style={{ flexShrink: 0 }} />
           <div style={{ flex: '1 1 300px', textAlign: 'center' }}>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px' }}>
@@ -230,22 +230,30 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </div>
           </div>
         </div>
-      </section>
 
-      {/* ═══ PRINT & PLAY ═══ */}
-      <section className="l-section">
-        <a href="/print-and-play.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 24px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)', textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface3)'; e.currentTarget.style.transform = '' }}>
-          <Icon name="download" size={22} color="var(--accent)" />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
-              {en ? 'PDF: game board, 110 blocks to cut, full rules' : 'PDF: игровое поле, 110 блоков для вырезания, полные правила'}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 16 }}>
+          <a href="/print-and-play.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)', textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface3)'; e.currentTarget.style.transform = '' }}>
+            <Icon name="download" size={20} color="var(--accent)" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Print & Play</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                {en ? 'PDF: board + 110 blocks + rules' : 'PDF: поле + 110 блоков + правила'}
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>→</div>
+          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--surface3)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{en ? 'No ads. Free forever.' : 'Без рекламы. Навсегда.'}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+                {en ? 'No paywalls, no tracking, pure strategy' : 'Без платных стен, без трекинга, чистая стратегия'}
+              </div>
             </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{en ? 'Download' : 'Скачать'} →</div>
-        </a>
+        </div>
       </section>
 
       {/* ═══ FAQ — numbered, with colors ═══ */}
