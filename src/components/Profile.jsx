@@ -1023,9 +1023,9 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {refLink}
               </div>
-              <button className="btn primary" onClick={() => {
+              <button className="btn primary" onClick={(e) => {
                 navigator.clipboard?.writeText(refLink)
-                  .then(() => setError(en ? 'Link copied!' : 'Ссылка скопирована!'))
+                  .then(() => { e.target.textContent = en ? 'Copied!' : 'Готово!'; setTimeout(() => { e.target.textContent = en ? 'Copy' : 'Скопировать' }, 2000) })
                   .catch(() => {})
               }} style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}>
                 {en ? 'Copy' : 'Скопировать'}

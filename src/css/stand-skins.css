@@ -1,0 +1,109 @@
+/* Stand skins — извлечены из app.css */
+
+/* ═══ Stand skins ═══ */
+
+/* Marble — мраморные прожилки */
+.stand-marble .stand { background: linear-gradient(170deg, #2a2a3a 0%, #1e1e2e 30%, #2a2840 50%, #222238 70%, #1a1a28 100%); border-color: rgba(255,255,255,0.1); }
+.stand-marble .stand::after { background: repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(255,255,255,0.02) 6px, rgba(255,255,255,0.02) 12px), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.01) 10px, rgba(255,255,255,0.01) 20px); }
+.stand-marble .stand.golden { border-color: rgba(255,200,100,0.4); box-shadow: 0 0 14px rgba(255,193,69,0.15); }
+
+/* Concrete — шероховатый бетон */
+.stand-concrete .stand { background: linear-gradient(180deg, #3e3e48, #32323c, #2a2a32); border-color: rgba(255,255,255,0.06); border-radius: 3px 3px 0 0; }
+.stand-concrete .stand::after { background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.04), transparent 40%), radial-gradient(circle at 70% 70%, rgba(255,255,255,0.03), transparent 35%); }
+.stand-concrete .stand.golden { border-color: rgba(255,193,69,0.35); }
+
+/* Bamboo — зелёный с горизонтальными полосами */
+.stand-bamboo .stand { background: linear-gradient(180deg, #3a5a30, #2e4c24, #244018, #2a4820); border-color: rgba(100,180,60,0.2); }
+.stand-bamboo .stand::after { background: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px, transparent 11px, transparent 13px); }
+.stand-bamboo .stand.golden { border-color: rgba(255,213,79,0.4); box-shadow: 0 0 10px rgba(255,213,79,0.15); }
+
+/* Obsidian — чёрное зеркало */
+.stand-obsidian .stand { background: linear-gradient(180deg, #1a1a24, #0c0c14, #080810, #0e0e18); border-color: rgba(100,100,160,0.12); }
+.stand-obsidian .stand::after { background: linear-gradient(180deg, rgba(100,100,160,0.06), transparent 40%, rgba(100,100,160,0.03)); }
+.stand-obsidian .stand.golden { box-shadow: 0 0 20px rgba(255,193,69,0.25), inset 0 0 8px rgba(255,193,69,0.05); border-color: rgba(255,193,69,0.4); }
+
+/* Crystal — прозрачный кристалл с blur */
+.stand-crystal .stand { background: linear-gradient(180deg, rgba(60,80,120,0.35), rgba(40,60,90,0.5), rgba(30,40,60,0.6)); border-color: rgba(100,160,255,0.18); backdrop-filter: blur(4px); }
+.stand-crystal .stand::after { background: linear-gradient(170deg, rgba(100,160,255,0.06) 0%, transparent 30%, rgba(100,160,255,0.04) 60%, transparent 100%); }
+.stand-crystal .stand.golden { border-color: rgba(255,213,79,0.4); box-shadow: 0 0 14px rgba(255,213,79,0.2); }
+
+/* Rust — ржавый металл с пятнами */
+.stand-rust .stand { background: linear-gradient(180deg, #4a3028, #3a2418, #2e1c12, #3a2818); border-color: rgba(180,100,60,0.25); }
+.stand-rust .stand::after { background: radial-gradient(ellipse at 60% 25%, rgba(200,120,60,0.1), transparent 50%), radial-gradient(ellipse at 30% 75%, rgba(180,90,40,0.08), transparent 40%); }
+.stand-rust .stand.golden { border-color: rgba(255,180,80,0.5); box-shadow: 0 0 12px rgba(255,180,80,0.2); }
+
+/* Void — абсолютная темнота с пурпурным свечением */
+.stand-void .stand { background: linear-gradient(180deg, #0a0a16, #040408, #060610, #0a0a14); border-color: rgba(80,60,140,0.18); }
+.stand-void .stand::after { background: radial-gradient(ellipse at 50% 100%, rgba(80,60,140,0.08), transparent 60%); }
+.stand-void .stand.golden { border-color: rgba(255,193,69,0.55); box-shadow: 0 0 18px rgba(255,193,69,0.2), 0 0 4px rgba(80,60,140,0.3); }
+.stand-void .stand:hover { border-color: rgba(80,60,140,0.3); box-shadow: 0 0 12px rgba(80,60,140,0.15); }
+
+/* Ice — ледяной с морозным бликом */
+.stand-ice .stand { background: linear-gradient(180deg, rgba(180,220,255,0.12), rgba(140,200,250,0.06), rgba(160,210,255,0.1), rgba(120,180,240,0.08)); border-color: rgba(120,180,240,0.22); }
+.stand-ice .stand::after { background: linear-gradient(180deg, rgba(200,230,255,0.08), transparent 30%, transparent 70%, rgba(180,220,255,0.06)); }
+.stand-ice .stand.golden { border-color: rgba(255,224,130,0.45); box-shadow: 0 0 14px rgba(255,224,130,0.2), 0 0 4px rgba(120,180,240,0.2); }
+
+/* Board density */
+.board-compact .stand { min-height: 130px; width: 44px; }
+.board-compact .chip { width: 34px; height: 9px; }
+.board-compact .board { gap: 2px; }
+.board-wide .stand { min-height: 200px; width: 62px; }
+.board-wide .chip { width: 48px; height: 14px; }
+.board-wide .board { gap: 5px; }
+
+/* Animation speeds */
+.anim-slow .chip-drop { animation-duration: 0.9s; }
+.anim-slow .stand-flash { animation-duration: 1.2s; }
+.anim-fast .chip-drop { animation-duration: 0.2s; }
+.anim-fast .stand-flash { animation-duration: 0.3s; }
+.anim-off .chip-drop, .anim-off .stand-flash, .anim-off .confetti,
+.anim-off .close-particle, .anim-off .stand-flash-glow { animation: none !important; }
+
+/* Colorblind — паттерны */
+.colorblind .chip.p0 {
+  background: var(--p1) !important;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px) !important;
+}
+.colorblind .chip.p1 {
+  background: var(--p2) !important;
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(0,0,0,0.3) 3px, rgba(0,0,0,0.3) 5px) !important;
+}
+
+/* Reduced motion */
+.reduced-motion * { animation: none !important; }
+.reduced-motion *::before, .reduced-motion *::after { animation: none !important; }
+.reduced-motion .chip-drop { transform: none; opacity: 1; }
+.reduced-motion .chip-hidden { opacity: 1; }
+
+/* Large text */
+.large-text { font-size: 18px; }
+.large-text .game-info { font-size: 17px; }
+.large-text .stand-label { font-size: 15px; }
+.large-text .btn { font-size: 16px; }
+.large-text .setting-label { font-size: 17px; }
+.large-text .setting-desc { font-size: 15px; }
+
+/* High contrast */
+.high-contrast { --surface: #000; --surface2: #222; --surface3: #444; --ink: #fff; --ink2: #ddd; --ink3: #aaa; }
+.high-contrast .chip.p0 { background: #0066ff; }
+.high-contrast .chip.p1 { background: #ff0000; }
+.high-contrast .stand { border-color: #666; }
+
+/* ═══════════════════════════════════════════
+   LANDING PAGE — animations + bento grid
+   ═══════════════════════════════════════════ */
+.landing { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+.l-section { padding: 0 0 56px; }
+.l-title { font-size: 22px; font-weight: 700; color: var(--ink); text-align: center; margin-bottom: 32px; letter-spacing: -0.3px; }
+.l-btn-lg { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; padding: 14px 32px; }
+
+/* Glow button */
+.l-btn-glow::after {
+  content: ''; position: absolute; inset: -2px; border-radius: inherit;
+  background: conic-gradient(from 0deg, var(--accent), transparent, var(--accent));
+  opacity: 0; z-index: -1; filter: blur(12px);
+  animation: btnGlow 3s ease-in-out infinite;
+}
+.l-btn-glow:hover::after { opacity: 0.6; }
+@keyframes btnGlow { 0%,100% { opacity: 0; } 50% { opacity: 0.4; } }
+

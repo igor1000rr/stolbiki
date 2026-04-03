@@ -58,13 +58,13 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
 
   // Результат
   ctx.fillStyle = accentColor
-  ctx.font = 'bold 28px sans-serif'
+  ctx.font = 'bold 28px Outfit, sans-serif'
   ctx.textAlign = 'center'
   ctx.fillText(isDraw ? 'DRAW' : won ? 'VICTORY' : 'DEFEAT', 340, 52)
 
   // Счёт
   ctx.fillStyle = '#eae8f2'
-  ctx.font = 'bold 80px sans-serif'
+  ctx.font = 'bold 80px Outfit, sans-serif'
   ctx.fillText(`${s0} : ${s1}`, 340, 148)
 
   // Визуализация стоек
@@ -86,14 +86,14 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
     // Золотая звезда
     if (isGolden) {
       ctx.fillStyle = '#ffc145'
-      ctx.font = '11px sans-serif'
+      ctx.font = '11px Outfit, sans-serif'
       ctx.fillText('★', x + 20, standY + 35)
     }
   }
 
   // Статистика
   ctx.fillStyle = '#6e6a82'
-  ctx.font = '14px sans-serif'
+  ctx.font = '14px Outfit, sans-serif'
   const stats = []
   if (moves) stats.push(`${moves} ${moves === 1 ? 'move' : 'moves'}`)
   if (elapsed) stats.push(`${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`)
@@ -107,12 +107,12 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
   // Игрок
   if (playerName) {
     ctx.fillStyle = '#eae8f2'
-    ctx.font = 'bold 18px sans-serif'
+    ctx.font = 'bold 18px Outfit, sans-serif'
     ctx.fillText(playerName, 340, 290)
 
     if (rating) {
       ctx.fillStyle = '#a8a4b8'
-      ctx.font = '14px sans-serif'
+      ctx.font = '14px Outfit, sans-serif'
       let ratingText = `${rating} ELO`
       if (ratingDelta) {
         const sign = ratingDelta > 0 ? '+' : ''
@@ -125,13 +125,13 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
   // Рейтинг-дельта (крупно, если есть)
   if (ratingDelta && !playerName) {
     ctx.fillStyle = ratingDelta > 0 ? '#3dd68c' : '#ff6066'
-    ctx.font = 'bold 22px sans-serif'
+    ctx.font = 'bold 22px Outfit, sans-serif'
     ctx.fillText(`${ratingDelta > 0 ? '+' : ''}${ratingDelta} ELO`, 340, 290)
   }
 
   // Брендинг
   ctx.fillStyle = '#3d3d50'
-  ctx.font = '13px sans-serif'
+  ctx.font = '13px Outfit, sans-serif'
   ctx.fillText('snatch-highrise.com', 340, 370)
 
   // Разделитель

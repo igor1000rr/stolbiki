@@ -9,9 +9,14 @@ import { useNetworkStatus } from './engine/network'
 import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
 import { initPush } from './engine/push'
 import './app.css'
+import './css/game.css'
 import './css/landing.css'
 import './css/themes.css'
 import './css/native.css'
+import './css/confetti.css'
+import './css/stand-skins.css'
+import './css/board-animations.css'
+import './css/mobile-ui.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
 const Game = lazy(() => import('./components/Game'))
@@ -590,6 +595,12 @@ export default function App() {
                       <input type="password" placeholder={en ? 'Password' : 'Пароль'} value={authPass}
                         onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
                         className="header-auth-input" />
+                      {authMode === 'register' && (
+                        <input type="text" placeholder={en ? 'Referral code (optional)' : 'Код друга (необязательно)'}
+                          defaultValue={API.getSavedReferralCode() || ''}
+                          onChange={e => { if (e.target.value) localStorage.setItem('stolbiki_ref', e.target.value.trim().toUpperCase()); else localStorage.removeItem('stolbiki_ref') }}
+                          className="header-auth-input" style={{ fontSize: 11 }} />
+                      )}
                       <button className="btn primary" onClick={doAuth} disabled={authLoading}
                         style={{ width: '100%', fontSize: 12, padding: '8px 0' }}>
                         {authLoading ? '...' : authMode === 'login' ? (en ? 'Login' : 'Войти') : (en ? 'Register' : 'Создать')}
