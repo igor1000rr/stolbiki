@@ -1129,20 +1129,13 @@ export default function Game() {
         </div>
       )}
 
-      {/* Стабильный разделитель — ход и время (всегда видим) */}
+      {/* Стабильный разделитель — ход, время, статус фишек (всегда видим) */}
       <div style={{ textAlign: 'center', fontSize: isNative ? 10 : 11, color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px', minHeight: isNative ? 16 : 18 }}>
         {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+        {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
+          <> · {totalPlaced}/{maxTotal}{transfer ? ` · ✓` : ''}</>
+        )}
       </div>
-
-      {/* Статус фишек */}
-      {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
-        <div className="place-controls">
-          <span className="place-status">
-            {totalPlaced}/{maxTotal} {lang === 'en' ? 'blocks' : 'блоков'} · {Object.keys(placement).length}/{MAX_PLACE_STANDS} {lang === 'en' ? 'stands' : 'стоек'}
-            {transfer && ` · ${lang === 'en' ? 'transfer' : 'перенос'} ✓`}
-          </span>
-        </div>
-      )}
 
       {/* Swap кнопка */}
       {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
