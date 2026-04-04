@@ -52,7 +52,8 @@ export default function GameResultPanel({
       )}
       {sessionStats?.streak >= 3 && won && (
         <div style={{ fontSize: isNative ? 16 : 13, color: 'var(--gold)', marginTop: 8, fontWeight: 600, animation: 'fadeIn 0.5s' }}>
-          🔥 {sessionStats.streak} {t('game.winStreak')}
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--gold)" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 23c-4.97 0-9-3.58-9-8 0-3.07 2.17-6.44 4-8 0 3 2 5 3 6 .47-2.2 2.05-4.86 4-7 1.07 1.5 2.37 3.61 3 6 1-1 2-3 3-6 1.83 1.56 4 4.93 4 8 0 4.42-4.03 8-9 9h-3z"/></svg>
+          {sessionStats.streak} {t('game.winStreak')}
         </div>
       )}
       <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>

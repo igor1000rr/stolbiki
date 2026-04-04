@@ -921,7 +921,7 @@ export default function App() {
           borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           fontSize: 13, color: 'var(--ink2)', maxWidth: 600, width: 'calc(100% - 32px)',
         }}>
-          <span style={{ fontSize: 18, flexShrink: 0 }}>🍪</span>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><circle cx="8" cy="9" r="1" fill="var(--gold)"/><circle cx="14" cy="7" r="1" fill="var(--gold)"/><circle cx="16" cy="13" r="1" fill="var(--gold)"/><circle cx="10" cy="15" r="1" fill="var(--gold)"/><circle cx="6" cy="13" r="0.8" fill="var(--gold)"/></svg>
           <span style={{ flex: 1, lineHeight: 1.5 }}>
             {en
               ? 'We use cookies and Yandex Metrika for analytics. No personal data is sold.'

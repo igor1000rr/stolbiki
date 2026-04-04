@@ -1000,16 +1000,16 @@ export default function Profile({ viewUsername, onClose }) {
 
           {unlockedAch.length > 0 && (
             <div className="dash-card" style={{ marginBottom: 16 }}>
-              <h3 style={{ color: 'var(--green)' }}>Разблокированные</h3>
-              <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+              <h3 style={{ color: 'var(--green)' }}>{en ? 'Unlocked' : 'Разблокированные'}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
                 {unlockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked profile={profile} en={en} />)}
               </div>
             </div>
           )}
 
           <div className="dash-card">
-            <h3>Заблокированные</h3>
-            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+            <h3>{en ? 'Locked' : 'Заблокированные'}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
               {lockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked={false} profile={profile} en={en} />)}
             </div>
           </div>
@@ -1089,13 +1089,18 @@ export default function Profile({ viewUsername, onClose }) {
 
       {/* ─── Аккаунт ─── */}
       {/* ─── Рефералы ─── */}
+      {tab === 'referrals' && !referralData && (
+        <div className="dash-card" style={{ padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 13, color: 'var(--ink3)' }}>{en ? 'Loading...' : 'Загрузка...'}</div>
+        </div>
+      )}
       {tab === 'referrals' && referralData && (() => {
         const refLink = referralData.link || ''
         const refCode = referralData.code || ''
         return (
           <div className="dash-card" style={{ padding: 20 }}>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>🎁</div>
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{ margin: '0 auto 8px', display: 'block' }}><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>
                 {en ? 'Invite friends' : 'Пригласи друзей'}
               </div>
@@ -1129,7 +1134,7 @@ export default function Profile({ viewUsername, onClose }) {
                   url: refLink,
                 }).catch(() => {})
               }} style={{ width: '100%', fontSize: 13, padding: '12px 0', justifyContent: 'center', marginBottom: 16, borderColor: 'var(--accent)', color: 'var(--accent)' }}>
-                {en ? '📤 Share invite' : '📤 Поделиться'}
+                {en ? 'Share invite' : 'Поделиться'}
               </button>
             )}
 
