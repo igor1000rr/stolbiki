@@ -930,6 +930,12 @@ if (!blog462) {
   )
   db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-2-analytics-gdpr'").run()
   console.log('Блог: добавлен пост v4.6.2')
+} else {
+  // Обновляем существующий пост
+  db.prepare("UPDATE blog_posts SET title_ru=?, title_en=?, pinned=1 WHERE slug='v4-6-2-analytics-gdpr'").run(
+    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
+    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal'
+  )
 }
 
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
