@@ -349,7 +349,7 @@
   .profile-tabs button { flex: 0 0 calc(50% - 3px) !important; font-size: 11px !important; padding: 8px 4px !important; }
   .dash-card [style*="grid-template-columns: repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; }
   .dash-card [style*="grid-template-columns: repeat(5"] { grid-template-columns: repeat(3, 1fr) !important; }
-  .dash-card [style*="gridTemplateColumns"][style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .dash-card [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
   .dash-table { font-size: 10px; }
   .dash-table th, .dash-table td { padding: 4px 6px; }
   .replay-tabs { flex-wrap: wrap; gap: 4px; }

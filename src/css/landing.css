@@ -121,9 +121,9 @@
 
 /* ═══ MOBILE ═══ */
 @media (max-width: 680px) {
-  .l-hero { padding: 36px 0 24px; }
+  .l-hero { padding: 36px 16px 24px; }
   .l-hero-title { font-size: 28px; }
-  .l-hero-sub { font-size: 14px; }
+  .l-hero-sub { font-size: 14px; padding: 0 8px; }
   .l-numbers { flex-wrap: wrap; gap: 16px; }
   .l-num-sep { display: none; }
   .l-num { padding: 0 16px; }
@@ -133,7 +133,9 @@
   .l-step-n { margin: 0; flex-shrink: 0; }
   .l-step-body { padding: 0; }
   .l-qa { padding: 0 4px; }
+  .l-final { padding: 0 16px; }
   .l-final h2 { font-size: 24px; }
+  .l-section { padding-left: 12px; padding-right: 12px; }
 }
 
 /* ═══ Landing: Theme cards + Download ═══ */

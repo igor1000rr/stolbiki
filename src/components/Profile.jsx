@@ -685,7 +685,7 @@ export default function Profile({ viewUsername, onClose }) {
           </div>
 
           {/* ═══ 2 COLUMNS: Missions + Stats ═══ */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16, alignItems: 'start' }}>
             {/* LEFT: Missions + Achievements */}
             <div>
               {missionsData?.missions && (

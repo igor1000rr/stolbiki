@@ -266,8 +266,8 @@ body.native-body { animation: none !important; }
   min-height: 48px;
 }
 .native-app .dash-card input {
-  font-size: 16px;
-  padding: 14px 12px;
+  font-size: 16px !important;
+  padding: 14px 12px !important;
   border-radius: 12px;
   min-height: 48px;
 }
@@ -313,8 +313,9 @@ body.native-body { animation: none !important; }
 .native-app select { -webkit-user-select: none; user-select: none; }
 
 .native-app input[type="text"],
-.native-app input[type="password"] {
-  font-size: 16px;
+.native-app input[type="password"],
+.native-app input:not([type]) {
+  font-size: 16px !important;
   padding: 12px;
   border-radius: 10px;
   min-height: 44px;
