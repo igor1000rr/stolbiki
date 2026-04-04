@@ -738,6 +738,22 @@ export default function Profile({ viewUsername, onClose }) {
                 })}
               </div>
             )}
+            {showAvatarPicker && (
+              <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', marginBottom: 8 }}>{en ? 'Choose avatar' : 'Выберите аватар'}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {Object.entries(AVATARS).map(([key, av]) => (
+                    <div key={key} onClick={async () => {
+                      try { await API.updateAvatar(key) } catch {}
+                      setProfile(p => { const np = { ...p, avatar: key }; saveLocal(np); return np })
+                      setShowAvatarPicker(false)
+                    }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5, transition: 'opacity 0.15s' }}>
+                      <AvatarCircle avatar={key} name={profile.name} size={36} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             </div>{/* end padding wrapper */}
           </div>
 
@@ -858,22 +874,7 @@ export default function Profile({ viewUsername, onClose }) {
             </div>
           </div>
 
-          {showAvatarPicker && (
-            <div className="dash-card" style={{ marginBottom: 16, marginTop: 16, padding: '14px 16px' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>{en ? 'Choose avatar' : 'Выберите аватар'}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {Object.entries(AVATARS).map(([key, av]) => (
-                  <div key={key} onClick={async () => {
-                    try { await API.updateAvatar(key) } catch {}
-                    setProfile(p => { const np = { ...p, avatar: key }; saveLocal(np); return np })
-                    setShowAvatarPicker(false)
-                  }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5 }}>
-                    <AvatarCircle avatar={key} name={profile.name} size={40} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 16 }}>
             {en ? 'Logout' : 'Выйти из профиля'}
