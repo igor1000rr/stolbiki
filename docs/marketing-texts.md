@@ -29,7 +29,7 @@ We built an AlphaZero-style neural network (840K parameters, MCTS + ResNet) and 
 
 **What we built:**
 
-The digital version has AI at 4 difficulty levels, post-game AI review (rates every move like chess.com — from "Excellent" to "Blunder"), daily puzzles, online multiplayer, 33 achievements, and a referral system.
+The digital version has AI at 5 difficulty levels, post-game AI review (rates every move like chess.com — from "Excellent" to "Blunder"), daily puzzles, online multiplayer, 33 achievements, and a referral system.
 
 **Try it free:** [snatch-highrise.com](https://snatch-highrise.com) — no signup needed for AI games. There's also a Print & Play PDF if you want to try the physical version.
 
@@ -85,7 +85,7 @@ Built a browser-based abstract strategy game with a properly trained AI opponent
 
 **Quick pitch:** 10 stands, 11 blocks. Place or transfer to control stands. 2 minutes to learn, lifetime to master. The AI was trained on 10M+ self-play games.
 
-**Features:** 4 AI levels (Easy → Extreme), AI game review after each match, daily puzzles, online multiplayer, achievements. Works on mobile.
+**Features:** 5 AI levels (Easy → Extreme), AI game review after each match, daily puzzles, online multiplayer, achievements. Works on mobile.
 
 [snatch-highrise.com](https://snatch-highrise.com) — click Play, pick difficulty, go. No account needed.
 
@@ -103,7 +103,7 @@ Simple rules: 10 stands, 11 blocks each. Place or transfer blocks. Control 6 of 
 
 Features that make it special:
 - AI Game Review — every move rated Excellent → Blunder (like chess.com)
-- 4 AI difficulty levels powered by MCTS + ResNet (840K parameters)
+- 5 AI difficulty levels powered by MCTS + ResNet (840K parameters)
 - Online multiplayer with friend challenges
 - 14 puzzle templates with daily challenges and Puzzle Rush
 - 33 achievements, 11 themes, 17 skins, levels 1-50
@@ -134,7 +134,7 @@ Free. No ads. No paywalls. Just pure strategy.
 📱 Android скоро в Google Play
 
 Что внутри:
-• 4 уровня AI (от новичка до непобедимого)
+• 5 уровней AI (от новичка до непобедимого)
 • Онлайн мультиплеер + вызов друзьям
 • Ежедневные головоломки и миссии
 • 33 ачивки, 11 тем, рейтинговая система

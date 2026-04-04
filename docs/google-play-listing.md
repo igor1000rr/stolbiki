@@ -15,7 +15,7 @@ Snatch Highrise is a deep strategy board game where two players compete to build
 10 stands, 11 blocks each. Place blocks, transfer stacks, complete highrises. Simple to learn in 2 minutes — impossible to master. Perfectly balanced: 50:50 confirmed across 10M+ simulated games.
 
 🤖 AI OPPONENTS
-• 4 difficulty levels: Easy → Extreme (1500 MCTS simulations)
+• 5 difficulty levels: Easy → Impossible (5000 MCTS simulations)
 • Neural network AI with 840K parameters
 • AI Game Review — every move rated: Excellent → Blunder (like chess.com)
 • Accuracy percentage after each game
@@ -60,7 +60,7 @@ Snatch Highrise — глубокая стратегическая настоль
 10 стоек, 11 блоков. Ставьте блоки, переносите группы, закрывайте высотки. Правила за 2 минуты — мастерство на всю жизнь. Идеальный баланс 50:50, подтверждён на 10M+ партиях.
 
 🤖 AI
-• 4 уровня сложности: Лёгкая → Экстрим (1500 симуляций MCTS)
+• 5 уровней сложности: Лёгкая → Экстрим (1500 симуляций MCTS)
 • Нейросеть 840K параметров
 • AI Анализ — каждый ход: Отличный → Грубая ошибка (как на chess.com)
 

@@ -500,6 +500,7 @@ export default function Game() {
       const gpu = isGpuReady()
       const diff = difficultyRef.current
       const action = mctsSearch(state, ...(
+        diff >= 1500 ? (gpu ? [5000, 0] : [3000, 15]) : // Impossible: 5000 GPU-симуляций (~6с)
         diff >= 800 ? (gpu ? [1500, 0] : [1200, 10]) : // Экстрим: 1500 GPU-симуляций (~2с)
         diff >= 400 ? (gpu ? [600, 0] : [800, 8]) :    // Сложная: 600 GPU-симуляций (~0.8с)
         diff >= 150 ? (gpu ? [200, 1] : [500, 3]) :    // Средняя
@@ -946,6 +947,7 @@ export default function Game() {
               <option value={150}>{t('game.medium')}</option>
               <option value={400}>{t('game.hard')}</option>
               <option value={800}>{t('game.extreme')}</option>
+              <option value={1500}>{lang === 'en' ? 'Impossible' : 'Невозможный'}</option>
             </select>
             {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 4 }}>GPU</span>}
           </label>
@@ -977,12 +979,13 @@ export default function Game() {
           <div className="m-game-bar-info">
             <span className="m-diff-badge">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                {difficulty >= 800 ? <path d="M12 2c-4 6-8 9-8 13a8 8 0 0016 0c0-4-4-7-8-13z"/> :
+                {difficulty >= 1500 ? <><circle cx="12" cy="10" r="7"/><path d="M9 14v2M15 14v2M8 20h8"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><circle cx="15" cy="9" r="1.5" fill="currentColor"/></> :
+                 difficulty >= 800 ? <path d="M12 2c-4 6-8 9-8 13a8 8 0 0016 0c0-4-4-7-8-13z"/> :
                  difficulty >= 400 ? <><path d="M12 22V2"/><path d="M4 12l4-4 4 4 4-4 4 4"/></> :
                  difficulty >= 150 ? <><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></> :
                  <circle cx="12" cy="12" r="9"/>}
               </svg>
-              {difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
+              {difficulty >= 1500 ? (lang === 'en' ? 'Impossible' : 'Невозможный') : difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
               {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 3 }}>GPU</span>}
             </span>
             {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
@@ -1015,7 +1018,7 @@ export default function Game() {
               <div className="m-setting-row">
                 <span className="m-setting-label">{lang === 'en' ? 'Difficulty' : 'Сложность'}</span>
                 <div className="m-difficulty-grid">
-                  {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'}].map(d => (
+                  {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'},{v:1500,l:lang === 'en' ? 'Impossible' : 'Невозможный'}].map(d => (
                     <button key={d.v} className={`m-diff-opt ${difficulty === d.v ? 'active' : ''}`}
                       onClick={() => { newGame(humanPlayer, d.v, mode); setShowMobileSettings(false) }}>
                       {d.l}
