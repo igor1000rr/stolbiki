@@ -892,38 +892,40 @@ const blog462 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-2-analy
 if (!blog462) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
     'v4-6-2-analytics-gdpr',
-    'v4.6.2 — Аналитика, GDPR, retention, Android',
-    'v4.6.2 — Analytics, GDPR, retention, Android',
-    `Финальный polish перед запуском.
+    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
+    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
+    `Большое обновление — AI, интерфейс, юридические документы, сбор данных.
 
-**Встроенная аналитика.** 9 событий трекинга без внешних сервисов: pageview, game_start, game_end, share_card, ai_review, auth, friend_challenge, setting_change, matchmaking. Админка: таб «Аналитика» с графиками по дням, таблицами страниц и событий, устройствами (Mobile/Desktop), активными юзерами.
+**AI Impossible.** Новый уровень сложности — 5000 MCTS симуляций на ход (~6 сек). 99%+ побед против людей. Теперь 5 уровней: Easy → Medium → Hard → Extreme → Impossible.
 
-**GDPR Cookie Consent.** Баннер для EU-пользователей: «Cookies для авторизации и настроек, без трекинга». Кнопка OK + ссылка на Privacy Policy.
+**Profile redesign.** Компактный header: аватар + имя + ранг + уровень + streak badge + Snappy + ELO рейтинг. 2-колоночный layout: задания дня слева, статистика справа. Gradient stat cards. Avatar picker inline в header.
 
-**Retention фичи.** 🔥 Hot streak badge при 3+ победах подряд. Кнопка «Реванш!» при проигрыше AI (мгновенный рематч). Live badge на лендинге — сколько игроков онлайн и партий сегодня. Нарастающий XP за ежедневный вход: 5→10→15→20→25→30→50 за 7 дней.
+**Settings redesign.** 2×2 grid layout: Геймплей, Внешний вид, Звук и AI, Приватность. Все на inline styles — тогглы, сегменты, переключатели работают без CSS конфликтов.
 
-**Auto-tutorial.** Новые веб-пользователи автоматически попадают в уроки при первом переходе на Game.
+**Training data.** Серверный сбор ходов всех партий (AI + Online). POST /api/training для анонимных игроков. WebSocket автоматически записывает онлайн-партии. Безлимитное хранение.
 
-**Правки от Александра.** Текст правил обновлён: «Переносятся верхние блоки» и «свои и чужие блоки». Имена игроков: Player/Snappy в AI-режиме.
+**Legal.** Privacy Policy (8 секций, Яндекс Метрика раскрыта, GDPR/CCPA). Terms of Service (7 секций). Cookie consent с правдивым текстом.
 
-**Техническое.** –37 строк мёртвого CSS. +7 DB индексов. WS maxPayload 16KB. Android: +3 permissions, HTTPS enforced.
+**Landing redesign.** Реалистичный SVG-телефон с Dynamic Island. Print & Play секция. Финальный CTA с чистым дизайном.
 
-**AI Impossible.** Новый уровень сложности — 5000 MCTS симуляций на ход (~6 сек). 99%+ против людей. 5 уровней: Easy → Medium → Hard → Extreme → Impossible.
+**Аналитика.** 9 событий трекинга. Админка: графики, устройства, активные юзеры.
 
-**Landing redesign.** Реалистичный SVG-телефон с Dynamic Island. Print & Play секция с анимированным полем. Финальный CTA с чистым дизайном.
+**Баг-фиксы.** Sound mute работает глобально. Emoji → SVG иконки. 10+ строк i18n. Mission text: 0 не рендерится перед названием. SeasonSection получает en prop. Таблицы challenges и error_reports созданы. /api/stats 500 исправлен.`,
+    `Major update — AI, interface, legal docs, data collection.
 
-**UI polish.** Emoji заменены на SVG иконки. 10+ строк переведены на русский. Профиль: ачивки в 2 колонки, ясные подписи статов. Sound mute баг исправлен.`,
-    `Final polish before launch.
+**AI Impossible.** New difficulty level — 5000 MCTS simulations per move (~6 sec). 99%+ win rate vs humans. Now 5 levels: Easy → Medium → Hard → Extreme → Impossible.
 
-**Built-in analytics.** 9 tracking events without external services: pageview, game_start, game_end, share_card, ai_review, auth, friend_challenge, setting_change, matchmaking. Admin: Analytics tab with daily charts, page/event tables, device breakdown, active users.
+**Profile redesign.** Compact header: avatar + name + rank + level + streak badge + Snappy + ELO. 2-column layout: daily missions left, stats right. Gradient stat cards. Inline avatar picker.
 
-**GDPR Cookie Consent.** EU user banner: "Cookies for auth and settings only, no tracking." OK button + Privacy Policy link.
+**Settings redesign.** 2×2 grid layout: Gameplay, Appearance, Sound & AI, Privacy. All inline styles — toggles, segments, switches work without CSS conflicts.
 
-**Retention features.** Hot streak badge on 3+ consecutive wins. "Rematch!" button on AI loss. Live badge on landing showing online players and today's games. Escalating daily XP: 5→50 over 7 days.
+**Training data.** Server-side collection of all game moves (AI + Online). POST /api/training for anonymous players. WebSocket auto-records online games. Unlimited storage.
 
-**Auto-tutorial.** New web users automatically enter Lessons on first Game tab visit.
+**Legal.** Privacy Policy (8 sections, Yandex Metrika disclosed, GDPR/CCPA). Terms of Service (7 sections). Cookie consent with honest text.
 
-**Technical.** -37 lines dead CSS. +7 DB indexes. WS maxPayload 16KB. Arena error handling. Android: +3 permissions, HTTPS enforced.`,
+**Landing redesign.** Realistic SVG phone with Dynamic Island. Print & Play section. Clean final CTA.
+
+**Bug fixes.** Sound mute works globally. Emoji → SVG icons. 10+ i18n strings. Mission text fix. SeasonSection en prop. challenges/error_reports tables. /api/stats 500 fixed.`,
     'update', 1, 1
   )
   db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-2-analytics-gdpr'").run()
