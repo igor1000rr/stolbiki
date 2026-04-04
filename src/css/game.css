@@ -681,7 +681,7 @@
 /* Телефон — ключевой брейкпоинт */
 @media (max-width: 480px) {
   .board {
-    padding: 10px 4px 16px;
+    padding: 14px 4px 24px;
     gap: clamp(2px, 0.8vw, 4px);
     margin-bottom: 10px;
     border-radius: 10px;
@@ -710,8 +710,8 @@
   .score-sep { font-size: 16px; padding-bottom: 8px; }
   .game-info { font-size: 11px; margin-bottom: 8px; min-height: 16px; }
   .actions { gap: 4px; margin: 4px 0 12px; }
-  .btn { font-size: 12px; padding: 8px 14px; border-radius: 10px; min-height: 40px; }
-  .chip-btn { width: 34px; height: 34px; font-size: 14px; }
+  .actions .btn { font-size: 12px; padding: 8px 14px; border-radius: 10px; }
+  .chip-btn { width: 38px; height: 38px; font-size: 14px; }
   .place-controls { margin-bottom: 10px; }
   .place-controls span { font-size: 11px; }
   .game-log { max-height: 100px; margin-top: 12px; padding: 10px 12px; font-size: 11px; }
@@ -720,7 +720,7 @@
 
 /* Маленький телефон (SE, 320px) */
 @media (max-width: 380px) {
-  .board { padding: 6px 2px 10px; gap: 1px; }
+  .board { padding: 14px 2px 22px; gap: 1px; }
   .stand { min-height: 100px; padding: 2px 1px 3px; }
   .chip {
     height: clamp(7px, 2vw, 10px);
@@ -731,5 +731,5 @@
   .scoreboard { gap: 16px; }
   .score-num { font-size: 26px; }
   .score-label { font-size: 7px; }
-  .btn { font-size: 11px; padding: 6px 10px; min-height: 36px; }
+  .actions .btn { font-size: 11px; padding: 6px 10px; }
 }
