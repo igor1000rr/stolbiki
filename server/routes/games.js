@@ -7,7 +7,7 @@ import { addXP, ensureCurrentSeason } from '../helpers.js'
 const router = Router()
 
 router.post('/games', auth, (req, res) => {
-  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline } = req.body
+  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves } = req.body
 
   if (!score || typeof score !== 'string') return res.status(400).json({ error: 'Некорректный счёт' })
   const scoreParts = score.split(':')
@@ -20,7 +20,7 @@ router.post('/games', auth, (req, res) => {
 
   const safeTurns = Math.max(0, Math.min(500, Math.floor(+turns || 0)))
   const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
-  const safeDifficulty = Math.max(0, Math.min(800, Math.floor(+difficulty || 150)))
+  const safeDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 150)))
 
   // Минимум ~10 ходов для победы (anti-cheat: нельзя завершить игру за 1 ход)
   if (safeTurns > 0 && safeTurns < 8 && (s1 >= 6 || s2 >= 6)) {
@@ -74,6 +74,19 @@ router.post('/games', auth, (req, res) => {
   ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, safeDifficulty, closedGolden ? 1 : 0, isComeback ? 1 : 0, safeTurns, safeDuration, isOnline ? 1 : 0)
 
   db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
+
+  // Сохраняем ходы для обучения AI (если переданы)
+  if (moves && Array.isArray(moves) && moves.length >= 5) {
+    try {
+      const gameData = JSON.stringify(moves)
+      if (gameData.length < 500000) { // макс ~500KB на партию
+        const winner = won ? 0 : 1 // 0 = player (P1 perspective), 1 = AI
+        const mode = isOnline ? 'online' : 'ai'
+        db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(req.user.id, gameData, winner, moves.length, mode, safeDifficulty)
+      }
+    } catch {}
+  }
 
   const currentSeason = ensureCurrentSeason()
   if (currentSeason) {
@@ -197,6 +210,24 @@ router.get('/replays/:id', (req, res) => {
   const replay = db.prepare('SELECT r.*, u.username FROM replays r LEFT JOIN users u ON r.user_id = u.id WHERE r.id = ?').get(req.params.id)
   if (!replay) return res.status(404).json({ error: 'Replay не найден' })
   res.json({ ...replay, moves: JSON.parse(replay.moves) })
+})
+
+// ═══ Сбор training data от всех игроков (анонимных тоже) ═══
+router.post('/training', (req, res) => {
+  const { moves, winner, mode, difficulty, score } = req.body
+  if (!moves || !Array.isArray(moves) || moves.length < 5) {
+    return res.status(400).json({ error: 'Минимум 5 ходов' })
+  }
+  const gameData = JSON.stringify(moves)
+  if (gameData.length > 500000) return res.status(400).json({ error: 'Слишком большая партия' })
+
+  try {
+    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(null, gameData, winner ?? -1, moves.length, mode || 'ai', difficulty || 0)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: 'Ошибка записи' })
+  }
 })
 
 export default router

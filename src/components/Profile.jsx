@@ -416,7 +416,7 @@ export default function Profile({ viewUsername, onClose }) {
   // Записать результат партии (вызывается из Game через GameContext)
   useEffect(() => {
     if (!gameCtx) return
-    return gameCtx.register('recordGame', (won, score, vsHardAi, closedGolden, isComeback, isOnline) => {
+    return gameCtx.register('recordGame', (won, score, vsHardAi, closedGolden, isComeback, isOnline, moves) => {
       setProfile(prev => {
         if (!prev) return prev
         const p = { ...prev, history: [...(prev.history || [])] }
@@ -455,15 +455,23 @@ export default function Profile({ viewUsername, onClose }) {
         }
         return p
       })
-      // Отправляем на сервер
+      // Отправляем на сервер (с ходами для training)
+      const movesData = Array.isArray(moves) && moves.length >= 5 ? moves : undefined
       if (serverOnline && API.isLoggedIn()) {
-        API.recordGame({ won, score, difficulty: vsHardAi ? 400 : 150, closedGolden, isComeback, isOnline: !!isOnline })
+        API.recordGame({ won, score, difficulty: vsHardAi ? 400 : 150, closedGolden, isComeback, isOnline: !!isOnline, moves: movesData })
           .then(res => {
             if (res?.ratingDelta && gameCtx) {
               gameCtx.emit('onRatingDelta', res.ratingDelta)
             }
           })
           .catch(() => {})
+      } else if (serverOnline && movesData) {
+        // Анонимный сбор training data
+        fetch('/api/training', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ moves: movesData, winner: won ? 0 : 1, mode: isOnline ? 'online' : 'ai', difficulty: vsHardAi ? 400 : 150, score })
+        }).catch(() => {})
       }
     })
   }, [serverOnline, gameCtx])

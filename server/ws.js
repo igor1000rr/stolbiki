@@ -60,6 +60,16 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       const roomWinner = gameToRoomPlayer(room, winner)
       room.scores[roomWinner]++
     }
+    // Сохраняем training data
+    if (room.moveHistory && room.moveHistory.length >= 5) {
+      try {
+        const gameData = JSON.stringify(room.moveHistory)
+        if (gameData.length < 500000) {
+          db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
+            .run(null, gameData, winner, room.moveHistory.length, 'online', 0)
+        }
+      } catch {}
+    }
     const gameOverMsg = JSON.stringify({
       type: 'serverGameOver',
       winner: winner >= 0 ? gameToRoomPlayer(room, winner) : -1,
@@ -76,6 +86,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       room.currentGame++
       room.firstPlayer = room.currentGame % 2 === 1 ? 0 : 1
       room.gameState = new GameState()
+      room.moveHistory = []
       const nextMsg = JSON.stringify({
         type: 'nextGame',
         currentGame: room.currentGame, totalGames: room.totalGames,
@@ -215,6 +226,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.state = 'playing'
           room.currentGame = 1
           room.gameState = new GameState()
+      room.moveHistory = []
           room.firstPlayer = 0
           const startMsg = JSON.stringify({
             type: 'start',
@@ -291,6 +303,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
               room.lastMoveTime = Date.now()
 
               room.gameState = applyAction(gs, action)
+              if (!room.moveHistory) room.moveHistory = []
+              room.moveHistory.push({ action: { ...action }, player: gamePlayer })
               const opponent = room.players[1 - playerIdx]
               const moveMsg = { type: 'move', action, from: playerIdx }
               if (room.playerTime) moveMsg.time = room.playerTime
@@ -410,6 +424,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           // Меняем стороны: кто был firstPlayer, становится вторым
           room.firstPlayer = room.firstPlayer === 0 ? 1 : 0
           room.gameState = new GameState()
+      room.moveHistory = []
           const startMsg = JSON.stringify({
             type: 'rematchStart',
             players: room.players.map(p => p.name),

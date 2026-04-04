@@ -526,7 +526,7 @@ export default function Game() {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-                gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false)
+                gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false, false, moveHistoryRef.current)
                 API.track('game_end', 'game', { won, score, difficulty: difficultyRef.current, mode: 'ai' })
               }
               // Турнир — запись результата (AI gameOver)
@@ -756,7 +756,7 @@ export default function Game() {
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
           const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-          gameCtx.emit('recordGame', w, score, difficulty >= 400, closedGolden, false, mode === 'online')
+          gameCtx.emit('recordGame', w, score, difficulty >= 400, closedGolden, false, mode === 'online', moveHistoryRef.current)
         }
         // Турнир — запись результата
         if (tournament) {

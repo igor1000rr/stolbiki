@@ -311,7 +311,7 @@ function TrainingPanel() {
         <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 8 }}>✓ Экспортировано {exported} сэмплов</div>
       )}
       <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 8 }}>
-        Формат: {"{ state, action, value: ±1 }"} • Совместим с Python train.py • Макс {200} партий в localStorage
+        Формат: {"{ state, action, value: ±1 }"} • Совместим с Python train.py • Все партии сохраняются на сервере
       </div>
     </div>
   )
