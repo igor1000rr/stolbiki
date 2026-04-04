@@ -437,6 +437,7 @@
   width: 40px; height: 22px; border-radius: 11px; border: none;
   background: var(--surface3); cursor: pointer; padding: 2px;
   transition: background 0.2s; position: relative;
+  display: flex; align-items: center; flex-shrink: 0;
 }
 .toggle.on { background: var(--accent); }
 .toggle-thumb {
