@@ -781,7 +781,7 @@ export default function Profile({ viewUsername, onClose }) {
                         border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : 'var(--surface2)'}` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                           <span style={{ fontSize: 12, color: m.completed ? 'var(--green)' : 'var(--ink)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {m.completed && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                            {!!m.completed && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                             {en ? m.name_en : m.name_ru}
                           </span>
                           <span style={{ fontSize: 10, color: m.completed ? 'var(--green)' : 'var(--gold)' }}>+{m.xp_reward} XP</span>
