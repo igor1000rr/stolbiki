@@ -361,11 +361,12 @@ class VectorizedSelfPlay:
                 noise = np.random.dirichlet([0.3] * k)
                 priors = 0.75 * priors + 0.25 * noise
 
-                # Policy target = softmax(value_scores / tau)
-                # Adaptive tau: масштабируется по разбросу scores
-                score_std = max(np.std(scores), 0.01)
-                tau = score_std * 0.75  # ~74% entropy → чёткий сигнал для обучения
-                policy_target = _softmax(scores / tau)
+                # Policy target = softmax(normalized_scores / tau)
+                # Нормализуем scores → unit variance, потом фиксированный tau
+                score_mean = np.mean(scores)
+                score_std = max(np.std(scores), 1e-6)
+                scores_norm = (scores - score_mean) / score_std
+                policy_target = _softmax(scores_norm / 0.5)  # ~74% entropy
 
                 # Выбор хода: PUCT с policy priors для exploration
                 visits = np.zeros(k)
@@ -542,8 +543,7 @@ class GPUTrainer:
         self.policy_weight = c.get('policy_weight', 1.0)  # Вес policy loss
 
         self.net = StoykaNet(self.hidden, self.num_blocks).to(DEVICE)
-        self.opt = optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=1e-4)
-        self.sched = optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=300, eta_min=0.0001)
+        self._setup_optimizer()
 
         # Буферы: value + policy
         self.buf_x, self.buf_y = [], []  # State features, value targets
@@ -557,6 +557,22 @@ class GPUTrainer:
         os.makedirs(self.ckpt_dir, exist_ok=True)
         tp = sum(p.numel() for p in self.net.parameters())
         print(f'Сеть v7: {self.hidden}×{self.num_blocks}, {tp:,} параметров (policy+value)')
+
+    def _setup_optimizer(self, policy_lr_mult=5.0):
+        """Раздельные LR: backbone+value → lr, policy → lr × policy_lr_mult."""
+        backbone_value_params = []
+        policy_params = []
+        for name, param in self.net.named_parameters():
+            if 'policy_ctx' in name or 'action_enc' in name:
+                policy_params.append(param)
+            else:
+                backbone_value_params.append(param)
+        self.opt = optim.Adam([
+            {'params': backbone_value_params, 'lr': self.lr},
+            {'params': policy_params, 'lr': self.lr * policy_lr_mult},
+        ], weight_decay=1e-4)
+        self.sched = optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=300, eta_min=0.0001)
+        print(f'  Optimizer: backbone/value lr={self.lr}, policy lr={self.lr * policy_lr_mult}')
 
     def train_on_buffer(self):
         """Dual loss: value MSE + policy CE."""
@@ -710,12 +726,10 @@ class GPUTrainer:
     def load(self, path):
         ckpt = torch.load(path, map_location=DEVICE, weights_only=False)
         sd = ckpt['model']
-        # Совместимость: если нет policy ключей — загружаем только backbone+value
         missing = [k for k in self.net.state_dict() if k not in sd]
         if missing:
             print(f'  ⚠ Новые ключи ({len(missing)}): {", ".join(missing[:5])}...')
             print(f'  → Policy head инициализируется рандомно')
-            # Загружаем частично
             own_sd = self.net.state_dict()
             for k, v in sd.items():
                 if k in own_sd and own_sd[k].shape == v.shape:
@@ -723,11 +737,8 @@ class GPUTrainer:
             self.net.load_state_dict(own_sd)
         else:
             self.net.load_state_dict(sd)
-        if 'optimizer' in ckpt:
-            try:
-                self.opt.load_state_dict(ckpt['optimizer'])
-            except:
-                print('  ⚠ Optimizer state не совместим, пересоздан')
+        # Пересоздаём optimizer с раздельными LR (старый state не совместим)
+        self._setup_optimizer()
         self.version = ckpt.get('version', 0)
         self.history = ckpt.get('history', [])
         print(f'Загружена v{self.version}')
@@ -743,6 +754,7 @@ class GPUTrainer:
                 own_sd[k] = v
                 loaded += 1
         self.net.load_state_dict(own_sd)
+        self._setup_optimizer()
         self.version = ckpt.get('version', 0)
         self.history = ckpt.get('history', [])
         print(f'Миграция v6→v7: загружено {loaded} тензоров, policy head рандомный')
