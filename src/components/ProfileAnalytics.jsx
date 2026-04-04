@@ -197,7 +197,7 @@ export default function ProfileAnalytics({ en, data }) {
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>{analyticsData.puzzleAccuracy}%</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? 'accuracy' : 'точность'}</div></div>
                   <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{analyticsData.puzzleTotal}</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? 'solved' : 'решено'}</div></div>
-                  {analyticsData.rushBest > 0 && <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>{analyticsData.rushBest}</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>Rush best</div></div>}
+                  {analyticsData.rushBest > 0 && <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>{analyticsData.rushBest}</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? en ? 'Rush best' : 'Рекорд Rush' : 'Рекорд Rush'}</div></div>}
                 </div>
               </div>
             )}

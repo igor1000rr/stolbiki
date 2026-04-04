@@ -250,7 +250,7 @@ function SeasonSection({ data, myName }) {
   return (
     <div className="dash-card" style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <h3 style={{ margin: 0 }}>Season {season.name}</h3>
+        <h3 style={{ margin: 0 }}>{en ? 'Season' : 'Сезон'} {season.name}</h3>
         <span style={{ fontSize: 10, color: 'var(--ink3)' }}>
           {season.start_date} — {season.end_date}
         </span>
@@ -258,7 +258,7 @@ function SeasonSection({ data, myName }) {
       {leaderboard && leaderboard.length > 0 ? (
         <table className="dash-table" style={{ fontSize: 12 }}>
           <thead>
-            <tr><th>#</th><th>Player</th><th>Rating</th><th>Games</th><th>Wins</th></tr>
+            <tr><th>#</th><th>{en ? 'Player' : 'Игрок'}</th><th>{en ? 'Rating' : 'Рейтинг'}</th><th>{en ? 'Games' : 'Партий'}</th><th>{en ? 'Wins' : 'Побед'}</th></tr>
           </thead>
           <tbody>
             {leaderboard.map((p, i) => (
@@ -278,7 +278,7 @@ function SeasonSection({ data, myName }) {
         </table>
       ) : (
         <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', padding: 16 }}>
-          No games this season yet
+          {en ? 'No games this season yet' : 'Партий в этом сезоне пока нет'}
         </div>
       )}
     </div>
@@ -742,7 +742,7 @@ export default function Profile({ viewUsername, onClose }) {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600 }}>Level {missionsData.level}</span>
+                    <span style={{ fontWeight: 600 }}>{en ? 'Level' : 'Уровень'} {missionsData.level}</span>
                     <span>{missionsData.xp} / {missionsData.xpForNext} XP</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 4, background: 'var(--surface2)', overflow: 'hidden', position: 'relative' }}>
@@ -798,7 +798,7 @@ export default function Profile({ viewUsername, onClose }) {
           {/* Avatar picker */}
           {showAvatarPicker && (
             <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>Choose avatar</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>{en ? 'Choose avatar' : 'Выберите аватар'}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {Object.entries(AVATARS).map(([key, av]) => (
                   <div key={key} onClick={async () => {
@@ -849,7 +849,7 @@ export default function Profile({ viewUsername, onClose }) {
           {ratingHistory.length >= 2 && (
             <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 13 }}>Rating History</h3>
+                <h3 style={{ margin: 0, fontSize: 13 }}>{en ? 'Rating History' : 'История рейтинга'}</h3>
                 <span style={{ fontSize: 11, color: ratingHistory[0]?.delta > 0 ? 'var(--green)' : 'var(--p2)', fontWeight: 600 }}>
                   {ratingHistory[0]?.delta > 0 ? '+' : ''}{ratingHistory[0]?.delta} last game
                 </span>
@@ -864,7 +864,7 @@ export default function Profile({ viewUsername, onClose }) {
           {/* Opening stats — какой первый ход побеждает чаще */}
           {openingStats && openingStats.total > 5 && (
             <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
-              <h3 style={{ fontSize: 13, margin: '0 0 10px' }}>First move stats</h3>
+              <h3 style={{ fontSize: 13, margin: '0 0 10px' }}>{en ? 'First move stats' : 'Статистика первых ходов'}</h3>
               <div style={{ display: 'flex', gap: 2, height: 40, alignItems: 'flex-end' }}>
                 {Array.from({ length: 10 }, (_, i) => {
                   const count = openingStats.standCounts?.[i] || 0

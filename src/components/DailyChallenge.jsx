@@ -38,7 +38,7 @@ export default function DailyChallenge() {
   return (
     <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 24, opacity: 0.5 }}>Daily</span>
+        <span style={{ fontSize: 24, opacity: 0.5 }}>{en ? 'Daily' : 'Дневной'}</span>
         <div>
           <h3 style={{ fontSize: 16, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0, margin: 0 }}>
             {en ? 'Daily Challenge' : 'Ежедневный челлендж'}

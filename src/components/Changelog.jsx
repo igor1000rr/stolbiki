@@ -770,7 +770,7 @@ export default function Changelog() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       <div style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Changelog</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{en ? 'Changelog' : 'История обновлений'}</h2>
         <p style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
           {en ? 'What changed and when. Every update in one place.' : 'Что менялось и когда. Все обновления в одном месте.'}
         </p>
