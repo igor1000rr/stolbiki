@@ -941,6 +941,45 @@ if (!blog462) {
 // Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
 db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
 
+// ─── Блог-пост v4.7.0 ───
+const blog470 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-7-0-alphazero-android'").get()
+if (!blog470) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'v4-7-0-alphazero-android',
+    'v4.7.0 — AlphaZero AI v7, Android, полный редизайн UX',
+    'v4.7.0 — AlphaZero AI v7, Android, full UX redesign',
+    `Крупнейшее обновление: новая нейросеть, Android-приложение и полная переработка интерфейса.
+
+**AlphaZero AI v7:** Переход с value-only сети (v6) на policy+value архитектуру (859K параметров, +2.2%). Policy head предсказывает вероятности ходов, value head — оценку позиции. MCTS использует PUCT формулу вместо UCB1: Q(a) + c_puct × P(a) × √N / (1+N(a)). Результат: AI быстрее находит сильные ходы с меньшим количеством симуляций.
+
+**5 уровней сложности:** Лёгкая (50 симуляций) → Средняя (150) → Сложная (400, по умолчанию) → Экстрим (800) → Невозможный (1500). Новым игрокам ставится Сложная, чтобы было интересно разобраться в стратегии.
+
+**Android-приложение:** Capacitor 8 с 6 плагинами: вибрация при ходах, нативный шаринг, определение сети, splash screen. Доска адаптируется под любой экран, кнопки 44px для удобства нажатия.
+
+**Редизайн игрового интерфейса:** Убрана волновая анимация стоек (мерцание при переходах). Убрана полоса прогресса закрытия (путала игроков). Стабильный разделитель «Ход · Время · Блоки» — кнопки больше не прыгают. Подсказки 💡 всегда доступны. Из настроек убраны Сторона и Тренер.
+
+**Редизайн лендинга:** Новый текст: «Хитрые еноты строят высотки и перехватывают их у других». Убрана секция статистики (10M+, 97%, 50:50). Упрощён FAQ до 3 вопросов. Фиксы читаемости в светлой теме.
+
+**Техническое:** Убрано 52 строки мёртвого кода. Game.jsx стал на 7% легче. Все CSS скобки сбалансированы.`,
+    `The biggest update: new neural network, Android app, and complete UI overhaul.
+
+**AlphaZero AI v7:** Transition from value-only network (v6) to policy+value architecture (859K params, +2.2%). Policy head predicts move probabilities, value head evaluates positions. MCTS uses PUCT formula instead of UCB1: Q(a) + c_puct × P(a) × √N / (1+N(a)). Result: AI finds strong moves faster with fewer simulations.
+
+**5 difficulty levels:** Easy (50 sims) → Medium (150) → Hard (400, default) → Extreme (800) → Impossible (1500). New players start on Hard to make strategy discovery engaging.
+
+**Android app:** Capacitor 8 with 6 plugins: haptic feedback, native sharing, network detection, splash screen. Board adapts to any screen size, 44px touch targets.
+
+**Game UI redesign:** Removed wave animation on stands (jarring flicker). Removed closure progress bar (confused players). Stable separator "Turn · Time · Blocks" — buttons no longer jump. Hints 💡 always available. Removed Side and Trainer from settings.
+
+**Landing redesign:** New copy: "Sneaky raccoons build highrises and snatch them from others." Removed stats section. Simplified FAQ to 3 questions. Light theme readability fixes.
+
+**Technical:** Removed 52 lines of dead code. Game.jsx is 7% lighter. All CSS braces balanced.`,
+    'update', 1, 1
+  )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-7-0-alphazero-android'").run()
+  console.log('Блог: добавлен пост v4.7.0')
+}
+
 // ═══ Ачивки ═══
 const ALL_ACHIEVEMENTS = [
   { id: 'first_win', check: u => u.wins >= 1 },
