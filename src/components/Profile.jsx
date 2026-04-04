@@ -511,20 +511,20 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>ELO</div>
             </div>
           </div>
-          <div className="profile-stats-grid">
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{pp.gamesPlayed}</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Games' : 'Партий'}</div>
             </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--green)' }}>{ppWinRate}%</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Win rate' : 'Винрейт'}</div>
             </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--gold)' }}>{pp.bestStreak}</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Streak' : 'Серия'}</div>
             </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--gold)' }}>{pp.goldenClosed}</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
@@ -823,31 +823,31 @@ export default function Profile({ viewUsername, onClose }) {
           )}
 
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>{en ? 'Statistics' : 'Статистика'}</div>
-          <div className="profile-stats-grid">
-            <div className="dash-card" style={{ textAlign: 'center', padding: 14 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)' }}>{profile.gamesPlayed}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Games played' : 'Сыграно партий'}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)' }}>{profile.gamesPlayed}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Games' : 'Партий'}</div>
             </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>{winRate}%</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Win rate' : 'Процент побед'}</div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{winRate}%</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Win %' : 'Побед %'}</div>
             </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)' }}>{profile.bestStreak}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>{profile.bestStreak}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Streak' : 'Серия'}</div>
             </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)' }}>{profile.goldenClosed}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Golden closed' : 'Золотых закрыто'}</div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>{profile.goldenClosed}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Golden' : 'Золотых'}</div>
             </div>
             {profile.rushBest > 0 && (
-              <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+              <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)' }}>{profile.rushBest}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Puzzle Rush</div>
               </div>
             )}
             {profile.arenaStats?.tournaments > 0 && (
-              <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
+              <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--p1)' }}>{profile.arenaStats.top3}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Arena top 3' : 'Arena топ-3'}</div>
               </div>
@@ -892,7 +892,7 @@ export default function Profile({ viewUsername, onClose }) {
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 9, color: 'var(--ink3)' }}>
-                <span>{openingStats.total} games</span>
+                <span>{openingStats.total} {en ? 'games' : 'партий'}</span>
                 <span style={{ display: 'flex', gap: 8 }}>
                   <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: 'var(--green)', marginRight: 3 }} />&gt;60% WR</span>
                   <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: 'var(--gold)', marginRight: 3 }} />40-60%</span>
