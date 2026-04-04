@@ -10,21 +10,28 @@ function save(s) { saveSettings(s) }
 
 function SettingRow({ label, desc, children }) {
   return (
-    <div className="setting-row">
-      <div className="setting-info">
-        <div className="setting-label">{label}</div>
-        {desc && <div className="setting-desc">{desc}</div>}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{label}</div>
+        {desc && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{desc}</div>}
       </div>
-      <div className="setting-control">{children}</div>
+      <div style={{ flexShrink: 0 }}>{children}</div>
     </div>
   )
 }
 
 function SegmentControl({ options, value, onChange }) {
   return (
-    <div className="segment-control">
+    <div style={{ display: 'flex', gap: 2, background: 'var(--surface2)', borderRadius: 8, padding: 2, flexWrap: 'wrap' }}>
       {options.map(o => (
-        <button key={o.value} className={value === o.value ? 'active' : ''} onClick={() => onChange(o.value)}>
+        <button key={o.value} onClick={() => onChange(o.value)} style={{
+          fontSize: 11, fontWeight: 500, padding: '6px 10px', border: 'none',
+          background: value === o.value ? 'var(--surface)' : 'transparent',
+          color: value === o.value ? 'var(--ink)' : 'var(--ink3)',
+          cursor: 'pointer', borderRadius: 6, fontFamily: "'Outfit', sans-serif",
+          transition: 'all 0.15s', whiteSpace: 'nowrap',
+          boxShadow: value === o.value ? '0 1px 4px rgba(0,0,0,0.2)' : 'none',
+        }}>
           {o.label}
         </button>
       ))}
@@ -34,8 +41,17 @@ function SegmentControl({ options, value, onChange }) {
 
 function Toggle({ checked, onChange }) {
   return (
-    <button className={`toggle ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}>
-      <div className="toggle-thumb" />
+    <button onClick={() => onChange(!checked)} style={{
+      width: 44, height: 24, borderRadius: 12, border: 'none',
+      background: checked ? 'var(--accent)' : 'var(--surface3)',
+      cursor: 'pointer', padding: 2, transition: 'background 0.2s',
+      display: 'flex', alignItems: 'center', flexShrink: 0,
+    }}>
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        transform: checked ? 'translateX(20px)' : 'translateX(0)',
+      }} />
     </button>
   )
 }
