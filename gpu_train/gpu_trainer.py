@@ -279,7 +279,6 @@ class VectorizedSelfPlay:
         while active:
             # ── Шаг 1: Генерация кандидатов ──
             all_cand_feats = []   # Encoded next states для value
-            all_state_feats = []  # Текущие состояния для policy
             game_cands = {}       # gi → [(action, next_state, player)]
 
             for gi in active:
@@ -288,18 +287,20 @@ class VectorizedSelfPlay:
                 cands_raw = gen_smart_candidates(state, player, n_random=K)
                 valid = []
                 for a in cands_raw:
+                    if len(valid) >= MAX_CANDIDATES:
+                        break
                     try:
                         ns = apply_action(state, a)
-                        all_cand_feats.append(encode_state(ns))
                         valid.append((a, ns, player))
                     except:
                         pass
                 if not valid:
                     a = sample_random_action_fast(state)
                     ns = apply_action(state, a)
-                    all_cand_feats.append(encode_state(ns))
                     valid.append((a, ns, player))
                 game_cands[gi] = valid
+                for (a, ns, p) in valid:
+                    all_cand_feats.append(encode_state(ns))
 
             # ── Шаг 2: Батч GPU — value для всех кандидатов ──
             with torch.no_grad():
