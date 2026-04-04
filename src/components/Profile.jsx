@@ -632,7 +632,7 @@ export default function Profile({ viewUsername, onClose }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{profile.name}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <RatingBadge rating={profile.rating} en={en} />
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '2px 8px', borderRadius: 4 }}>
                     Lv.{profile.level || missionsData?.level || 1}

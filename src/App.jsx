@@ -54,24 +54,22 @@ const ADMIN_NAMES = ['admin']
 const APP_VERSION = '4.7.0'
 const WHATS_NEW = {
   ru: [
-    'Удалён мёртвый код: –8.1MB из билда',
-    'Объединены дублированные error handlers',
-    'PM2 fork mode вместо cluster (SQLite)',
-    'Удалён фейковый aggregateRating из JSON-LD',
-    'Очистка middleware: убран дублирующий setInterval',
-    'ELO-график в профиле',
-    'Тосты при получении ачивок',
-    'Vite: оптимизация чанков (recharts, engine отдельно)',
+    'AlphaZero AI v7: policy+value нейросеть (859K параметров)',
+    '5 уровней сложности включая «Невозможный»',
+    'Мобильная адаптация: доска, стойки, кнопки',
+    'Android: все 7 плагинов (вибрация, шаринг, сеть)',
+    'Оптимизация производительности на Android',
+    'Настройки: адаптивный grid на телефонах',
+    '33 ачивки с прогрессом',
   ],
   en: [
-    'Removed dead code: –8.1MB from build',
-    'Merged duplicate error handlers',
-    'PM2 fork mode instead of cluster (SQLite)',
-    'Removed fake aggregateRating from JSON-LD',
-    'Middleware cleanup: removed duplicate setInterval',
-    'ELO graph in profile',
-    'Achievement unlock toasts',
-    'Vite: chunk optimization (recharts, engine split)',
+    'AlphaZero AI v7: policy+value neural network (859K params)',
+    '5 difficulty levels including Impossible',
+    'Mobile adaptation: board, stands, buttons',
+    'Android: all 7 plugins (haptics, share, network)',
+    'Performance optimizations for Android',
+    'Settings: responsive grid on phones',
+    '33 achievements with progress tracking',
   ],
 }
 const THEMES = [
