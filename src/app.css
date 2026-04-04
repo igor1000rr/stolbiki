@@ -540,9 +540,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  /* Убираем .app padding в native */
   padding: 0 !important;
   max-width: none !important;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* ═══ CONTENT AREA ═══ */
@@ -553,8 +554,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   transform: translateZ(0);
