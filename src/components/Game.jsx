@@ -64,7 +64,6 @@ export default function Game() {
   const [result, setResult] = useState(null)
   const [hint, setHint] = useState(null)
   const [hintLoading, setHintLoading] = useState(false)
-  const [hintMode, setHintMode] = useState(false)
   const [aiThinking, setAiThinking] = useState(false)
   const [scoreBump, setScoreBump] = useState(null)
   const [locked, setLocked] = useState(false)

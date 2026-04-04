@@ -596,7 +596,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ═══ Store buttons — animated border glow ═══ */
 
 /* ═══ Board intro — стойки вырастают при старте ═══ */
-.board-stand { }
+
 
 /* MascotLoader float animation */
 @keyframes float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.02); } }

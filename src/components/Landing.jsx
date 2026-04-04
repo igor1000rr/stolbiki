@@ -18,26 +18,6 @@ function useReveal(threshold = 0.15) {
   return [ref, visible]
 }
 
-// Animated counter
-function Counter({ end, suffix = '', duration = 1200 }) {
-  const [val, setVal] = useState(0)
-  const [ref, visible] = useReveal()
-  useEffect(() => {
-    if (!visible) return
-    const num = parseInt(String(end).replace(/\D/g, ''))
-    if (!num) { setVal(end); return }
-    const start = Date.now()
-    const tick = () => {
-      const t = Math.min((Date.now() - start) / duration, 1)
-      const ease = 1 - Math.pow(1 - t, 3)
-      setVal(Math.round(num * ease))
-      if (t < 1) requestAnimationFrame(tick)
-    }
-    requestAnimationFrame(tick)
-  }, [visible])
-  return <span ref={ref}>{typeof end === 'string' && end.includes('K') ? `${val}K+` : val}{suffix}</span>
-}
-
 export default function Landing({ onPlay, onTutorial, publicStats, installPrompt }) {
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -45,7 +25,6 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
 
   // Per-section reveal refs
   const [heroRef, heroVis] = useReveal(0.1)
-  const [numRef, numVis] = useReveal()
   const [stepRef, stepVis] = useReveal()
   const [featRef, featVis] = useReveal(0.1)
   const [screensRef, screensVis] = useReveal()
