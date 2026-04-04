@@ -101,6 +101,17 @@ db.exec(`
     UNIQUE(user_id, friend_id)
   );
 
+  CREATE TABLE IF NOT EXISTS challenges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_id INTEGER NOT NULL,
+    to_id INTEGER NOT NULL,
+    room_id TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (from_id) REFERENCES users(id),
+    FOREIGN KEY (to_id) REFERENCES users(id)
+  );
+
   CREATE TABLE IF NOT EXISTS training_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
