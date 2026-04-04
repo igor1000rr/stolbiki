@@ -106,7 +106,7 @@ body.native-body { animation: none !important; }
   border-right: none;
   margin-bottom: 2px;
   flex: 1 1 0%;
-  max-height: clamp(280px, 52vh, 520px);
+  max-height: clamp(220px, 40vh, 400px);
   align-items: stretch;
   min-height: 160px;
 }
@@ -436,13 +436,12 @@ body.native-body { animation: none !important; }
 /* Short screens — don't center, let content fill */
 @media (max-height: 640px) {
   .native-game-wrapper { justify-content: flex-start; }
-  .native-app .board { max-height: none; }
 }
 
 /* ═══ NATIVE: Landscape optimization ═══ */
 @media (max-height: 600px) and (orientation: landscape) {
   .native-game-wrapper { justify-content: flex-start; }
-  .native-app .board { min-height: auto; max-height: none; }
+  .native-app .board { min-height: auto; max-height: 70vh; }
   .native-app .stand { min-height: 90px !important; }
   .native-app .scoreboard { padding: 2px 0; }
   .native-app .score-num { font-size: 24px; }

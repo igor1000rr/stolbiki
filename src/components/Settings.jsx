@@ -86,7 +86,7 @@ export default function Settings() {
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
       <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 24 }}>{en ? 'Settings' : 'Настройки'}</h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 16 }}>
 
         {/* ═══ ГЕЙМПЛЕЙ ═══ */}
         <div className="dash-card" style={{ padding: '18px 22px' }}>

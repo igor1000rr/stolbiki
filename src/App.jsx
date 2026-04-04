@@ -358,6 +358,8 @@ export default function App() {
   }, [isAdmin, tab])
 
   function go(id) {
+    // Native: никогда не показываем landing
+    if (isNative && id === 'landing') id = 'game'
     // Auto-tutorial: первый раз на Game → показать уроки
     if (id === 'game' && !isNative && !localStorage.getItem('stolbiki_played')) {
       localStorage.setItem('stolbiki_played', '1')
@@ -752,7 +754,7 @@ export default function App() {
 
       <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
-          {tab === 'landing' && <Landing onPlay={() => go('game')} onTutorial={() => setShowLessons(true)} publicStats={publicStats} installPrompt={installPrompt} />}
+          {tab === 'landing' && !isNative && <Landing onPlay={() => go('game')} onTutorial={() => setShowLessons(true)} publicStats={publicStats} installPrompt={installPrompt} />}
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
