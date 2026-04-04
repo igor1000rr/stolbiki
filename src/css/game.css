@@ -653,3 +653,83 @@
   to { transform: rotate(360deg); }
 }
 
+/* ═══════════════════════════════════════════
+   MOBILE WEB — адаптация доски под телефоны
+   ═══════════════════════════════════════════ */
+
+/* Планшет портрет */
+@media (max-width: 768px) {
+  .board {
+    padding: 16px 8px 24px;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+  }
+  .stand {
+    width: 48px;
+    min-height: 150px;
+  }
+  .chip { width: 34px; height: 12px; border-radius: 6px; }
+  .scoreboard { gap: 28px; padding: 8px 0; margin-bottom: 16px; }
+  .score-num { font-size: 40px; }
+  .score-label { font-size: 8px; letter-spacing: 2px; }
+  .game-info { font-size: 12px; margin-bottom: 12px; }
+  .actions { gap: 6px; margin: 6px 0 16px; }
+  .game-result { padding: 20px; font-size: 18px; }
+}
+
+/* Телефон — ключевой брейкпоинт */
+@media (max-width: 480px) {
+  .board {
+    padding: 10px 4px 16px;
+    gap: clamp(2px, 0.8vw, 4px);
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+  .stand {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    min-height: 120px;
+    padding: 3px 2px 4px;
+    border-radius: 8px 8px 0 0;
+  }
+  .stand:hover { transform: none; }
+  .chip {
+    width: calc(100% - 2px);
+    max-width: 36px;
+    height: clamp(9px, 2.5vw, 12px);
+    border-radius: 5px;
+    margin: 0.5px 0;
+  }
+  .stand-label { font-size: 9px; top: -15px; }
+  .stand.golden .stand-label { font-size: 14px; top: -22px; }
+  .stand-owner { font-size: 9px; bottom: -16px; }
+  .scoreboard { gap: 20px; padding: 6px 0; margin-bottom: 8px; }
+  .score-num { font-size: 32px; }
+  .score-sep { font-size: 16px; padding-bottom: 8px; }
+  .game-info { font-size: 11px; margin-bottom: 8px; min-height: 16px; }
+  .actions { gap: 4px; margin: 4px 0 12px; }
+  .btn { font-size: 12px; padding: 8px 14px; border-radius: 10px; min-height: 40px; }
+  .chip-btn { width: 34px; height: 34px; font-size: 14px; }
+  .place-controls { margin-bottom: 10px; }
+  .place-controls span { font-size: 11px; }
+  .game-log { max-height: 100px; margin-top: 12px; padding: 10px 12px; font-size: 11px; }
+  .game-result { padding: 16px; font-size: 16px; border-radius: 14px; }
+}
+
+/* Маленький телефон (SE, 320px) */
+@media (max-width: 380px) {
+  .board { padding: 6px 2px 10px; gap: 1px; }
+  .stand { min-height: 100px; padding: 2px 1px 3px; }
+  .chip {
+    height: clamp(7px, 2vw, 10px);
+    border-radius: 4px;
+  }
+  .stand-label { font-size: 8px; top: -13px; }
+  .stand.golden .stand-label { font-size: 12px; top: -18px; }
+  .scoreboard { gap: 16px; }
+  .score-num { font-size: 26px; }
+  .score-label { font-size: 7px; }
+  .btn { font-size: 11px; padding: 6px 10px; min-height: 36px; }
+}

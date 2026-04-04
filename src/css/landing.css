@@ -341,6 +341,16 @@
 
 /* Download grid responsive */
 @media (max-width: 768px) {
-  .l-download.in > div { grid-template-columns: 1fr !important; }
-  .l-download.in > div > div:last-child svg { width: 140px; }
+  .l-download { grid-template-columns: 1fr !important; gap: 24px !important; padding: 24px 20px !important; }
+  .l-download > div:last-child svg { width: 140px; }
+  .l-download > div:last-child { order: -1; }
+}
+@media (max-width: 480px) {
+  .l-download { padding: 20px 16px !important; gap: 16px !important; }
+  .l-final h2 { font-size: 20px !important; }
+  .l-final .btn.primary { font-size: 15px !important; padding: 14px 28px !important; }
+  .l-dl-btn { padding: 10px 14px; }
+  .l-dl-name { font-size: 14px; }
+  .l-hero-btns { gap: 8px; }
+  .l-hero-btns .btn { font-size: 13px; padding: 10px 16px; }
 }
