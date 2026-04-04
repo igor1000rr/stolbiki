@@ -644,7 +644,7 @@ export default function Profile({ viewUsername, onClose }) {
                     )}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
                   <Mascot pose="wave" size={56} style={{ opacity: 0.9 }} />
                   <div>
                     <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', textShadow: '0 0 24px color-mix(in srgb, var(--gold) 30%, transparent)', letterSpacing: -1, lineHeight: 1 }}>{profile.rating}</div>
@@ -703,8 +703,8 @@ export default function Profile({ viewUsername, onClose }) {
                   else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'profile.png'; a.click() }
                 } catch {}
               }} style={{
-                position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.08)', border: 'none',
-                borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)',
+                position: 'absolute', top: 8, right: 12, background: 'rgba(255,255,255,0.08)', border: 'none',
+                borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, color: 'var(--ink3)',
               }}>
                 {en ? 'Share' : 'Поделиться'}
               </button>
