@@ -244,7 +244,7 @@ function RatingChart({ data }) {
 }
 
 // Сезонный лидерборд
-function SeasonSection({ data, myName }) {
+function SeasonSection({ data, myName, en }) {
   if (!data?.season) return null
   const { season, leaderboard } = data
   return (
@@ -267,7 +267,7 @@ function SeasonSection({ data, myName }) {
                 <td style={{ fontWeight: p.username === myName ? 700 : 400, color: p.username === myName ? 'var(--p1)' : 'var(--ink)' }}>
                   {p.username}
                   {p.level > 1 && <span style={{ fontSize: 9, color: 'var(--accent)', marginLeft: 4, opacity: 0.7 }}>Lv.{p.level}</span>}
-                  {p.username === myName && <span style={{ fontSize: 9, color: 'var(--ink3)', marginLeft: 4 }}>(you)</span>}
+                  {p.username === myName && <span style={{ fontSize: 9, color: 'var(--ink3)', marginLeft: 4 }}>({en ? 'you' : 'вы'})</span>}
                 </td>
                 <td style={{ fontWeight: 600 }}>{p.rating}</td>
                 <td>{p.games}</td>
@@ -868,7 +868,7 @@ export default function Profile({ viewUsername, onClose }) {
           )}
 
           {/* Текущий сезон */}
-          {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} />}
+          {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} en={en} />}
 
           {/* Opening stats — какой первый ход побеждает чаще */}
           {openingStats && openingStats.total > 5 && (
