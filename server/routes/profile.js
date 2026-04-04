@@ -205,7 +205,13 @@ router.get('/opening-stats', auth, (req, res) => {
 // ═══ Реферальная система ═══
 router.get('/referrals', auth, (req, res) => {
   try {
-    const user = db.prepare('SELECT referral_code FROM users WHERE id=?').get(req.user.id)
+    let user = db.prepare('SELECT referral_code FROM users WHERE id=?').get(req.user.id)
+    // Generate code if missing
+    if (!user?.referral_code) {
+      const code = Math.random().toString(36).slice(2, 8).toUpperCase()
+      try { db.prepare('UPDATE users SET referral_code=? WHERE id=?').run(code, req.user.id) } catch {}
+      user = { referral_code: code }
+    }
     const referrals = db.prepare(`
       SELECT r.created_at, u.username, r.xp_rewarded
       FROM referrals r JOIN users u ON u.id = r.referred_id
@@ -213,14 +219,15 @@ router.get('/referrals', auth, (req, res) => {
     `).all(req.user.id)
     const totalXP = referrals.reduce((s, r) => s + (r.xp_rewarded || 0), 0)
     res.json({
-      code: user?.referral_code || null,
-      link: `https://snatch-highrise.com?ref=${user?.referral_code || ''}`,
+      code: user.referral_code,
+      link: `https://snatch-highrise.com?ref=${user.referral_code}`,
       count: referrals.length,
       totalXP,
       referrals: referrals.map(r => ({ username: r.username, xp: r.xp_rewarded, date: r.created_at })),
     })
   } catch (e) {
-    res.json({ code: null, link: '', count: 0, totalXP: 0, referrals: [] })
+    const code = Math.random().toString(36).slice(2, 8).toUpperCase()
+    res.json({ code, link: `https://snatch-highrise.com?ref=${code}`, count: 0, totalXP: 0, referrals: [] })
   }
 })
 
