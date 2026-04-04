@@ -71,7 +71,7 @@ export default function Settings() {
       <h2 className="settings-title">{en ? 'Settings' : 'Настройки'}</h2>
 
       {/* ═══ ГЕЙМПЛЕЙ ═══ */}
-      <section className="settings-section">
+      <section className="settings-section dash-card">
         <h3 className="settings-section-title">
           <Icon name="play" size={16} color="var(--accent)" />
           {en ? 'Gameplay' : 'Геймплей'}
@@ -100,7 +100,7 @@ export default function Settings() {
       </section>
 
       {/* ═══ ВНЕШНИЙ ВИД ═══ */}
-      <section className="settings-section">
+      <section className="settings-section dash-card">
         <h3 className="settings-section-title">
           <Icon name="theme" size={16} color="var(--accent)" />
           {en ? 'Appearance' : 'Внешний вид'}
@@ -141,7 +141,7 @@ export default function Settings() {
       </section>
 
       {/* ═══ ЗВУК ═══ */}
-      <section className="settings-section">
+      <section className="settings-section dash-card">
         <h3 className="settings-section-title">
           <Icon name="star" size={16} color="var(--accent)" />
           {en ? 'Sound' : 'Звук'}
@@ -158,7 +158,7 @@ export default function Settings() {
       </section>
 
       {/* ═══ ГЕЙМПЛЕЙ РАСШИРЕННЫЙ ═══ */}
-      <section className="settings-section">
+      <section className="settings-section dash-card">
         <h3 className="settings-section-title">
           <Icon name="play" size={16} color="var(--accent)" />
           {en ? 'Advanced gameplay' : 'Расширенный геймплей'}
@@ -208,7 +208,7 @@ export default function Settings() {
       </section>
 
       {/* ═══ ПРИВАТНОСТЬ ═══ */}
-      <section className="settings-section">
+      <section className="settings-section dash-card">
         <h3 className="settings-section-title">
           <Icon name="online" size={16} color="var(--accent)" />
           {en ? 'Privacy & Data' : 'Приватность'}
@@ -250,7 +250,7 @@ export default function Settings() {
       </section>
 
       {/* ═══ ДОСТУПНОСТЬ ═══ */}
-      <section className="settings-section">
+      <section className="settings-section dash-card">
         <h3 className="settings-section-title">
           <Icon name="profile" size={16} color="var(--accent)" />
           {en ? 'Accessibility' : 'Доступность'}

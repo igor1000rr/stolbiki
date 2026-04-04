@@ -402,10 +402,9 @@
 .settings-title { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 24px; }
 .settings-section {
   margin-bottom: 20px;
-  background: var(--surface);
-  border-radius: 14px;
-  border: 1px solid var(--surface2);
-  padding: 16px 20px;
+}
+.settings-section.dash-card {
+  padding: 18px 22px;
 }
 .settings-section-title {
   display: flex; align-items: center; gap: 8px;
