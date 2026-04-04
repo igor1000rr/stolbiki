@@ -738,74 +738,125 @@ export default function Profile({ viewUsername, onClose }) {
             </div>{/* end padding wrapper */}
           </div>
 
-          {/* XP / Level */}
-          {missionsData && (
-            <div className="dash-card" style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--p1) 10%, transparent))',
-                  border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-                  fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
-                  {missionsData.level}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600 }}>{en ? 'Level' : 'Уровень'} {missionsData.level}</span>
-                    <span>{missionsData.xp} / {missionsData.xpForNext} XP</span>
-                  </div>
-                  <div style={{ height: 8, borderRadius: 4, background: 'var(--surface2)', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 4,
-                      background: 'linear-gradient(90deg, var(--accent), var(--p1))',
-                      boxShadow: '0 0 8px color-mix(in srgb, var(--accent) 40%, transparent)',
-                      transition: 'width 0.5s' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Daily missions */}
-          {missionsData && missionsData.missions && (
-            <div className="dash-card" style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>{en ? 'Daily missions' : 'Задания дня'}</div>
-                {missionsData.allDone && <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600 }}>{en ? 'All done! +100 XP' : 'Все выполнены! +100 XP'}</span>}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {missionsData.missions.map(m => {
-                  const pct = Math.min(m.progress / m.target, 1)
-                  return (
-                    <div key={m.mission_id} style={{
-                      padding: '10px 12px', borderRadius: 8,
-                      background: m.completed ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : 'var(--surface2)'}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: m.completed ? 'var(--green)' : 'var(--ink)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {m.completed && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
-                          {en ? m.name_en : m.name_ru}
-                        </span>
-                        <span style={{ fontSize: 10, color: m.completed ? 'var(--green)' : 'var(--gold)' }}>+{m.xp_reward} XP</span>
+          {/* ═══ 2-COLUMN GRID ═══ */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+            {/* LEFT: Level + Missions + Achievements */}
+            <div>
+              {missionsData && (
+                <div className="dash-card" style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--p1) 10%, transparent))',
+                      border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+                      fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
+                      {missionsData.level}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600 }}>{en ? 'Level' : 'Уровень'} {missionsData.level}</span>
+                        <span>{missionsData.xp} / {missionsData.xpForNext} XP</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--surface2)', overflow: 'hidden' }}>
-                          <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 3,
-                            background: m.completed ? 'var(--green)' : 'linear-gradient(90deg, var(--accent), var(--p1))',
-                            boxShadow: pct > 0.5 ? '0 0 6px color-mix(in srgb, var(--accent) 30%, transparent)' : 'none',
-                            transition: 'width 0.3s' }} />
-                        </div>
-                        <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 28 }}>{m.progress}/{m.target}</span>
+                      <div style={{ height: 8, borderRadius: 4, background: 'var(--surface2)', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 4,
+                          background: 'linear-gradient(90deg, var(--accent), var(--p1))', transition: 'width 0.5s' }} />
                       </div>
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                </div>
+              )}
+              {missionsData?.missions && (
+                <div className="dash-card" style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>{en ? 'Daily missions' : 'Задания дня'}</div>
+                    {missionsData.allDone && <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600 }}>+100 XP</span>}
+                  </div>
+                  {missionsData.missions.map(m => {
+                    const pct = Math.min(m.progress / m.target, 1)
+                    return (
+                      <div key={m.mission_id} style={{ padding: '10px 12px', borderRadius: 8, marginBottom: 6,
+                        background: m.completed ? 'rgba(61,214,140,0.06)' : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${m.completed ? 'rgba(61,214,140,0.15)' : 'var(--surface2)'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, color: m.completed ? 'var(--green)' : 'var(--ink)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {m.completed && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                            {en ? m.name_en : m.name_ru}
+                          </span>
+                          <span style={{ fontSize: 10, color: m.completed ? 'var(--green)' : 'var(--gold)' }}>+{m.xp_reward} XP</span>
+                        </div>
+                        <div style={{ height: 3, borderRadius: 2, background: 'var(--surface2)' }}>
+                          <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2, background: m.completed ? 'var(--green)' : 'var(--accent)' }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {unlockedAch.length > 0 && (
+                <div className="dash-card">
+                  <h3>{en ? 'Recent achievements' : 'Последние ачивки'}</h3>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                    {unlockedAch.slice(-6).map(a => (
+                      <span key={a.id} title={en && a.nameEn ? a.nameEn : a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
+                        alignItems: 'center', justifyContent: 'center', background: `${a.color}20`, border: `2px solid ${a.color}`,
+                        fontSize: 12, fontWeight: 800, color: a.color }}>{(en && a.nameEn ? a.nameEn : a.name)[0]}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Avatar picker */}
+            {/* RIGHT: Stats + Season + Opening */}
+            <div>
+              <div className="dash-card" style={{ marginBottom: 16 }}>
+                <h3 style={{ marginBottom: 12 }}>{en ? 'Statistics' : 'Статистика'}</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  {[
+                    [profile.gamesPlayed, en ? 'Games' : 'Партий', 'var(--ink)'],
+                    [winRate + '%', en ? 'Win %' : 'Побед %', 'var(--green)'],
+                    [profile.bestStreak, en ? 'Streak' : 'Серия', 'var(--gold)'],
+                    [profile.goldenClosed, en ? 'Golden' : 'Золотых', 'var(--gold)'],
+                  ].map(([val, label, color], i) => (
+                    <div key={i} style={{ textAlign: 'center', padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
+                      <div style={{ fontSize: 26, fontWeight: 700, color }}>{val}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} en={en} />}
+              {ratingHistory.length >= 2 && (
+                <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+                  <h3 style={{ margin: '0 0 8px', fontSize: 13 }}>{en ? 'Rating History' : 'История рейтинга'}</h3>
+                  <RatingChart data={ratingHistory} />
+                </div>
+              )}
+              {openingStats && openingStats.total > 5 && (
+                <div className="dash-card" style={{ padding: '14px 16px' }}>
+                  <h3 style={{ fontSize: 13, margin: '0 0 10px' }}>{en ? 'First move stats' : 'Статистика первых ходов'}</h3>
+                  <div style={{ display: 'flex', gap: 2, height: 40, alignItems: 'flex-end' }}>
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const count = openingStats.standCounts?.[i] || 0
+                      const wins = openingStats.standWins?.[i] || 0
+                      const maxCount = Math.max(1, ...Object.values(openingStats.standCounts || {}))
+                      const pct = count / maxCount
+                      const wr = count > 0 ? wins / count : 0
+                      return (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <div style={{ width: '80%', height: `${Math.max(4, pct * 32)}px`, borderRadius: 2,
+                            background: wr > 0.6 ? 'var(--green)' : wr > 0.4 ? 'var(--gold)' : count > 0 ? 'var(--p2)' : 'var(--surface2)' }} />
+                          <span style={{ fontSize: 8, color: 'var(--ink3)' }}>{i === 0 ? '★' : i}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--ink3)', marginTop: 6 }}>{openingStats.total} {en ? 'games' : 'партий'}</div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {showAvatarPicker && (
-            <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+            <div className="dash-card" style={{ marginBottom: 16, marginTop: 16, padding: '14px 16px' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>{en ? 'Choose avatar' : 'Выберите аватар'}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {Object.entries(AVATARS).map(([key, av]) => (
@@ -813,8 +864,7 @@ export default function Profile({ viewUsername, onClose }) {
                     try { await API.updateAvatar(key) } catch {}
                     setProfile(p => { const np = { ...p, avatar: key }; saveLocal(np); return np })
                     setShowAvatarPicker(false)
-                  }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5, transition: 'all 0.15s',
-                    transform: profile.avatar === key ? 'scale(1.1)' : 'scale(1)' }}>
+                  }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5 }}>
                     <AvatarCircle avatar={key} name={profile.name} size={40} />
                   </div>
                 ))}
@@ -822,103 +872,9 @@ export default function Profile({ viewUsername, onClose }) {
             </div>
           )}
 
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>{en ? 'Statistics' : 'Статистика'}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)' }}>{profile.gamesPlayed}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Games' : 'Партий'}</div>
-            </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{winRate}%</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Win %' : 'Побед %'}</div>
-            </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>{profile.bestStreak}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Streak' : 'Серия'}</div>
-            </div>
-            <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>{profile.goldenClosed}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{en ? 'Golden' : 'Золотых'}</div>
-            </div>
-            {profile.rushBest > 0 && (
-              <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)' }}>{profile.rushBest}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Puzzle Rush</div>
-              </div>
-            )}
-            {profile.arenaStats?.tournaments > 0 && (
-              <div className="dash-card" style={{ textAlign: 'center', padding: '16px 8px' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--p1)' }}>{profile.arenaStats.top3}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Arena top 3' : 'Arena топ-3'}</div>
-              </div>
-            )}
-          </div>
-
-          {/* График рейтинга */}
-          {ratingHistory.length >= 2 && (
-            <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 13 }}>{en ? 'Rating History' : 'История рейтинга'}</h3>
-                <span style={{ fontSize: 11, color: ratingHistory[0]?.delta > 0 ? 'var(--green)' : 'var(--p2)', fontWeight: 600 }}>
-                  {ratingHistory[0]?.delta > 0 ? '+' : ''}{ratingHistory[0]?.delta} {en ? 'last game' : 'посл. игра'}
-                </span>
-              </div>
-              <RatingChart data={ratingHistory} />
-            </div>
-          )}
-
-          {/* Текущий сезон */}
-          {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} en={en} />}
-
-          {/* Opening stats — какой первый ход побеждает чаще */}
-          {openingStats && openingStats.total > 5 && (
-            <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
-              <h3 style={{ fontSize: 13, margin: '0 0 10px' }}>{en ? 'First move stats' : 'Статистика первых ходов'}</h3>
-              <div style={{ display: 'flex', gap: 2, height: 40, alignItems: 'flex-end' }}>
-                {Array.from({ length: 10 }, (_, i) => {
-                  const count = openingStats.standCounts?.[i] || 0
-                  const wins = openingStats.standWins?.[i] || 0
-                  const maxCount = Math.max(1, ...Object.values(openingStats.standCounts || {}))
-                  const pct = count / maxCount
-                  const wr = count > 0 ? wins / count : 0
-                  return (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <div style={{ width: '80%', height: `${Math.max(4, pct * 32)}px`, borderRadius: 2,
-                        background: wr > 0.6 ? 'var(--green)' : wr > 0.4 ? 'var(--gold)' : count > 0 ? 'var(--p2)' : 'var(--surface2)',
-                        transition: 'height 0.3s' }} />
-                      <span style={{ fontSize: 8, color: 'var(--ink3)' }}>{i === 0 ? '★' : i}</span>
-                    </div>
-                  )
-                })}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 9, color: 'var(--ink3)' }}>
-                <span>{openingStats.total} {en ? 'games' : 'партий'}</span>
-                <span style={{ display: 'flex', gap: 8 }}>
-                  <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: 'var(--green)', marginRight: 3 }} />&gt;60% WR</span>
-                  <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: 'var(--gold)', marginRight: 3 }} />40-60%</span>
-                  <span><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 1, background: 'var(--p2)', marginRight: 3 }} />&lt;40%</span>
-                </span>
-              </div>
-            </div>
-          )}
-
-          {unlockedAch.length > 0 && (
-            <div className="dash-card" style={{ marginBottom: 16 }}>
-              <h3>{ en ? 'Recent achievements' : 'Последние ачивки'}</h3>
-              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                {unlockedAch.slice(-5).map(a => (
-                  <span key={a.id} title={en && a.nameEn ? a.nameEn : a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
-                    alignItems: 'center', justifyContent: 'center', background: `${a.color}20`, border: `2px solid ${a.color}`,
-                    fontSize: 12, fontWeight: 800, color: a.color }}>{(en && a.nameEn ? a.nameEn : a.name)[0]}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)' }}>
+          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 16 }}>
             {en ? 'Logout' : 'Выйти из профиля'}
           </button>
-        </>
       )}
 
       {/* ─── Аналитика ─── */}
