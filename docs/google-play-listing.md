@@ -4,19 +4,19 @@
 Snatch Highrise — Strategy Board Game
 
 ## Short Description (80 chars)
-Strategy board game with AlphaZero AI. 10M+ games analyzed. Free, no ads.
+Strategy board game with AlphaZero AI. 10M+ games. Play free, no ads.
 
 ## Full Description (4000 chars max)
 
 ### EN
-Snatch Highrise is a deep strategy board game where two players compete to build and control highrises. Powered by an AlphaZero-style neural network trained on 10 million self-play games.
+Snatch Highrise is a deep strategy board game where two players compete to build and control highrises. Powered by an AlphaZero-style neural network (policy + value heads) trained on 10 million self-play games.
 
 🏗️ GAMEPLAY
 10 stands, 11 blocks each. Place blocks, transfer stacks, complete highrises. Simple to learn in 2 minutes — impossible to master. Perfectly balanced: 50:50 confirmed across 10M+ simulated games.
 
 🤖 AI OPPONENTS
 • 5 difficulty levels: Easy → Impossible (5000 MCTS simulations)
-• Neural network AI with 840K parameters
+• AlphaZero-style policy + value neural network (859K parameters)
 • AI Game Review — every move rated: Excellent → Blunder (like chess.com)
 • Accuracy percentage after each game
 
@@ -54,14 +54,14 @@ Snatch Highrise is a deep strategy board game where two players compete to build
 Free to play. No paywalls. Pure strategy.
 
 ### RU
-Snatch Highrise — глубокая стратегическая настольная игра, где два игрока соревнуются за контроль над высотками. AI нейросеть обучена на 10 миллионах партий.
+Snatch Highrise — глубокая стратегическая настольная игра, где два игрока соревнуются за контроль над высотками. AlphaZero AI нейросеть обучена на 10 миллионах партий.
 
 🏗️ ГЕЙМПЛЕЙ
 10 стоек, 11 блоков. Ставьте блоки, переносите группы, закрывайте высотки. Правила за 2 минуты — мастерство на всю жизнь. Идеальный баланс 50:50, подтверждён на 10M+ партиях.
 
 🤖 AI
-• 5 уровней сложности: Лёгкая → Экстрим (1500 симуляций MCTS)
-• Нейросеть 840K параметров
+• 5 уровней сложности: Лёгкая → Невозможный (5000 симуляций MCTS)
+• AlphaZero нейросеть policy+value, 859K параметров
 • AI Анализ — каждый ход: Отличный → Грубая ошибка (как на chess.com)
 
 🌐 ОНЛАЙН
