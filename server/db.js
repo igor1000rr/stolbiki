@@ -101,6 +101,16 @@ db.exec(`
     UNIQUE(user_id, friend_id)
   );
 
+  CREATE TABLE IF NOT EXISTS error_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    error TEXT,
+    stack TEXT,
+    url TEXT,
+    user_agent TEXT,
+    user_id INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS challenges (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     from_id INTEGER NOT NULL,

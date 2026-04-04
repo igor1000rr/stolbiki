@@ -703,7 +703,7 @@ export default function Profile({ viewUsername, onClose }) {
                 position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.08)', border: 'none',
                 borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)',
               }}>
-                📤 {en ? 'Share' : 'Поделиться'}
+                {en ? 'Share' : 'Поделиться'}
               </button>
             </div>
             {/* Streak + Calendar inside same card */}
