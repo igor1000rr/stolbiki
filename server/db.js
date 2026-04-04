@@ -885,7 +885,13 @@ if (!blog462) {
 
 **Правки от Александра.** Текст правил обновлён: «Переносятся верхние блоки» и «свои и чужие блоки». Имена игроков: Player/Snappy в AI-режиме.
 
-**Техническое.** –37 строк мёртвого CSS (автосканирование 282 классов). +7 DB индексов. WS maxPayload 16KB. Arena try-catch. Android: +3 permissions, HTTPS enforced.`,
+**Техническое.** –37 строк мёртвого CSS. +7 DB индексов. WS maxPayload 16KB. Android: +3 permissions, HTTPS enforced.
+
+**AI Impossible.** Новый уровень сложности — 5000 MCTS симуляций на ход (~6 сек). 99%+ против людей. 5 уровней: Easy → Medium → Hard → Extreme → Impossible.
+
+**Landing redesign.** Реалистичный SVG-телефон с Dynamic Island. Print & Play секция с анимированным полем. Финальный CTA с чистым дизайном.
+
+**UI polish.** Emoji заменены на SVG иконки. 10+ строк переведены на русский. Профиль: ачивки в 2 колонки, ясные подписи статов. Sound mute баг исправлен.`,
     `Final polish before launch.
 
 **Built-in analytics.** 9 tracking events without external services: pageview, game_start, game_end, share_card, ai_review, auth, friend_challenge, setting_change, matchmaking. Admin: Analytics tab with daily charts, page/event tables, device breakdown, active users.
