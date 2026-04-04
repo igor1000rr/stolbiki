@@ -6,6 +6,36 @@ import { useI18n } from '../engine/i18n'
 
 const VERSIONS = [
   {
+    version: '4.7.0',
+    date: '2026-04-04',
+    title_ru: 'AlphaZero AI v7, Android app, мобильная адаптация',
+    title_en: 'AlphaZero AI v7, Android app, mobile adaptation',
+    changes_ru: [
+      { type: 'new', text: 'AI v7: AlphaZero policy+value head (859K параметров). PUCT-guided MCTS вместо UCB1' },
+      { type: 'new', text: 'Android APK: Capacitor 8, 7 плагинов (haptics, network, share, splash, status-bar, app)' },
+      { type: 'new', text: 'Мобильная адаптация: board, scoreboard, actions, landing, settings — 4 брейкпоинта' },
+      { type: 'fix', text: 'Android crash: installSplashScreen() до super.onCreate()' },
+      { type: 'fix', text: 'Settings: 2 колонки → responsive grid (1 колонка на телефонах)' },
+      { type: 'fix', text: 'Profile: missions grid responsive, tabs крупнее на native' },
+      { type: 'fix', text: 'Native навигация: location.href → события (ProfileFriends, уведомления)' },
+      { type: 'fix', text: 'Native inputs: font-size 16px !important (предотвращает zoom на iOS)' },
+      { type: 'fix', text: 'Landing: padding на мобиле, текст не обрезается' },
+      { type: 'fix', text: 'Board: stand border-radius исправлен (было перевёрнуто)' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'AI v7: AlphaZero policy+value head (859K params). PUCT-guided MCTS instead of UCB1' },
+      { type: 'new', text: 'Android APK: Capacitor 8, 7 plugins (haptics, network, share, splash, status-bar, app)' },
+      { type: 'new', text: 'Mobile adaptation: board, scoreboard, actions, landing, settings — 4 breakpoints' },
+      { type: 'fix', text: 'Android crash: installSplashScreen() before super.onCreate()' },
+      { type: 'fix', text: 'Settings: 2 columns → responsive grid (1 column on phones)' },
+      { type: 'fix', text: 'Profile: missions grid responsive, bigger tabs on native' },
+      { type: 'fix', text: 'Native navigation: location.href → events (ProfileFriends, notifications)' },
+      { type: 'fix', text: 'Native inputs: font-size 16px !important (prevents iOS zoom)' },
+      { type: 'fix', text: 'Landing: mobile padding, text no longer clipped' },
+      { type: 'fix', text: 'Board: stand border-radius fixed (was inverted)' },
+    ],
+  },
+  {
     version: '4.6.2',
     date: '2026-04-04',
     title_ru: 'AI Impossible, Profile/Settings redesign, Legal, Training data',

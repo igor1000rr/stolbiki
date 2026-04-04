@@ -429,7 +429,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               <span key={t} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--ink3)' }}>{t}</span>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.3 }}>v4.6.2</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.3 }}>v4.7.0</div>
         </div>
       </section>
     </div>
