@@ -77,9 +77,6 @@ export default function Game() {
   // Daily challenge
   const [dailyMode, setDailyMode] = useState(false)
   const [dailySeed, setDailySeed] = useState(null)
-  // Тренер — оценка позиции после каждого хода
-  const [trainerMode, setTrainerMode] = useState(false)
-  const [posEval, setPosEval] = useState(null) // { score: -1..1, label, color }
   // Replay — история ходов для повтора
   const moveHistoryRef = useRef([]) // [{ action, player }]
   const [showReplay, setShowReplay] = useState(false)
@@ -146,7 +143,7 @@ export default function Game() {
         setPlayerTime([timer * 60, timer * 60])
       }
       setUndoStack([])
-      setPosEval(null)
+      
       moveHistoryRef.current = []
       setShowReplay(false)
       setRematchOffered(false)
@@ -341,7 +338,7 @@ export default function Game() {
       setOnlinePlayers(players || [])
       onlineRef.current = { roomId: null, playerIdx: -1, myColor: 0 }
       moveHistoryRef.current = []
-      setShowReplay(false); setPosEval(null)
+      setShowReplay(false)
       setInfo(`${(players || []).join(' vs ')} — ${t('game.watching')}`)
       setLog([{ text: `⊙ ${(players || []).join(' vs ')}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
     }
@@ -410,7 +407,7 @@ export default function Game() {
       setGameMeta('daily', 100)
       resetTimers()
       setUndoStack([])
-      setPosEval(null)
+      
       moveHistoryRef.current = []
       setShowReplay(false)
 
@@ -420,24 +417,6 @@ export default function Game() {
     })
   }, [gameCtx]) // eslint-disable-line
 
-  // ─── Тренер: оценка позиции через MCTS ───
-  function evaluatePosition(state) {
-    if (!trainerMode || mode !== 'ai') return
-    setTimeout(() => {
-      try {
-        const result = mctsSearch(state, 30)
-        const score = result.bestValue || 0
-        const ps = state.currentPlayer === humanPlayer ? score : -score
-        let label, color
-        if (ps > 0.3) { label = t('trainer.strong'); color = 'var(--green)' }
-        else if (ps > 0.1) { label = t('trainer.slight'); color = 'var(--green)' }
-        else if (ps > -0.1) { label = t('trainer.equal'); color = 'var(--ink2)' }
-        else if (ps > -0.3) { label = t('trainer.weak'); color = 'var(--gold)' }
-        else { label = t('trainer.bad'); color = 'var(--p2)' }
-        setPosEval({ score: ps, label, color })
-      } catch { setPosEval(null) }
-    }, 50)
-  }
 
   // ─── Daily Challenge ───
   function getDailySeed() {
@@ -550,7 +529,7 @@ export default function Game() {
             setTransfer(null)
             setPlacement({})
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.clickStands'))
-            evaluatePosition(ns)
+            
           }, 500)
         }, 300)
       }, remaining)
@@ -569,7 +548,7 @@ export default function Game() {
     // Сброс онлайн состояния
     setOnlineRoom(null); setOnlinePlayerIdx(-1); setOnlinePlayers([])
     onlineRef.current = null
-    setPosEval(null)
+    
     moveHistoryRef.current = []
     setShowReplay(false)
     const state = new GameState()
@@ -736,7 +715,7 @@ export default function Game() {
 
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
-    setPosEval(null)
+    
     if (ns.gameOver) {
       // Онлайн — сообщаем серверу о победителе
       if (mode === 'online') {
@@ -789,7 +768,7 @@ export default function Game() {
       setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 block' : 'поставьте 1 блок'}` : `${name}: ${lang === 'en' ? 'place blocks' : 'расставьте блоки'}`)
     } else {
       setLocked(true)
-      evaluatePosition(ns)
+      
       setPhase('ai')
       setTimeout(() => runAi(ns), 500)
     }
