@@ -100,24 +100,24 @@ body.native-body { animation: none !important; }
 .native-app .board {
   margin: 0;
   border-radius: 0;
-  padding: 10px 4px 14px;
+  padding: 10px 4px 22px;
   gap: clamp(1px, 0.5vw, 4px);
   border-left: none;
   border-right: none;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   flex: 1 1 0%;
   max-height: clamp(280px, 52vh, 520px);
   align-items: stretch;
-  min-height: 180px;
+  min-height: 160px;
 }
 .native-app .stand {
   flex: 1;
   max-width: none;
   width: auto;
-  min-height: 140px;
+  min-height: 120px;
   padding: 4px 2px 3px;
   border-radius: 8px 8px 0 0;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 .native-app .chip {
   width: calc(100% - 4px);
@@ -136,20 +136,20 @@ body.native-body { animation: none !important; }
 .native-app .scoreboard {
   gap: 24px;
   margin-bottom: 0;
-  padding: 8px 0 2px;
+  padding: 6px 0 0;
 }
 .native-app .score-num { font-size: 36px; }
 .native-app .score-num.p0 { color: #6db4ff; }
 .native-app .score-num.p1 { color: #ff8888; }
 .native-app .score-label { font-size: 9px; letter-spacing: 1.5px; }
-.native-app .score-sep { font-size: 18px; padding-bottom: 8px; opacity: 0.4; }
+.native-app .score-sep { font-size: 18px; padding-bottom: 8px; opacity: 0.3; }
 
 /* ═══ NATIVE: Info ═══ */
 .native-app .game-info {
   font-size: 12px;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   padding: 2px 8px;
-  min-height: 16px;
+  min-height: 18px;
 }
 
 /* ═══ NATIVE: Action buttons — центрируются, скроллятся если не помещаются ═══ */
@@ -160,8 +160,8 @@ body.native-body { animation: none !important; }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 6px 12px 8px;
-  margin-bottom: 2px;
+  padding: 4px 12px 6px;
+  margin-bottom: 0;
   justify-content: center;
 }
 .native-app .actions::-webkit-scrollbar { display: none; }
@@ -290,6 +290,16 @@ body.native-body { animation: none !important; }
   margin: 8px 12px;
 }
 .native-app .profile-stat { font-size: 13px; }
+.native-app .profile-tabs {
+  gap: 6px !important;
+  padding: 0 4px 8px !important;
+  margin-bottom: 12px !important;
+}
+.native-app .profile-tabs .btn {
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  min-height: 40px;
+}
 
 /* ═══ NATIVE: Rules / Blog / Changelog ═══ */
 .native-app article { padding: 0 12px; }
@@ -423,9 +433,16 @@ body.native-body { animation: none !important; }
   .native-app .stand-ghost-to::after { display: none; }
 }
 
+/* Short screens — don't center, let content fill */
+@media (max-height: 640px) {
+  .native-game-wrapper { justify-content: flex-start; }
+  .native-app .board { max-height: none; }
+}
+
 /* ═══ NATIVE: Landscape optimization ═══ */
 @media (max-height: 600px) and (orientation: landscape) {
-  .native-app .board { min-height: auto; }
+  .native-game-wrapper { justify-content: flex-start; }
+  .native-app .board { min-height: auto; max-height: none; }
   .native-app .stand { min-height: 90px !important; }
   .native-app .scoreboard { padding: 2px 0; }
   .native-app .score-num { font-size: 24px; }

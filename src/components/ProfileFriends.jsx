@@ -32,7 +32,10 @@ export default function ProfileFriends({ en, serverOnline, friendsList, pendingF
   async function doAcceptChallenge(ch) {
     try {
       const data = await API.respondChallenge(ch.id, true)
-      if (data.roomId) window.location.href = `/?room=${data.roomId}`
+      if (data.roomId) {
+        window.dispatchEvent(new CustomEvent('stolbiki-go-tab', { detail: 'online' }))
+        window.dispatchEvent(new CustomEvent('stolbiki-deeplink-room', { detail: { room: data.roomId } }))
+      }
     } catch {}
   }
 
@@ -144,7 +147,7 @@ export default function ProfileFriends({ en, serverOnline, friendsList, pendingF
             {en ? 'Room' : 'Комната'}: <strong>{challengeSent.roomId}</strong>
           </div>
           <button className="btn primary" style={{ marginTop: 8, fontSize: 12 }}
-            onClick={() => { window.location.href = `/?room=${challengeSent.roomId}` }}>
+            onClick={() => { window.dispatchEvent(new CustomEvent('stolbiki-go-tab', { detail: 'online' })); window.dispatchEvent(new CustomEvent('stolbiki-deeplink-room', { detail: { room: challengeSent.roomId } })) }}>
             {en ? 'Go to room' : 'Перейти в комнату'}
           </button>
         </div>

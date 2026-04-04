@@ -340,6 +340,13 @@ export default function App() {
     return () => unsubs.forEach(u => u())
   }, [gameCtx])
 
+  // Cross-component tab navigation (ProfileFriends → Online etc)
+  useEffect(() => {
+    const handler = (e) => { if (e.detail) go(e.detail) }
+    window.addEventListener('stolbiki-go-tab', handler)
+    return () => window.removeEventListener('stolbiki-go-tab', handler)
+  }, [])
+
   useEffect(() => {
     // Не редиректим сразу — даём время залогиниться (1.5 сек)
     if (!isAdmin && ['sim', 'dash', 'replay', 'admin'].includes(tab)) {
@@ -611,7 +618,7 @@ export default function App() {
                           <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'challenges you!' : 'вызывает вас!'}</div>
                         </div>
                         <button className="btn primary" style={{ fontSize: 10, padding: '4px 10px' }}
-                          onClick={() => { window.location.href = `/?room=${ch.room_id}`; setNotifOpen(false) }}>
+                          onClick={() => { go('online'); window.dispatchEvent(new CustomEvent('stolbiki-deeplink-room', { detail: { room: ch.room_id } })); setNotifOpen(false) }}>
                           {en ? 'Accept' : 'Принять'}
                         </button>
                       </div>
