@@ -644,9 +644,12 @@ export default function Profile({ viewUsername, onClose }) {
                     )}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)', textShadow: '0 0 20px color-mix(in srgb, var(--gold) 30%, transparent)' }}>{profile.rating}</div>
-                  <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
+                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Mascot pose="wave" size={56} style={{ opacity: 0.9 }} />
+                  <div>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', textShadow: '0 0 24px color-mix(in srgb, var(--gold) 30%, transparent)', letterSpacing: -1, lineHeight: 1 }}>{profile.rating}</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
+                  </div>
                 </div>
               </div>
               {/* Share profile button */}
@@ -811,14 +814,14 @@ export default function Profile({ viewUsername, onClose }) {
                 <h3 style={{ marginBottom: 12 }}>{en ? 'Statistics' : 'Статистика'}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                   {[
-                    [profile.gamesPlayed, en ? 'Games' : 'Партий', 'var(--ink)'],
-                    [winRate + '%', en ? 'Win %' : 'Побед %', 'var(--green)'],
-                    [profile.bestStreak, en ? 'Streak' : 'Серия', 'var(--gold)'],
-                    [profile.goldenClosed, en ? 'Golden' : 'Золотых', 'var(--gold)'],
-                  ].map(([val, label, color], i) => (
-                    <div key={i} style={{ textAlign: 'center', padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
-                      <div style={{ fontSize: 26, fontWeight: 700, color }}>{val}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>{label}</div>
+                    [profile.gamesPlayed, en ? 'Games' : 'Партий', 'var(--ink)', 'var(--accent)'],
+                    [winRate + '%', en ? 'Win %' : 'Побед %', 'var(--green)', 'var(--green)'],
+                    [profile.bestStreak, en ? 'Streak' : 'Серия', 'var(--gold)', 'var(--gold)'],
+                    [profile.goldenClosed, en ? 'Golden' : 'Золотых', 'var(--gold)', 'var(--p2)'],
+                  ].map(([val, label, color, glow], i) => (
+                    <div key={i} style={{ textAlign: 'center', padding: '16px 12px', background: `linear-gradient(135deg, color-mix(in srgb, ${glow} 6%, transparent), color-mix(in srgb, ${glow} 3%, transparent))`, borderRadius: 14, border: `1px solid color-mix(in srgb, ${glow} 10%, transparent)` }}>
+                      <div style={{ fontSize: 28, fontWeight: 800, color, letterSpacing: -1 }}>{val}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, letterSpacing: 0.5 }}>{label}</div>
                     </div>
                   ))}
                 </div>
