@@ -360,7 +360,7 @@
 /* ═══ Light theme fixes ═══ */
 [data-theme="minimal"] .landing .l-section { border-top-color: var(--surface2); }
 [data-theme="minimal"] .l-step { background: var(--surface); border: 1px solid var(--surface2); }
-[data-theme="minimal"] .l-feat { background: var(--surface); border: 1px solid var(--surface2); }
+[data-theme="minimal"] .l-feat-card { background: var(--surface); border: 1px solid var(--surface2); }
 [data-theme="minimal"] .l-qa-row { background: var(--surface); border: 1px solid var(--surface2); }
 [data-theme="minimal"] .l-qa-num { background: var(--bg2); color: var(--ink2); }
 [data-theme="minimal"] .l-download { background: var(--surface) !important; border-color: var(--surface2) !important; }
