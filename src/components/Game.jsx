@@ -40,8 +40,8 @@ export default function Game() {
   const [transfer, setTransfer] = useState(null)
   const [placement, setPlacement] = useState({})
   const [humanPlayer, setHumanPlayer] = useState(0)
-  const [difficulty, setDifficulty] = useState(150)
-  const difficultyRef = useRef(150)
+  const [difficulty, setDifficulty] = useState(400)
+  const difficultyRef = useRef(400)
   const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
   const [soundOn, setSoundOnState] = useState(true)
   useEffect(() => { setSoundOn(soundOn); setMuted(!soundOn) }, [soundOn])
@@ -933,14 +933,6 @@ export default function Game() {
           </select>
         </label>
         {mode === 'ai' && (
-          <label>{t('game.sideLabel')}
-            <select value={humanPlayer} onChange={e => newGame(+e.target.value, difficulty, mode)}>
-              <option value={0}>{t('game.blueFirst')}</option>
-              <option value={1}>{t('game.redSwap')}</option>
-            </select>
-          </label>
-        )}
-        {mode === 'ai' && (
           <label>{t('game.diffLabel')}
             <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value, mode)}>
               <option value={50}>{t('game.easy')}</option>
@@ -950,18 +942,6 @@ export default function Game() {
               <option value={1500}>{lang === 'en' ? 'Impossible' : 'Невозможный'}</option>
             </select>
             {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 4 }}>GPU</span>}
-          </label>
-        )}
-        {mode === 'ai' && (
-          <label style={{ cursor: 'pointer' }}>
-            <input type="checkbox" checked={hintMode} onChange={e => { setHintMode(e.target.checked); setHint(null) }} style={{ marginRight: 4 }} />
-            {lang === 'en' ? 'Hints' : 'Подсказки'}
-          </label>
-        )}
-        {mode === 'ai' && (
-          <label style={{ cursor: 'pointer' }}>
-            <input type="checkbox" checked={trainerMode} onChange={e => { setTrainerMode(e.target.checked); setPosEval(null) }} style={{ marginRight: 4 }} />
-            {lang === 'en' ? 'Trainer' : 'Тренер'}
           </label>
         )}
         {mode === 'ai' && !tournament && (
@@ -1026,37 +1006,6 @@ export default function Game() {
                   ))}
                 </div>
               </div>
-            )}
-
-            {mode === 'ai' && (
-              <div className="m-setting-row">
-                <span className="m-setting-label">{lang === 'en' ? 'Side' : 'Сторона'}</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className={`m-diff-opt ${humanPlayer === 0 ? 'active' : ''}`} style={{ flex: 1 }}
-                    onClick={() => { newGame(0, difficulty, mode); setShowMobileSettings(false) }}>
-                    <span className="m-color-dot" style={{ background: 'var(--p1)' }} />
-                    {lang === 'en' ? 'Blue (first)' : 'Синие (первый ход)'}
-                  </button>
-                  <button className={`m-diff-opt ${humanPlayer === 1 ? 'active' : ''}`} style={{ flex: 1 }}
-                    onClick={() => { newGame(1, difficulty, mode); setShowMobileSettings(false) }}>
-                    <span className="m-color-dot" style={{ background: 'var(--p2)' }} />
-                    {lang === 'en' ? 'Red (swap)' : 'Красные (swap)'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {mode === 'ai' && (
-              <>
-                <div className="m-setting-row m-toggle-row" onClick={() => { setHintMode(!hintMode); setHint(null) }}>
-                  <span className="m-setting-label">{lang === 'en' ? 'Hints' : 'Подсказки'}</span>
-                  <div className={`m-toggle ${hintMode ? 'on' : ''}`}><div className="m-toggle-thumb" /></div>
-                </div>
-                <div className="m-setting-row m-toggle-row" onClick={() => { setTrainerMode(!trainerMode); setPosEval(null) }}>
-                  <span className="m-setting-label">{lang === 'en' ? 'Trainer' : 'Тренер'}</span>
-                  <div className={`m-toggle ${trainerMode ? 'on' : ''}`}><div className="m-toggle-thumb" /></div>
-                </div>
-              </>
             )}
 
             {mode === 'ai' && !tournament && (
@@ -1181,66 +1130,10 @@ export default function Game() {
         </div>
       )}
 
-      {/* Прогресс закрытия стоек */}
-      {isNative ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 8px', padding: '0' }}>
-          <div style={{ display: 'flex', gap: 1, flex: 1 }}>
-            {Array.from({ length: 10 }).map((_, i) => {
-              const owner = gs.closed[i]
-              return (
-                <div key={i} style={{
-                  flex: 1, height: 3, borderRadius: 1.5,
-                  background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : 'var(--surface2)',
-                  opacity: owner !== undefined ? 0.9 : 0.3,
-                }} />
-              )
-            })}
-          </div>
-          <span style={{ fontSize: 9, color: 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
-          </span>
-        </div>
-      ) : (
-        <>
-        <div style={{ display: 'flex', gap: 2, margin: '8px 0', padding: '0 4px' }}>
-          {Array.from({ length: 10 }).map((_, i) => {
-            const owner = gs.closed[i]
-            return (
-              <div key={i} style={{
-                flex: 1, height: 4, borderRadius: 2,
-                background: owner === 0 ? 'var(--p1)' : owner === 1 ? 'var(--p2)' : 'var(--surface2)',
-                opacity: owner !== undefined ? 0.9 : 0.3,
-                transition: 'all 0.3s',
-              }} />
-            )
-          })}
-        </div>
-        <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink3)', marginBottom: 6 }}>
-          {t('game.turn')} {gs.turn} · {t('game.open')}: {gs.numOpen()} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
-        </div>
-        </>
-      )}
-
-      {/* Тренер — оценка позиции */}
-      {trainerMode && posEval && mode === 'ai' && !gs.gameOver && (
-        <div style={{ margin: isNative ? '0 4px 4px' : '0 4px 8px', padding: isNative ? '4px 8px' : '6px 10px', background: 'rgba(26,26,42,0.6)',
-          borderRadius: 8, border: `1px solid ${posEval.color}22` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: posEval.color }}>{posEval.label}</span>
-            <span style={{ fontSize: 10, color: 'var(--ink3)', marginLeft: 'auto' }}>
-              {posEval.score > 0 ? '+' : ''}{(posEval.score * 100).toFixed(0)}%
-            </span>
-          </div>
-          <div style={{ height: 6, borderRadius: 3, background: 'var(--surface2)', overflow: 'hidden' }}>
-            <div style={{
-              width: `${Math.max(5, Math.min(95, (posEval.score + 1) / 2 * 100))}%`,
-              height: '100%', borderRadius: 3,
-              background: `linear-gradient(90deg, #ff6066, #ffc145 40%, #3dd68c)`,
-              transition: 'width 0.5s ease',
-            }} />
-          </div>
-        </div>
-      )}
+      {/* Стабильный разделитель — ход и время (всегда видим) */}
+      <div style={{ textAlign: 'center', fontSize: isNative ? 10 : 11, color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px', minHeight: isNative ? 16 : 18 }}>
+        {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
+      </div>
 
       {/* Статус фишек */}
       {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
@@ -1371,11 +1264,6 @@ export default function Game() {
         {isMyTurn && phase === 'place' && (
           <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn} title="Enter">{ t('game.confirm') } ⏎</button>
         )}
-        {hintMode && isMyTurn && (
-          <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }} title="H">
-            {hintLoading ? '...' : (t('game.hint'))}
-          </button>
-        )}
         <button className="btn" onClick={() => newGame()} title="N">{t('game.newGame')}</button>
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
           <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">
@@ -1402,6 +1290,11 @@ export default function Game() {
             ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
             : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>}
         </button>
+        {mode === 'ai' && isMyTurn && !gs.gameOver && (
+          <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: 'var(--gold)', color: 'var(--gold)', fontSize: 11, padding: '6px 8px', minWidth: 0 }} title="H">
+            {hintLoading ? '...' : '💡'}
+          </button>
+        )}
       </div>
 
       {/* Emoji reactions — online */}
@@ -1438,7 +1331,7 @@ export default function Game() {
         </div>
       )}
 
-      {hint && hintMode && (
+      {hint && (
         <div className="hint-panel">
           <div className="hint-title">{lang === 'en' ? 'Hint' : 'Подсказка'}</div>
           {hint.explanation.map((l, i) => <p key={i} className="hint-line">{l}</p>)}

@@ -341,8 +341,8 @@
 }
 @keyframes ghostArrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-.stand-ghost-from { border-color: var(--accent) !important; border-style: dashed !important; }
-.stand-ghost-to { border-color: var(--green) !important; box-shadow: 0 0 12px var(--green-glow); }
+.stand-ghost-from { border-color: var(--accent) !important; border-style: dashed !important; border-width: 2px !important; }
+.stand-ghost-to { border-color: var(--green) !important; border-style: solid !important; border-width: 2px !important; }
 
 /* ═══════════════════════════════════════════
    SCOREBOARD — с bounce при изменении
