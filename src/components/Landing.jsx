@@ -373,11 +373,6 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       {/* ═══ ABOUT + CTA — combined rich ending ═══ */}
       <section className="l-final">
         <div className="l-final-glow" />
-        {/* Animated background elements */}
-        <svg viewBox="0 0 800 400" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.15 }}>
-          {[...Array(20)].map((_, i) => <rect key={i} className="l-bar-wave" x={40+i*38} y={350-[60,100,80,120,70,110,90,130,75,105,85,115,65,125,95,135,72,108,88,118][i]} width={12} height={[60,100,80,120,70,110,90,130,75,105,85,115,65,125,95,135,72,108,88,118][i]} rx={3} fill={i%2===0?'#4a9eff':'#ff6066'} style={{animationDelay:`${i*0.15}s`,transformOrigin:`${40+i*38+6}px 350px`}}/>)}
-          {[0,1,2,3,4,5].map(i => <circle key={i} className="l-feat-pulse" cx={80+i*130} cy={30+i*15} r={4} fill={['#3dd68c','#ffc145','#e040fb','#4a9eff','#ff6066','#3dd68c'][i]} style={{animationDelay:`${i*0.5}s`}}/>)}
-        </svg>
         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Mascot pose="celebrate" size={120} large className="mascot-bounce" style={{ display: 'block', margin: '0 auto 20px' }} />
           <h2 style={{ fontSize: 36, margin: '0 0 12px', fontWeight: 800 }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
