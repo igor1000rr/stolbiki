@@ -204,20 +204,24 @@ router.get('/opening-stats', auth, (req, res) => {
 
 // ═══ Реферальная система ═══
 router.get('/referrals', auth, (req, res) => {
-  const user = db.prepare('SELECT referral_code FROM users WHERE id=?').get(req.user.id)
-  const referrals = db.prepare(`
-    SELECT r.created_at, u.username, r.xp_rewarded
-    FROM referrals r JOIN users u ON u.id = r.referred_id
-    WHERE r.referrer_id = ? ORDER BY r.created_at DESC LIMIT 50
-  `).all(req.user.id)
-  const totalXP = referrals.reduce((s, r) => s + (r.xp_rewarded || 0), 0)
-  res.json({
-    code: user?.referral_code || null,
-    link: `https://snatch-highrise.com?ref=${user?.referral_code || ''}`,
-    count: referrals.length,
-    totalXP,
-    referrals: referrals.map(r => ({ username: r.username, xp: r.xp_rewarded, date: r.created_at })),
-  })
+  try {
+    const user = db.prepare('SELECT referral_code FROM users WHERE id=?').get(req.user.id)
+    const referrals = db.prepare(`
+      SELECT r.created_at, u.username, r.xp_rewarded
+      FROM referrals r JOIN users u ON u.id = r.referred_id
+      WHERE r.referrer_id = ? ORDER BY r.created_at DESC LIMIT 50
+    `).all(req.user.id)
+    const totalXP = referrals.reduce((s, r) => s + (r.xp_rewarded || 0), 0)
+    res.json({
+      code: user?.referral_code || null,
+      link: `https://snatch-highrise.com?ref=${user?.referral_code || ''}`,
+      count: referrals.length,
+      totalXP,
+      referrals: referrals.map(r => ({ username: r.username, xp: r.xp_rewarded, date: r.created_at })),
+    })
+  } catch (e) {
+    res.json({ code: null, link: '', count: 0, totalXP: 0, referrals: [] })
+  }
 })
 
 // ВАЖНО: /:username должен быть ПОСЛЕДНИМ — иначе перехватит /avatar, /rating-history и т.д.
