@@ -875,6 +875,7 @@ export default function Profile({ viewUsername, onClose }) {
           <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 16 }}>
             {en ? 'Logout' : 'Выйти из профиля'}
           </button>
+        </>
       )}
 
       {/* ─── Аналитика ─── */}
