@@ -749,10 +749,10 @@ export default function App() {
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
-          <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><Online /></div>
+          <div style={{ display: tab === 'online' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { padding: '0 8px', flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Online /></div>
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
-          {tab === 'puzzles' && <div style={isNative ? { padding: '0 8px' } : undefined}><Puzzles /></div>}
+          {tab === 'puzzles' && <div style={isNative ? { padding: '0 8px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : undefined}><Puzzles /></div>}
           {tab === 'openings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
           {tab === 'blog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
           {tab === 'settings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
