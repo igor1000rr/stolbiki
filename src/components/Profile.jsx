@@ -620,175 +620,77 @@ export default function Profile({ viewUsername, onClose }) {
       {/* ─── Профиль ─── */}
       {tab === 'profile' && (
         <>
-          <div className="dash-card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden' }}>
-            {/* Gradient header */}
-            <div style={{ padding: '20px 20px 16px', background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--p1) 8%, transparent))', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, color-mix(in srgb, var(--accent) 6%, transparent), transparent 70%)', filter: 'blur(20px)' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative' }}>
-                <div style={{ width: 56, height: 56, position: 'relative', cursor: 'pointer' }}
-                  onClick={() => setShowAvatarPicker(v => !v)}>
-                  <AvatarCircle avatar={profile.avatar || 'default'} name={profile.name} size={56} />
-                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: '50%',
-                    background: 'var(--surface)', border: '2px solid var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="theme" size={10} color="var(--ink3)" />
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{profile.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                    <RatingBadge rating={profile.rating} en={en} />
-                    {(profile.level || missionsData?.level) > 1 && (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '1px 6px', borderRadius: 4 }}>
-                        Lv.{profile.level || missionsData?.level || 1}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-                  <Mascot pose="wave" size={56} style={{ opacity: 0.9 }} />
-                  <div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', textShadow: '0 0 24px color-mix(in srgb, var(--gold) 30%, transparent)', letterSpacing: -1, lineHeight: 1 }}>{profile.rating}</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{ en ? 'ELO rating' : 'ELO рейтинг'}</div>
-                  </div>
+          {/* ═══ HEADER: Avatar + Name + Rating + Level ═══ */}
+          <div className="dash-card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setShowAvatarPicker(v => !v)}>
+                <AvatarCircle avatar={profile.avatar || 'default'} name={profile.name} size={60} />
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: '50%',
+                  background: 'var(--surface)', border: '2px solid var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="theme" size={10} color="var(--ink3)" />
                 </div>
               </div>
-              {/* Share profile button */}
-              <button onClick={async () => {
-                const c = document.createElement('canvas')
-                c.width = 600; c.height = 320
-                const ctx = c.getContext('2d')
-                const f = "'Outfit', sans-serif"
-                // Фон
-                const g = ctx.createLinearGradient(0, 0, 0, 320)
-                g.addColorStop(0, '#0e0e18'); g.addColorStop(1, '#18182a')
-                ctx.fillStyle = g; ctx.fillRect(0, 0, 600, 320)
-                ctx.fillStyle = 'var(--accent)' === 'var(--accent)' ? '#3bb8a8' : '#3bb8a8'
-                ctx.fillRect(0, 0, 600, 3)
-                // Имя
-                ctx.fillStyle = '#eae8f2'; ctx.font = `bold 26px ${f}`; ctx.textAlign = 'center'
-                ctx.fillText(profile.name, 300, 50)
-                // Рейтинг
-                ctx.fillStyle = '#ffc145'; ctx.font = `bold 64px ${f}`
-                ctx.fillText(String(profile.rating), 300, 130)
-                ctx.fillStyle = '#6e6a82'; ctx.font = `14px ${f}`
-                ctx.fillText('ELO', 300, 152)
-                // Статы
-                const stats = [
-                  [profile.gamesPlayed || 0, en ? 'Games' : 'Партий'],
-                  [profile.wins || 0, en ? 'Wins' : 'Побед'],
-                  [profile.bestStreak || 0, en ? 'Best streak' : 'Лучшая серия'],
-                  [unlockedAch.length, en ? 'Achievements' : 'Ачивки'],
-                ]
-                stats.forEach(([val, label], i) => {
-                  const x = 80 + i * 130
-                  ctx.fillStyle = '#eae8f2'; ctx.font = `bold 22px ${f}`
-                  ctx.fillText(String(val), x, 200)
-                  ctx.fillStyle = '#6e6a82'; ctx.font = `10px ${f}`
-                  ctx.fillText(label, x, 218)
-                })
-                // Уровень
-                if (profile.level > 1) {
-                  ctx.fillStyle = '#3bb8a8'; ctx.font = `bold 14px ${f}`
-                  ctx.fillText(`Level ${profile.level}`, 300, 258)
-                }
-                // Брендинг
-                ctx.fillStyle = '#3d3d50'; ctx.font = `12px ${f}`
-                ctx.fillText('snatch-highrise.com', 300, 300)
-                // Share
-                try {
-                  const blob = await new Promise(r => c.toBlob(r, 'image/png'))
-                  const file = new File([blob], 'profile.png', { type: 'image/png' })
-                  if (navigator.canShare?.({ files: [file] })) navigator.share({ text: `${profile.name} — ${profile.rating} ELO — snatch-highrise.com`, files: [file] })
-                  else if (navigator.share) navigator.share({ text: `${profile.name} — ${profile.rating} ELO — snatch-highrise.com` })
-                  else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'profile.png'; a.click() }
-                } catch {}
-              }} style={{
-                position: 'absolute', top: 8, right: 12, background: 'rgba(255,255,255,0.08)', border: 'none',
-                borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, color: 'var(--ink3)',
-              }}>
-                {en ? 'Share' : 'Поделиться'}
-              </button>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{profile.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <RatingBadge rating={profile.rating} en={en} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '2px 8px', borderRadius: 4 }}>
+                    Lv.{profile.level || missionsData?.level || 1}
+                  </span>
+                  {streakData?.streak > 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', background: 'rgba(255,193,69,0.1)', padding: '2px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="var(--gold)"><path d="M12 23c-4.97 0-9-3.58-9-8 0-3.07 2.17-6.44 4-8 0 3 2 5 3 6 .47-2.2 2.05-4.86 4-7 1.07 1.5 2.37 3.61 3 6 1-1 2-3 3-6 1.83 1.56 4 4.93 4 8 0 4.42-4.03 8-9 9h-3z"/></svg>
+                      {streakData.streak}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <Mascot pose="wave" size={48} style={{ marginBottom: 4 }} />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--gold)', lineHeight: 1, letterSpacing: -1 }}>{profile.rating}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>ELO</div>
+              </div>
             </div>
-            {/* Streak + Calendar inside same card */}
-            <div style={{ padding: '0 20px 16px' }}>
-            {streakData && streakData.streak > 0 && (
-              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,193,69,0.06)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 2c.7 5.5-2.8 7-2.8 11a5.6 5.6 0 0011.2 0c0-4-3.5-5.5-2.8-11" stroke="#ffc145" strokeWidth="1.5" fill="rgba(255,193,69,0.15)"/></svg>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--gold)' }}>{streakData.streak}</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink2)', marginLeft: 6 }}>{en ? 'day streak' : (streakData.streak >= 5 ? 'дней подряд' : streakData.streak >= 2 ? 'дня подряд' : 'день')}</span>
+
+            {/* XP Progress */}
+            {missionsData && (
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 10, color: 'var(--ink3)', flexShrink: 0 }}>{en ? 'Level' : 'Ур.'} {missionsData.level}</span>
+                <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--surface2)', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 3,
+                    background: 'linear-gradient(90deg, var(--accent), var(--p1))', transition: 'width 0.5s' }} />
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Best' : 'Рекорд'}: {streakData.best}</div>
-                {streakData.freeze > 0 && <div style={{ fontSize: 9, color: 'var(--p1)', padding: '2px 6px', background: 'rgba(74,158,255,0.1)', borderRadius: 4 }}>{en ? 'Freeze' : 'Защита'}: {streakData.freeze}</div>}
+                <span style={{ fontSize: 10, color: 'var(--ink3)', flexShrink: 0 }}>{missionsData.xp}/{missionsData.xpForNext} XP</span>
               </div>
             )}
-            {streakData && streakData.calendar && streakData.calendar.length > 0 && (
-              <div style={{ marginTop: 10, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                {Array.from({ length: 30 }).map((_, i) => {
-                  const d = new Date(Date.now() - (29 - i) * 86400000)
-                  const dateStr = d.toISOString().split('T')[0]
-                  const active = streakData.calendar.includes(dateStr)
-                  const isToday = dateStr === new Date().toISOString().split('T')[0]
-                  return <div key={i} title={dateStr} style={{
-                    width: 14, height: 14, borderRadius: 3,
-                    background: active ? 'var(--green)' : 'rgba(255,255,255,0.04)',
-                    border: isToday ? '1.5px solid #ffc145' : '1px solid rgba(255,255,255,0.06)',
-                    opacity: active ? 1 : 0.4,
-                  }} />
-                })}
-              </div>
-            )}
+
+            {/* Avatar picker inline */}
             {showAvatarPicker && (
-              <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', marginBottom: 8 }}>{en ? 'Choose avatar' : 'Выберите аватар'}</div>
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {Object.entries(AVATARS).map(([key, av]) => (
                     <div key={key} onClick={async () => {
                       try { await API.updateAvatar(key) } catch {}
-                      setProfile(p => { const np = { ...p, avatar: key }; saveLocal(np); return np })
+                      setProfile(p => ({ ...p, avatar: key }))
                       setShowAvatarPicker(false)
-                    }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.5, transition: 'opacity 0.15s' }}>
-                      <AvatarCircle avatar={key} name={profile.name} size={36} />
+                    }} style={{ cursor: 'pointer', opacity: profile.avatar === key ? 1 : 0.4, transition: 'opacity 0.15s' }}>
+                      <AvatarCircle avatar={key} name={profile.name} size={34} />
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            </div>{/* end padding wrapper */}
           </div>
 
-          {/* ═══ 2-COLUMN GRID ═══ */}
+          {/* ═══ 2 COLUMNS: Missions + Stats ═══ */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-            {/* LEFT: Level + Missions + Achievements */}
+            {/* LEFT: Missions + Achievements */}
             <div>
-              {missionsData && (
-                <div className="dash-card" style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--p1) 10%, transparent))',
-                      border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-                      fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
-                      {missionsData.level}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 600 }}>{en ? 'Level' : 'Уровень'} {missionsData.level}</span>
-                        <span>{missionsData.xp} / {missionsData.xpForNext} XP</span>
-                      </div>
-                      <div style={{ height: 8, borderRadius: 4, background: 'var(--surface2)', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, (missionsData.xp / missionsData.xpForNext) * 100)}%`, height: '100%', borderRadius: 4,
-                          background: 'linear-gradient(90deg, var(--accent), var(--p1))', transition: 'width 0.5s' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
               {missionsData?.missions && (
                 <div className="dash-card" style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>{en ? 'Daily missions' : 'Задания дня'}</div>
-                    {missionsData.allDone && <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600 }}>+100 XP</span>}
-                  </div>
+                  <h3 style={{ marginBottom: 10 }}>{en ? 'Daily missions' : 'Задания дня'}</h3>
                   {missionsData.missions.map(m => {
                     const pct = Math.min(m.progress / m.target, 1)
                     return (
@@ -812,71 +714,47 @@ export default function Profile({ viewUsername, onClose }) {
               )}
               {unlockedAch.length > 0 && (
                 <div className="dash-card">
-                  <h3>{en ? 'Recent achievements' : 'Последние ачивки'}</h3>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                    {unlockedAch.slice(-6).map(a => (
-                      <span key={a.id} title={en && a.nameEn ? a.nameEn : a.name} style={{ width: 32, height: 32, borderRadius: 8, display: 'inline-flex',
-                        alignItems: 'center', justifyContent: 'center', background: `${a.color}20`, border: `2px solid ${a.color}`,
-                        fontSize: 12, fontWeight: 800, color: a.color }}>{(en && a.nameEn ? a.nameEn : a.name)[0]}</span>
+                  <h3>{en ? 'Achievements' : 'Ачивки'} ({unlockedAch.length}/{ALL_ACHIEVEMENTS.length})</h3>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {unlockedAch.slice(-8).map(a => (
+                      <span key={a.id} title={en && a.nameEn ? a.nameEn : a.name} style={{ width: 30, height: 30, borderRadius: 8, display: 'inline-flex',
+                        alignItems: 'center', justifyContent: 'center', background: `${a.color}20`, border: `1px solid ${a.color}`,
+                        fontSize: 11, fontWeight: 800, color: a.color }}>{(en && a.nameEn ? a.nameEn : a.name)[0]}</span>
                     ))}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* RIGHT: Stats + Season + Opening */}
+            {/* RIGHT: Stats + Season */}
             <div>
               <div className="dash-card" style={{ marginBottom: 16 }}>
-                <h3 style={{ marginBottom: 12 }}>{en ? 'Statistics' : 'Статистика'}</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                <h3 style={{ marginBottom: 10 }}>{en ? 'Statistics' : 'Статистика'}</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {[
                     [profile.gamesPlayed, en ? 'Games' : 'Партий', 'var(--ink)', 'var(--accent)'],
                     [winRate + '%', en ? 'Win %' : 'Побед %', 'var(--green)', 'var(--green)'],
                     [profile.bestStreak, en ? 'Streak' : 'Серия', 'var(--gold)', 'var(--gold)'],
                     [profile.goldenClosed, en ? 'Golden' : 'Золотых', 'var(--gold)', 'var(--p2)'],
                   ].map(([val, label, color, glow], i) => (
-                    <div key={i} style={{ textAlign: 'center', padding: '16px 12px', background: `linear-gradient(135deg, color-mix(in srgb, ${glow} 6%, transparent), color-mix(in srgb, ${glow} 3%, transparent))`, borderRadius: 14, border: `1px solid color-mix(in srgb, ${glow} 10%, transparent)` }}>
-                      <div style={{ fontSize: 28, fontWeight: 800, color, letterSpacing: -1 }}>{val}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4, letterSpacing: 0.5 }}>{label}</div>
+                    <div key={i} style={{ textAlign: 'center', padding: '14px 8px', background: `linear-gradient(135deg, color-mix(in srgb, ${glow} 6%, transparent), color-mix(in srgb, ${glow} 3%, transparent))`, borderRadius: 12, border: `1px solid color-mix(in srgb, ${glow} 10%, transparent)` }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color }}>{val}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3 }}>{label}</div>
                     </div>
                   ))}
                 </div>
               </div>
               {seasonData?.season && <SeasonSection data={seasonData} myName={profile.name} en={en} />}
               {ratingHistory.length >= 2 && (
-                <div className="dash-card" style={{ marginBottom: 16, padding: '14px 16px' }}>
-                  <h3 style={{ margin: '0 0 8px', fontSize: 13 }}>{en ? 'Rating History' : 'История рейтинга'}</h3>
+                <div className="dash-card" style={{ marginBottom: 16 }}>
+                  <h3 style={{ margin: '0 0 8px' }}>{en ? 'Rating' : 'Рейтинг'}</h3>
                   <RatingChart data={ratingHistory} />
-                </div>
-              )}
-              {openingStats && openingStats.total > 5 && (
-                <div className="dash-card" style={{ padding: '14px 16px' }}>
-                  <h3 style={{ fontSize: 13, margin: '0 0 10px' }}>{en ? 'First move stats' : 'Статистика первых ходов'}</h3>
-                  <div style={{ display: 'flex', gap: 2, height: 40, alignItems: 'flex-end' }}>
-                    {Array.from({ length: 10 }, (_, i) => {
-                      const count = openingStats.standCounts?.[i] || 0
-                      const wins = openingStats.standWins?.[i] || 0
-                      const maxCount = Math.max(1, ...Object.values(openingStats.standCounts || {}))
-                      const pct = count / maxCount
-                      const wr = count > 0 ? wins / count : 0
-                      return (
-                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                          <div style={{ width: '80%', height: `${Math.max(4, pct * 32)}px`, borderRadius: 2,
-                            background: wr > 0.6 ? 'var(--green)' : wr > 0.4 ? 'var(--gold)' : count > 0 ? 'var(--p2)' : 'var(--surface2)' }} />
-                          <span style={{ fontSize: 8, color: 'var(--ink3)' }}>{i === 0 ? '★' : i}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div style={{ fontSize: 9, color: 'var(--ink3)', marginTop: 6 }}>{openingStats.total} {en ? 'games' : 'партий'}</div>
                 </div>
               )}
             </div>
           </div>
 
-
-
-          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 16 }}>
+          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 8 }}>
             {en ? 'Logout' : 'Выйти из профиля'}
           </button>
         </>
