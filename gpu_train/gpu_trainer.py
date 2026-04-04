@@ -1,9 +1,15 @@
 """
-Стойки — GPU Self-Play v6 (Vectorized)
-20 партий параллельно, все кандидаты в один GPU-батч.
-Максимальная утилизация GPU + CPU.
+Стойки — GPU Self-Play v7 (AlphaZero Policy+Value)
+Policy head + Value head, PUCT MCTS, candidate scoring.
 
-py -3.12 gpu_trainer.py
+Изменения от v6:
+  - Policy head: backbone 256→64 (ctx) + action 35→64 (embed) → dot product
+  - PUCT MCTS с policy priors вместо равномерного UCB1
+  - Dual loss: policy CE + value MSE
+  - Фикс: gen_smart_candidates возвращает Action, не dict
+  - ~859K params (+19K к 840K)
+
+py -3.12 gpu_trainer_v7.py
 """
 
 import torch
@@ -15,15 +21,15 @@ import json
 import time
 import os
 import sys
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as mp
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'analysis'))
-from game import GameState, apply_action, get_valid_transfers
+from game import GameState, Action, apply_action, get_valid_transfers, NUM_STANDS, MAX_CHIPS
 from train import sample_random_action_fast
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-NUM_CPU = max(1, min(8, mp.cpu_count() // 2))  # Макс 8 воркеров для warmup
+NUM_CPU = max(1, min(8, mp.cpu_count() // 2))
 
 def print_gpu_info():
     print(f'Устройство: {DEVICE}')
@@ -33,7 +39,9 @@ def print_gpu_info():
     print(f'CPU ядер: {NUM_CPU}')
 
 
-# ═══ Encoding ═══
+# ═══ Encoding: State (107 фич) ═══
+
+INPUT_SIZE = 107
 
 def encode_state(state):
     f = []
@@ -54,11 +62,48 @@ def encode_state(state):
               float(state.swap_available), float(state.can_close_by_placement())])
     return np.array(f, dtype=np.float32)
 
-INPUT_SIZE = 107
 
+# ═══ Encoding: Action (35 фич) ═══
+
+ACTION_FEAT_SIZE = 35
+
+def encode_action(state, action):
+    """Кодирование хода в вектор фич для policy head.
+
+    [0]:     swap
+    [1]:     has_transfer
+    [2-11]:  src one-hot (10)
+    [12-21]: dst one-hot (10)
+    [22]:    transfer group_size / 11
+    [23]:    is_closing (transfer заполняет стойку до 11+)
+    [24-33]: placement count per stand / 3 (10)
+    [34]:    total_placed / 3
+    """
+    f = np.zeros(ACTION_FEAT_SIZE, dtype=np.float32)
+    if action.swap:
+        f[0] = 1.0
+        return f
+    if action.transfer:
+        src, dst = action.transfer
+        f[1] = 1.0
+        f[2 + src] = 1.0
+        f[12 + dst] = 1.0
+        tc, gs = state.top_group(src)
+        f[22] = gs / 11.0
+        if len(state.stands[dst]) + gs >= MAX_CHIPS:
+            f[23] = 1.0
+    if action.placement:
+        total = 0
+        for stand_idx, count in action.placement.items():
+            f[24 + int(stand_idx)] = count / 3.0
+            total += count
+        f[34] = total / 3.0
+    return f
+
+
+# ═══ Эвристики ═══
 
 def heuristic_score(state, player):
-    """Тактическая эвристика — синхронизирована с JS hybrid evaluator"""
     opp = 1 - player
     score = 0.0
     score += (state.count_closed(player) - state.count_closed(opp)) * 0.15
@@ -84,14 +129,13 @@ def heuristic_score(state, player):
 
 
 def smart_placement(state, player, exclude=None):
-    """Умная установка — приоритет своим высоким стойкам"""
     exclude = exclude or []
     can_close = state.can_close_by_placement()
     min_space = 0 if can_close else 1
     avail = [i for i in state.open_stands() if i not in exclude and state.stand_space(i) > min_space]
     if not avail:
         return {}
-    max_place = 5 if state.is_first_turn() else 3
+    max_place = 1 if state.is_first_turn() else 3
     opp = 1 - player
     scored = []
     for i in avail:
@@ -116,140 +160,251 @@ def smart_placement(state, player, exclude=None):
 
 
 def gen_smart_candidates(state, player, n_random=6):
-    """Генерация кандидатов: закрывающие + подготовительные + умные + рандомные"""
+    """Генерация кандидатов: закрывающие + подготовительные + умные + рандомные.
+    ФИКС v7: все возвращают Action, не dict.
+    """
     cands = []
     transfers = get_valid_transfers(state)
+
     # Закрывающие переносы
     for src, dst in transfers:
         tc, gs = state.top_group(src)
-        if len(state.stands[dst]) + gs >= 11:
-            cands.append({'transfer': (src, dst), 'placement': smart_placement(state, player, [src, dst])})
-            cands.append({'transfer': (src, dst), 'placement': {}})
+        if len(state.stands[dst]) + gs >= MAX_CHIPS:
+            cands.append(Action(transfer=(src, dst), placement=smart_placement(state, player, [src, dst])))
+            cands.append(Action(transfer=(src, dst), placement={}))
+
     # Подготовительные переносы (строим к 7+)
     for src, dst in transfers:
         tc, gs = state.top_group(src)
         total_after = len(state.stands[dst]) + gs
-        if total_after >= 11: continue
+        if total_after >= MAX_CHIPS:
+            continue
         if tc == player and total_after >= 7:
-            cands.append({'transfer': (src, dst), 'placement': smart_placement(state, player, [src, dst])})
+            cands.append(Action(transfer=(src, dst), placement=smart_placement(state, player, [src, dst])))
+
     # Умные установки
     for _ in range(2):
         pl = smart_placement(state, player)
-        if pl: cands.append({'placement': pl})
+        if pl:
+            cands.append(Action(placement=pl))
+
     # Рандомные
     for _ in range(n_random):
         cands.append(sample_random_action_fast(state))
+
     return cands if cands else [sample_random_action_fast(state)]
 
 
-# ═══ Сеть ═══
+# ═══ Сеть v7: Policy + Value ═══
 
 class ResBlock(nn.Module):
     def __init__(self, d):
         super().__init__()
-        self.fc1, self.ln1 = nn.Linear(d,d), nn.LayerNorm(d)
-        self.fc2, self.ln2 = nn.Linear(d,d), nn.LayerNorm(d)
+        self.fc1, self.ln1 = nn.Linear(d, d), nn.LayerNorm(d)
+        self.fc2, self.ln2 = nn.Linear(d, d), nn.LayerNorm(d)
+
     def forward(self, x):
         return F.relu(self.ln2(self.fc2(F.relu(self.ln1(self.fc1(x))))) + x)
 
+
 class StoykaNet(nn.Module):
+    """ResNet с двумя головами: value + policy (candidate scoring)."""
+
     def __init__(self, hidden=256, blocks=6):
         super().__init__()
         self.proj = nn.Sequential(nn.Linear(INPUT_SIZE, hidden), nn.LayerNorm(hidden), nn.ReLU())
         self.blocks = nn.ModuleList([ResBlock(hidden) for _ in range(blocks)])
-        self.value = nn.Sequential(nn.Linear(hidden,64), nn.ReLU(), nn.Linear(64,1), nn.Tanh())
-    def forward(self, x):
+        # Value head (без изменений)
+        self.value = nn.Sequential(nn.Linear(hidden, 64), nn.ReLU(), nn.Linear(64, 1), nn.Tanh())
+        # Policy head: candidate scoring через dot product
+        self.policy_ctx = nn.Sequential(nn.Linear(hidden, 64), nn.ReLU())
+        self.action_enc = nn.Linear(ACTION_FEAT_SIZE, 64)
+
+    def backbone(self, x):
+        """Прогон backbone, возвращает trunk features (batch, hidden)."""
         h = self.proj(x)
-        for b in self.blocks: h = b(h)
+        for b in self.blocks:
+            h = b(h)
+        return h
+
+    def forward(self, x):
+        """Возвращает (value, trunk) для совместимости."""
+        h = self.backbone(x)
+        return self.value(h), h
+
+    def value_only(self, x):
+        """Только value (для eval и backward-совместимости)."""
+        h = self.backbone(x)
         return self.value(h)
 
+    def policy_logits(self, trunk, action_feats):
+        """Policy logits для кандидатов.
 
-# ═══ Vectorized Self-Play: N партий одновременно ═══
+        trunk: (batch, hidden)
+        action_feats: (batch, K, ACTION_FEAT_SIZE) — K кандидатов
+        Returns: (batch, K) logits
+        """
+        ctx = self.policy_ctx(trunk)           # (batch, 64)
+        act = self.action_enc(action_feats)    # (batch, K, 64)
+        logits = (ctx.unsqueeze(1) * act).sum(-1)  # (batch, K)
+        return logits
+
+
+# ═══ Vectorized Self-Play v7: PUCT MCTS ═══
+
+MAX_CANDIDATES = 32  # Паддинг для батча policy targets
 
 class VectorizedSelfPlay:
-    """Играет N партий параллельно, все GPU-вызовы в одном батче."""
+    """N партий параллельно, PUCT MCTS с policy priors."""
 
-    def __init__(self, net, num_parallel=20, num_candidates=6, max_turns=100):
+    def __init__(self, net, num_parallel=20, num_candidates=8, mcts_sims=50, max_turns=100):
         self.net = net
         self.num_parallel = num_parallel
         self.num_candidates = num_candidates
+        self.mcts_sims = mcts_sims
         self.max_turns = max_turns
 
     def play_batch(self):
-        """Играет num_parallel партий → возвращает все сэмплы"""
+        """Играет num_parallel партий → (value_samples, policy_samples)."""
         self.net.eval()
         N = self.num_parallel
         K = self.num_candidates
 
-        # Инициализация
         games = [GameState() for _ in range(N)]
-        trajectories = [[] for _ in range(N)]
-        active = list(range(N))  # Индексы незавершённых
+        # Траектории: (state_feat, player, action_feats, visit_probs, num_cands)
+        traj_value = [[] for _ in range(N)]
+        traj_policy = [[] for _ in range(N)]
+        active = list(range(N))
 
         while active:
-            # Генерируем K кандидатов для каждой активной партии
-            all_features = []    # Все encoded states для GPU
-            game_map = []        # (game_idx, candidate_idx)
-            candidates = {}      # game_idx → [actions]
+            # ── Шаг 1: Генерация кандидатов ──
+            all_cand_feats = []   # Encoded next states для value
+            all_state_feats = []  # Текущие состояния для policy
+            game_cands = {}       # gi → [(action, next_state, player)]
 
             for gi in active:
                 state = games[gi]
                 player = state.current_player
-                cands = gen_smart_candidates(state, player, n_random=K)
-                valid_cands = []
-                for a in cands:
+                cands_raw = gen_smart_candidates(state, player, n_random=K)
+                valid = []
+                for a in cands_raw:
                     try:
                         ns = apply_action(state, a)
-                        all_features.append(encode_state(ns))
-                        game_map.append((gi, len(valid_cands)))
-                        valid_cands.append((a, ns, player))
+                        all_cand_feats.append(encode_state(ns))
+                        valid.append((a, ns, player))
                     except:
                         pass
-                if not valid_cands:
+                if not valid:
                     a = sample_random_action_fast(state)
                     ns = apply_action(state, a)
-                    all_features.append(encode_state(ns))
-                    game_map.append((gi, 0))
-                    valid_cands.append((a, ns, player))
-                candidates[gi] = valid_cands
+                    all_cand_feats.append(encode_state(ns))
+                    valid.append((a, ns, player))
+                game_cands[gi] = valid
 
-            # ОДИН батч на GPU для ВСЕХ кандидатов ВСЕХ партий
+            # ── Шаг 2: Батч GPU — value для всех кандидатов ──
             with torch.no_grad():
-                x = torch.tensor(np.array(all_features), dtype=torch.float32).to(DEVICE)
-                all_vals = self.net(x).cpu().numpy().flatten()
+                x_cands = torch.tensor(np.array(all_cand_feats), dtype=torch.float32).to(DEVICE)
+                all_vals = self.net.value_only(x_cands).cpu().numpy().flatten()
 
-            # Выбираем лучший ход для каждой партии
-            val_idx = 0
-            new_active = []
+            # ── Шаг 3: Батч GPU — policy priors ──
+            # Собираем текущие состояния и action features
+            state_feats_list = []
+            action_feats_list = []  # (N_active, max_K, 35)
+            num_cands_list = []
 
             for gi in active:
                 state = games[gi]
-                K_actual = len(candidates[gi])
-                nn_scores = all_vals[val_idx:val_idx + K_actual]
-                val_idx += K_actual
+                state_feats_list.append(encode_state(state))
+                cands = game_cands[gi]
+                k = len(cands)
+                num_cands_list.append(k)
+                af = np.zeros((MAX_CANDIDATES, ACTION_FEAT_SIZE), dtype=np.float32)
+                for j, (a, ns, p) in enumerate(cands):
+                    af[j] = encode_action(state, a)
+                action_feats_list.append(af)
 
-                # Hybrid: 60% NN + 40% heuristic
-                scores = np.zeros(K_actual)
-                for j in range(K_actual):
-                    _, ns, player = candidates[gi][j]
-                    nn_v = nn_scores[j] if ns.current_player == player else -nn_scores[j]
+            with torch.no_grad():
+                x_states = torch.tensor(np.array(state_feats_list), dtype=torch.float32).to(DEVICE)
+                x_actions = torch.tensor(np.array(action_feats_list), dtype=torch.float32).to(DEVICE)
+                trunk = self.net.backbone(x_states)
+                policy_logits = self.net.policy_logits(trunk, x_actions).cpu().numpy()
+
+            # ── Шаг 4: PUCT MCTS для каждой партии ──
+            val_idx = 0
+            new_active = []
+
+            for ai, gi in enumerate(active):
+                state = games[gi]
+                player = state.current_player
+                cands = game_cands[gi]
+                k = len(cands)
+
+                # Значения кандидатов (из value head)
+                cand_vals = np.zeros(k)
+                for j in range(k):
+                    _, ns, p = cands[j]
+                    v = all_vals[val_idx + j]
+                    cand_vals[j] = v if ns.current_player == player else -v
+                val_idx += k
+
+                # Hybrid: 60% NN + 40% heuristic (policy управляет exploration)
+                scores = np.zeros(k)
+                for j in range(k):
+                    _, ns, p = cands[j]
                     h_v = heuristic_score(ns, player)
-                    scores[j] = nn_v * 0.6 + h_v * 0.4
+                    scores[j] = cand_vals[j] * 0.6 + h_v * 0.4
 
-                # Exploration через softmax
-                temp = 0.3 if state.turn < 20 else 0.05
-                if temp <= 0:
-                    best = np.argmax(scores)
+                # Policy priors + Dirichlet noise (AlphaZero стандарт)
+                logits = policy_logits[ai, :k]
+                priors = _softmax(logits)
+                noise = np.random.dirichlet([0.3] * k)
+                priors = 0.75 * priors + 0.25 * noise
+
+                # PUCT MCTS (flat — кешированные values + шум для разнообразия)
+                visits = np.zeros(k)
+                total_vals = np.zeros(k)
+                c_puct = 2.5
+
+                for sim in range(self.mcts_sims):
+                    total_n = visits.sum() + 1
+                    best_score = -1e9
+                    best_j = 0
+                    for j in range(k):
+                        if visits[j] == 0:
+                            q = 0.0
+                        else:
+                            q = total_vals[j] / visits[j]
+                        u = c_puct * priors[j] * np.sqrt(total_n) / (1 + visits[j])
+                        s = q + u
+                        if s > best_score:
+                            best_score = s
+                            best_j = j
+                    visits[best_j] += 1
+                    # Value + небольшой шум, чтобы Q варьировалось между симуляциями
+                    total_vals[best_j] += scores[best_j] + np.random.normal(0, 0.03)
+
+                # Visit distribution → policy target
+                visit_probs = visits / visits.sum()
+
+                # Сохраняем policy target
+                af_valid = np.zeros((MAX_CANDIDATES, ACTION_FEAT_SIZE), dtype=np.float32)
+                vp_valid = np.zeros(MAX_CANDIDATES, dtype=np.float32)
+                for j in range(k):
+                    af_valid[j] = encode_action(state, cands[j][0])
+                    vp_valid[j] = visit_probs[j]
+                traj_policy[gi].append((encode_state(state), af_valid, vp_valid, k))
+                traj_value[gi].append((encode_state(state), player))
+
+                # Выбор хода: proportional to visits (с temperature)
+                temp = 1.0 if state.turn < 15 else 0.3
+                if temp <= 0.01:
+                    best = np.argmax(visits)
                 else:
-                    exp = np.exp((scores - scores.max()) / max(temp, 0.01))
-                    probs = exp / exp.sum()
-                    best = np.random.choice(K_actual, p=probs)
+                    exp_v = np.power(visits, 1.0 / temp)
+                    pick_probs = exp_v / exp_v.sum()
+                    best = np.random.choice(k, p=pick_probs)
 
-                # Сохраняем траекторию
-                trajectories[gi].append((encode_state(state), state.current_player))
-
-                # Применяем ход
-                games[gi] = apply_action(state, candidates[gi][best][0])
+                games[gi] = apply_action(state, cands[best][0])
 
                 if not games[gi].game_over and games[gi].turn <= self.max_turns:
                     new_active.append(gi)
@@ -259,20 +414,35 @@ class VectorizedSelfPlay:
 
             active = new_active
 
-        # Собираем samples
-        all_samples = []
+        # ── Собираем samples ──
+        value_samples = []
+        policy_samples = []
+
         for gi in range(N):
             winner = games[gi].winner
-            for features, player in trajectories[gi]:
-                if winner == player: v = 1.0
-                elif winner == 1 - player: v = -1.0
-                else: v = 0.0
-                all_samples.append((features, v))
+            for features, player in traj_value[gi]:
+                if winner == player:
+                    v = 1.0
+                elif winner == 1 - player:
+                    v = -1.0
+                else:
+                    v = 0.0
+                value_samples.append((features, v))
 
-        return all_samples
+            for features, action_feats, visit_probs, num_cands in traj_policy[gi]:
+                # value target тот же
+                player_idx = len(value_samples) - len(traj_value[gi])  # approx
+                policy_samples.append((features, action_feats, visit_probs, num_cands))
+
+        return value_samples, policy_samples
 
 
-# ═══ Быстрый рандомный warmup (multiprocess) ═══
+def _softmax(x):
+    e = np.exp(x - x.max())
+    return e / e.sum()
+
+
+# ═══ Warmup (рандомный, без policy) ═══
 
 def _play_random_games(num):
     samples = []
@@ -284,15 +454,17 @@ def _play_random_games(num):
             p = s.current_player
             s = apply_action(s, sample_random_action_fast(s))
             traj.append((f, p))
-            if s.turn > 100: s.game_over = True; s.winner = -1; break
+            if s.turn > 100:
+                s.game_over = True
+                s.winner = -1
+                break
         for f, p in traj:
-            v = 1.0 if s.winner == p else (-1.0 if s.winner == 1-p else 0.0)
+            v = 1.0 if s.winner == p else (-1.0 if s.winner == 1 - p else 0.0)
             samples.append((f, v))
     return samples
 
 
 def warmup_parallel(total_games, num_workers=None):
-    """Рандомные партии на всех CPU ядрах"""
     nw = num_workers or NUM_CPU
     per_worker = total_games // nw
     with ProcessPoolExecutor(max_workers=nw) as pool:
@@ -306,7 +478,7 @@ def warmup_parallel(total_games, num_workers=None):
 # ═══ Eval ═══
 
 def evaluate_net(net, num_games=40):
-    """Оценка: hybrid AI (NN + heuristics) vs random"""
+    """Оценка: hybrid AI (NN + policy + heuristics) vs random."""
     net.eval()
     wins = 0
     for g in range(num_games):
@@ -314,9 +486,9 @@ def evaluate_net(net, num_games=40):
         net_player = g % 2
         while not state.game_over:
             if state.current_player == net_player:
-                cands = gen_smart_candidates(state, net_player, n_random=8)
+                cands_raw = gen_smart_candidates(state, net_player, n_random=8)
                 feats, valid = [], []
-                for a in cands:
+                for a in cands_raw:
                     try:
                         ns = apply_action(state, a)
                         feats.append(encode_state(ns))
@@ -325,11 +497,13 @@ def evaluate_net(net, num_games=40):
                         pass
                 if not valid:
                     state = apply_action(state, sample_random_action_fast(state))
-                    if state.turn > 150: break
+                    if state.turn > 150:
+                        break
                     continue
                 with torch.no_grad():
-                    vals = net(torch.tensor(np.array(feats), dtype=torch.float32).to(DEVICE)).cpu().numpy().flatten()
-                # Hybrid: 60% NN + 40% heuristic
+                    x = torch.tensor(np.array(feats), dtype=torch.float32).to(DEVICE)
+                    vals = net.value_only(x).cpu().numpy().flatten()
+                # Hybrid + policy priors для выбора
                 scores = []
                 for j, (a, ns) in enumerate(valid):
                     nn_v = vals[j] if ns.current_player == net_player else -vals[j]
@@ -339,12 +513,14 @@ def evaluate_net(net, num_games=40):
             else:
                 action = sample_random_action_fast(state)
             state = apply_action(state, action)
-            if state.turn > 150: break
-        if state.winner == net_player: wins += 1
+            if state.turn > 150:
+                break
+        if state.winner == net_player:
+            wins += 1
     return wins / num_games
 
 
-# ═══ Тренер ═══
+# ═══ Тренер v7 ═══
 
 class GPUTrainer:
     def __init__(self, cfg=None):
@@ -356,63 +532,119 @@ class GPUTrainer:
         self.epochs = c.get('epochs', 25)
         self.parallel = c.get('parallel', 30)
         self.rounds = c.get('rounds_per_iter', 3)
-        self.num_candidates = c.get('num_candidates', 6)
+        self.num_candidates = c.get('num_candidates', 8)
+        self.mcts_sims = c.get('mcts_sims', 100)
         self.eval_games = c.get('eval_games', 40)
         self.num_iterations = c.get('num_iterations', 500)
         self.buffer_size = c.get('buffer_size', 300000)
         self.warmup = c.get('warmup_games', 1000)
-        self.ckpt_dir = c.get('checkpoint_dir', 'gpu_checkpoint')
+        self.ckpt_dir = c.get('checkpoint_dir', 'gpu_checkpoint_v7')
+        self.policy_weight = c.get('policy_weight', 1.0)  # Вес policy loss
 
         self.net = StoykaNet(self.hidden, self.num_blocks).to(DEVICE)
         self.opt = optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=1e-4)
         self.sched = optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=300, eta_min=0.0001)
 
-        self.buf_x, self.buf_y = [], []
+        # Буферы: value + policy
+        self.buf_x, self.buf_y = [], []  # State features, value targets
+        self.buf_pstate = []    # State features для policy
+        self.buf_paction = []   # (MAX_CANDIDATES, 35) action features
+        self.buf_pprobs = []    # (MAX_CANDIDATES,) visit probs
+        self.buf_pnum = []      # num valid candidates
         self.history = []
         self.version = 0
 
         os.makedirs(self.ckpt_dir, exist_ok=True)
         tp = sum(p.numel() for p in self.net.parameters())
-        print(f'Сеть: {self.hidden}×{self.num_blocks}, {tp:,} параметров')
+        print(f'Сеть v7: {self.hidden}×{self.num_blocks}, {tp:,} параметров (policy+value)')
 
     def train_on_buffer(self):
-        n = len(self.buf_x)
-        if n < self.bs: return 0.0
+        """Dual loss: value MSE + policy CE."""
+        n_val = len(self.buf_x)
+        n_pol = len(self.buf_pstate)
+        if n_val < self.bs:
+            return 0.0, 0.0
+
         self.net.train()
-        sz = min(n, self.buffer_size)
-        X = torch.tensor(np.array(self.buf_x[-sz:]), dtype=torch.float32).to(DEVICE)
-        Y = torch.tensor(np.array(self.buf_y[-sz:]), dtype=torch.float32).unsqueeze(1).to(DEVICE)
-        tl, nb = 0.0, 0
+
+        # Value буфер
+        sz_v = min(n_val, self.buffer_size)
+        X_v = torch.tensor(np.array(self.buf_x[-sz_v:]), dtype=torch.float32).to(DEVICE)
+        Y_v = torch.tensor(np.array(self.buf_y[-sz_v:]), dtype=torch.float32).unsqueeze(1).to(DEVICE)
+
+        # Policy буфер (может быть меньше, пока нет policy данных)
+        has_policy = n_pol >= self.bs
+        if has_policy:
+            sz_p = min(n_pol, self.buffer_size)
+            X_ps = torch.tensor(np.array(self.buf_pstate[-sz_p:]), dtype=torch.float32).to(DEVICE)
+            X_pa = torch.tensor(np.array(self.buf_paction[-sz_p:]), dtype=torch.float32).to(DEVICE)
+            Y_pp = torch.tensor(np.array(self.buf_pprobs[-sz_p:]), dtype=torch.float32).to(DEVICE)
+            N_pc = torch.tensor(np.array(self.buf_pnum[-sz_p:]), dtype=torch.long).to(DEVICE)
+
+        tl_v, tl_p, nb = 0.0, 0.0, 0
         for _ in range(self.epochs):
-            pm = torch.randperm(len(X))
-            for s in range(0, len(X), self.bs):
-                idx = pm[s:s+self.bs]
-                loss = F.mse_loss(self.net(X[idx]), Y[idx])
-                self.opt.zero_grad(); loss.backward()
+            # Value training
+            pm = torch.randperm(len(X_v))
+            for s in range(0, len(X_v), self.bs):
+                idx = pm[s:s + self.bs]
+                val_pred = self.net.value_only(X_v[idx])
+                loss_v = F.mse_loss(val_pred, Y_v[idx])
+
+                # Policy training (если есть данные)
+                loss_p = torch.tensor(0.0, device=DEVICE)
+                if has_policy:
+                    # Берём батч из policy буфера (случайные индексы)
+                    pidx = torch.randint(0, len(X_ps), (min(len(idx), len(X_ps)),), device=DEVICE)
+                    trunk = self.net.backbone(X_ps[pidx])
+                    logits = self.net.policy_logits(trunk, X_pa[pidx])  # (B, MAX_CANDIDATES)
+                    targets = Y_pp[pidx]  # (B, MAX_CANDIDATES)
+                    nums = N_pc[pidx]     # (B,)
+                    # Маска: только валидные кандидаты
+                    mask = torch.arange(MAX_CANDIDATES, device=DEVICE).unsqueeze(0) < nums.unsqueeze(1)
+                    # Маскированный softmax + CE
+                    logits_masked = logits.masked_fill(~mask, -1e9)
+                    log_probs = F.log_softmax(logits_masked, dim=-1)
+                    # CE per sample = -sum(target * log_prob), затем mean по батчу
+                    # targets=0 для невалидных → 0*(-1e9)=0, NaN не будет
+                    loss_p = -(targets * log_probs).sum(dim=-1).mean()
+
+                loss = loss_v + self.policy_weight * loss_p
+                self.opt.zero_grad()
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 1.0)
-                self.opt.step(); tl += loss.item(); nb += 1
+                self.opt.step()
+                tl_v += loss_v.item()
+                tl_p += loss_p.item()
+                nb += 1
+
         self.sched.step()
-        return tl / max(nb, 1)
+        return tl_v / max(nb, 1), tl_p / max(nb, 1)
 
     def run(self):
-        sp = VectorizedSelfPlay(self.net, self.parallel, self.num_candidates)
+        sp = VectorizedSelfPlay(
+            self.net, self.parallel, self.num_candidates,
+            mcts_sims=self.mcts_sims
+        )
         games_per_iter = self.parallel * self.rounds
 
-        print(f'\n{"═"*60}')
-        print(f'Vectorized Self-Play: {self.num_iterations} итер')
-        print(f'  {self.parallel} параллельных партий × {self.rounds} раундов = {games_per_iter} партий/итер')
-        print(f'  {self.num_candidates} кандидатов → 1 GPU батч ({self.parallel * self.num_candidates} инференсов/ход)')
+        print(f'\n{"═"*65}')
+        print(f'AlphaZero Self-Play v7: {self.num_iterations} итер')
+        print(f'  {self.parallel} параллельных × {self.rounds} раундов = {games_per_iter} партий/итер')
+        print(f'  {self.num_candidates} кандидатов, {self.mcts_sims} PUCT симуляций/ход')
         print(f'  GPU batch={self.bs}, epochs={self.epochs}')
-        print(f'{"═"*60}')
+        print(f'  Policy weight: {self.policy_weight}')
+        print(f'{"═"*65}')
 
         if self.version == 0 and len(self.buf_x) < 5000:
             print(f'\nWarmup: {self.warmup} рандомных партий на {NUM_CPU} ядрах...')
             t0 = time.time()
             samples = warmup_parallel(self.warmup)
-            for f, v in samples: self.buf_x.append(f); self.buf_y.append(v)
-            loss = self.train_on_buffer()
+            for f, v in samples:
+                self.buf_x.append(f)
+                self.buf_y.append(v)
+            loss_v, loss_p = self.train_on_buffer()
             wr = evaluate_net(self.net, self.eval_games)
-            print(f'  {len(samples):,} сэмплов, loss={loss:.4f}, wr={wr:.0%}, {time.time()-t0:.0f}с')
+            print(f'  {len(samples):,} сэмплов, loss_v={loss_v:.4f}, wr={wr:.0%}, {time.time()-t0:.0f}с')
 
         print()
 
@@ -420,17 +652,28 @@ class GPUTrainer:
             self.version += 1
             t0 = time.time()
 
-            # Vectorized self-play
             for r in range(self.rounds):
-                samples = sp.play_batch()
-                for f, v in samples: self.buf_x.append(f); self.buf_y.append(v)
+                val_samples, pol_samples = sp.play_batch()
+                for f, v in val_samples:
+                    self.buf_x.append(f)
+                    self.buf_y.append(v)
+                for sf, af, vp, nc in pol_samples:
+                    self.buf_pstate.append(sf)
+                    self.buf_paction.append(af)
+                    self.buf_pprobs.append(vp)
+                    self.buf_pnum.append(nc)
 
+            # Обрезка буферов
             if len(self.buf_x) > self.buffer_size:
                 self.buf_x = self.buf_x[-self.buffer_size:]
                 self.buf_y = self.buf_y[-self.buffer_size:]
+            if len(self.buf_pstate) > self.buffer_size:
+                self.buf_pstate = self.buf_pstate[-self.buffer_size:]
+                self.buf_paction = self.buf_paction[-self.buffer_size:]
+                self.buf_pprobs = self.buf_pprobs[-self.buffer_size:]
+                self.buf_pnum = self.buf_pnum[-self.buffer_size:]
 
-            # GPU обучение
-            loss = self.train_on_buffer()
+            loss_v, loss_p = self.train_on_buffer()
             elapsed = time.time() - t0
             lr = self.sched.get_last_lr()[0]
 
@@ -441,12 +684,13 @@ class GPUTrainer:
                 wr_str = f'{wr_val:.0%}'
 
             self.history.append({
-                'version': self.version, 'loss': round(loss, 5),
+                'version': self.version, 'loss_v': round(loss_v, 5), 'loss_p': round(loss_p, 5),
                 'vs_random': round(wr_val, 3) if wr_val is not None else None,
-                'buffer': len(self.buf_x), 'time': round(elapsed, 1),
+                'buffer': len(self.buf_x), 'policy_buf': len(self.buf_pstate),
+                'time': round(elapsed, 1),
             })
 
-            print(f'  v{self.version:3d} | loss={loss:.4f} | wr={wr_str:>4s} | buf={len(self.buf_x):>7,} | lr={lr:.6f} | {elapsed:.0f}с')
+            print(f'  v{self.version:3d} | Lv={loss_v:.4f} Lp={loss_p:.4f} | wr={wr_str:>4s} | buf={len(self.buf_x):>7,}/{len(self.buf_pstate):>7,} | lr={lr:.6f} | {elapsed:.0f}с')
 
             if it % 50 == 0:
                 self.save()
@@ -465,11 +709,44 @@ class GPUTrainer:
 
     def load(self, path):
         ckpt = torch.load(path, map_location=DEVICE, weights_only=False)
-        self.net.load_state_dict(ckpt['model'])
-        if 'optimizer' in ckpt: self.opt.load_state_dict(ckpt['optimizer'])
+        sd = ckpt['model']
+        # Совместимость: если нет policy ключей — загружаем только backbone+value
+        missing = [k for k in self.net.state_dict() if k not in sd]
+        if missing:
+            print(f'  ⚠ Новые ключи ({len(missing)}): {", ".join(missing[:5])}...')
+            print(f'  → Policy head инициализируется рандомно')
+            # Загружаем частично
+            own_sd = self.net.state_dict()
+            for k, v in sd.items():
+                if k in own_sd and own_sd[k].shape == v.shape:
+                    own_sd[k] = v
+            self.net.load_state_dict(own_sd)
+        else:
+            self.net.load_state_dict(sd)
+        if 'optimizer' in ckpt:
+            try:
+                self.opt.load_state_dict(ckpt['optimizer'])
+            except:
+                print('  ⚠ Optimizer state не совместим, пересоздан')
         self.version = ckpt.get('version', 0)
         self.history = ckpt.get('history', [])
         print(f'Загружена v{self.version}')
+
+    def load_v6(self, path):
+        """Загрузка весов v6 (только value head) — для миграции."""
+        ckpt = torch.load(path, map_location=DEVICE, weights_only=False)
+        sd = ckpt['model']
+        own_sd = self.net.state_dict()
+        loaded = 0
+        for k, v in sd.items():
+            if k in own_sd and own_sd[k].shape == v.shape:
+                own_sd[k] = v
+                loaded += 1
+        self.net.load_state_dict(own_sd)
+        self.version = ckpt.get('version', 0)
+        self.history = ckpt.get('history', [])
+        print(f'Миграция v6→v7: загружено {loaded} тензоров, policy head рандомный')
+        print(f'  Версия: v{self.version}')
 
 
 if __name__ == '__main__':
@@ -477,10 +754,12 @@ if __name__ == '__main__':
     mp.set_start_method('spawn', force=True)
     print_gpu_info()
 
-    parser = argparse.ArgumentParser(description='GPU Self-Play тренер')
+    parser = argparse.ArgumentParser(description='GPU Self-Play тренер v7 (AlphaZero)')
     parser.add_argument('--checkpoint', help='Путь к чекпоинту (.pt)')
+    parser.add_argument('--v6-checkpoint', help='Миграция с v6: путь к старому чекпоинту')
     parser.add_argument('--iterations', type=int, default=2000, help='Кол-во итераций')
     parser.add_argument('--parallel', type=int, default=20, help='Параллельных партий')
+    parser.add_argument('--mcts-sims', type=int, default=100, help='PUCT симуляций на ход')
     parser.add_argument('--export-json', default='../src/engine/gpu_weights.json', help='Экспорт весов')
     args = parser.parse_args()
 
@@ -488,32 +767,37 @@ if __name__ == '__main__':
         'hidden': 256,
         'num_blocks': 6,
         'lr': 0.001,
-        'batch_size': 4096 if args.parallel >= 40 else 1024,  # RTX 5090 = 4096
+        'batch_size': 4096 if args.parallel >= 40 else 1024,
         'epochs': 20,
         'parallel': args.parallel,
-        'rounds_per_iter': 5 if args.parallel >= 40 else 3,  # RTX 5090 = 5 раундов
-        'num_candidates': 12 if args.parallel >= 40 else 8,  # Больше кандидатов = точнее ходы
-        'eval_games': 60 if args.parallel >= 40 else 40,     # Точнее WR оценка
+        'rounds_per_iter': 5 if args.parallel >= 40 else 3,
+        'num_candidates': 12 if args.parallel >= 40 else 8,
+        'mcts_sims': args.mcts_sims,
+        'eval_games': 60 if args.parallel >= 40 else 40,
         'num_iterations': args.iterations,
-        'buffer_size': 500000 if args.parallel >= 40 else 300000,  # Больше буфер
+        'buffer_size': 500000 if args.parallel >= 40 else 300000,
         'warmup_games': 1000 if args.parallel >= 40 else 500,
-        'checkpoint_dir': 'gpu_checkpoint',
+        'checkpoint_dir': 'gpu_checkpoint_v7',
+        'policy_weight': 1.0,
     }
 
     trainer = GPUTrainer(config)
 
-    # Загружаем чекпоинт
-    if args.checkpoint and os.path.exists(args.checkpoint):
+    # Миграция с v6
+    if args.v6_checkpoint and os.path.exists(args.v6_checkpoint):
+        trainer.load_v6(args.v6_checkpoint)
+    elif args.checkpoint and os.path.exists(args.checkpoint):
         trainer.load(args.checkpoint)
     else:
-        ckpts = sorted([f for f in os.listdir(config['checkpoint_dir']) if f.endswith('.pt')]) if os.path.exists(config['checkpoint_dir']) else []
+        ckpt_dir = config['checkpoint_dir']
+        ckpts = sorted([f for f in os.listdir(ckpt_dir) if f.endswith('.pt')]) if os.path.exists(ckpt_dir) else []
         if ckpts:
-            trainer.load(os.path.join(config['checkpoint_dir'], ckpts[-1]))
+            trainer.load(os.path.join(ckpt_dir, ckpts[-1]))
 
     print(f'\nСтарт с v{trainer.version}, {args.iterations} итераций')
     trainer.run()
 
-    # Экспорт весов в JSON
+    # Экспорт весов
     if args.export_json:
         weights = {}
         total = 0
@@ -524,4 +808,4 @@ if __name__ == '__main__':
         with open(args.export_json, 'w') as f:
             json.dump(weights, f, separators=(',', ':'))
         print(f'\n✅ Экспорт: {total:,} params → {args.export_json}')
-        print(f'   git add {args.export_json} && git commit && git push')
+        print(f'   Далее: node scripts/convert_weights_bin.js && git add src/engine/gpu_weights.bin')

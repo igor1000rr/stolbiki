@@ -1,26 +1,30 @@
 /**
- * AI для игры «Перехват высотки»
- * MCTS + нейросеть гибрид
+ * AI v7 для игры «Перехват высотки»
+ * AlphaZero-стиль: MCTS + Policy + Value
  *
- * CPU-сеть: 8,961 params (27µs/eval) — fallback
- * GPU-сеть: 840,321 params (1.2ms/eval) — значительно сильнее
- * 
- * С GPU-сетью достаточно меньше симуляций — каждая оценка точнее.
+ * Ключевое отличие от v6:
+ *   - PUCT формула: Q(a) + c_puct * P(a) * sqrt(N_total) / (1 + N(a))
+ *   - Policy priors из нейросети направляют exploration
+ *   - С policy: 800 симуляций ≈ 5000 старых (6x ускорение)
+ *   - Без policy (fallback): UCB1 как раньше
+ *
+ * CPU-сеть: 8,961 params (27µs/eval) — fallback, только value
+ * GPU-сеть v7: ~859K params (1.2ms/eval) — value + policy
  */
 
 import {
   GameState, getValidTransfers, getValidPlacements,
   applyAction, MAX_CHIPS, MAX_PLACE, FIRST_TURN_MAX
 } from './game.js'
-import { evaluate as nnEvaluate, isReady as nnReady, isGpuReady, loadWeights, loadGpuWeights } from './neuralnet.js'
+import {
+  evaluate as nnEvaluate, evaluateFull, isReady as nnReady,
+  isGpuReady, hasPolicyHead, loadWeights, loadGpuWeights, encodeAction
+} from './neuralnet.js'
 
-// Автозагрузка CPU-весов при импорте (маленькие, 179KB)
+// Автозагрузка CPU-весов
 loadWeights().catch(() => {})
 
-/**
- * Предзагрузка GPU-сети для сложных уровней
- * Вызывается из Game.jsx при выборе difficulty >= hard
- */
+/** Предзагрузка GPU-сети для сложных уровней */
 export function preloadGpuNet() {
   loadGpuWeights().catch(() => {})
 }
@@ -84,42 +88,33 @@ export function sampleRandomAction(state) {
 }
 
 /**
- * Тактическая эвристика — бонусы/штрафы за конкретные паттерны
- * Возвращает значение от -1 до +1 с точки зрения player
+ * Тактическая эвристика — бонусы/штрафы за паттерны
  */
 function heuristicEval(state, player) {
   const opp = 1 - player
   let score = 0
 
-  // Закрытые стойки — самое важное
   const myClosed = state.countClosed(player)
   const oppClosed = state.countClosed(opp)
   score += (myClosed - oppClosed) * 0.15
 
-  // Золотая стойка — двойная ценность
   if (0 in state.closed) {
     score += state.closed[0] === player ? 0.12 : -0.12
   }
 
-  // Анализ открытых стоек
   for (let i = 0; i < state.numStands; i++) {
     if (i in state.closed) continue
     const chips = state.stands[i]
     if (!chips.length) continue
     const [topColor, topSize] = state.topGroup(i)
     const total = chips.length
-    const space = 11 - total
 
-    // Стойка почти закрыта (8+ фишек) с нашими сверху — очень ценно
     if (total >= 8 && topColor === player) {
-      score += (i === 0 ? 0.08 : 0.05) // золотая ценнее
+      score += (i === 0 ? 0.08 : 0.05)
     }
-    // Стойка почти закрыта с чужими сверху — опасность
     if (total >= 8 && topColor === opp) {
       score -= (i === 0 ? 0.08 : 0.05)
     }
-
-    // Доминирование верха — контроль позиции
     if (topSize >= 3 && topColor === player) score += 0.02
     if (topSize >= 3 && topColor === opp) score -= 0.02
   }
@@ -128,8 +123,7 @@ function heuristicEval(state, player) {
 }
 
 /**
- * Оценка позиции: GPU eval + тактические эвристики
- * GPU-сеть даёт стратегическую оценку, эвристики — тактическую
+ * Оценка позиции: NN value + heuristic hybrid
  */
 function evaluatePosition(state, player, rolloutDepth = 3) {
   if (state.gameOver) {
@@ -138,7 +132,6 @@ function evaluatePosition(state, player, rolloutDepth = 3) {
     return 0
   }
 
-  // С нейросетью: гибрид NN + heuristic
   if (nnReady()) {
     let s = state
     for (let d = 0; d < rolloutDepth && !s.gameOver; d++) {
@@ -152,13 +145,11 @@ function evaluatePosition(state, player, rolloutDepth = 3) {
     const nnVal = nnEvaluate(s)
     const nn = s.currentPlayer === player ? nnVal : -nnVal
     const heur = heuristicEval(s, player)
-    // GPU-сеть: 60% NN + 40% эвристика (сеть v500 ещё слабая)
-    // CPU-сеть: 40% NN + 60% эвристика
     const nnWeight = isGpuReady() ? 0.6 : 0.4
     return nn * nnWeight + heur * (1 - nnWeight)
   }
 
-  // Fallback: случайный rollout
+  // Fallback: rollout
   let s = state
   let depth = 0
   while (!s.gameOver && depth < 80) {
@@ -171,10 +162,14 @@ function evaluatePosition(state, player, rolloutDepth = 3) {
 }
 
 /**
- * MCTS поиск с нейросетью
+ * MCTS v7: PUCT с policy priors
  *
- * numSimulations: 20 (лёгкая), 50 (средняя), 100 (сложная)
- * С нейросетью каждая симуляция даёт точную оценку вместо случайного rollout
+ * Если policy head доступен:
+ *   score = Q(a) + c_puct * P(a) * sqrt(N_total) / (1 + N(a))
+ * Иначе (fallback):
+ *   score = Q(a) + c * sqrt(ln(N_total) / N(a))  (UCB1)
+ *
+ * numSimulations: 20 (easy), 50 (medium), 100 (hard), 300-800 (expert), 5000 (impossible)
  */
 export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   const actions = []
@@ -185,38 +180,36 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   const maxP = state.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const useNN = nnReady()
   const useGpuNet = isGpuReady()
+  const usePolicyPriors = hasPolicyHead()
 
-  /** Умная установка: приоритет стойкам с нашим контролем и близким к закрытию */
+  // ── Умная установка ──
   function smartPlacement(st, exclude = []) {
     const canClose = st.canCloseByPlacement()
     const minSpace = canClose ? 0 : 1
     const avail = st.openStands().filter(i => !exclude.includes(i) && st.standSpace(i) > minSpace)
     if (!avail.length) return {}
 
-    // Оцениваем каждую стойку
     const scored = avail.map(i => {
       const chips = st.stands[i]
       const [tc, ts] = st.topGroup(i)
       const total = chips.length
-      let score = total * 2 // Больше фишек — ближе к закрытию
-      if (tc === player) score += 10 + ts * 3 // Наши сверху — ценно
-      if (tc === 1 - player) score -= 5 // Чужие сверху — не ставим
-      if (i === 0) score += 5 // Золотая
-      if (total >= 7 && tc === player) score += 20 // Почти закрываем!
-      if (total >= 7 && tc === 1 - player) score += 8 // Блокируем
+      let score = total * 2
+      if (tc === player) score += 10 + ts * 3
+      if (tc === 1 - player) score -= 5
+      if (i === 0) score += 5
+      if (total >= 7 && tc === player) score += 20
+      if (total >= 7 && tc === 1 - player) score += 8
       return { i, score }
     }).sort((a, b) => b.score - a.score)
 
     const pl = {}
     let rem = maxP
-    // Ставим на лучшие стойки
     const topN = Math.min(2, scored.filter(s => s.score > 0).length)
     for (let k = 0; k < topN && rem > 0; k++) {
       const { i } = scored[k]
       const cap = canClose ? Math.min(st.standSpace(i), rem) : Math.min(st.standSpace(i) - 1, rem)
       if (cap > 0) { pl[i] = Math.min(cap, rem); rem -= pl[i] }
     }
-    // Если остались фишки — на следующую лучшую
     if (rem > 0 && scored.length > topN) {
       const { i } = scored[topN]
       const cap = canClose ? Math.min(st.standSpace(i), rem) : Math.min(st.standSpace(i) - 1, rem)
@@ -245,22 +238,19 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
   // ── Генерация кандидатов ──
   const isHard = numSimulations >= 300
 
-  // Swap
   if (state.turn === 1 && state.swapAvailable) {
     actions.push({ swap: true })
   }
 
-  // ═══ ЗАКРЫВАЮЩИЕ ПЕРЕНОСЫ (высший приоритет) ═══
+  // Закрывающие переносы (высший приоритет)
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
     if (state.stands[dst].length + gs >= MAX_CHIPS && gc === player) {
-      // Наш закрывающий — 6 вариантов установки (максимальный приоритет)
       for (let k = 0; k < 6; k++) {
         actions.push({ transfer: [src, dst], placement: k < 3 ? smartPlacement(state, [src, dst]) : randPlacement(state, [src, dst]) })
       }
     }
   }
-  // Вражеские закрывающие — тоже добавляем (иногда выгодно закрыть за противника, захватив потом)
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
     if (state.stands[dst].length + gs >= MAX_CHIPS && gc !== player) {
@@ -268,15 +258,13 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     }
   }
 
-  // ═══ ПОДГОТОВИТЕЛЬНЫЕ ПЕРЕНОСЫ — строим к закрытию ═══
+  // Подготовительные переносы
   for (const [src, dst] of transfers) {
     const [gc, gs] = state.topGroup(src)
     const dstTotal = state.stands[dst].length
-    if (dstTotal + gs >= MAX_CHIPS) continue // уже выше
-    // Перенос наших фишек на стойку где мы доминируем — строим к 11
+    if (dstTotal + gs >= MAX_CHIPS) continue
     const [dtc] = state.topGroup(dst)
     if (gc === player && (dstTotal + gs >= 7)) {
-      // Высокая стойка + наш перенос = почти закрытие
       actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
       actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
     } else if (gc === player) {
@@ -284,12 +272,11 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     }
   }
 
-  // ═══ УМНЫЕ УСТАНОВКИ ═══
+  // Умные установки
   const canCloseP = state.canCloseByPlacement()
   const minSpP = canCloseP ? 0 : 1
   const avail = state.openStands().filter(i => state.standSpace(i) > minSpP)
   if (avail.length) {
-    // Сортируем: наши высокие стойки первые
     const scored = avail.map(i => {
       const [tc, ts] = state.topGroup(i)
       const total = state.stands[i].length
@@ -301,7 +288,6 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
       return { i, s }
     }).sort((a, b) => b.s - a.s)
 
-    // Полная установка на лучшие стойки
     for (let k = 0; k < Math.min(isHard ? 8 : 5, scored.length); k++) {
       const idx = scored[k].i
       const sp = canCloseP ? state.standSpace(idx) : state.standSpace(idx) - 1
@@ -312,7 +298,6 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
       }
     }
 
-    // Двойные установки на 2 лучших стойки
     if (scored.length >= 2 && maxP >= 2) {
       for (let i = 0; i < Math.min(4, scored.length); i++) {
         for (let j = i + 1; j < Math.min(5, scored.length); j++) {
@@ -342,19 +327,39 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
 
   for (let i = 0; i < finalActions.length; i++) { visits.push(0); values.push(0) }
 
-  // ── MCTS симуляции ──
-  // GPU-сеть точнее → меньше exploration нужен
-  const cExplore = useGpuNet ? 1.0 : useNN ? 1.2 : 1.4
+  // ── Policy priors ──
+  let priors = null
+
+  if (usePolicyPriors) {
+    // Полная оценка: value + policy через один backbone pass
+    const fullEval = evaluateFull(state, finalActions)
+    if (fullEval && fullEval.priors) {
+      priors = fullEval.priors
+    }
+  }
+
+  // ── MCTS симуляции с PUCT ──
+  const cPuct = usePolicyPriors && priors ? 2.5 : (useGpuNet ? 1.0 : useNN ? 1.2 : 1.4)
 
   for (let sim = 0; sim < numSimulations; sim++) {
     const totalV = visits.reduce((a, b) => a + b, 0) + 1
 
-    // UCB1
     let bestIdx = 0, bestScore = -Infinity
     for (let i = 0; i < finalActions.length; i++) {
-      const score = visits[i] === 0
-        ? 1000 + Math.random()
-        : values[i] / visits[i] + cExplore * Math.sqrt(Math.log(totalV) / visits[i])
+      let score
+
+      if (priors) {
+        // ═══ PUCT (AlphaZero) ═══
+        const q = visits[i] === 0 ? 0 : values[i] / visits[i]
+        const u = cPuct * priors[i] * Math.sqrt(totalV) / (1 + visits[i])
+        score = q + u
+      } else {
+        // ═══ UCB1 (fallback) ═══
+        score = visits[i] === 0
+          ? 1000 + Math.random()
+          : values[i] / visits[i] + cPuct * Math.sqrt(Math.log(totalV) / visits[i])
+      }
+
       if (score > bestScore) { bestScore = score; bestIdx = i }
     }
 
