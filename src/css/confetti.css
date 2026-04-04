@@ -400,12 +400,17 @@
    ═══════════════════════════════════════════ */
 .settings-page { max-width: 640px; margin: 0 auto; }
 .settings-title { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 24px; }
-.settings-section { margin-bottom: 28px; }
+.settings-section {
+  margin-bottom: 20px;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--surface2);
+  padding: 16px 20px;
+}
 .settings-section-title {
   display: flex; align-items: center; gap: 8px;
-  font-size: 13px; font-weight: 600; color: var(--ink2);
-  text-transform: uppercase; letter-spacing: 0.8px;
-  padding-bottom: 10px; border-bottom: 1px solid var(--surface2); margin-bottom: 4px;
+  font-size: 14px; font-weight: 600; color: var(--ink);
+  padding-bottom: 12px; border-bottom: 1px solid var(--surface2); margin-bottom: 4px;
 }
 .setting-row {
   display: flex; align-items: center; justify-content: space-between;
