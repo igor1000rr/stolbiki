@@ -355,13 +355,19 @@ class VectorizedSelfPlay:
                     h_v = heuristic_score(ns, player)
                     scores[j] = cand_vals[j] * 0.6 + h_v * 0.4
 
-                # Policy priors + Dirichlet noise (AlphaZero стандарт)
+                # Policy priors + Dirichlet noise (для exploration в выборе хода)
                 logits = policy_logits[ai, :k]
                 priors = _softmax(logits)
                 noise = np.random.dirichlet([0.3] * k)
                 priors = 0.75 * priors + 0.25 * noise
 
-                # PUCT MCTS (flat — кешированные values + шум для разнообразия)
+                # Policy target = softmax(value_scores / tau)
+                # Adaptive tau: масштабируется по разбросу scores
+                score_std = max(np.std(scores), 0.01)
+                tau = score_std * 0.75  # ~74% entropy → чёткий сигнал для обучения
+                policy_target = _softmax(scores / tau)
+
+                # Выбор хода: PUCT с policy priors для exploration
                 visits = np.zeros(k)
                 total_vals = np.zeros(k)
                 c_puct = 2.5
@@ -371,32 +377,25 @@ class VectorizedSelfPlay:
                     best_score = -1e9
                     best_j = 0
                     for j in range(k):
-                        if visits[j] == 0:
-                            q = 0.0
-                        else:
-                            q = total_vals[j] / visits[j]
+                        q = total_vals[j] / max(visits[j], 1)
                         u = c_puct * priors[j] * np.sqrt(total_n) / (1 + visits[j])
                         s = q + u
                         if s > best_score:
                             best_score = s
                             best_j = j
                     visits[best_j] += 1
-                    # Value + небольшой шум, чтобы Q варьировалось между симуляциями
-                    total_vals[best_j] += scores[best_j] + np.random.normal(0, 0.03)
+                    total_vals[best_j] += scores[best_j]
 
-                # Visit distribution → policy target
-                visit_probs = visits / visits.sum()
-
-                # Сохраняем policy target
+                # Сохраняем policy target (value-based, не visit-based)
                 af_valid = np.zeros((MAX_CANDIDATES, ACTION_FEAT_SIZE), dtype=np.float32)
                 vp_valid = np.zeros(MAX_CANDIDATES, dtype=np.float32)
                 for j in range(k):
                     af_valid[j] = encode_action(state, cands[j][0])
-                    vp_valid[j] = visit_probs[j]
+                    vp_valid[j] = policy_target[j]
                 traj_policy[gi].append((encode_state(state), af_valid, vp_valid, k))
                 traj_value[gi].append((encode_state(state), player))
 
-                # Выбор хода: proportional to visits (с temperature)
+                # Выбор хода: по visit distribution (PUCT + policy priors)
                 temp = 1.0 if state.turn < 15 else 0.3
                 if temp <= 0.01:
                     best = np.argmax(visits)
