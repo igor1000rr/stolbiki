@@ -28,6 +28,9 @@
 .board-3d .stand:hover {
   transform: perspective(400px) rotateX(0deg) translateY(-2px);
 }
+/* Native: убираем 3D perspective — экономим GPU */
+.native-app .board-3d .stand { transform: none; }
+.native-app .board-3d .stand:hover { transform: none; }
 
 /* Chip при закрытии стойки — сжимается */
 @keyframes chipSquish {

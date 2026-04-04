@@ -39,7 +39,7 @@ export default class ErrorBoundary extends Component {
           <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, margin: '0 0 20px' }}>
             {this.state.error?.message || 'Неизвестная ошибка'}
           </p>
-          <button className="btn primary" onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/game' }} style={{ justifyContent: 'center' }}>
+          <button className="btn primary" onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload() }} style={{ justifyContent: 'center' }}>
             Перезагрузить
           </button>
         </div>

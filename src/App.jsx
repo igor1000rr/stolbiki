@@ -51,7 +51,7 @@ function LazyFallback() {
 }
 
 const ADMIN_NAMES = ['admin']
-const APP_VERSION = '4.6.2'
+const APP_VERSION = '4.7.0'
 const WHATS_NEW = {
   ru: [
     'Удалён мёртвый код: –8.1MB из билда',
@@ -749,7 +749,7 @@ export default function App() {
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
-          <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><div ><Online /></div></div>
+          <div style={{ display: tab === 'online' ? 'block' : 'none', ...(isNative ? { padding: '0 8px' } : {}) }}><Online /></div>
         </Suspense>
         <Suspense fallback={<LazyFallback />}>
           {tab === 'puzzles' && <div style={isNative ? { padding: '0 8px' } : undefined}><Puzzles /></div>}
@@ -824,7 +824,7 @@ export default function App() {
               <button className="m-more-item" onClick={() => go('changelog')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                 <span>Changelog</span>
-                <span className="m-more-value">v4.6.2</span>
+                <span className="m-more-value">v{APP_VERSION}</span>
               </button>
 
               <div className="m-more-section">{en ? 'About' : 'О приложении'}</div>
@@ -882,7 +882,7 @@ export default function App() {
             <span style={{ color: 'var(--surface3)' }}>|</span>
             <a href="/terms" onClick={(e) => { e.preventDefault(); go('terms') }} style={{ cursor: 'pointer' }}>{lang === 'en' ? 'Terms' : 'Условия'}</a>
             <span className="site-footer-divider" />
-            <span style={{ opacity: 0.3 }}>v4.6.2</span>
+            <span style={{ opacity: 0.3 }}>v{APP_VERSION}</span>
           </div>
         </div>
       </footer>}

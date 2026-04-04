@@ -410,8 +410,8 @@ body.native-body { animation: none !important; }
 
 /* ═══ NATIVE: Bigger touch targets globally ═══ */
 .native-app .btn,
-.native-app button { min-height: 38px; }
-.native-app select { font-size: 15px; min-height: 38px; }
+.native-app button { min-height: 44px; }
+.native-app select { font-size: 15px; min-height: 44px; }
 .native-app .game-controls label { font-size: 13px; }
 .native-app .game-controls { gap: 6px; }
 
