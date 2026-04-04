@@ -63,12 +63,17 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
         </div>
         <h1 className="l-hero-title">
-          {c('site.tagline', en ? 'Strategy board game powered by AI' : 'Стратегическая настолка с AI')}
+          {c('site.tagline', en ? 'Strategy board game with AI' : 'Стратегическая настольная игра с AI')}
         </h1>
+        <p className="l-hero-sub" style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink2)', marginBottom: 8 }}>
+          {en
+            ? 'Sneaky raccoons build highrises and snatch them from others.'
+            : 'Хитрые еноты строят высотки и перехватывают их у других.'}
+        </p>
         <p className="l-hero-sub">
           {en
-            ? '10 stands. 11 blocks each. Infinite depth. Play against a neural network trained on 10M games, challenge friends, or print and play at the table.'
-            : '10 стоек. 11 блоков на каждой. Бесконечная глубина. Играйте против нейросети, обученной на 10M партиях, соревнуйтесь с друзьями или распечатайте и играйте за столом.'}
+            ? '10 highrises. 11 blocks each. Many strategies. Play with friends or against a trained neural network. Think chess or checkers, but more fun!'
+            : '10 высоток. 11 блоков на каждой. Множество стратегий. Играйте с друзьями или против обученной нейросети. Нашу игру можно сравнить с шахматами или шашками, но она интереснее и веселее!'}
         </p>
         <div className="l-hero-meta">
           <span className="beta-badge">beta</span>
@@ -100,15 +105,6 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </div>
           )}
         </div>
-      </section>
-
-      {/* ═══ NUMBERS — count-up animation ═══ */}
-      <section className={`l-numbers ${numVis ? 'in' : ''}`} ref={numRef}>
-        <div className="l-num"><span className="l-num-val"><Counter end="10" suffix="M+" /></span><span className="l-num-label">{c('landing.stat_games', en ? 'games analyzed' : 'партий')}</span></div>
-        <div className="l-num-sep" />
-        <div className="l-num"><span className="l-num-val"><Counter end="97" suffix="%" /></span><span className="l-num-label">{c('landing.stat_winrate', en ? 'AI win rate' : 'винрейт AI')}</span></div>
-        <div className="l-num-sep" />
-        <div className="l-num"><span className="l-num-val">50:50</span><span className="l-num-label">{c('landing.stat_balance', en ? 'balance' : 'баланс')}</span></div>
       </section>
 
       {/* ═══ STEPS — staggered reveal with animated line ═══ */}
@@ -282,7 +278,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
 
       {/* ═══ PRINT & PLAY + ABOUT ═══ */}
       <section className="l-section">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
           <a href="/print-and-play.pdf" target="_blank" style={{ textDecoration: 'none', display: 'block', padding: '36px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', transition: 'border-color 0.3s, transform 0.3s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,214,140,0.4)'; e.currentTarget.style.transform = 'translateY(-4px)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.transform = '' }}>
@@ -347,17 +343,14 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ FAQ — numbered, with colors ═══ */}
+      {/* ═══ FAQ ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'Questions' : 'Вопросы'}</h2>
         <div className={`l-qa ${faqVis ? 'in' : ''}`} ref={faqRef}>
           {[
-            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5-15 minutes depending on skill. Blitz mode available.' : '5-15 минут. Есть блиц-режим.'],
-            [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при 5:5. Контроль — ключевая стратегия.'],
-            [en ? 'Works on mobile?' : 'Работает на телефоне?', en ? 'Yes — PWA. Add to home screen, play offline.' : 'Да — PWA. Добавьте на экран, играйте оффлайн.'],
-            [en ? 'How does Swap work?' : 'Что такое Swap?', en ? 'After P1 places first block, P2 can steal their position.' : 'После первого хода П1, П2 может забрать позицию.'],
-            [en ? 'Is it balanced?' : 'Это сбалансировано?', en ? '50:50 balance. Confirmed across 10M games.' : '50:50 баланс. Проверено на 10M партиях.'],
-            [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely free. No ads, no paywalls.' : 'Полностью. Без рекламы, без подвохов.'],
+            [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely free. No ads, no paywalls, no tricks.' : 'Полностью бесплатно. Без рекламы, без платных стен, без подвохов.'],
+            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5-15 minutes depending on skill. Blitz mode available.' : '5-15 минут в зависимости от уровня. Есть блиц-режим.'],
+            [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при счёте 5:5. Контроль над ней — ключевая стратегия.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
               <div className="l-qa-num">{String(i + 1).padStart(2, '0')}</div>
@@ -370,7 +363,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ ABOUT + CTA — combined rich ending ═══ */}
+      {/* ═══ CTA ═══ */}
       <section className="l-final">
         <div className="l-final-glow" />
         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
@@ -378,8 +371,8 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           <h2 style={{ fontSize: 36, margin: '0 0 12px', fontWeight: 800 }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
           <p style={{ fontSize: 15, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 auto 32px', maxWidth: 480 }}>
             {en
-              ? 'Join a community of strategy lovers. AI trained on 10M+ games is waiting.'
-              : 'Присоединяйтесь к сообществу любителей стратегий. AI, обученный на 10M+ партиях, ждёт вас.'}
+              ? 'An indie game made with love. No ads, no paywalls. Just pure strategy.'
+              : 'Инди-игра, сделанная с душой. Без рекламы и платных стен. Чистая стратегия.'}
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
@@ -388,47 +381,28 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </button>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 40, marginBottom: 36, flexWrap: 'wrap' }}>
-            {[
-              { val: '10M+', label: en ? 'games analyzed' : 'партий', color: '#4a9eff' },
-              { val: '50:50', label: en ? 'perfect balance' : 'баланс', color: '#3dd68c' },
-              { val: '33', label: en ? 'achievements' : 'ачивки', color: '#ffc145' },
-              { val: '11', label: en ? 'themes' : 'тем', color: '#e040fb' },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>{s.label}</div>
-              </div>
-            ))}
+          {/* Присоединяйтесь */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', marginBottom: 12 }}>{en ? 'Join us:' : 'Присоединяйтесь:'}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {[
+                { name: 'Telegram', url: 'https://t.me/igor1000rr', color: '#4a9eff' },
+                { name: 'TikTok', url: 'https://tiktok.com/@snatchhighrise', color: '#e040fb' },
+                { name: 'Reddit', url: 'https://reddit.com/r/boardgames', color: '#ff6066' },
+              ].map(s => (
+                <a key={s.name} href={s.url} target="_blank" rel="noopener" style={{
+                  fontSize: 12, padding: '7px 16px', borderRadius: 8,
+                  background: `${s.color}10`, border: `1px solid ${s.color}30`, color: s.color,
+                  textDecoration: 'none', fontWeight: 600, transition: 'transform 0.2s, background 0.2s'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = `${s.color}25` }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = `${s.color}10` }}>
+                  {s.name}
+                </a>
+              ))}
+            </div>
           </div>
 
-          {/* Social */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
-            {[
-              { name: 'Reddit', url: 'https://reddit.com/r/boardgames', color: '#ff6066' },
-              { name: 'Telegram', url: 'https://t.me/igor1000rr', color: '#4a9eff' },
-              { name: 'TikTok', url: 'https://tiktok.com', color: '#e040fb' },
-              { name: 'BGG', url: 'https://boardgamegeek.com', color: '#ffc145' },
-            ].map(s => (
-              <a key={s.name} href={s.url} target="_blank" rel="noopener" style={{
-                fontSize: 12, padding: '7px 16px', borderRadius: 8,
-                background: `${s.color}10`, border: `1px solid ${s.color}30`, color: s.color,
-                textDecoration: 'none', fontWeight: 600, transition: 'transform 0.2s, background 0.2s'
-              }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = `${s.color}25` }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = `${s.color}10` }}>
-                {s.name}
-              </a>
-            ))}
-          </div>
-
-          {/* Tech */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 12, opacity: 0.4 }}>
-            {['React', 'Node.js', 'AlphaZero', 'WebSocket', 'SQLite', 'Capacitor'].map(t => (
-              <span key={t} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--ink3)' }}>{t}</span>
-            ))}
-          </div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.3 }}>v4.7.0</div>
         </div>
       </section>
