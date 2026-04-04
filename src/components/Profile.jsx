@@ -236,7 +236,7 @@ function RatingChart({ data }) {
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--ink3)', marginTop: 2 }}>
         <span>{firstR}</span>
-        <span>{pts.length} {pts.length === 1 ? 'game' : 'games'}</span>
+        <span>{pts.length} {en ? (pts.length === 1 ? 'game' : 'games') : (pts.length === 1 ? 'партия' : 'партий')}</span>
         <span style={{ fontWeight: 600, color }}>{lastR}</span>
       </div>
     </div>
@@ -814,22 +814,23 @@ export default function Profile({ viewUsername, onClose }) {
             </div>
           )}
 
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10 }}>{en ? 'Statistics' : 'Статистика'}</div>
           <div className="profile-stats-grid">
-            <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{profile.gamesPlayed}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Games' : 'Партий'}</div>
+            <div className="dash-card" style={{ textAlign: 'center', padding: 14 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)' }}>{profile.gamesPlayed}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Games played' : 'Сыграно партий'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--green)' }}>{winRate}%</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Win rate' : 'Винрейт'}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>{winRate}%</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Win rate' : 'Процент побед'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--gold)' }}>{profile.bestStreak}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)' }}>{profile.bestStreak}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Best streak' : 'Лучшая серия'}</div>
             </div>
             <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--gold)' }}>{profile.goldenClosed}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'Golden' : 'Золотых'}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gold)' }}>{profile.goldenClosed}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{en ? 'Golden closed' : 'Золотых закрыто'}</div>
             </div>
             {profile.rushBest > 0 && (
               <div className="dash-card" style={{ textAlign: 'center', padding: 12 }}>
@@ -851,7 +852,7 @@ export default function Profile({ viewUsername, onClose }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <h3 style={{ margin: 0, fontSize: 13 }}>{en ? 'Rating History' : 'История рейтинга'}</h3>
                 <span style={{ fontSize: 11, color: ratingHistory[0]?.delta > 0 ? 'var(--green)' : 'var(--p2)', fontWeight: 600 }}>
-                  {ratingHistory[0]?.delta > 0 ? '+' : ''}{ratingHistory[0]?.delta} last game
+                  {ratingHistory[0]?.delta > 0 ? '+' : ''}{ratingHistory[0]?.delta} {en ? 'last game' : 'посл. игра'}
                 </span>
               </div>
               <RatingChart data={ratingHistory} />
