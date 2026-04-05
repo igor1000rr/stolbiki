@@ -21,6 +21,7 @@ import GameResultPanel from './GameResultPanel'
 import ReplayViewer, { describeAction } from './ReplayViewer'
 import { useGameLog } from '../engine/useGameLog'
 import { useSessionStats } from '../engine/useSessionStats'
+import { useOnlineGameHandlers } from '../engine/useOnlineGameHandlers'
 import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 const GameReview = lazy(() => import('./GameReview'))
 
@@ -117,256 +118,20 @@ export default function Game() {
   useEffect(() => { gsRef.current = gs }, [gs])
 
   // ─── Онлайн мультиплеер: слушаем события из Online.jsx ───
-  useEffect(() => {
-    function handleOnlineStart(e) {
-      const { players, firstPlayer, roomId, playerIdx, nextGame, timer, ratings } = e.detail
-      requestNotificationPermission()
-      const myColor = (playerIdx === (firstPlayer ?? 0)) ? 0 : 1
-      onlineRef.current = { roomId, playerIdx, myColor }
-      setOnlineRoom(roomId)
-      setOnlinePlayerIdx(playerIdx)
-      setOnlinePlayers(players)
+  // ─── Онлайн мультиплеер: WS-обработчики вынесены в useOnlineGameHandlers ───
+  useOnlineGameHandlers({
+    gameCtx, gsRef, onlineRef, aiRunning, modeRef, prevScore, moveHistoryRef,
+    setGs, setPhase, setSelected, setTransfer, setPlacement, setResult, setHint,
+    setAiThinking, setScoreBump, setHumanPlayer, setMode, setLocked, setInfo,
+    setLog, addLog, setUndoStack, setShowReplay,
+    setOnlineRoom, setOnlinePlayerIdx, setOnlinePlayers,
+    setDrawOffered, setRematchOffered, setRematchPending,
+    setFloatingEmoji, setSpectatorCount, setPlayerTime, setConfetti,
+    resetTimers, requestNotificationPermission, showNotification, startTitleBlink,
+    describeAction, t, lang,
+    sounds: { sw, sl, ss, sp, st },
+  })
 
-      // Новая игра в онлайн-режиме
-      cancelRecording()
-      const state = new GameState()
-      gsRef.current = state
-      setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
-    API.track('game_start', 'game', { mode, difficulty: difficultyRef.current })
-      setScoreBump(null); setHumanPlayer(myColor); setMode('online')
-      aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
-      startRecording()
-      setGameMeta('online', 0)
-      resetTimers()
-      // Онлайн-таймер от сервера (минуты → секунды)
-      if (timer && timer > 0) {
-        setPlayerTime([timer * 60, timer * 60])
-      }
-      setUndoStack([])
-      
-      moveHistoryRef.current = []
-      setShowReplay(false)
-      setRematchOffered(false)
-      setRematchPending(false)
-      setDrawOffered(false)
-
-      const myName = players[playerIdx] || t('game.you')
-      const oppName = players[1 - playerIdx] || t('game.opponent')
-      const ratingStr = ratings ? ` (${ratings[playerIdx]} vs ${ratings[1 - playerIdx]})` : ''
-      setLog([{ text: `Онлайн: ${myName} vs ${oppName}${ratingStr}${nextGame ? ' (следующая партия)' : ''}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-
-      if (state.currentPlayer === myColor) {
-        setLocked(false)
-        setInfo(t('game.place1'))
-      } else {
-        setLocked(true)
-        setInfo(t('game.opponentTurn'))
-      }
-    }
-
-    function handleOnlineMove(e) {
-      if (modeRef.current === 'spectate-online') return // Обрабатывается handleSpectateMove
-      const action = e.detail
-      const myColorBefore = onlineRef.current?.myColor ?? 0
-      const opponentColor = 1 - myColorBefore
-
-      // Берём актуальный стейт из ref, применяем ход
-      const prevState = gsRef.current
-      const ns = applyAction(prevState, action)
-      setGs(ns)
-      gsRef.current = ns
-
-      addLog(describeAction(action, opponentColor, t), opponentColor)
-      moveHistoryRef.current.push({ action: { ...action }, player: opponentColor })
-
-      // Swap — особый случай: противник ещё не закончил ход (ему надо ставить фишки)
-      if (action.swap) {
-        ss()
-        const newColor = 1 - myColorBefore
-        if (onlineRef.current) onlineRef.current.myColor = newColor
-        setHumanPlayer(newColor)
-        setLocked(true)
-        setInfo(t('game.swapOppDone'))
-        return
-      }
-
-      // Обычный ход — звуки
-      if (action.transfer) { st() }
-      else { sp() }
-
-      if (ns.gameOver) {
-        setTimeout(() => {
-          setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
-          finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
-          const myColor = onlineRef.current?.myColor ?? 0
-          const won = ns.winner === myColor
-          setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
-        }, 500)
-      } else {
-        const myColor = onlineRef.current?.myColor ?? 0
-        if (ns.currentPlayer === myColor) {
-          setTimeout(() => {
-            setLocked(false)
-            setPhase('place')
-            setTransfer(null)
-            setPlacement({})
-            setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.placeChips'))
-            if (document.hidden) {
-              startTitleBlink(t('game.yourTurnBlink'))
-              showNotification('Snatch Highrise', t('game.yourTurnBlink'))
-            }
-          }, 300)
-        } else {
-          setLocked(true)
-          setInfo(t('game.opponentTurn'))
-        }
-      }
-    }
-
-    // Регистрируем обработчики через GameContext (вместо window CustomEvents)
-    const unsubscribers = []
-    if (gameCtx) {
-      unsubscribers.push(gameCtx.register('onOnlineStart', (detail) => handleOnlineStart({ detail })))
-      unsubscribers.push(gameCtx.register('onOnlineMove', (action, serverTime) => {
-        // Online mode: обработка хода оппонента
-        handleOnlineMove({ detail: action })
-        // Spectate mode: обработка хода любого игрока
-        handleSpectateMove({ detail: action })
-        // Синхронизация таймера от сервера
-        if (serverTime && Array.isArray(serverTime)) {
-          setPlayerTime([Math.round(serverTime[0]), Math.round(serverTime[1])])
-        }
-      }))
-      // Время вышло (серверное)
-      unsubscribers.push(gameCtx.register('onTimeUp', ({ loser }) => {
-        const myIdx = onlineRef.current?.playerIdx ?? 0
-        const won = loser !== myIdx
-        setResult(won ? (onlineRef.current?.myColor ?? 0) : 1 - (onlineRef.current?.myColor ?? 0))
-        setPhase('done'); setLocked(false)
-        setInfo(won ? t('game.oppTimeUp') : t('game.timeUp'))
-        setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
-      }))
-    }
-
-    // Opponent resigned
-    function handleOnlineResign() {
-      const myColor = onlineRef.current?.myColor ?? 0
-      setResult(myColor); setPhase('done'); setLocked(false)
-      setInfo(t('game.opponentResigned'))
-      sw()
-      showNotification('Snatch Highrise', t('game.opponentResigned'))
-    }
-
-    // Draw offer
-    function handleDrawOffer() {
-      setDrawOffered(true)
-      showNotification('Snatch Highrise', t('game.drawOfferReceived'))
-    }
-
-    // Draw response
-    function handleDrawResponse(detail) {
-      if (detail?.accepted) {
-        setResult(-1); setPhase('done'); setLocked(false)
-        setInfo(t('game.drawAgreed'))
-      } else {
-        setInfo(t('game.drawDeclined'))
-      }
-      setDrawOffered(false)
-    }
-
-    if (gameCtx) {
-      unsubscribers.push(gameCtx.register('onOnlineResign', handleOnlineResign))
-      unsubscribers.push(gameCtx.register('onDrawOffer', handleDrawOffer))
-      unsubscribers.push(gameCtx.register('onDrawResponse', handleDrawResponse))
-    }
-
-    // Серверное подтверждение gameOver (авторитетный источник)
-    function handleServerGameOver(detail) {
-      const { winner } = detail
-      const myColor = onlineRef.current?.myColor ?? 0
-      // Если клиент ещё не показал gameOver — форсируем
-      setResult(prev => {
-        if (prev !== null) return prev // Уже показали
-        const won = winner === (onlineRef.current?.playerIdx ?? 0)
-        setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
-        setPhase('done'); setLocked(false); setInfo(t('game.gameOver'))
-        return winner >= 0 ? (winner === (onlineRef.current?.playerIdx ?? 0) ? myColor : 1 - myColor) : -1
-      })
-    }
-    if (gameCtx) unsubscribers.push(gameCtx.register('onServerGameOver', handleServerGameOver))
-
-    // Rematch
-    function handleRematchOffer() {
-      setRematchOffered(true)
-      showNotification('Snatch Highrise', t('game.rematchOffer'))
-    }
-    function handleRematchDeclined() {
-      setRematchPending(false)
-      setInfo(t('game.rematchDeclined'))
-    }
-    if (gameCtx) {
-      unsubscribers.push(gameCtx.register('onRematchOffer', handleRematchOffer))
-      unsubscribers.push(gameCtx.register('onRematchDeclined', handleRematchDeclined))
-      unsubscribers.push(gameCtx.register('onReaction', ({ emoji }) => {
-        setFloatingEmoji({ emoji, key: Date.now() })
-        setTimeout(() => setFloatingEmoji(null), 2000)
-      }))
-      unsubscribers.push(gameCtx.register('onSpectatorCount', ({ count }) => setSpectatorCount(count)))
-    }
-
-    // ─── Спектатор: наблюдение за чужой игрой ───
-    function handleSpectateStart(detail) {
-      const { players, firstPlayer, gameState: gsData } = detail
-      cancelRecording()
-      // Восстанавливаем GameState из серверных данных
-      const state = new GameState()
-      if (gsData) {
-        state.stands = gsData.stands || state.stands
-        state.closed = gsData.closed || state.closed
-        state.currentPlayer = gsData.currentPlayer ?? 0
-        state.turn = gsData.turn ?? 0
-        state.swapAvailable = gsData.swapAvailable ?? true
-        state.gameOver = gsData.gameOver ?? false
-        state.winner = gsData.winner ?? null
-      }
-      gsRef.current = state
-      setGs(state); setPhase('done'); setSelected(null); setTransfer(null); setPlacement({})
-      setResult(null); setHint(null); setAiThinking(false); setScoreBump(null)
-      setHumanPlayer(0); setMode('spectate-online')
-      setLocked(true)
-      aiRunning.current = false; modeRef.current = 'spectate-online'
-      setOnlinePlayers(players || [])
-      onlineRef.current = { roomId: null, playerIdx: -1, myColor: 0 }
-      moveHistoryRef.current = []
-      setShowReplay(false)
-      setInfo(`${(players || []).join(' vs ')} — ${t('game.watching')}`)
-      setLog([{ text: `⊙ ${(players || []).join(' vs ')}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-    }
-
-    // Спектатор получает ходы обоих игроков
-    function handleSpectateMove(e) {
-      if (modeRef.current !== 'spectate-online') return
-      const action = e.detail
-      const prevState = gsRef.current
-      const ns = applyAction(prevState, action)
-      setGs(ns)
-      gsRef.current = ns
-      if (action.transfer) { st() }
-      else if (action.swap) { ss() }
-      else { sp() }
-      addLog(describeAction(action, prevState.currentPlayer, t), prevState.currentPlayer)
-      if (ns.gameOver) {
-        setTimeout(() => {
-          setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver'))
-        }, 500)
-      }
-    }
-    if (gameCtx) unsubscribers.push(gameCtx.register('onSpectateStart', (detail) => handleSpectateStart(detail)))
-
-    return () => {
-      unsubscribers.forEach(unsub => unsub && unsub())
-    }
-  }, [gameCtx]) // eslint-disable-line
 
   // ─── Daily Challenge: слушаем из Online.jsx через GameContext ───
   useEffect(() => {

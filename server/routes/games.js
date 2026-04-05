@@ -3,47 +3,9 @@ import { db, checkAchievements } from '../db.js'
 import { auth } from '../middleware.js'
 import { gameSubmitLimits } from '../middleware.js'
 import { addXP, ensureCurrentSeason } from '../helpers.js'
-import { GameState, applyAction, getLegalActions } from '../game-engine.js'
+import { verifyGameFromMoves } from '../anticheat.js'
 
 const router = Router()
-
-/**
- * Проигрывает массив ходов через движок и возвращает { winner, scoreStr, turns, ok }.
- * Если любой ход нелегален — ok=false.
- */
-function verifyGameFromMoves(moves) {
-  try {
-    let s = new GameState()
-    let turns = 0
-    for (const m of moves) {
-      if (!m || !m.action) return { ok: false }
-      const legal = getLegalActions(s)
-      // Быстрая проверка: хотя бы один легальный ход похож на присланный
-      const a = m.action
-      const isLegal = legal.some(l => {
-        if (l.swap || a.swap) return !!l.swap === !!a.swap
-        const lt = l.transfer, at = a.transfer
-        if ((!!lt) !== (!!at)) return false
-        if (lt && at && (lt[0] !== at[0] || lt[1] !== at[1])) return false
-        const lp = l.placement || {}, ap = a.placement || {}
-        const lk = Object.keys(lp).sort(), ak = Object.keys(ap).sort()
-        if (lk.length !== ak.length) return false
-        for (let i = 0; i < lk.length; i++) if (lk[i] !== ak[i] || lp[lk[i]] !== ap[ak[i]]) return false
-        return true
-      })
-      if (!isLegal) return { ok: false }
-      s = applyAction(s, a)
-      turns++
-      if (s.gameOver) break
-    }
-    if (!s.gameOver) return { ok: false }
-    // Счёт = количество закрытых стоек каждым игроком
-    const c0 = s.countClosed(0), c1 = s.countClosed(1)
-    return { ok: true, winner: s.winner, scoreStr: `${c0}:${c1}`, turns }
-  } catch {
-    return { ok: false }
-  }
-}
 
 router.post('/games', auth, (req, res) => {
   const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves } = req.body
