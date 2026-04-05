@@ -19,13 +19,34 @@ process.env.VITEST = 'true'
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET = 'test_secret_for_supertest_' + Math.random().toString(36).slice(2)
 
-let request, app
+let request, app, GameState, getLegalActions, applyAction
 try {
   request = (await import('supertest')).default
   const serverMod = await import('../server/server.js')
   app = serverMod.app
+  const engine = await import('../server/game-engine.js')
+  GameState = engine.GameState
+  getLegalActions = engine.getLegalActions
+  applyAction = engine.applyAction
 } catch {
   // supertest или better-sqlite3 не доступны — скипаем весь файл
+}
+
+// Утилита: генерирует валидную законченную партию (moves array как ждёт /api/games)
+function playFullGame(seed = 42) {
+  let s = seed
+  const rand = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff }
+  let gs = new GameState()
+  const moves = []
+  let safety = 300
+  while (!gs.gameOver && safety-- > 0) {
+    const legal = getLegalActions(gs)
+    if (legal.length === 0) break
+    const pick = legal[Math.floor(rand() * legal.length)]
+    moves.push({ action: pick, player: gs.currentPlayer })
+    gs = applyAction(gs, pick)
+  }
+  return { moves, finalState: gs }
 }
 
 const run = (request && app) ? describe : describe.skip
@@ -148,6 +169,102 @@ run('HTTP routes', () => {
         .post('/api/games')
         .send({ won: true, score: '6:0' })
       expect(res.status).toBe(401)
+    })
+
+    it('[e2e] принимает валидную партию, меняет рейтинг', async () => {
+      // Ищем seed дающий законченную партию
+      let moves, finalState
+      for (let seed = 1; seed < 50; seed++) {
+        const r = playFullGame(seed)
+        if (r.finalState.gameOver && r.finalState.winner !== null) {
+          moves = r.moves
+          finalState = r.finalState
+          break
+        }
+      }
+      expect(moves).toBeDefined()
+
+      const wonByP0 = finalState.winner === 0
+      // Получаем текущий рейтинг
+      const profileRes = await request(app).get('/api/profile').set('Authorization', `Bearer ${token}`)
+      const ratingBefore = profileRes.body.rating
+
+      // Ждём 10 сек между submits (anti-spam) — но тут первый submit
+      const res = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          won: wonByP0,
+          score: `${finalState.countClosed(0)}:${finalState.countClosed(1)}`,
+          difficulty: 200,
+          isOnline: false,
+          turns: moves.length,
+          duration: 60,
+          moves,
+        })
+      expect(res.status).toBe(200)
+      expect(res.body.ratingAfter).not.toBe(ratingBefore)
+      expect(typeof res.body.ratingDelta).toBe('number')
+    })
+  })
+
+  describe('POST /api/replays (валидация через движок)', () => {
+    it('отклоняет реплей с нелегальными ходами', async () => {
+      const res = await request(app)
+        .post('/api/replays')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ moves: [{ action: { placement: { 99: 99 } }, player: 0 }] })
+      expect(res.status).toBe(400)
+      expect(res.body.error).toMatch(/нелегальн/i)
+    })
+
+    it('принимает валидный реплей (частичная партия)', async () => {
+      const gs = new GameState()
+      const legal = getLegalActions(gs)
+      const moves = [{ action: legal[0], player: 0 }]
+      const gs2 = applyAction(gs, legal[0])
+      const legal2 = getLegalActions(gs2)
+      moves.push({ action: legal2[0], player: 1 })
+
+      const res = await request(app)
+        .post('/api/replays')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ moves, score: '0:0', mode: 'ai', turns: 2 })
+      expect(res.status).toBe(200)
+      expect(res.body.id).toBeTruthy()
+    })
+  })
+
+  describe('POST /api/training (валидация через движок)', () => {
+    it('отклоняет мусорные ходы', async () => {
+      const moves = Array.from({ length: 10 }, () => ({ action: { placement: { 99: 99 } } }))
+      const res = await request(app)
+        .post('/api/training')
+        .send({ moves, winner: 0, mode: 'ai', difficulty: 100 })
+      expect(res.status).toBe(400)
+    })
+
+    it('отклоняет слишком короткую партию', async () => {
+      const res = await request(app)
+        .post('/api/training')
+        .send({ moves: [{ action: {} }], winner: 0 })
+      expect(res.status).toBe(400)
+    })
+
+    it('принимает валидную партию', async () => {
+      // Нужна партия из ≥5 легальных ходов
+      let moves = []
+      let gs = new GameState()
+      while (moves.length < 5 && !gs.gameOver) {
+        const legal = getLegalActions(gs)
+        moves.push({ action: legal[0] })
+        gs = applyAction(gs, legal[0])
+      }
+      const res = await request(app)
+        .post('/api/training')
+        .send({ moves, winner: gs.winner ?? -1, mode: 'ai', difficulty: 100 })
+      expect(res.status).toBe(200)
+      expect(res.body.ok).toBe(true)
     })
   })
 

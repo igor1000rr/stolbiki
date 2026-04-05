@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { verifyGameFromMoves } from '../server/anticheat.js'
+import { verifyGameFromMoves, walkMoves } from '../server/anticheat.js'
 import { GameState, applyAction, getLegalActions } from '../server/game-engine.js'
 
 /** Генерирует валидную партию случайных легальных ходов до gameOver */
@@ -110,5 +110,56 @@ describe('античит: verifyGameFromMoves', () => {
     const tampered = [...good]
     tampered[Math.floor(tampered.length / 2)] = { action: { placement: { 99: 99 } }, player: 0 }
     expect(verifyGameFromMoves(tampered).ok).toBe(false)
+  })
+})
+
+describe('walkMoves (валидация без требования gameOver)', () => {
+  it('принимает незавершённую партию с легальными ходами', () => {
+    const gs = new GameState()
+    const legal = getLegalActions(gs)
+    const moves = [
+      { action: legal[0] },
+      // Второй ход от лица второго игрока
+    ]
+    // Применяем первый, берём легальные для второго
+    const gs2 = applyAction(gs, legal[0])
+    const legal2 = getLegalActions(gs2)
+    moves.push({ action: legal2[0] })
+    const v = walkMoves(moves)
+    expect(v.ok).toBe(true)
+    expect(v.turns).toBe(2)
+    expect(v.gameOver).toBe(false)
+  })
+
+  it('принимает завершённую партию', () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const { moves, finalState } = playRandomGame(seed)
+      if (!finalState.gameOver) continue
+      const v = walkMoves(moves)
+      expect(v.ok).toBe(true)
+      expect(v.gameOver).toBe(true)
+      return
+    }
+  })
+
+  it('отклоняет нелегальные ходы', () => {
+    expect(walkMoves([{ action: { placement: { 99: 5 } } }]).ok).toBe(false)
+  })
+
+  it('отклоняет ходы после gameOver', () => {
+    // Находим законченную партию и пытаемся добавить ещё один ход
+    for (let seed = 1; seed < 30; seed++) {
+      const { moves, finalState } = playRandomGame(seed)
+      if (!finalState.gameOver) continue
+      const tampered = [...moves, { action: { placement: { 5: 1 } } }]
+      const v = walkMoves(tampered)
+      expect(v.ok).toBe(false)
+      return
+    }
+  })
+
+  it('отклоняет пустой массив', () => {
+    expect(walkMoves([]).ok).toBe(false)
+    expect(walkMoves(null).ok).toBe(false)
   })
 })

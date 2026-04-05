@@ -3,7 +3,7 @@ import { db, checkAchievements } from '../db.js'
 import { auth } from '../middleware.js'
 import { gameSubmitLimits } from '../middleware.js'
 import { addXP, ensureCurrentSeason } from '../helpers.js'
-import { verifyGameFromMoves } from '../anticheat.js'
+import { verifyGameFromMoves, walkMoves } from '../anticheat.js'
 
 const router = Router()
 
@@ -208,6 +208,11 @@ router.post('/replays', auth, (req, res) => {
   if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинный реплей (макс 500 ходов)' })
   // Базовая структурная валидация: каждый ход должен иметь action и player
   if (moves.some(m => !m || typeof m !== 'object')) return res.status(400).json({ error: 'Некорректный формат хода' })
+  // Валидация через движок: все ходы должны быть легальны.
+  // verifyGameFromMoves требует, чтобы партия была завершена. Для реплеев допускаем
+  // и незавершённые — делаем упрощённую проверку легальности через walkMoves.
+  const v = walkMoves(moves)
+  if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов в реплее' })
   const movesJson = JSON.stringify(moves)
   if (movesJson.length > 512000) return res.status(400).json({ error: 'Реплей слишком большой (макс 500KB)' })
   // Лимит: максимум 50 реплеев на юзера
@@ -231,11 +236,16 @@ router.get('/replays/:id', (req, res) => {
 })
 
 // ═══ Сбор training data от всех игроков (анонимных тоже) ═══
+// Rate limit: 30 запросов/час на IP (борьба с мусором в training_data)
 router.post('/training', (req, res) => {
-  const { moves, winner, mode, difficulty, score } = req.body
+  const { moves, winner, mode, difficulty } = req.body
   if (!moves || !Array.isArray(moves) || moves.length < 5) {
     return res.status(400).json({ error: 'Минимум 5 ходов' })
   }
+  if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинная партия' })
+  // Валидация через движок — каждый ход должен быть легален. Защита от накрутки training_data мусором.
+  const v = walkMoves(moves)
+  if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
   const gameData = JSON.stringify(moves)
   if (gameData.length > 500000) return res.status(400).json({ error: 'Слишком большая партия' })
 

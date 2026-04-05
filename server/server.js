@@ -212,10 +212,17 @@ app.get('/api/health', (req, res) => {
 
 // ═══ Analytics tracking ═══
 const trackStmt = db.prepare('INSERT INTO analytics_events (event, page, user_id, session_id, meta, ip, ua) VALUES (?, ?, ?, ?, ?, ?, ?)')
-app.post('/api/track', (req, res) => {
+app.post('/api/track', rateLimit(60000, 300), (req, res) => {
   try {
     const { event, page, sessionId, meta } = req.body
     if (!event || typeof event !== 'string') return res.status(400).json({ error: 'event required' })
+    // Ограничиваем размер meta до stringify чтобы не тратить CPU на гигантских объектах
+    let metaJson = '{}'
+    try {
+      if (meta && typeof meta === 'object') {
+        metaJson = JSON.stringify(meta).slice(0, 500)
+      }
+    } catch { metaJson = '{}' }
     let userId = null
     const authHeader = req.headers.authorization
     if (authHeader) {
@@ -223,7 +230,7 @@ app.post('/api/track', (req, res) => {
     }
     trackStmt.run(
       event.slice(0, 50), (page || '').slice(0, 50), userId,
-      (sessionId || '').slice(0, 36), JSON.stringify(meta || {}).slice(0, 500),
+      (sessionId || '').slice(0, 36), metaJson,
       req.ip, (req.headers['user-agent'] || '').slice(0, 200)
     )
     res.json({ ok: true })
