@@ -976,11 +976,6 @@ export default function Game() {
           <button className="btn" onClick={cancelTransfer} title="Esc">{t('game.cancelTransfer')}</button>
         )}
         {isMyTurn && transfer && phase === 'place' && (
-          <span style={{ fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-            ✓ {SL(transfer[0])} → {SL(transfer[1])}
-          </span>
-        )}
-        {isMyTurn && transfer && phase === 'place' && (
           <button className="btn" onClick={cancelTransfer} title="Esc">{t('game.cancelTransfer')}</button>
         )}
         {isMyTurn && phase === 'place' && totalPlaced > 0 && (
@@ -1059,12 +1054,6 @@ export default function Game() {
           animation: 'emojiFloat 2s ease-out forwards',
         }}>
           {floatingEmoji.emoji}
-        </div>
-      )}
-
-      {isMyTurn && !gs.gameOver && !isNative && (
-        <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--ink3)', marginTop: 4 }}>
-          {lang === 'en' ? 'Enter — confirm · Esc — cancel transfer · N — new game · ? — shortcuts' : 'Enter — подтвердить · Esc — отмена переноса · N — новая игра · ? — клавиши'}
         </div>
       )}
 
