@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
 import { GameProvider, useGameContext } from './engine/GameContext'
+import { useAuth } from './engine/AuthContext'
 import * as API from './engine/api'
 import Icon from './components/Icon'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -8,14 +9,11 @@ import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
 import { initPush } from './engine/push'
+import { APP_VERSION } from './version'
+import { WHATS_NEW } from './data/whats-new'
 import './app.css'
-import './css/game.css'
-import './css/landing.css'
 import './css/themes.css'
 import './css/native.css'
-import './css/confetti.css'
-import './css/stand-skins.css'
-import './css/board-animations.css'
 import './css/mobile-ui.css'
 
 // Lazy-loaded components (не нужны при первой загрузке)
@@ -50,43 +48,13 @@ function LazyFallback() {
   </div>
 }
 
-const APP_VERSION = '4.7.0'
-const WHATS_NEW = {
-  ru: [
-    'AlphaZero AI v7: policy+value нейросеть (859K параметров)',
-    '5 уровней сложности включая «Невозможный»',
-    'Мобильная адаптация: доска, стойки, кнопки',
-    'Android: все 7 плагинов (вибрация, шаринг, сеть)',
-    'Оптимизация производительности на Android',
-    'Настройки: адаптивный grid на телефонах',
-    '33 ачивки с прогрессом',
-  ],
-  en: [
-    'AlphaZero AI v7: policy+value neural network (859K params)',
-    '5 difficulty levels including Impossible',
-    'Mobile adaptation: board, stands, buttons',
-    'Android: all 7 plugins (haptics, share, network)',
-    'Performance optimizations for Android',
-    'Settings: responsive grid on phones',
-    '33 achievements with progress tracking',
-  ],
-}
-
-// isAdmin берётся только из сохранённого профиля (поле isAdmin приходит с сервера в formatUser).
-// Никаких хардкод-имён на клиенте — сервер единственный источник правды.
-function getIsAdmin() {
-  try {
-    const raw = localStorage.getItem('stolbiki_profile')
-    if (!raw) return false
-    const p = JSON.parse(raw)
-    return p?.isAdmin === true
-  } catch { return false }
-}
+const APP_NAV = ['landing','game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog']
 
 export default function App() {
   const i18n = useI18nProvider()
   const { t, lang, setLang } = i18n
   const gameCtx = useGameContext()
+  const { authUser, isAdmin, login, register, loginLocal, logout } = useAuth()
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
@@ -115,7 +83,6 @@ export default function App() {
     }
     return getTabFromPath()
   })
-  const [isAdmin, setIsAdmin] = useState(getIsAdmin)
   const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
   const [showTutorial, setShowTutorial] = useState(false)
   const [showLessons, setShowLessons] = useState(false)
@@ -138,10 +105,7 @@ export default function App() {
 
   // Ленивый mount для Game/Online — грузятся только при первом посещении таба
 
-  // Auth state — synced with localStorage
-  const [authUser, setAuthUser] = useState(() => {
-    try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); return p?.name ? p : null } catch { return null }
-  })
+  // Auth UI state (форма логина; auth data из AuthContext)
   const [authOpen, setAuthOpen] = useState(false)
   const [authName, setAuthName] = useState('')
   const [authPass, setAuthPass] = useState('')
@@ -154,17 +118,6 @@ export default function App() {
   const [notifData, setNotifData] = useState({ friends: [], challenges: [] })
 
   useEffect(() => {
-    const check = () => { try { const p = JSON.parse(localStorage.getItem('stolbiki_profile')); setAuthUser(p?.name ? p : null) } catch { setAuthUser(null) } }
-    // StorageEvent: кросс-табовая синхронизация (мгновенно)
-    const onStorage = (e) => { if (e.key === 'stolbiki_profile' || e.key === 'stolbiki_token') check() }
-    window.addEventListener('storage', onStorage)
-    // Проверка при возврате на вкладку
-    const onVisible = () => { if (!document.hidden) check() }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible) }
-  }, [])
-
-  useEffect(() => {
     if (!authOpen) return
     const close = (e) => { if (authRef.current && !authRef.current.contains(e.target)) setAuthOpen(false) }
     document.addEventListener('click', close)
@@ -175,45 +128,21 @@ export default function App() {
     if (!authName.trim()) return
     setAuthLoading(true); setAuthError('')
     try {
-      await (authMode === 'login' ? API.login : API.register)(authName.trim(), authPass)
-      const profile = await API.getProfile()
-      const merged = { ...profile, name: profile.username || authName.trim() }
-      localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
-      setAuthUser(merged); setAuthOpen(false); setAuthName(''); setAuthPass('')
+      await (authMode === 'login' ? login : register)(authName.trim(), authPass)
+      setAuthOpen(false); setAuthName(''); setAuthPass('')
     } catch (e) {
       if (!authPass) {
-        const local = { name: authName.trim(), rating: 1000, gamesPlayed: 0, wins: 0, losses: 0, winStreak: 0, bestStreak: 0, goldenClosed: 0, comebacks: 0, perfectWins: 0, achievements: [], history: [] }
-        localStorage.setItem('stolbiki_profile', JSON.stringify(local))
-        setAuthUser(local); setAuthOpen(false)
+        loginLocal(authName.trim())
+        setAuthOpen(false)
       } else { setAuthError(e.message || 'Error') }
     }
     setAuthLoading(false)
   }
 
   function doLogout() {
-    localStorage.removeItem('stolbiki_profile'); localStorage.removeItem('stolbiki_token')
-    setAuthUser(null); setAuthOpen(false)
-    setIsAdmin(false)
+    logout()
+    setAuthOpen(false)
   }
-
-  // Background profile refresh — keep level/xp/stats fresh (только когда вкладка видна)
-  useEffect(() => {
-    if (!API.isLoggedIn()) return
-    const refresh = () => {
-      if (document.hidden) return // Не тратим запросы на фоновую вкладку
-      API.getProfile().then(p => {
-        const merged = { ...p, name: p.username }
-        localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
-        setAuthUser(merged)
-      }).catch(() => {})
-    }
-    refresh() // once on mount
-    const iv = setInterval(refresh, 120000) // every 2 min
-    // Обновляем при возврате на вкладку
-    const onVisible = () => { if (!document.hidden) refresh() }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible) }
-  }, [])  
 
   // PWA Install Prompt — перехватываем событие для кнопки «Установить»
   useEffect(() => {
@@ -224,22 +153,6 @@ export default function App() {
     window.addEventListener('appinstalled', () => setInstallPrompt(null))
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
-
-  // JWT Token refresh — обновляем токен раз в сутки (срок жизни 7 дней)
-  useEffect(() => {
-    if (!API.isLoggedIn()) return
-    // Проверяем при монтировании: если токен истекает в ближайшие 2 дня — обновляем
-    if (API.tokenExpiresWithin(2 * 86400)) {
-      API.refreshToken().catch(() => {})
-    }
-    // Проверяем каждые 12 часов
-    const iv = setInterval(() => {
-      if (API.isLoggedIn() && API.tokenExpiresWithin(2 * 86400)) {
-        API.refreshToken().catch(() => {})
-      }
-    }, 12 * 3600000)
-    return () => clearInterval(iv)
-  }, [])  
 
   // Sync URL with tab (path routing)
   useEffect(() => {
@@ -301,15 +214,6 @@ export default function App() {
   }, [])  
 
   useEffect(() => {
-    const check = () => setIsAdmin(getIsAdmin())
-    const onStorage = (e) => { if (e.key === 'stolbiki_profile') check() }
-    window.addEventListener('storage', onStorage)
-    const onVisible = () => { if (!document.hidden) check() }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible) }
-  }, [])
-
-  useEffect(() => {
     if (!gameCtx) return
     const unsubs = []
     // Переключение на Game при старте онлайн/daily
@@ -337,7 +241,7 @@ export default function App() {
     // Не редиректим сразу — даём время залогиниться (1.5 сек)
     if (!isAdmin && ['sim', 'dash', 'replay', 'admin'].includes(tab)) {
       const timer = setTimeout(() => {
-        if (!getIsAdmin()) setTab('game')
+        if (!isAdmin) setTab('game')
       }, 1500)
       return () => clearTimeout(timer)
     }

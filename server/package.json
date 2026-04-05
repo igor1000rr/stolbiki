@@ -14,5 +14,12 @@
     "cors": "^2.8.5",
     "helmet": "^8.0.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   }
 }

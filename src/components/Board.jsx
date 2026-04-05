@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, memo } from 'react'
+import '../css/board-animations.css'
+import '../css/stand-skins.css'
 import { GOLDEN_STAND } from '../engine/game'
 
 // Фишка — memo чтобы не пересоздавалась
@@ -33,7 +35,7 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghos
   )
 })
 
-export default function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null }) {
+function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null }) {
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
   const [newChipMap, setNewChipMap] = useState({})
   const [flashSet, setFlashSet] = useState(new Set())
@@ -204,3 +206,8 @@ export default function Board({ state, pending = {}, selected, phase, humanPlaye
     </div>
   )
 }
+
+// Memo: Board ре-рендерится только если изменились props (state/pending/selected/phase).
+// Без этого каждый чих в родителе (таймер, лог, подсказки) перерисовывает всю доску —
+// это был главный источник лагов на Android.
+export default memo(Board)

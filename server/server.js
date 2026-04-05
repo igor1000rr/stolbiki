@@ -8,9 +8,24 @@ import cors from 'cors'
 import helmet from 'helmet'
 import jwt from 'jsonwebtoken'
 import fs from 'fs'
+import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
 import { db, JWT_SECRET, PORT } from './db.js'
 import { rateLimit, rateLimits, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
+
+// Версия из корневого package.json — единственный источник правды.
+const __dirname = dirname(fileURLToPath(import.meta.url))
+let APP_VERSION = '0.0.0'
+try {
+  const rootPkg = JSON.parse(fs.readFileSync(resolve(__dirname, '..', 'package.json'), 'utf8'))
+  APP_VERSION = rootPkg.version || APP_VERSION
+} catch {
+  try {
+    const srvPkg = JSON.parse(fs.readFileSync(resolve(__dirname, 'package.json'), 'utf8'))
+    APP_VERSION = srvPkg.version || APP_VERSION
+  } catch {}
+}
 
 // Флаг тестового режима: vitest выставляет VITEST=true автоматически.
 // В тестах не вызываем server.listen(), setInterval, process.on — они ломают тест-ранер.
@@ -196,7 +211,7 @@ app.get('/api/health', (req, res) => {
   const activeRooms = [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length
   res.json({
     status: 'ok',
-    version: '4.6.2',
+    version: APP_VERSION,
     node: process.version,
     uptime: Math.round(process.uptime()),
     users: db.prepare('SELECT COUNT(*) as c FROM users').get().c,

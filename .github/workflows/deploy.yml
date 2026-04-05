@@ -21,8 +21,11 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Install
+      - name: Install (frontend)
         run: npm ci
+
+      - name: Install (server)
+        run: cd server && npm ci
 
       - name: Run Tests
         run: npx vitest run
@@ -33,6 +36,13 @@ jobs:
           # Инъекция build hash в Service Worker
           BUILD_HASH=$(git rev-parse --short HEAD)-$(date +%s)
           sed -i "s/__BUILD_HASH__/$BUILD_HASH/g" dist/sw.js
+
+      - name: Sync version to server
+        run: |
+          # /api/health читает server/package.json в проде (корневой package.json не деплоится).
+          # Синхронизируем версию из корня чтобы /api/health показывал актуальную.
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('server/package.json','utf8')); p.version='$ROOT_VERSION'; fs.writeFileSync('server/package.json', JSON.stringify(p, null, 2) + '\n')"
 
       - name: Upload Frontend
         uses: appleboy/scp-action@v0.1.7

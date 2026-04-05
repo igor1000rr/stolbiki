@@ -126,11 +126,11 @@ run('WebSocket integration', () => {
       client.close()
     })
 
-    it('дроп при spam >15 msg/sec', async () => {
+    it('дроп при spam >20 gameplay msg/sec', async () => {
       const client = makeClient(wsUrl)
       await client.opened
-      // Отправляем 30 join попыток подряд
-      for (let i = 0; i < 30; i++) {
+      // Отправляем 40 join попыток подряд — лимит 20/сек, остальные должны быть дропнуты
+      for (let i = 0; i < 40; i++) {
         client.send({ type: 'join', roomId: 'NONE01' })
       }
       await new Promise(r => setTimeout(r, 300))

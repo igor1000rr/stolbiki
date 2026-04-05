@@ -1,6 +1,7 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import { GameProvider } from './engine/GameContext'
+import { AuthProvider } from './engine/AuthContext'
 import { captureReferralCode } from './engine/api'
 import App from './App'
 
@@ -102,9 +103,11 @@ if (isNative) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <GameProvider>
-        <App />
-      </GameProvider>
+      <AuthProvider>
+        <GameProvider>
+          <App />
+        </GameProvider>
+      </AuthProvider>
     </ErrorBoundary>
   </StrictMode>
 )

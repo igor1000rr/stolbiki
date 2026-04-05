@@ -1,4 +1,5 @@
 import { useI18n } from '../engine/i18n'
+import '../css/landing.css'
 import { useContent } from '../engine/content'
 import { useRef, useEffect, useState } from 'react'
 import Icon from './Icon'

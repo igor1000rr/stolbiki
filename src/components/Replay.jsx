@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import replaysData from '../data/replays.json'
 
 const standLabel = i => i === 0 ? '★' : String(i)
 
@@ -24,11 +23,27 @@ function ReplayBoard({ stateData }) {
 }
 
 export default function Replay() {
+  const [replaysData, setReplaysData] = useState(null)
   const [gi, setGi] = useState(0)
   const [si, setSi] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(700)
   const timerRef = useRef(null)
+
+  // Ленивая загрузка демо-реплеев (70KB) — только при открытии вкладки
+  useEffect(() => {
+    fetch('/demo-replays.json')
+      .then(r => r.json())
+      .then(setReplaysData)
+      .catch(() => setReplaysData([]))
+  }, [])
+
+  if (!replaysData) {
+    return <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--ink3)' }}>Загрузка реплеев…</div>
+  }
+  if (!replaysData.length) {
+    return <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--ink3)' }}>Нет доступных реплеев</div>
+  }
 
   const game = replaysData[gi]
   const state = game.states[si]

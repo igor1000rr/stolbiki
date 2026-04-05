@@ -12,7 +12,7 @@ import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } 
 
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
-  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16384 })
+  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 })
 
   // ─── Heartbeat: каждые 30с пингуем всех клиентов, мёртвые убиваем ───
   // Без этого TCP half-open не детектится, мёртвые ws висят в rooms минутами.
@@ -139,19 +139,28 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       }
     }
 
-    // Rate limit: макс 15 сообщений в секунду
-    let wsMessageCount = 0
-    let wsMessageReset = Date.now()
+    // Раздельные rate limits: геймплейные сообщения (move/resign/join) не должны
+    // дропаться из-за спама chat/reaction. chat/reaction/emoji имеют свой лимит.
+    let wsGameplayCount = 0
+    let wsChatCount = 0
+    let wsRateReset = Date.now()
+    const CHAT_TYPES = new Set(['chat', 'reaction', 'drawOffer', 'drawResponse', 'rematchOffer'])
 
     ws.on('message', (raw) => {
       const now = Date.now()
-      if (now - wsMessageReset > 1000) { wsMessageCount = 0; wsMessageReset = now }
-      if (++wsMessageCount > 15) return // Дроп спама
+      if (now - wsRateReset > 1000) { wsGameplayCount = 0; wsChatCount = 0; wsRateReset = now }
 
       // Централизованный парсинг + валидация типа против whitelist
       const parsed = parseRaw(raw)
       if (!parsed.ok) return
       const msg = parsed.msg
+
+      // Применяем rate limit по категории сообщения
+      if (CHAT_TYPES.has(msg.type)) {
+        if (++wsChatCount > 5) return // Спам чатом/реакциями: 5/сек
+      } else {
+        if (++wsGameplayCount > 20) return // Геймплей: 20/сек (ходы + служебка)
+      }
 
       // Аутентификация через сообщение
       if (msg.type === 'auth') {
@@ -294,6 +303,69 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         room.players.forEach(p => {
           if (p.ws?.readyState === 1) p.ws.send(JSON.stringify({ type: 'spectatorCount', count: specCount }))
         })
+      }
+
+      // ─── RECONNECT (возврат в партию после разрыва) ───
+      // Требует: JWT (wsUser.id должен совпадать с player.userId в комнате) + roomId.
+      // Восстанавливает слот игрока, отменяет таймер удаления комнаты, отправляет текущий gameState.
+      if (msg.type === 'reconnect') {
+        if (!wsUser?.id) {
+          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'no_auth' }))
+          return
+        }
+        const roomId = sanitizeRoomId(msg.roomId)
+        if (!roomId) {
+          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'bad_room_id' }))
+          return
+        }
+        const room = rooms.get(roomId)
+        if (!room) {
+          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'room_not_found' }))
+          return
+        }
+        // Ищем слот этого юзера в комнате
+        const slotIdx = room.players.findIndex(p => p.userId === wsUser.id)
+        if (slotIdx === -1) {
+          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'not_a_player' }))
+          return
+        }
+        // Подменяем ws и сбрасываем disconnectedAt
+        room.players[slotIdx].ws = ws
+        room.players[slotIdx].disconnectedAt = null
+        playerRoom = room
+        playerIdx = slotIdx
+        // Отменяем таймер удаления комнаты
+        if (room.deleteTimer) {
+          clearTimeout(room.deleteTimer)
+          room.deleteTimer = null
+        }
+        // Отправляем снапшот текущего состояния — клиент восстановит игру
+        const gs = room.gameState
+        ws.send(JSON.stringify({
+          type: 'reconnected',
+          roomId,
+          playerIdx: slotIdx,
+          players: room.players.map(p => p.name),
+          playerSkins: room.players.map(p => p.skins || {}),
+          scores: room.scores,
+          currentGame: room.currentGame,
+          totalGames: room.totalGames,
+          firstPlayer: room.firstPlayer ?? 0,
+          timer: room.timer || null,
+          playerTime: room.playerTime || null,
+          gameState: gs ? {
+            stands: gs.stands, closed: gs.closed, currentPlayer: gs.currentPlayer,
+            turn: gs.turn, swapAvailable: gs.swapAvailable, gameOver: gs.gameOver, winner: gs.winner,
+          } : null,
+          moveHistory: room.moveHistory || [],
+        }))
+        // Уведомляем оппонента, что игрок вернулся
+        const opponent = room.players[1 - slotIdx]
+        if (opponent?.ws?.readyState === 1) {
+          opponent.ws.send(JSON.stringify({ type: 'opponentReconnected', playerIdx: slotIdx }))
+        }
+        broadcastToSpectators(room, { type: 'playerReconnected', playerIdx: slotIdx })
+        return
       }
 
       // ─── MOVE (серверная валидация) ───
@@ -470,14 +542,28 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           // Зритель отключился — убираем из списка
           if (room.spectators) room.spectators = room.spectators.filter(s => s !== ws)
         } else {
+          // Помечаем игрока как отключённого (но слот сохраняем для реконнекта)
+          const player = room.players[playerIdx]
+          if (player) {
+            player.disconnectedAt = Date.now()
+          }
           const dcMsg = JSON.stringify({ type: 'disconnected', playerIdx })
           room.players.forEach((p, i) => {
             if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(dcMsg)
           })
           broadcastToSpectators(room, dcMsg)
-          setTimeout(() => {
-            if (room.players.some(p => p.ws?.readyState !== 1)) rooms.delete(room.id)
-          }, 60000)
+          // Grace period 90 сек: если игрок не вернулся — удаляем комнату.
+          // Если вернулся через `reconnect` сообщение — disconnectedAt сбросится и эта проверка ничего не сделает.
+          room.deleteTimer = setTimeout(() => {
+            // Удаляем только если игрок так и не вернулся за это время
+            const stillDisconnected = room.players.some(p => p.disconnectedAt && (p.ws?.readyState !== 1))
+            if (stillDisconnected) {
+              // Уведомляем оставшегося, если он ещё тут
+              const abandonMsg = JSON.stringify({ type: 'opponentAbandoned' })
+              room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(abandonMsg) } catch {} })
+              rooms.delete(room.id)
+            }
+          }, 90000)
         }
       }
     })
