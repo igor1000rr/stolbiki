@@ -33,11 +33,13 @@ export const JWT_SECRET = process.env.JWT_SECRET || (() => {
   try { writeFileSync(secretPath, secret, { mode: 0o600 }) } catch {}
   return secret
 })()
-const DB_PATH = process.env.DB_PATH || './data/stolbiki.db'
+const DB_PATH = process.env.VITEST ? ':memory:' : (process.env.DB_PATH || './data/stolbiki.db')
 
-// Создаём директорию для БД
-const dbDir = dirname(resolve(DB_PATH))
-if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
+// Создаём директорию для БД (кроме :memory:)
+if (DB_PATH !== ':memory:') {
+  const dbDir = dirname(resolve(DB_PATH))
+  if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
+}
 
 // ═══ База данных ═══
 export const db = new Database(DB_PATH)

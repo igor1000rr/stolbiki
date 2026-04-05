@@ -12,6 +12,10 @@ import { db, JWT_SECRET, PORT } from './db.js'
 import { rateLimit, rateLimits, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
 
+// Флаг тестового режима: vitest выставляет VITEST=true автоматически.
+// В тестах не вызываем server.listen(), setInterval, process.on — они ломают тест-ранер.
+const isTest = !!process.env.VITEST
+
 // ═══ Route imports ═══
 import authRouter from './routes/auth.js'
 import profileRouter from './routes/profile.js'
@@ -124,7 +128,7 @@ const rooms = new Map()
 const matchQueue = []
 
 // Периодическая чистка: мёртвые комнаты и matchQueue (каждые 2 мин)
-setInterval(() => {
+if (!isTest) setInterval(() => {
   const now = Date.now()
   // Комнаты старше 30 мин без активных игроков
   for (const [id, room] of rooms) {
@@ -171,7 +175,9 @@ app.get('/api/rooms/:id', (req, res) => {
   res.json({ id: room.id, mode: room.mode, players: room.players.map(p => p.name), state: room.state, scores: room.scores, totalGames: room.totalGames, currentGame: room.currentGame })
 })
 
-const { server } = setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db })
+// В тестах WS не поднимаем — он держит setInterval heartbeat и мешает vitest exit
+const wsResult = isTest ? { server: null } : setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db })
+const server = wsResult.server
 
 // ═══ Public endpoints ═══
 app.get('/api/stats', (req, res) => {
@@ -313,56 +319,54 @@ app.use((err, req, res, _next) => {
   if (!res.headersSent) res.status(500).json({ error: 'Внутренняя ошибка сервера' })
 })
 
-process.on('uncaughtException', (err) => {
-  console.error(`[FATAL] uncaughtException:`, err)
-  setTimeout(() => process.exit(1), 3000)
-})
-
-process.on('unhandledRejection', (reason) => {
-  console.error(`[ERROR] unhandledRejection:`, reason)
-})
-
-// Graceful shutdown: уведомляем игроков, закрываем DB
-function gracefulShutdown(signal) {
-  console.log(`\n⏳ ${signal} — graceful shutdown...`)
-  // Уведомляем всех подключённых игроков
-  for (const [id, room] of rooms) {
-    const msg = JSON.stringify({ type: 'serverShutdown' })
-    room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(msg) } catch {} })
-  }
-  server.close(() => {
-    console.log('✅ HTTP/WS сервер закрыт')
-    db.close()
-    console.log('✅ SQLite закрыт')
-    process.exit(0)
+if (!isTest) {
+  process.on('uncaughtException', (err) => {
+    console.error(`[FATAL] uncaughtException:`, err)
+    setTimeout(() => process.exit(1), 3000)
   })
-  // Если не закрылся за 5 сек — force
-  setTimeout(() => { console.error('⚠ Force exit'); process.exit(1) }, 5000)
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
-process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 
-// ═══ Старт ═══
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n✅ Snatch Highrise API + WS: http://0.0.0.0:${PORT}`)
-  console.log(`   WebSocket: ws://0.0.0.0:${PORT}/ws`)
-  console.log(`   Health: http://0.0.0.0:${PORT}/api/health`)
-})
+  process.on('unhandledRejection', (reason) => {
+    console.error(`[ERROR] unhandledRejection:`, reason)
+  })
 
-// ═══ Ежедневное обслуживание БД (каждые 24ч) ═══
-function dbMaintenance() {
-  try {
-    // Удаляем ошибки старше 30 дней
-    db.prepare("DELETE FROM error_reports WHERE created_at < datetime('now', '-30 days')").run()
-    // Аналитика: 90 дней retention (как в Privacy Policy)
-    db.prepare("DELETE FROM analytics_events WHERE created_at < datetime('now', '-90 days')").run()
-    // Удаляем пустые training_data старше 90 дней
-    db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND game_data IS NULL").run()
-    // WAL checkpoint для уменьшения размера WAL файла
-    db.pragma('wal_checkpoint(TRUNCATE)')
-    console.log(`🔧 DB maintenance done: ${new Date().toISOString()}`)
-  } catch (e) { console.error('DB maintenance error:', e.message) }
+  // Graceful shutdown: уведомляем игроков, закрываем DB
+  const gracefulShutdown = (signal) => {
+    console.log(`\n⏳ ${signal} — graceful shutdown...`)
+    for (const [id, room] of rooms) {
+      const msg = JSON.stringify({ type: 'serverShutdown' })
+      room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(msg) } catch {} })
+    }
+    server.close(() => {
+      console.log('✅ HTTP/WS сервер закрыт')
+      db.close()
+      console.log('✅ SQLite закрыт')
+      process.exit(0)
+    })
+    setTimeout(() => { console.error('⚠ Force exit'); process.exit(1) }, 5000)
+  }
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+  // ═══ Старт ═══
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n✅ Snatch Highrise API + WS: http://0.0.0.0:${PORT}`)
+    console.log(`   WebSocket: ws://0.0.0.0:${PORT}/ws`)
+    console.log(`   Health: http://0.0.0.0:${PORT}/api/health`)
+  })
+
+  // ═══ Ежедневное обслуживание БД (каждые 24ч) ═══
+  const dbMaintenance = () => {
+    try {
+      db.prepare("DELETE FROM error_reports WHERE created_at < datetime('now', '-30 days')").run()
+      db.prepare("DELETE FROM analytics_events WHERE created_at < datetime('now', '-90 days')").run()
+      db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND game_data IS NULL").run()
+      db.pragma('wal_checkpoint(TRUNCATE)')
+      console.log(`🔧 DB maintenance done: ${new Date().toISOString()}`)
+    } catch (e) { console.error('DB maintenance error:', e.message) }
+  }
+  setTimeout(dbMaintenance, 5 * 60000)
+  setInterval(dbMaintenance, 24 * 3600000)
 }
-// Первый запуск через 5 мин после старта, потом каждые 24ч
-setTimeout(dbMaintenance, 5 * 60000)
-setInterval(dbMaintenance, 24 * 3600000)
+
+// Экспорт для тестов (supertest импортирует app напрямую)
+export { app, rooms, matchQueue }
