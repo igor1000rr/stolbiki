@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Metric, MiniBarChart, S, api, fmtNum, fmtUptime } from './_shared'
+import { S, api, fmtNum, fmtUptime } from './_utils'
+import { Metric, MiniBarChart } from './_shared'
 
 export function OverviewTab() {
   const [data, setData] = useState(null)
@@ -12,8 +13,8 @@ export function OverviewTab() {
   if (loading) return <div style={S.emptyState}>Загрузка...</div>
   if (!data) return <div style={S.emptyState}>Ошибка загрузки</div>
 
-  const chartH = 80
-  const chartW = '100%'
+  const _chartH = 80
+  const _chartW = '100%'
 
   return (
     <div>

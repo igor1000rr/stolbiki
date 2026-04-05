@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Metric, S, api, fmtUptime } from './_shared'
+import { S, api, fmtUptime } from './_utils'
+import { Metric } from './_shared'
 
 export function ServerTab() {
   const [info, setInfo] = useState(null)

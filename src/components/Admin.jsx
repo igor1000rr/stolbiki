@@ -4,7 +4,7 @@
  * До рефакторинга: 1348 строк в одном файле. После: ~100 строк + 13 табов по 40-140 строк.
  */
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { S } from './admin/_shared'
+import { S } from './admin/_utils'
 
 // Lazy-loaded табы — каждый в отдельном чанке, грузится только при клике
 const OverviewTab = lazy(() => import('./admin/OverviewTab').then(m => ({ default: m.OverviewTab })))

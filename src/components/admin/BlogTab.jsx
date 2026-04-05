@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Confirm, S, ago, api } from './_shared'
+import { S, ago, api } from './_utils'
+import { Confirm } from './_shared'
 
 export function BlogTab() {
   const [posts, setPosts] = useState([])

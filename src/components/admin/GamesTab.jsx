@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Pagination, S, ago, api } from './_shared'
+import { S, ago, api } from './_utils'
+import { Pagination } from './_shared'
 
 export function GamesTab() {
   const [games, setGames] = useState([])

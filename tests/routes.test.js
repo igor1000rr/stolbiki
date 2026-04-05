@@ -19,7 +19,7 @@ process.env.VITEST = 'true'
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET = 'test_secret_for_supertest_' + Math.random().toString(36).slice(2)
 
-let request, app, GameState, getLegalActions, applyAction, db, jwt, JWT_SECRET
+let request, app, GameState, getLegalActions, applyAction, db
 try {
   request = (await import('supertest')).default
   const serverMod = await import('../server/server.js')
@@ -30,8 +30,6 @@ try {
   applyAction = engine.applyAction
   const dbMod = await import('../server/db.js')
   db = dbMod.db
-  JWT_SECRET = dbMod.JWT_SECRET
-  jwt = (await import('jsonwebtoken')).default
 } catch {
   // supertest или better-sqlite3 не доступны — скипаем весь файл
 }

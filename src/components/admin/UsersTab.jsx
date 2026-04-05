@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Confirm, Pagination, S, ago, api } from './_shared'
+import { S, ago, api } from './_utils'
+import { Confirm, Pagination } from './_shared'
 
 export function UsersTab() {
   const [users, setUsers] = useState([])
@@ -9,10 +10,10 @@ export function UsersTab() {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('created_at')
   const [dir, setDir] = useState('desc')
-  const [selected, setSelected] = useState(null)
+  const [selected, _setSelected] = useState(null)
   const [editModal, setEditModal] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
-  const searchTimer = useRef(null)
+  const _searchTimer = useRef(null)
 
   const load = useCallback(() => {
     const params = new URLSearchParams({ page, sort, dir, q: search })
@@ -43,11 +44,7 @@ export function UsersTab() {
     setConfirmDelete(null); load()
   }
 
-  const SortTh = ({ col, children }) => (
-    <th style={S.th} onClick={() => toggleSort(col)}>
-      {children} {sort === col ? (dir === 'asc' ? '↑' : '↓') : ''}
-    </th>
-  )
+  const sortArrow = (col) => sort === col ? (dir === 'asc' ? '↑' : '↓') : ''
 
   return (
     <div>
@@ -64,13 +61,13 @@ export function UsersTab() {
           <thead>
             <tr>
               <th style={S.th}>ID</th>
-              <SortTh col="username">Ник</SortTh>
-              <SortTh col="rating">Рейтинг</SortTh>
-              <SortTh col="games_played">Партий</SortTh>
+              <th style={S.th} onClick={() => toggleSort('username')}>Ник {sortArrow('username')}</th>
+              <th style={S.th} onClick={() => toggleSort('rating')}>Рейтинг {sortArrow('rating')}</th>
+              <th style={S.th} onClick={() => toggleSort('games_played')}>Партий {sortArrow('games_played')}</th>
               <th style={S.th}>W/L</th>
               <th style={S.th}>WR%</th>
-              <SortTh col="created_at">Регистрация</SortTh>
-              <SortTh col="last_seen">Последний визит</SortTh>
+              <th style={S.th} onClick={() => toggleSort('created_at')}>Регистрация {sortArrow('created_at')}</th>
+              <th style={S.th} onClick={() => toggleSort('last_seen')}>Последний визит {sortArrow('last_seen')}</th>
               <th style={S.th}>Действия</th>
             </tr>
           </thead>

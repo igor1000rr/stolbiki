@@ -87,9 +87,7 @@ run('WebSocket integration', () => {
     const app = express()
     rooms = new Map()
     matchQueue = []
-    const httpServer = createServer(app)
-    // setupWebSocket создаёт свой собственный http.Server, нам нужно обойти это.
-    // Смотрим: setupWebSocket(app, opts) возвращает { server }, server.listen(0) можно.
+    // setupWebSocket создаёт свой http.Server внутри — используем его.
     const { server: wsServer } = setupWebSocket(app, {
       JWT_SECRET: process.env.JWT_SECRET,
       rooms, matchQueue, db: dbRef,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './_shared'
+
 
 export function ContentTab() {
   const [items, setItems] = useState([])

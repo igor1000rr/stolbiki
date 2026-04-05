@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { S, api } from './_shared'
+import { S, api } from './_utils'
 
 export function RoomsTab() {
   const [data, setData] = useState(null)

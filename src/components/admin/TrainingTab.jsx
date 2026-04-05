@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Metric, MiniBarChart, S, api, fmtNum } from './_shared'
+import { S, api, fmtNum } from './_utils'
+import { Metric, MiniBarChart } from './_shared'
 
 export function TrainingTab() {
   const [data, setData] = useState(null)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { S, ago, api } from './_shared'
+import { S, ago, api } from './_utils'
 
 export function AchievementsTab() {
   const [stats, setStats] = useState([])

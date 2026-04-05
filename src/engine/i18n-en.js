@@ -47,7 +47,6 @@ export default {
   'game.anotherGame': 'Play again',
   'game.switchSide': 'Switch side',
   'game.tryEasier': 'Try easier?',
-  'game.rematch': 'Rematch!',
   'game.player': 'Player',
   'game.winStreak': 'win streak!',
   'game.turn': 'Turn',

@@ -49,7 +49,6 @@ export default {
   'game.anotherGame': 'Ещё партию',
   'game.switchSide': 'Сменить сторону',
   'game.tryEasier': 'Попробовать полегче?',
-  'game.rematch': 'Реванш!',
   'game.player': 'Игрок',
   'game.winStreak': 'побед подряд!',
   'game.turn': 'Ход',

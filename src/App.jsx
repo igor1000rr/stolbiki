@@ -213,7 +213,7 @@ export default function App() {
     const onVisible = () => { if (!document.hidden) refresh() }
     document.addEventListener('visibilitychange', onVisible)
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible) }
-  }, []) // eslint-disable-line
+  }, [])  
 
   // PWA Install Prompt — перехватываем событие для кнопки «Установить»
   useEffect(() => {
@@ -239,7 +239,7 @@ export default function App() {
       }
     }, 12 * 3600000)
     return () => clearInterval(iv)
-  }, []) // eslint-disable-line
+  }, [])  
 
   // Sync URL with tab (path routing)
   useEffect(() => {
@@ -298,7 +298,7 @@ export default function App() {
     loadNotifs()
     const iv = setInterval(loadNotifs, 15000)
     return () => clearInterval(iv)
-  }, []) // eslint-disable-line
+  }, [])  
 
   useEffect(() => {
     const check = () => setIsAdmin(getIsAdmin())
