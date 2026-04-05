@@ -683,7 +683,7 @@ export default function Game() {
               <option value={150}>{t('game.medium')}</option>
               <option value={400}>{t('game.hard')}</option>
               <option value={800}>{t('game.extreme')}</option>
-              <option value={1500}>{lang === 'en' ? 'Impossible' : 'Невозможный'}</option>
+              <option value={1500}>{lang === 'en' ? 'Hardcore' : 'Хардкор'}</option>
             </select>
             {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 4 }}>GPU</span>}
           </label>
@@ -709,7 +709,7 @@ export default function Game() {
                  difficulty >= 150 ? <><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></> :
                  <circle cx="12" cy="12" r="9"/>}
               </svg>
-              {difficulty >= 1500 ? (lang === 'en' ? 'Impossible' : 'Невозможный') : difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
+              {difficulty >= 1500 ? (lang === 'en' ? 'Hardcore' : 'Хардкор') : difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
               {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 3 }}>GPU</span>}
             </span>
             {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
@@ -742,7 +742,7 @@ export default function Game() {
               <div className="m-setting-row">
                 <span className="m-setting-label">{lang === 'en' ? 'Difficulty' : 'Сложность'}</span>
                 <div className="m-difficulty-grid">
-                  {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'},{v:1500,l:lang === 'en' ? 'Impossible' : 'Невозможный'}].map(d => (
+                  {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'},{v:1500,l:lang === 'en' ? 'Hardcore' : 'Хардкор'}].map(d => (
                     <button key={d.v} className={`m-diff-opt ${difficulty === d.v ? 'active' : ''}`}
                       onClick={() => { newGame(humanPlayer, d.v, mode); setShowMobileSettings(false) }}>
                       {d.l}
