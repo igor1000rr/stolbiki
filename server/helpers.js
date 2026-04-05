@@ -20,6 +20,24 @@ export function formatUser(u) {
   }
 }
 
+/**
+ * Публичный профиль — без приватных полей (referralCode, email, isAdmin).
+ * Используется для GET /api/profile/:username — любой посетитель может видеть.
+ */
+export function formatPublicUser(u) {
+  return {
+    username: u.username, rating: u.rating,
+    gamesPlayed: u.games_played, wins: u.wins, losses: u.losses,
+    winStreak: u.win_streak, bestStreak: u.best_streak,
+    goldenClosed: u.golden_closed, comebacks: u.comebacks,
+    perfectWins: u.perfect_wins, beatHardAi: !!u.beat_hard_ai,
+    fastWins: u.fast_wins || 0, onlineWins: u.online_wins || 0,
+    puzzlesSolved: u.puzzles_solved || 0, avatar: u.avatar || 'default',
+    xp: u.xp || 0, level: u.level || 1,
+    createdAt: u.created_at, lastSeen: u.last_seen,
+  }
+}
+
 // ═══ XP и Level Up ═══
 export function addXP(userId, amount) {
   db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(amount, userId)

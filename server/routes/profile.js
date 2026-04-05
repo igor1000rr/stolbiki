@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { db, bcrypt } from '../db.js'
 import { auth } from '../middleware.js'
-import { formatUser } from '../helpers.js'
+import { formatUser, formatPublicUser } from '../helpers.js'
 
 const router = Router()
 
@@ -236,7 +236,7 @@ router.get('/:username', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(req.params.username)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
   const achievements = db.prepare('SELECT achievement_id FROM achievements WHERE user_id = ?').all(user.id)
-  res.json({ ...formatUser(user), achievements: achievements.map(a => a.achievement_id) })
+  res.json({ ...formatPublicUser(user), achievements: achievements.map(a => a.achievement_id) })
 })
 
 export default router

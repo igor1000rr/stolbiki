@@ -338,4 +338,157 @@ run('HTTP routes', () => {
       expect([400, 413]).toContain(res.status)
     })
   })
+
+  describe('Friends API (безопасность)', () => {
+    let alice, bob, aliceToken, bobToken, aliceId, bobId
+
+    beforeAll(async () => {
+      alice = 'alice_' + Math.random().toString(36).slice(2, 8)
+      bob = 'bob_' + Math.random().toString(36).slice(2, 8)
+      const r1 = await request(app).post('/api/auth/register').send({ username: alice, password: 'password1' })
+      const r2 = await request(app).post('/api/auth/register').send({ username: bob, password: 'password1' })
+      aliceToken = r1.body.token
+      bobToken = r2.body.token
+      aliceId = r1.body.user.id
+      bobId = r2.body.user.id
+    })
+
+    it('alice шлёт запрос bob → bob видит pending', async () => {
+      const send = await request(app)
+        .post('/api/friends/request')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ username: bob })
+      expect(send.status).toBe(200)
+
+      const bobFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${bobToken}`)
+      expect(bobFriends.body.pending).toEqual(expect.arrayContaining([expect.objectContaining({ username: alice })]))
+    })
+
+    it('повторный request → 409', async () => {
+      const res = await request(app)
+        .post('/api/friends/request')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ username: bob })
+      expect(res.status).toBe(409)
+    })
+
+    it('add-self → 400', async () => {
+      const res = await request(app)
+        .post('/api/friends/request')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ username: alice })
+      expect(res.status).toBe(400)
+    })
+
+    it('несуществующий юзер → 404', async () => {
+      const res = await request(app)
+        .post('/api/friends/request')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ username: 'ghost_user_xxx' })
+      expect(res.status).toBe(404)
+    })
+
+    it('[БАГ-ФИКС] accept без pending request → 404, не создаёт одностороннюю дружбу', async () => {
+      // Создаём charlie который НЕ отправлял запрос
+      const charlie = 'charlie_' + Math.random().toString(36).slice(2, 8)
+      const r = await request(app).post('/api/auth/register').send({ username: charlie, password: 'password1' })
+      const charlieToken = r.body.token
+      const charlieId = r.body.user.id
+
+      // alice пытается "принять" запрос от charlie которого не было
+      const fake = await request(app)
+        .post('/api/friends/accept')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ userId: charlieId })
+      expect(fake.status).toBe(404)
+
+      // Убеждаемся что charlie НЕ видит alice в друзьях
+      const charlieFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${charlieToken}`)
+      expect(charlieFriends.body.friends).not.toContainEqual(expect.objectContaining({ username: alice }))
+    })
+
+    it('bob принимает pending от alice → двусторонняя дружба', async () => {
+      const accept = await request(app)
+        .post('/api/friends/accept')
+        .set('Authorization', `Bearer ${bobToken}`)
+        .send({ userId: aliceId })
+      expect(accept.status).toBe(200)
+
+      const aliceFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${aliceToken}`)
+      const bobFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${bobToken}`)
+      expect(aliceFriends.body.friends).toContainEqual(expect.objectContaining({ username: bob }))
+      expect(bobFriends.body.friends).toContainEqual(expect.objectContaining({ username: alice }))
+    })
+
+    it('accept с не-числом userId → 400', async () => {
+      const res = await request(app)
+        .post('/api/friends/accept')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ userId: 'abc' })
+      expect(res.status).toBe(400)
+    })
+
+    it('decline с undefined userId → 400', async () => {
+      const res = await request(app)
+        .post('/api/friends/decline')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({})
+      expect(res.status).toBe(400)
+    })
+
+    it('remove удаляет обе стороны дружбы', async () => {
+      const res = await request(app)
+        .post('/api/friends/remove')
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ userId: bobId })
+      expect(res.status).toBe(200)
+      const aliceFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${aliceToken}`)
+      const bobFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${bobToken}`)
+      expect(aliceFriends.body.friends).not.toContainEqual(expect.objectContaining({ username: bob }))
+      expect(bobFriends.body.friends).not.toContainEqual(expect.objectContaining({ username: alice }))
+    })
+  })
+
+  describe('GET /api/profile/:username (публичный профиль)', () => {
+    it('возвращает данные юзера', async () => {
+      const res = await request(app).get(`/api/profile/${username}`)
+      expect(res.status).toBe(200)
+      expect(res.body.username).toBe(username)
+      expect(typeof res.body.rating).toBe('number')
+    })
+
+    it('[БАГ-ФИКС] НЕ утекает referralCode и email', async () => {
+      const res = await request(app).get(`/api/profile/${username}`)
+      expect(res.body.referralCode).toBeUndefined()
+      expect(res.body.email).toBeUndefined()
+      expect(res.body.password_hash).toBeUndefined()
+    })
+
+    it('404 на несуществующего', async () => {
+      const res = await request(app).get('/api/profile/nonexistent_xxx')
+      expect(res.status).toBe(404)
+    })
+  })
+
+  describe('GET /api/leaderboard', () => {
+    it('возвращает топ игроков', async () => {
+      const res = await request(app).get('/api/leaderboard')
+      expect(res.status).toBe(200)
+      expect(Array.isArray(res.body)).toBe(true)
+    })
+
+    it('respects limit param, max 100', async () => {
+      const res = await request(app).get('/api/leaderboard?limit=500')
+      expect(res.status).toBe(200)
+      expect(res.body.length).toBeLessThanOrEqual(100)
+    })
+  })
+
+  describe('GET /api/seasons/current', () => {
+    it('возвращает сезон и таблицу', async () => {
+      const res = await request(app).get('/api/seasons/current')
+      expect(res.status).toBe(200)
+      expect(res.body).toHaveProperty('leaderboard')
+    })
+  })
 })

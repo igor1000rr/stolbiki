@@ -19,20 +19,26 @@ router.post('/friends/request', auth, (req, res) => {
 })
 
 router.post('/friends/accept', auth, (req, res) => {
-  const { userId } = req.body
-  db.prepare('UPDATE friends SET status = "accepted" WHERE user_id = ? AND friend_id = ?').run(userId, req.user.id)
+  const userId = Number(req.body.userId)
+  if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'userId обязателен' })
+  // Принять можно только существующий pending запрос от этого юзера
+  const pending = db.prepare("SELECT id FROM friends WHERE user_id = ? AND friend_id = ? AND status = 'pending'").get(userId, req.user.id)
+  if (!pending) return res.status(404).json({ error: 'Запрос не найден' })
+  db.prepare('UPDATE friends SET status = "accepted" WHERE id = ?').run(pending.id)
   db.prepare('INSERT OR IGNORE INTO friends (user_id, friend_id, status) VALUES (?, ?, "accepted")').run(req.user.id, userId)
   res.json({ ok: true })
 })
 
 router.post('/friends/decline', auth, (req, res) => {
-  const { userId } = req.body
+  const userId = Number(req.body.userId)
+  if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'userId обязателен' })
   db.prepare('DELETE FROM friends WHERE user_id = ? AND friend_id = ?').run(userId, req.user.id)
   res.json({ ok: true })
 })
 
 router.post('/friends/remove', auth, (req, res) => {
-  const { userId } = req.body
+  const userId = Number(req.body.userId)
+  if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'userId обязателен' })
   db.prepare('DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)').run(req.user.id, userId, userId, req.user.id)
   res.json({ ok: true })
 })
