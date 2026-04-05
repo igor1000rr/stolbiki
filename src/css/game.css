@@ -522,6 +522,44 @@
 }
 
 /* ═══════════════════════════════════════════
+   ACTION SLOTS — фиксированные кнопки управления
+   (Перенести/Отменить + Подтвердить). Никогда
+   не исчезают, не прыгают, disabled когда не
+   применимо. Swap между «Перенести» и «Отменить»
+   происходит через key→remount + fade.
+   ═══════════════════════════════════════════ */
+.action-slot {
+  min-width: 160px;
+  order: -1; /* всегда в начале .actions */
+}
+.action-slot:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+.action-slot:disabled:hover {
+  transform: none;
+  border-color: var(--surface3);
+  color: var(--ink3);
+}
+.action-slot--swap {
+  animation: actionSlotSwap 0.2s var(--ease-smooth);
+}
+@keyframes actionSlotSwap {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 640px) {
+  .action-slot {
+    min-width: 140px;
+    flex: 1 1 140px;
+    max-width: 50%;
+  }
+}
+
+/* ═══════════════════════════════════════════
    PLACE CONTROLS
    ═══════════════════════════════════════════ */
 .place-controls {

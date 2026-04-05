@@ -969,33 +969,49 @@ export default function Game() {
       )}
 
       <div className="actions">
-        {isMyTurn && phase === 'place' && hasTransfers && !transfer && (
-          <button className="btn" onClick={startTransfer}>{t('game.transfer')}</button>
-        )}
-        {isMyTurn && inTransferMode && (
-          <button className="btn" onClick={cancelTransfer} title="Esc">{t('game.cancelTransfer')}</button>
-        )}
-        {isMyTurn && transfer && phase === 'place' && (
-          <button className="btn" onClick={cancelTransfer} title="Esc">{t('game.cancelTransfer')}</button>
-        )}
-        {isMyTurn && phase === 'place' && totalPlaced > 0 && (
-          <button className="btn" onClick={() => {
-            // Убрать 1 блок с последней стойки
-            const keys = Object.keys(placement).map(Number)
-            if (keys.length === 0) return
-            const last = keys[keys.length - 1]
-            const newP = { ...placement }
-            if (newP[last] <= 1) delete newP[last]
-            else newP[last]--
-            setPlacement(newP)
-          }} aria-label="Undo last block">↩</button>
-        )}
-        {isMyTurn && phase === 'place' && totalPlaced > 0 && (
-          <button className="btn" onClick={() => setPlacement({})}>{t('game.reset')}</button>
-        )}
-        {isMyTurn && phase === 'place' && (
-          <button className="btn primary" disabled={!canConfirm} onClick={confirmTurn} title="Enter">{ t('game.confirm') } ⏎</button>
-        )}
+        {/* ═══ Слот 1: Перенести / Отменить — всегда на экране, свап при активации ═══ */}
+        {(() => {
+          const hasPlacements = totalPlaced > 0
+          const transferActive = isMyTurn && phase === 'place' && (transfer || inTransferMode)
+          const inCancelMode = transferActive || (isMyTurn && phase === 'place' && hasPlacements)
+          if (inCancelMode) {
+            return (
+              <button
+                key="slot1-cancel"
+                className="btn action-slot action-slot--swap"
+                onClick={() => {
+                  // Отменить всё: и перенос, и расставленные блоки
+                  if (transferActive) cancelTransfer()
+                  if (hasPlacements) setPlacement({})
+                }}
+                title="Esc"
+              >
+                {t('game.cancelTransfer')}
+              </button>
+            )
+          }
+          return (
+            <button
+              key="slot1-transfer"
+              className="btn action-slot action-slot--swap"
+              disabled={!(isMyTurn && phase === 'place' && hasTransfers)}
+              onClick={startTransfer}
+            >
+              {t('game.transfer')}
+            </button>
+          )
+        })()}
+
+        {/* ═══ Слот 2: Подтвердить — всегда на экране ═══ */}
+        <button
+          className="btn primary action-slot"
+          disabled={!(isMyTurn && phase === 'place' && canConfirm)}
+          onClick={confirmTurn}
+          title="Enter"
+        >
+          {t('game.confirm')} ⏎
+        </button>
+
         <button className="btn" onClick={() => newGame()} title="N">{t('game.newGame')}</button>
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
           <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">

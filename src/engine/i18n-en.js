@@ -12,7 +12,7 @@ export default {
   'game.confirm': 'Confirm',
   'game.reset': 'Reset',
   'game.transfer': '↗ Transfer',
-  'game.cancelTransfer': '✕ Cancel transfer',
+  'game.cancelTransfer': '✕ Cancel',
   'game.mode': 'Mode',
   'game.vsAI': 'vs AI',
   'game.pvp': 'Local 2P',
