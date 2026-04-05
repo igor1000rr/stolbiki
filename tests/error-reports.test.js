@@ -9,14 +9,18 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
-let Database
+let Database, dbWorks = false
 try {
   Database = (await import('better-sqlite3')).default
+  // Проверяем что native biding реально работает (в sandbox biding может быть не собран)
+  const test = new Database(':memory:')
+  test.close()
+  dbWorks = true
 } catch {
   // better-sqlite3 не собран локально — тесты будут skipped
 }
 
-const run = Database ? describe : describe.skip
+const run = dbWorks ? describe : describe.skip
 
 run('error_reports schema', () => {
   let db
