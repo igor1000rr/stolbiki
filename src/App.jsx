@@ -50,7 +50,6 @@ function LazyFallback() {
   </div>
 }
 
-const ADMIN_NAMES = ['admin']
 const APP_VERSION = '4.7.0'
 const WHATS_NEW = {
   ru: [
@@ -72,26 +71,15 @@ const WHATS_NEW = {
     '33 achievements with progress tracking',
   ],
 }
-const THEMES = [
-  { id: 'default', label: 'Dark' },
-  { id: 'ocean', label: 'Ocean' },
-  { id: 'sunset', label: 'Sunset' },
-  { id: 'forest', label: 'Forest' },
-  { id: 'royal', label: 'Royal' },
-  { id: 'sakura', label: 'Sakura' },
-  { id: 'neon', label: 'Neon' },
-  { id: 'wood', label: 'Wood' },
-  { id: 'arctic', label: 'Arctic' },
-  { id: 'retro', label: 'Retro' },
-  { id: 'minimal', label: 'Light' },
-]
 
+// isAdmin берётся только из сохранённого профиля (поле isAdmin приходит с сервера в formatUser).
+// Никаких хардкод-имён на клиенте — сервер единственный источник правды.
 function getIsAdmin() {
   try {
     const raw = localStorage.getItem('stolbiki_profile')
     if (!raw) return false
     const p = JSON.parse(raw)
-    return p?.isAdmin === true || ADMIN_NAMES.includes(p?.name)
+    return p?.isAdmin === true
   } catch { return false }
 }
 
@@ -935,11 +923,11 @@ export default function App() {
               : 'Cookies для авторизации + Яндекс Метрика для аналитики. Данные не продаём.'}
           </span>
           <button className="btn primary" style={{ fontSize: 12, padding: '8px 20px', flexShrink: 0, borderRadius: 8 }}
-            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true) }}>
+            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true); window.dispatchEvent(new Event('stolbiki-cookies-accepted')) }}>
             OK
           </button>
           <button style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 16, padding: 4, flexShrink: 0 }}
-            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true) }}
+            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true); window.dispatchEvent(new Event('stolbiki-cookies-accepted')) }}
             aria-label="Close">
             ✕
           </button>

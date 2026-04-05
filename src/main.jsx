@@ -38,11 +38,22 @@ if (isNative) {
   // Класс на body для CSS оптимизаций
   document.body.classList.add('native-body')
 
-  // Fetch interceptor: /api/ → сервер
+  // Fetch interceptor: /api/ → сервер. Поддерживает string, URL и Request.
   const _fetch = window.fetch.bind(window)
-  window.fetch = (url, opts) => {
-    if (typeof url === 'string' && url.startsWith('/api')) url = SERVER + url
-    return _fetch(url, opts)
+  window.fetch = (input, opts) => {
+    try {
+      if (typeof input === 'string' && input.startsWith('/api')) {
+        return _fetch(SERVER + input, opts)
+      }
+      if (input instanceof URL && input.pathname.startsWith('/api')) {
+        return _fetch(SERVER + input.pathname + input.search, opts)
+      }
+      if (typeof Request !== 'undefined' && input instanceof Request && new URL(input.url).pathname.startsWith('/api')) {
+        const u = new URL(input.url)
+        return _fetch(new Request(SERVER + u.pathname + u.search, input), opts)
+      }
+    } catch {}
+    return _fetch(input, opts)
   }
 
   // WS base для multiplayer.js

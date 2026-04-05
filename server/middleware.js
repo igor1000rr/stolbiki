@@ -44,7 +44,12 @@ setInterval(() => {
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
   for (const [k, v] of gameSubmitLimits) { if (now - v > 60000) gameSubmitLimits.delete(k) }
   for (const [k, v] of lastSeenCache) { if (now - v > 600000) lastSeenCache.delete(k) }
-  if (rateLimits.size > 50000) rateLimits.clear()
+  // LRU: если всё ещё много — удаляем самые старые, не сбрасываем всё
+  if (rateLimits.size > 50000) {
+    const entries = [...rateLimits.entries()].sort((a, b) => a[1].start - b[1].start)
+    const toDelete = entries.slice(0, entries.length - 40000)
+    for (const [k] of toDelete) rateLimits.delete(k)
+  }
 }, 300000)
 
 export function auth(req, res, next) {

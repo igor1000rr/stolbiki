@@ -1,8 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { resolve } from 'path'
+
+// Плагин: подставляет __BUILD_HASH__ в dist/sw.js после сборки.
+// Без этого все билды делят один CACHE_NAME — SW кеш не инвалидируется.
+function swBuildHash() {
+  return {
+    name: 'sw-build-hash',
+    apply: 'build',
+    closeBundle() {
+      const swPath = resolve('dist/sw.js')
+      if (!existsSync(swPath)) return
+      const hash = Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+      const content = readFileSync(swPath, 'utf8').replace(/__BUILD_HASH__/g, hash)
+      writeFileSync(swPath, content)
+      console.log(`[sw-build-hash] CACHE_NAME → stolbiki-v${hash}`)
+    },
+  }
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), swBuildHash()],
   base: '/',
   build: {
     rollupOptions: {

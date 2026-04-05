@@ -3,8 +3,47 @@ import { db, checkAchievements } from '../db.js'
 import { auth } from '../middleware.js'
 import { gameSubmitLimits } from '../middleware.js'
 import { addXP, ensureCurrentSeason } from '../helpers.js'
+import { GameState, applyAction, getLegalActions } from '../game-engine.js'
 
 const router = Router()
+
+/**
+ * Проигрывает массив ходов через движок и возвращает { winner, scoreStr, turns, ok }.
+ * Если любой ход нелегален — ok=false.
+ */
+function verifyGameFromMoves(moves) {
+  try {
+    let s = new GameState()
+    let turns = 0
+    for (const m of moves) {
+      if (!m || !m.action) return { ok: false }
+      const legal = getLegalActions(s)
+      // Быстрая проверка: хотя бы один легальный ход похож на присланный
+      const a = m.action
+      const isLegal = legal.some(l => {
+        if (l.swap || a.swap) return !!l.swap === !!a.swap
+        const lt = l.transfer, at = a.transfer
+        if ((!!lt) !== (!!at)) return false
+        if (lt && at && (lt[0] !== at[0] || lt[1] !== at[1])) return false
+        const lp = l.placement || {}, ap = a.placement || {}
+        const lk = Object.keys(lp).sort(), ak = Object.keys(ap).sort()
+        if (lk.length !== ak.length) return false
+        for (let i = 0; i < lk.length; i++) if (lk[i] !== ak[i] || lp[lk[i]] !== ap[ak[i]]) return false
+        return true
+      })
+      if (!isLegal) return { ok: false }
+      s = applyAction(s, a)
+      turns++
+      if (s.gameOver) break
+    }
+    if (!s.gameOver) return { ok: false }
+    // Счёт = количество закрытых стоек каждым игроком
+    const c0 = s.countClosed(0), c1 = s.countClosed(1)
+    return { ok: true, winner: s.winner, scoreStr: `${c0}:${c1}`, turns }
+  } catch {
+    return { ok: false }
+  }
+}
 
 router.post('/games', auth, (req, res) => {
   const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves } = req.body
@@ -22,9 +61,26 @@ router.post('/games', auth, (req, res) => {
   const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
   const safeDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 150)))
 
-  // Минимум ~10 ходов для победы (anti-cheat: нельзя завершить игру за 1 ход)
-  if (safeTurns > 0 && safeTurns < 8 && (s1 >= 6 || s2 >= 6)) {
-    return res.status(400).json({ error: 'Результат невозможен за такое количество ходов' })
+  // ═══ АНТИЧИТ: если moves[] передан — верифицируем результат через движок ═══
+  // Для AI-игр клиент должен передавать moves. Без moves принимаем только low-reward игры.
+  let verifiedWon = !!won
+  let verifiedScore = score
+  let verifiedTurns = safeTurns
+  if (moves && Array.isArray(moves) && moves.length >= 5) {
+    const v = verifyGameFromMoves(moves)
+    if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
+    // humanPlayer всегда 0 в AI-играх (сервер не знает humanPlayer в PvP, но PvP идёт через ws.js и сюда не попадает)
+    verifiedWon = v.winner === 0
+    verifiedScore = v.scoreStr
+    verifiedTurns = v.turns
+    // Проверяем согласованность с клиентом
+    if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
+  } else {
+    // Без moves — режем рейтинг-дельту в 3 раза и блокируем награды
+    if (!isOnline) {
+      // AI-игра без moves = подозрительно, не засчитываем рейтинг
+      return res.status(400).json({ error: 'Требуется история ходов для AI-игры' })
+    }
   }
 
   const now = Date.now()
@@ -38,14 +94,14 @@ router.post('/games', auth, (req, res) => {
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
 
   const ratingBefore = user.rating
-  let ratingDelta = won ? 25 : -15
-  if (safeDifficulty >= 400) ratingDelta = won ? 35 : -10
-  else if (safeDifficulty <= 50) ratingDelta = won ? 15 : -20
+  let ratingDelta = verifiedWon ? 25 : -15
+  if (safeDifficulty >= 400) ratingDelta = verifiedWon ? 35 : -10
+  else if (safeDifficulty <= 50) ratingDelta = verifiedWon ? 15 : -20
 
   const ratingAfter = Math.max(100, Math.min(2500, ratingBefore + ratingDelta))
-  const newStreak = won ? user.win_streak + 1 : 0
+  const newStreak = verifiedWon ? user.win_streak + 1 : 0
   const bestStreak = Math.max(user.best_streak, newStreak)
-  const isFastWin = won && safeTurns > 0 && safeTurns <= 10
+  const isFastWin = verifiedWon && verifiedTurns > 0 && verifiedTurns <= 10
 
   db.prepare(`UPDATE users SET
     rating = ?, games_played = games_played + 1,
@@ -59,19 +115,19 @@ router.post('/games', auth, (req, res) => {
     online_wins = online_wins + ?
     WHERE id = ?`
   ).run(
-    ratingAfter, won ? 1 : 0, won ? 0 : 1,
+    ratingAfter, verifiedWon ? 1 : 0, verifiedWon ? 0 : 1,
     newStreak, bestStreak,
     closedGolden ? 1 : 0, isComeback ? 1 : 0,
-    score === '6:0' && won ? 1 : 0,
-    safeDifficulty >= 400 && won ? 1 : 0,
+    verifiedScore === '6:0' && verifiedWon ? 1 : 0,
+    safeDifficulty >= 400 && verifiedWon ? 1 : 0,
     isFastWin ? 1 : 0,
-    isOnline && won ? 1 : 0,
+    isOnline && verifiedWon ? 1 : 0,
     req.user.id
   )
 
   const gameResult = db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration, is_online)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(req.user.id, won ? 1 : 0, score, ratingBefore, ratingAfter, ratingDelta, safeDifficulty, closedGolden ? 1 : 0, isComeback ? 1 : 0, safeTurns, safeDuration, isOnline ? 1 : 0)
+  ).run(req.user.id, verifiedWon ? 1 : 0, verifiedScore, ratingBefore, ratingAfter, ratingDelta, safeDifficulty, closedGolden ? 1 : 0, isComeback ? 1 : 0, verifiedTurns, safeDuration, isOnline ? 1 : 0)
 
   db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
 
@@ -80,7 +136,7 @@ router.post('/games', auth, (req, res) => {
     try {
       const gameData = JSON.stringify(moves)
       if (gameData.length < 500000) { // макс ~500KB на партию
-        const winner = won ? 0 : 1 // 0 = player (P1 perspective), 1 = AI
+        const winner = verifiedWon ? 0 : 1
         const mode = isOnline ? 'online' : 'ai'
         db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
           .run(req.user.id, gameData, winner, moves.length, mode, safeDifficulty)
@@ -93,14 +149,14 @@ router.post('/games', auth, (req, res) => {
     const sr = db.prepare('SELECT * FROM season_ratings WHERE user_id=? AND season_id=?').get(req.user.id, currentSeason.id)
     if (sr) {
       const newRating = Math.max(100, Math.min(2500, sr.rating + ratingDelta))
-      db.prepare('UPDATE season_ratings SET rating=?, games=games+1, wins=wins+? WHERE id=?').run(newRating, won ? 1 : 0, sr.id)
+      db.prepare('UPDATE season_ratings SET rating=?, games=games+1, wins=wins+? WHERE id=?').run(newRating, verifiedWon ? 1 : 0, sr.id)
     } else {
-      db.prepare('INSERT INTO season_ratings (user_id, season_id, rating, games, wins) VALUES (?, ?, ?, 1, ?)').run(req.user.id, currentSeason.id, ratingAfter, won ? 1 : 0)
+      db.prepare('INSERT INTO season_ratings (user_id, season_id, rating, games, wins) VALUES (?, ?, ?, 1, ?)').run(req.user.id, currentSeason.id, ratingAfter, verifiedWon ? 1 : 0)
     }
   }
 
   const newAch = checkAchievements(req.user.id)
-  const xpGain = won ? 20 : 5
+  const xpGain = verifiedWon ? 20 : 5
   addXP(req.user.id, xpGain)
 
   res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain })

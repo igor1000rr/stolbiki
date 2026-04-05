@@ -41,6 +41,7 @@ server/data/
 # Переменные окружения (секреты!)
 .env
 server/.env
+server/.jwt-secret
 
 # Бэкапы
 *-backups/

@@ -2,7 +2,6 @@ import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import { db, JWT_SECRET, bcrypt } from '../db.js'
 import { formatUser, addXP } from '../helpers.js'
-import { auth } from '../middleware.js'
 
 const router = Router()
 
@@ -66,12 +65,26 @@ router.post('/login', (req, res) => {
 })
 
 // ═══ Token Refresh ═══
-// Выдаёт новый токен если текущий ещё валиден. Вызывается клиентом каждые 24ч.
-router.post('/refresh', auth, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
+// Принимает даже истёкший токен (с валидной подписью) в течение 30 дней — grace period.
+// Позволяет юзеру не перелогиниваться если не заходил > 7 дней, но не дольше 30.
+router.post('/refresh', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) return res.status(401).json({ error: 'Нет токена' })
+  let payload
+  try {
+    payload = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true })
+  } catch {
+    return res.status(401).json({ error: 'Неверная подпись' })
+  }
+  // Grace period: 30 дней после exp
+  const now = Math.floor(Date.now() / 1000)
+  if (payload.exp && now - payload.exp > 30 * 86400) {
+    return res.status(401).json({ error: 'Токен слишком старый, войдите заново' })
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
-  const token = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
-  res.json({ token })
+  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  res.json({ token: newToken })
 })
 
 export default router

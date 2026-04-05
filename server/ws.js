@@ -13,6 +13,20 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16384 })
 
+  // ─── Heartbeat: каждые 30с пингуем всех клиентов, мёртвые убиваем ───
+  // Без этого TCP half-open не детектится, мёртвые ws висят в rooms минутами.
+  const heartbeat = setInterval(() => {
+    wss.clients.forEach(ws => {
+      if (ws.isAlive === false) {
+        try { ws.terminate() } catch {}
+        return
+      }
+      ws.isAlive = false
+      try { ws.ping() } catch {}
+    })
+  }, 30000)
+  wss.on('close', () => clearInterval(heartbeat))
+
   // Верификация WS-клиента по токену
   function wsAuth(token) {
     if (!token) return null
@@ -106,6 +120,9 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
   // ═══ Обработка подключений ═══
   wss.on('connection', (ws, req) => {
+    ws.isAlive = true
+    ws.on('pong', () => { ws.isAlive = true })
+
     let playerRoom = null
     let playerIdx = -1
     let wsUser = null
@@ -174,7 +191,11 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           // Нашли пару
           matchQueue.splice(matchQueue.indexOf(matched), 1)
           matchQueue.splice(matchQueue.indexOf(entry), 1)
-          const roomId = Math.random().toString(36).slice(2, 8).toUpperCase()
+          const roomId = (() => {
+            let id
+            do { id = Math.random().toString(36).slice(2, 8).toUpperCase() } while (rooms.has(id))
+            return id
+          })()
           // Случайный выбор первого игрока
           const first = Math.random() < 0.5 ? 0 : 1
           const p1 = first === 0 ? entry : matched
@@ -369,10 +390,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
               p.ws.send(JSON.stringify({ type: 'reaction', emoji, from: playerIdx }))
             }
           })
-          // Спектаторам тоже
-          playerRoom.spectators?.forEach(s => {
-            if (s.ws?.readyState === 1) s.ws.send(JSON.stringify({ type: 'reaction', emoji, from: playerIdx }))
-          })
+          // Спектаторам тоже (spectators — это массив ws-объектов, не обёрток)
+          broadcastToSpectators(playerRoom, { type: 'reaction', emoji, from: playerIdx })
         }
       }
 

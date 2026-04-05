@@ -29,9 +29,11 @@ app.set('trust proxy', 1)
 app.set('etag', 'weak') // ETag для кешируемых ответов
 
 // ═══ Security ═══
+const DEFAULT_ORIGINS = ['https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'capacitor://localhost', 'http://localhost']
+const DEV_ORIGINS = process.env.NODE_ENV !== 'production' ? ['http://localhost:5173', 'http://localhost:4173'] : []
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'http://178.212.12.71', 'http://localhost:5173', 'capacitor://localhost', 'http://localhost']
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : [...DEFAULT_ORIGINS, ...DEV_ORIGINS]
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -55,10 +57,20 @@ app.use(cors({
   },
   maxAge: 3600, // Кешируем preflight OPTIONS на 1 час
 }))
-app.use(express.json({ limit: '5mb' }))
+// JSON парсер: базовый лимит 256 КБ, жирный 5 МБ — только для роутов с тренировочными данными
+const jsonSmall = express.json({ limit: '256kb' })
+const jsonLarge = express.json({ limit: '5mb' })
+app.use((req, res, next) => {
+  // Training data и replays могут быть до ~500KB — даём им жирный парсер
+  if (req.path === '/api/training' || req.path === '/api/replays' || req.path === '/api/games') {
+    return jsonLarge(req, res, next)
+  }
+  return jsonSmall(req, res, next)
+})
 // Обработка невалидного JSON в теле запроса (400 вместо 500)
 app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Некорректный JSON' })
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Запрос слишком большой' })
   next(err)
 })
 
@@ -187,12 +199,7 @@ app.post('/api/track', (req, res) => {
 })
 
 // ═══ Client error reporting ═══
-db.exec(`CREATE TABLE IF NOT EXISTS error_reports (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER,
-  message TEXT, stack TEXT, component TEXT, url TEXT, ua TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
-)`)
+// Таблица error_reports создаётся в db.js (миграция 6)
 
 app.post('/api/error-report', rateLimit(60000, 5), (req, res) => {
   const { message, stack, component, url, ua } = req.body

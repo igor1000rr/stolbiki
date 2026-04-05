@@ -5,7 +5,7 @@
 
 import Database from 'better-sqlite3'
 import bcrypt from 'bcryptjs'
-import { readFileSync, existsSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -26,7 +26,12 @@ export const JWT_SECRET = process.env.JWT_SECRET || (() => {
     console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
     process.exit(1)
   }
-  return 'stolbiki_dev_secret_' + Math.random().toString(36).slice(2)
+  // Dev: персистим сгенерированный секрет в файл, чтобы токены не инвалидировались при рестарте
+  const secretPath = resolve(__dirname, '.jwt-secret')
+  if (existsSync(secretPath)) return readFileSync(secretPath, 'utf8').trim()
+  const secret = 'stolbiki_dev_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+  try { writeFileSync(secretPath, secret, { mode: 0o600 }) } catch {}
+  return secret
 })()
 const DB_PATH = process.env.DB_PATH || './data/stolbiki.db'
 
@@ -103,11 +108,12 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS error_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    error TEXT,
-    stack TEXT,
-    url TEXT,
-    user_agent TEXT,
     user_id INTEGER,
+    message TEXT,
+    stack TEXT,
+    component TEXT,
+    url TEXT,
+    ua TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -312,7 +318,18 @@ runMigration(5, () => {
   )`)
 })
 
-console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 5`)
+// Миграция 6: error_reports — приводим к актуальной схеме (message/component/ua вместо error/user_agent)
+runMigration(6, () => {
+  const cols = db.prepare("PRAGMA table_info(error_reports)").all().map(c => c.name)
+  if (!cols.includes('message')) { try { db.exec('ALTER TABLE error_reports ADD COLUMN message TEXT') } catch {} }
+  if (!cols.includes('component')) { try { db.exec('ALTER TABLE error_reports ADD COLUMN component TEXT') } catch {} }
+  if (!cols.includes('ua')) { try { db.exec('ALTER TABLE error_reports ADD COLUMN ua TEXT') } catch {} }
+  // Переносим данные из старых колонок если они есть
+  if (cols.includes('error')) { try { db.exec('UPDATE error_reports SET message = error WHERE message IS NULL AND error IS NOT NULL') } catch {} }
+  if (cols.includes('user_agent')) { try { db.exec('UPDATE error_reports SET ua = user_agent WHERE ua IS NULL AND user_agent IS NOT NULL') } catch {} }
+})
+
+console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 6`)
 
 // ─── Индексы (идемпотентны) ───
 db.exec(`
