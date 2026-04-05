@@ -79,8 +79,8 @@ export default {
   'game.play': 'Играть',
   'game.pause': 'Пауза',
   // Турнир
-  'tournament.series3': 'Best of 3',
-  'tournament.series5': 'x5',
+  'tournament.series3': 'Серия 3',
+  'tournament.series5': 'Серия 5',
   'tournament.game': 'Партия',
   'tournament.of': 'из',
   'tournament.cancel': 'Отменить турнир',

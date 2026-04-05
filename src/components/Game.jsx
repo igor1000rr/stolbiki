@@ -691,7 +691,7 @@ export default function Game() {
         {mode === 'ai' && !tournament && (
           <div style={{ display: 'flex', gap: 4 }}>
             <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>{lang === 'en' ? 'Best of 3' : 'Серия 3'}</button>
-            <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>x5</button>
+            <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>{lang === 'en' ? 'Best of 5' : 'Серия 5'}</button>
           </div>
         )}
       </div>

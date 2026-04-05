@@ -77,7 +77,7 @@ export default {
   'game.play': 'Play',
   'game.pause': 'Pause',
   'tournament.series3': 'Best of 3',
-  'tournament.series5': 'x5',
+  'tournament.series5': 'Best of 5',
   'tournament.game': 'Game',
   'tournament.of': 'of',
   'tournament.cancel': 'Cancel tournament',
