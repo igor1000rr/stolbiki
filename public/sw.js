@@ -11,6 +11,11 @@ const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
 
 self.addEventListener('install', () => self.skipWaiting())
 
+// Клиент может попросить новый SW активироваться немедленно (прозрачное обновление)
+self.addEventListener('message', (e) => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))

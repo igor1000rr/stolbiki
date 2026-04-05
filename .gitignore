@@ -43,6 +43,10 @@ server/data/
 server/.env
 server/.jwt-secret
 
+# CSP hashes — генерируется при билде vite плагином
+server/csp-hashes.json
+dist/csp-hashes.json
+
 # Бэкапы
 *-backups/
 

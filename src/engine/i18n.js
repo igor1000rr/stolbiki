@@ -1,462 +1,25 @@
 /**
- * Локализация — переключение RU/EN
- * Используй: const t = useI18n(); t('key')
+ * Локализация — переключение RU/EN.
+ * RU грузится синхронно (fallback). EN — динамически через import() при первом переключении.
  */
 
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import ru from './i18n-ru.js'
 
-export const translations = {
-  ru: {
-    // Навигация
-    'nav.play': 'Играть',
-    'nav.online': 'Онлайн',
-    'nav.profile': 'Профиль',
-    'nav.rules': 'Правила',
-    'nav.puzzles': 'Головоломки',
-    'nav.simulator': 'Симулятор',
-    'nav.analytics': 'Аналитика',
-    'nav.replays': 'Реплеи',
-    // Игра
-    'game.newGame': 'Новая игра',
-    'game.confirm': 'Подтвердить',
-    'game.reset': 'Сброс',
-    'game.transfer': '↗ Сделать перенос',
-    'game.cancelTransfer': '✕ Отменить перенос',
-    'game.mode': 'Режим',
-    'game.vsAI': 'Против AI',
-    'game.pvp': 'Вдвоём',
-    'game.spectate': 'AI vs AI',
-    'game.side': 'Сторона',
-    'game.blue': 'Синие',
-    'game.red': 'Красные',
-    'game.blueFirst': 'Синие (первый ход)',
-    'game.redSwap': 'Красные (swap)',
-    'game.difficulty': 'Сложность',
-    'game.easy': 'Лёгкая',
-    'game.medium': 'Средняя',
-    'game.hard': 'Сложная',
-    'game.extreme': 'Экстрим',
-    'game.hints': 'Подсказки',
-    'game.trainer': 'Тренер',
-    'game.sound': '',
-    'game.wins': 'Побед',
-    'game.losses': 'Поражений',
-    'game.streak': 'Серия',
-    'game.yourTurn': 'Ваш ход',
-    'game.opponentTurn': 'Ходит противник...',
-    'game.place1': 'Поставьте 1 блок',
-    'game.placeChips': 'Расставьте блоки',
-    'game.aiThinking': 'AI думает',
-    'game.gameOver': 'Партия завершена',
-    'game.victory': 'Победа!',
-    'game.defeat': 'Поражение',
-    'game.blueWin': 'Синие победили!',
-    'game.redWin': 'Красные победили!',
-    'game.aiWins': 'AI побеждает',
-    'game.anotherGame': 'Ещё партию',
-    'game.switchSide': 'Сменить сторону',
-    'game.tryEasier': 'Попробовать полегче?',
-    'game.rematch': 'Реванш!',
-    'game.player': 'Игрок',
-    'game.winStreak': 'побед подряд!',
-    'game.turn': 'Ход',
-    'game.open': 'Открыто',
-    'game.moves': 'Ходов',
-    'game.place1first': 'Первый ход — поставьте 1 блок на любую стойку',
-    'game.aiFirst': 'AI делает первый ход',
-    'game.timeUp': 'Время вышло!',
-    'game.oppTimeUp': 'Противник просрочил время!',
-    'game.selectTransferFrom': 'Выберите стойку откуда перенести',
-    'game.transferSelected': 'Перенос выбран, расставьте блоки',
-    'game.transferCancelled': 'Перенос отменён',
-    'game.standFull': 'Высотка достроена',
-    'game.max2stands': 'Макс 2 стойки',
-    'game.allPlaced': 'Все блоки расставлены — подтвердите',
-    'game.chipsOf': 'блоков',
-    'game.confirmHint': ' — подтвердите',
-    'game.pvpNew': 'Новая партия: игрок против игрока',
-    'game.spectateNew': 'AI vs AI — наблюдение',
-    'game.undone': 'Ход отменён',
-    'game.swapDone': 'Swap принят! Теперь вы играете за синих',
-    'game.swapOnlineDone': 'Swap принят! Теперь вы синие — расставьте блоки',
-    'game.swapOppDone': 'Противник сделал Swap — ждём его ход...',
-    'game.clickStands': 'Кликайте на стойки чтобы ставить блоки',
-    'game.pass': 'пас',
-    'game.replayTitle': 'Повтор партии',
-    'game.close': 'Закрыть',
-    'game.play': 'Играть',
-    'game.pause': 'Пауза',
-    // Турнир
-    'tournament.series3': 'Best of 3',
-    'tournament.series5': 'x5',
-    'tournament.game': 'Партия',
-    'tournament.of': 'из',
-    'tournament.cancel': 'Отменить турнир',
-    'tournament.won': 'Турнир выигран!',
-    'tournament.lost': 'Турнир проигран',
-    'tournament.draw': 'Турнир: ничья!',
-    'tournament.next': 'Следующая партия',
-    'tournament.another': 'Ещё турнир',
-    'tournament.normal': 'Обычная игра',
-    // Онлайн
-    'online.title': 'Онлайн',
-    'online.subtitle': 'Играй с другом по ссылке — без регистрации',
-    'online.name': 'Ваше имя',
-    'online.create': 'Создать комнату',
-    'online.join': 'Войти',
-    'online.code': 'КОД',
-    'online.friendCode': 'Или введите код друга:',
-    'online.single': '1 партия',
-    'online.share': 'Поделиться ссылкой',
-    'online.waiting': 'Ждём второго игрока',
-    'online.back': '← Назад',
-    'online.qr': 'QR — открой с телефона',
-    'online.qrScan': 'Отсканируй чтобы играть на телефоне',
-    // Daily
-    'daily.title': 'Ежедневный челлендж',
-    'daily.subtitle': 'У всех одинаковая начальная позиция. Победите AI за минимум ходов!',
-    'daily.play': 'Играть',
-    'daily.leaderboard': 'Таблица лидеров',
-    'daily.noPlayers': 'Пока никто не играл сегодня — будьте первым!',
-    'daily.moves': 'ходов',
-    // Головоломки
-    'puzzle.title': 'Головоломки',
-    'puzzle.subtitle': 'Достройте высотки за ограниченное число ходов',
-    'puzzle.goal': 'Цель',
-    'puzzle.movesLeft': 'Осталось ходов',
-    'puzzle.solved': '✅ Решено!',
-    'puzzle.failed': '❌ Не удалось',
-    'puzzle.retry': 'Заново',
-    'puzzle.next': 'Следующая',
-    'puzzle.back': '← К списку',
-    // Тренер
-    'trainer.strong': '↑ Сильная позиция',
-    'trainer.slight': '↗ Небольшое преимущество',
-    'trainer.equal': '→ Равная игра',
-    'trainer.weak': '↘ Позиция ослабла',
-    'trainer.bad': '↓ Слабая позиция',
-    // Swap
-    'swap.question': 'Игрок 1 поставил первый блок. Хотите поменять цвета?',
-    'swap.accept': 'Swap (забрать ход)',
-    'swap.decline': 'Нет, продолжить',
-    'swap.accepted': 'Swap принят!',
-    // Реплей
-    'replay.title': 'Повтор партии',
-    'replay.close': '✕ Закрыть',
-    'replay.play': '▶ Играть',
-    'replay.pause': '⏸ Пауза',
-    // Туториал
-    'tutorial.title': 'Как играть',
-    'tutorial.got': 'Понятно, играем!',
-    'tutorial.rules': 'Подробные правила — вкладка «Правила»',
-    // Хедер
-    'header.title': 'Перехват высотки',
-    'header.subtitle': 'Настольная игра — играйте, анализируйте, соревнуйтесь',
-    'header.players': 'игроков',
-    'header.games': 'партий',
-    'header.avgRating': 'ср. рейтинг',
-    // Общее
-    'common.online': 'Онлайн',
-    'common.offline': 'Оффлайн',
-    'common.loading': 'Загрузка...',
-    // Расширенные ключи: Игра
-    'game.you': 'Вы',
-    'game.opponent': 'Противник',
-    'game.yourTurnBlink': 'Ваш ход!',
-    'game.opponentResigned': 'Противник сдался!',
-    'game.drawAgreed': 'Согласована ничья',
-    'game.drawDeclined': 'Ничья отклонена',
-    'game.resigned': 'Сдались',
-    'game.hint': 'Подсказка',
-    'game.resign': 'Сдаться',
-    'game.drawOffered': 'Ничья предложена...',
-    'game.offerDraw': 'Ничья',
-    'game.undo': 'Отмена',
-    'game.draw': 'Ничья',
-    'game.backToLobby': 'В лобби',
-    'game.rematch': 'Рематч',
-    'game.rematchOffer': 'Противник предлагает рематч',
-    'game.rematchWaiting': 'Рематч предложен...',
-    'game.rematchDeclined': 'Рематч отклонён',
-    'game.watching': 'наблюдение',
-    'game.share': 'Поделиться',
-    'game.replay': 'Повтор',
-    'game.swapQuestion': 'Игрок 1 поставил первый блок. Хотите поменять цвета?',
-    'game.swapDeclined': 'Swap отклонён',
-    'game.noContinue': 'Нет, продолжить',
-    'game.drawOfferReceived': 'Противник предлагает ничью',
-    'game.accept': 'Принять',
-    'game.decline': 'Отклонить',
-    'game.modeLabel': 'Режим:',
-    'game.sideLabel': 'Сторона:',
-    'game.diffLabel': 'Сложность:',
-    // Расширенные ключи: Головоломки
-    'puzzle.leaderboard': 'Лидерборд',
-    'puzzle.movesShort': 'ход.',
-    'puzzle.movesCount': 'ходов',
-    'puzzle.solveRate': 'Решаемость',
-    'puzzle.solvedCount': 'решили',
-    'puzzle.solvedStatus': 'Решено!',
-    'puzzle.failedStatus': 'Не удалось',
-    'puzzle.retryBtn': 'Заново',
-    'puzzle.backBtn': 'К списку',
-    'puzzle.closeStands': 'Перехватывайте высотки за ограниченное число ходов',
-    'puzzle.solvedLabel': 'решено',
-    'puzzle.featured': 'Избранные',
-    'puzzle.allPuzzles': 'Все головоломки',
-    'puzzle.dailyTitle': 'Головоломка дня',
-    'puzzle.weeklyTitle': 'Задача недели',
-    'puzzle.nextIn': 'Новая через',
-    'puzzle.replayBtn': '↻ Переиграть',
-    'puzzle.playBtn': '▶ Играть',
-    'puzzle.loadingPuzzles': 'Загрузка головоломок...',
-    'puzzle.filterAll': 'Все',
-    'puzzle.filterEasy': 'Лёгкие',
-    'puzzle.filterMedium': 'Средние',
-    'puzzle.filterHard': 'Сложные',
-    // Расширенные ключи: Дебюты
-    'openings.title': 'Книга дебютов и карта стоек',
-    'openings.subtitle': 'На основании AI-исследования · 239K+ партий',
-    'openings.tabOpenings': 'Дебюты',
-    'openings.tabHeatmap': 'Тепловая карта',
-    'openings.usage': 'популярность',
-    'openings.firstMoveFreq': 'Частота первого хода (%)',
-    'openings.closeFreq': 'Частота достройки (%)',
-    'openings.p1Ownership': 'Владение P1 Синих (%)',
-    'openings.avgCloseTurn': 'Средний ход достройки',
-    'openings.insights': 'Выводы',
-    'openings.insight1': 'Стойка 5 — самый популярный первый ход (18.2%) и достраивается чаще всех',
-    'openings.insight2': 'Золотая стойка (★) достраивается поздно (ход 14.2) — высокая стратегическая ценность',
-    'openings.insight3': 'Крайние стойки (8,9) достраиваются поздно и сложнее контролировать',
-    'openings.insight4': 'Баланс: 50:50 между P1 и P2 (подтверждено на 239K партиях)',
-    // Расширенные ключи: Блог
-    'blog.title': 'Блог',
-    'blog.subtitle': 'Новости, обновления и дневник разработки',
-    'blog.allPosts': 'Все записи',
-    'blog.noPosts': 'Пока нет записей',
-    // Расширенные ключи: Туториал
-    'tutorial.start': 'Начать играть!',
-    'tutorial.next': 'Далее →',
-    'tutorial.skip': 'Пропустить',
-  },
-
-  en: {
-    'nav.play': 'Play',
-    'nav.online': 'Online',
-    'nav.profile': 'Profile',
-    'nav.rules': 'Rules',
-    'nav.puzzles': 'Puzzles',
-    'nav.simulator': 'Simulator',
-    'nav.analytics': 'Analytics',
-    'nav.replays': 'Replays',
-    'game.newGame': 'New game',
-    'game.confirm': 'Confirm',
-    'game.reset': 'Reset',
-    'game.transfer': '↗ Transfer',
-    'game.cancelTransfer': '✕ Cancel transfer',
-    'game.mode': 'Mode',
-    'game.vsAI': 'vs AI',
-    'game.pvp': 'Local 2P',
-    'game.spectate': 'AI vs AI',
-    'game.side': 'Side',
-    'game.blue': 'Blue',
-    'game.red': 'Red',
-    'game.blueFirst': 'Blue (first move)',
-    'game.redSwap': 'Red (swap)',
-    'game.difficulty': 'Difficulty',
-    'game.easy': 'Easy',
-    'game.medium': 'Medium',
-    'game.hard': 'Hard',
-    'game.extreme': 'Extreme',
-    'game.hints': 'Hints',
-    'game.trainer': 'Trainer',
-    'game.sound': '',
-    'game.wins': 'Wins',
-    'game.losses': 'Losses',
-    'game.streak': 'Streak',
-    'game.yourTurn': 'Your turn',
-    'game.opponentTurn': 'Opponent\'s turn...',
-    'game.place1': 'Place 1 block',
-    'game.placeChips': 'Place your blocks',
-    'game.aiThinking': 'AI thinking',
-    'game.gameOver': 'Game over',
-    'game.victory': 'Victory!',
-    'game.defeat': 'Defeat',
-    'game.blueWin': 'Blue wins!',
-    'game.redWin': 'Red wins!',
-    'game.aiWins': 'AI wins',
-    'game.anotherGame': 'Play again',
-    'game.switchSide': 'Switch side',
-    'game.tryEasier': 'Try easier?',
-    'game.rematch': 'Rematch!',
-    'game.player': 'Player',
-    'game.winStreak': 'win streak!',
-    'game.turn': 'Turn',
-    'game.open': 'Open',
-    'game.moves': 'Moves',
-    'game.place1first': 'First move — place 1 block on any stand',
-    'game.aiFirst': 'AI makes the first move',
-    'game.timeUp': 'Time\'s up!',
-    'game.oppTimeUp': 'Opponent ran out of time!',
-    'game.selectTransferFrom': 'Select a stand to transfer from',
-    'game.transferSelected': 'Transfer set. Place your blocks',
-    'game.transferCancelled': 'Transfer cancelled',
-    'game.standFull': 'Highrise complete',
-    'game.max2stands': 'Max 2 stands',
-    'game.allPlaced': 'All blocks placed — confirm',
-    'game.chipsOf': 'blocks',
-    'game.confirmHint': ' — confirm',
-    'game.pvpNew': 'New game: player vs player',
-    'game.spectateNew': 'AI vs AI — spectating',
-    'game.undone': 'Move undone',
-    'game.swapDone': 'Swap accepted! You now play blue',
-    'game.swapOnlineDone': 'Swap accepted! You are now blue — place blocks',
-    'game.swapOppDone': 'Opponent swapped — waiting for their move...',
-    'game.clickStands': 'Click on stands to place blocks',
-    'game.pass': 'pass',
-    'game.replayTitle': 'Game Replay',
-    'game.close': 'Close',
-    'game.play': 'Play',
-    'game.pause': 'Pause',
-    'tournament.series3': 'Best of 3',
-    'tournament.series5': 'x5',
-    'tournament.game': 'Game',
-    'tournament.of': 'of',
-    'tournament.cancel': 'Cancel tournament',
-    'tournament.won': 'Tournament won!',
-    'tournament.lost': 'Tournament lost',
-    'tournament.draw': 'Tournament: draw!',
-    'tournament.next': 'Next game',
-    'tournament.another': 'New tournament',
-    'tournament.normal': 'Normal game',
-    'online.title': 'Online',
-    'online.subtitle': 'Play with a friend via link — no signup',
-    'online.name': 'Your name',
-    'online.create': 'Create room',
-    'online.join': 'Join',
-    'online.code': 'CODE',
-    'online.friendCode': 'Or enter friend\'s code:',
-    'online.single': '1 game',
-    'online.share': 'Share link',
-    'online.waiting': 'Waiting for player',
-    'online.back': '← Back',
-    'online.qr': 'QR — open on phone',
-    'online.qrScan': 'Scan to play on mobile',
-    'daily.title': 'Daily Challenge',
-    'daily.subtitle': 'Same starting position for everyone. Beat AI in fewest moves!',
-    'daily.play': 'Play',
-    'daily.leaderboard': 'Leaderboard',
-    'daily.noPlayers': 'No one played today — be the first!',
-    'daily.moves': 'moves',
-    'puzzle.title': 'Puzzles',
-    'puzzle.subtitle': 'Complete highrises in limited moves',
-    'puzzle.goal': 'Goal',
-    'puzzle.movesLeft': 'Moves left',
-    'puzzle.solved': '✅ Solved!',
-    'puzzle.failed': '❌ Failed',
-    'puzzle.retry': 'Retry',
-    'puzzle.next': 'Next',
-    'puzzle.back': '← Back to list',
-    'trainer.strong': '↑ Strong position',
-    'trainer.slight': '↗ Slight advantage',
-    'trainer.equal': '→ Equal game',
-    'trainer.weak': '↘ Weakening',
-    'trainer.bad': '↓ Weak position',
-    'swap.question': 'Player 1 placed first block. Want to swap colors?',
-    'swap.accept': 'Swap (take the move)',
-    'swap.decline': 'No, continue',
-    'swap.accepted': 'Swap accepted!',
-    'replay.title': 'Game Replay',
-    'replay.close': '✕ Close',
-    'replay.play': '▶ Play',
-    'replay.pause': '⏸ Pause',
-    'tutorial.title': 'How to play',
-    'tutorial.got': 'Got it, let\'s play!',
-    'tutorial.rules': 'Detailed rules — see "Rules" tab',
-    'header.title': 'Snatch Highrise',
-    'header.subtitle': 'Board game — play, analyze, compete',
-    'header.players': 'players',
-    'header.games': 'games',
-    'header.avgRating': 'avg rating',
-    'common.online': 'Online',
-    'common.offline': 'Offline',
-    'common.loading': 'Loading...',
-    'game.you': 'You',
-    'game.opponent': 'Opponent',
-    'game.yourTurnBlink': 'Your turn!',
-    'game.opponentResigned': 'Opponent resigned!',
-    'game.drawAgreed': 'Draw agreed',
-    'game.drawDeclined': 'Draw declined',
-    'game.resigned': 'Resigned',
-    'game.hint': 'Hint',
-    'game.resign': 'Resign',
-    'game.drawOffered': 'Draw offered...',
-    'game.offerDraw': 'Offer draw',
-    'game.undo': 'Undo',
-    'game.draw': 'Draw',
-    'game.backToLobby': 'Back to lobby',
-    'game.rematch': 'Rematch',
-    'game.rematchOffer': 'Opponent offers a rematch',
-    'game.rematchWaiting': 'Rematch offered...',
-    'game.rematchDeclined': 'Rematch declined',
-    'game.watching': 'watching',
-    'game.share': 'Share',
-    'game.replay': 'Replay',
-    'game.swapQuestion': 'Player 1 placed first block. Swap colors?',
-    'game.swapDeclined': 'Swap declined',
-    'game.noContinue': 'No, continue',
-    'game.drawOfferReceived': 'Opponent offers a draw',
-    'game.accept': 'Accept',
-    'game.decline': 'Decline',
-    'game.modeLabel': 'Mode:',
-    'game.sideLabel': 'Side:',
-    'game.diffLabel': 'Difficulty:',
-    'puzzle.leaderboard': 'Leaderboard',
-    'puzzle.movesShort': 'moves',
-    'puzzle.movesCount': 'moves',
-    'puzzle.solveRate': 'Solve rate',
-    'puzzle.solvedCount': 'solved',
-    'puzzle.solvedStatus': 'Solved!',
-    'puzzle.failedStatus': 'Failed',
-    'puzzle.retryBtn': 'Retry',
-    'puzzle.backBtn': 'Back',
-    'puzzle.closeStands': 'Complete highrises in limited moves',
-    'puzzle.solvedLabel': 'solved',
-    'puzzle.featured': 'Featured',
-    'puzzle.allPuzzles': 'All puzzles',
-    'puzzle.dailyTitle': 'Daily Puzzle',
-    'puzzle.weeklyTitle': 'Weekly Challenge',
-    'puzzle.nextIn': 'Next in',
-    'puzzle.replayBtn': '↻ Replay',
-    'puzzle.playBtn': '▶ Play',
-    'puzzle.loadingPuzzles': 'Loading puzzles...',
-    'puzzle.filterAll': 'All',
-    'puzzle.filterEasy': 'Easy',
-    'puzzle.filterMedium': 'Medium',
-    'puzzle.filterHard': 'Hard',
-    'openings.title': 'Opening Book & Heatmap',
-    'openings.subtitle': 'Based on AI research · 239K+ games analyzed',
-    'openings.tabOpenings': 'Openings',
-    'openings.tabHeatmap': 'Heatmap',
-    'openings.usage': 'usage',
-    'openings.firstMoveFreq': 'First move frequency (%)',
-    'openings.closeFreq': 'Completion frequency (%)',
-    'openings.p1Ownership': 'P1 (Blue) ownership (%)',
-    'openings.avgCloseTurn': 'Avg completion turn',
-    'openings.insights': 'Key insights',
-    'openings.insight1': 'Stand 5 is the most popular first move (18.2%) and completes most often',
-    'openings.insight2': 'Golden stand (★) completes late (avg turn 14.2) — high strategic value',
-    'openings.insight3': 'Edge stands (8,9) complete late and are harder to control',
-    'openings.insight4': 'Balance: 50:50 between P1 and P2 (confirmed across 239K games)',
-    'blog.title': 'Blog',
-    'blog.subtitle': 'News, updates, and development log',
-    'blog.allPosts': 'All posts',
-    'blog.noPosts': 'No posts yet',
-    'tutorial.start': 'Start playing!',
-    'tutorial.next': 'Next →',
-    'tutorial.skip': 'Skip',
-  },
+// Реестр локалей: ru загружена сразу, en грузится лениво
+const loaded = { ru }
+let _enPromise = null
+async function ensureLang(lang) {
+  if (loaded[lang]) return loaded[lang]
+  if (lang === 'en') {
+    if (!_enPromise) _enPromise = import('./i18n-en.js').then(m => { loaded.en = m.default; return m.default })
+    return _enPromise
+  }
+  return loaded.ru
 }
+
+// Экспорт для обратной совместимости — сначала только ru, en добавляется после загрузки
+export const translations = loaded
 
 export const I18nContext = createContext({ lang: 'ru', setLang: () => {}, t: (k) => k })
 
@@ -473,7 +36,6 @@ async function loadCmsOverrides() {
   if (_cmsOverrides || _cmsLoading) return
   _cmsLoading = true
   try {
-    // Проверяем кеш
     const cached = JSON.parse(localStorage.getItem('stolbiki_content') || '{}')
     if (cached.data && cached.ts && Date.now() - cached.ts < 300000) {
       _cmsOverrides = cached.data
@@ -491,16 +53,22 @@ async function loadCmsOverrides() {
 
 export function useI18nProvider() {
   const [lang, setLang] = useState(() => {
-    // Определяем язык из URL: /en/ → english
     if (location.pathname.startsWith('/en')) return 'en'
     return localStorage.getItem('stolbiki_lang') || 'ru'
   })
   const [, setTick] = useState(0)
 
+  // Если стартовый язык en — догружаем его
+  useEffect(() => {
+    if (lang === 'en' && !loaded.en) {
+      ensureLang('en').then(() => setTick(t => t + 1))
+    }
+  }, [lang])
+
   // Загружаем CMS-переопределения при первом рендере
-  useState(() => {
+  useEffect(() => {
     loadCmsOverrides().then(() => setTick(t => t + 1))
-  })
+  }, [])
 
   const t = useCallback((key) => {
     // 1. CMS override (если есть)
@@ -508,22 +76,25 @@ export function useI18nProvider() {
       const val = lang === 'en' ? _cmsOverrides[key].en : _cmsOverrides[key].ru
       if (val) return val
     }
-    // 2. Хардкод
-    return translations[lang]?.[key] || translations.ru?.[key] || key
+    // 2. Хардкод (en может быть ещё не загружен — fallback на ru)
+    return loaded[lang]?.[key] || loaded.ru?.[key] || key
   }, [lang])
 
-  const changeLang = useCallback((l) => {
+  const changeLang = useCallback(async (l) => {
+    // Предзагружаем словарь перед переключением — чтобы UI не мигнул с ключами
+    if (!loaded[l]) {
+      try { await ensureLang(l) } catch {}
+    }
     setLang(l)
     localStorage.setItem('stolbiki_lang', l)
-    // Обновляем URL: /en/game для EN, /game для RU
     const currentPage = location.pathname.replace(/^\/en\/?/, '/').replace(/^\/+/, '')
     const newPath = l === 'en' ? '/en/' + currentPage : '/' + currentPage
     history.replaceState(null, '', newPath)
     document.documentElement.lang = l
+    setTick(t => t + 1)
   }, [])
 
-  // Устанавливаем lang на html элементе
-  useState(() => { document.documentElement.lang = lang === 'en' ? 'en' : 'ru' })
+  useEffect(() => { document.documentElement.lang = lang === 'en' ? 'en' : 'ru' }, [lang])
 
   return { lang, setLang: changeLang, t }
 }

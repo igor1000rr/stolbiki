@@ -8,6 +8,7 @@ import { WebSocketServer } from 'ws'
 import { createServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
+import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } from './ws-messages.js'
 
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
@@ -147,8 +148,10 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       if (now - wsMessageReset > 1000) { wsMessageCount = 0; wsMessageReset = now }
       if (++wsMessageCount > 15) return // Дроп спама
 
-      let msg
-      try { msg = JSON.parse(raw) } catch { return }
+      // Централизованный парсинг + валидация типа против whitelist
+      const parsed = parseRaw(raw)
+      if (!parsed.ok) return
+      const msg = parsed.msg
 
       // Аутентификация через сообщение
       if (msg.type === 'auth') {
@@ -232,7 +235,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // ─── JOIN ───
       if (msg.type === 'join') {
-        const roomId = (msg.roomId || '').toUpperCase()
+        const roomId = sanitizeRoomId(msg.roomId)
+        if (!roomId) return ws.send(JSON.stringify({ type: 'error', msg: 'Некорректный roomId' }))
         const room = rooms.get(roomId)
         if (!room) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната не найдена' }))
         if (room.players.length >= 2) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната полна' }))
@@ -264,7 +268,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // ─── SPECTATE ───
       if (msg.type === 'spectate') {
-        const roomId = (msg.roomId || '').toUpperCase()
+        const roomId = sanitizeRoomId(msg.roomId)
+        if (!roomId) return ws.send(JSON.stringify({ type: 'error', msg: 'Некорректный roomId' }))
         const room = rooms.get(roomId)
         if (!room) return ws.send(JSON.stringify({ type: 'error', msg: 'Комната не найдена' }))
         if (!room.spectators) room.spectators = []
@@ -361,7 +366,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // ─── CHAT ───
       if (msg.type === 'chat' && playerRoom && msg.text) {
-        const text = String(msg.text).replace(/<[^>]*>/g, '').slice(0, 50).trim()
+        const text = sanitizeChat(msg.text)
         if (!text) return
         if (isSpectator) {
           // Spectator chat — рассылаем всем (игрокам + зрителям)
@@ -382,8 +387,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // ─── EMOJI REACTIONS ───
       if (msg.type === 'reaction' && playerRoom && msg.emoji) {
-        const ALLOWED = ['👍', '🔥', '😮', '😂', '💪', '🎉']
-        const emoji = ALLOWED.includes(msg.emoji) ? msg.emoji : null
+        const emoji = sanitizeEmoji(msg.emoji)
         if (emoji) {
           playerRoom.players.forEach((p, i) => {
             if (i !== playerIdx && p.ws?.readyState === 1) {

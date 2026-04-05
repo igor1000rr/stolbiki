@@ -112,7 +112,34 @@ createRoot(document.getElementById('root')).render(
 // PWA Service Worker (только в браузере, не в native app)
 if (!isNative && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      // Находим ожидающий SW (новая версия) и просим его активироваться
+      const promptUpdate = (waiting) => {
+        if (!waiting) return
+        // Тихо: посылаем SKIP_WAITING, SW активируется → controllerchange → reload
+        waiting.postMessage({ type: 'SKIP_WAITING' })
+      }
+      if (reg.waiting) promptUpdate(reg.waiting)
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing
+        if (!newWorker) return
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            promptUpdate(newWorker)
+          }
+        })
+      })
+      // Проверяем обновления каждые 60 сек
+      setInterval(() => reg.update().catch(() => {}), 60000)
+    }).catch(() => {})
+
+    // Перезагрузка один раз при смене активного SW (новая версия стала контроллером)
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return
+      refreshing = true
+      location.reload()
+    })
   })
 }
 

@@ -7,6 +7,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import jwt from 'jsonwebtoken'
+import fs from 'fs'
 import { db, JWT_SECRET, PORT } from './db.js'
 import { rateLimit, rateLimits, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
@@ -35,11 +36,36 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : [...DEFAULT_ORIGINS, ...DEV_ORIGINS]
 
+// CSP hashes для inline <script> блоков — считаются плагином vite при сборке,
+// пишутся в server/csp-hashes.json (деплоится с сервером) и dist/csp-hashes.json (веб-директория).
+// Если файл есть — используем строгий CSP без 'unsafe-inline'. Если нет (dev) — fallback с 'unsafe-inline'.
+let scriptSrcDirective = ["'self'", "'unsafe-inline'", 'https://mc.yandex.ru']
+try {
+  const cspPaths = [
+    process.env.CSP_HASHES_PATH,
+    new URL('./csp-hashes.json', import.meta.url).pathname,
+    '/opt/stolbiki-api/csp-hashes.json',
+    '/opt/stolbiki-web/csp-hashes.json',
+  ].filter(Boolean)
+  for (const p of cspPaths) {
+    if (fs.existsSync(p)) {
+      const { scriptSrc } = JSON.parse(fs.readFileSync(p, 'utf8'))
+      if (Array.isArray(scriptSrc) && scriptSrc.length > 0) {
+        scriptSrcDirective = ["'self'", ...scriptSrc, 'https://mc.yandex.ru']
+        console.log(`[CSP] strict mode: ${scriptSrc.length} hashes from ${p}`)
+        break
+      }
+    }
+  }
+} catch (e) {
+  console.warn('[CSP] failed to load hashes, using unsafe-inline fallback:', e.message)
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://mc.yandex.ru'],
+      scriptSrc: scriptSrcDirective,
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru', 'https://api.qrserver.com'],

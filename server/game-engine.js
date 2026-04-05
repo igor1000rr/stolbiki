@@ -5,6 +5,17 @@
  * ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ.
  * Клиент реэкспортирует из src/engine/game.js → ../../server/game-engine.js
  * Vite резолвит путь при сборке, на VPS этот файл не меняется.
+ *
+ * @typedef {0|1} Color - Цвет игрока (0 = синий, 1 = красный)
+ * @typedef {[number, number]} Transfer - [srcStand, dstStand]
+ * @typedef {Object<string, number>} Placement - { [standIdx]: chipsCount }
+ * @typedef {Object} Action
+ * @property {Transfer} [transfer] - перенос верхней группы с src на dst
+ * @property {Placement} [placement] - установка блоков на стойки
+ * @property {boolean} [swap] - swap-ход (только turn=1, когда swapAvailable)
+ * @typedef {Object} Move
+ * @property {Action} action
+ * @property {Color} [player]
  */
 
 export const NUM_STANDS = 10
@@ -14,6 +25,9 @@ export const MAX_PLACE = 3
 export const MAX_PLACE_STANDS = 2
 export const FIRST_TURN_MAX = 1
 
+/**
+ * Состояние партии. Иммутабелен с точки зрения API: applyAction возвращает новый экземпляр.
+ */
 export class GameState {
   constructor(numStands = NUM_STANDS) {
     this.numStands = numStands

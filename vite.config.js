@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
+import { createHash } from 'crypto'
 
 // Плагин: подставляет __BUILD_HASH__ в dist/sw.js после сборки.
 // Без этого все билды делят один CACHE_NAME — SW кеш не инвалидируется.
@@ -20,8 +21,39 @@ function swBuildHash() {
   }
 }
 
+// Плагин: парсит dist/index.html, считает sha256 каждого inline <script>, пишет в dist/csp-hashes.json.
+// Сервер читает этот файл при старте и подставляет хеши в CSP script-src → позволяет убрать 'unsafe-inline'.
+function cspHashes() {
+  return {
+    name: 'csp-hashes',
+    apply: 'build',
+    closeBundle() {
+      const htmlPath = resolve('dist/index.html')
+      if (!existsSync(htmlPath)) return
+      const html = readFileSync(htmlPath, 'utf8')
+      const hashes = []
+      // Матчим <script> без src — только inline. Учитываем type="application/ld+json" и type="text/javascript".
+      const re = /<script(?:\s+type="[^"]*")?>([\s\S]*?)<\/script>/g
+      let m
+      while ((m = re.exec(html)) !== null) {
+        // Пропускаем если есть src= (не inline)
+        const tag = m[0].slice(0, m[0].indexOf('>') + 1)
+        if (/\ssrc=/.test(tag)) continue
+        const content = m[1]
+        if (!content.trim()) continue
+        const hash = createHash('sha256').update(content).digest('base64')
+        hashes.push(`'sha256-${hash}'`)
+      }
+      writeFileSync(resolve('dist/csp-hashes.json'), JSON.stringify({ scriptSrc: hashes }, null, 2))
+      // Дубликат в server/ — деплой-pipeline перекинет его в /opt/stolbiki-api/csp-hashes.json
+      try { writeFileSync(resolve('server/csp-hashes.json'), JSON.stringify({ scriptSrc: hashes }, null, 2)) } catch {}
+      console.log(`[csp-hashes] ${hashes.length} inline scripts hashed`)
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), swBuildHash()],
+  plugins: [react(), swBuildHash(), cspHashes()],
   base: '/',
   build: {
     rollupOptions: {
