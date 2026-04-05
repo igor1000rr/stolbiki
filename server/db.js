@@ -331,7 +331,12 @@ runMigration(6, () => {
   if (cols.includes('user_agent')) { try { db.exec('UPDATE error_reports SET ua = user_agent WHERE ua IS NULL AND user_agent IS NOT NULL') } catch {} }
 })
 
-console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 6`)
+// Миграция 7: token_version для отзыва JWT — инкремент token_version инвалидирует все токены юзера
+runMigration(7, () => {
+  try { db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0') } catch {}
+})
+
+console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 7`)
 
 // ─── Индексы (идемпотентны) ───
 db.exec(`

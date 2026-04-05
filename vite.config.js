@@ -4,6 +4,26 @@ import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 import { createHash } from 'crypto'
 
+// Версия берётся из package.json — единственный источник правды.
+const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
+const APP_VERSION = pkg.version
+
+// Плагин: подставляет версию и __BUILD_HASH__ в dist/index.html и dist/sw.js после сборки.
+function injectVersion() {
+  return {
+    name: 'inject-version',
+    apply: 'build',
+    closeBundle() {
+      // index.html: подменяем {{APP_VERSION}} на реальную версию
+      const htmlPath = resolve('dist/index.html')
+      if (existsSync(htmlPath)) {
+        const html = readFileSync(htmlPath, 'utf8').replace(/\{\{APP_VERSION\}\}/g, APP_VERSION)
+        writeFileSync(htmlPath, html)
+      }
+    },
+  }
+}
+
 // Плагин: подставляет __BUILD_HASH__ в dist/sw.js после сборки.
 // Без этого все билды делят один CACHE_NAME — SW кеш не инвалидируется.
 function swBuildHash() {
@@ -53,7 +73,10 @@ function cspHashes() {
 }
 
 export default defineConfig({
-  plugins: [react(), swBuildHash(), cspHashes()],
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
+  plugins: [react(), swBuildHash(), cspHashes(), injectVersion()],
   base: '/',
   build: {
     rollupOptions: {

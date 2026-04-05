@@ -238,10 +238,18 @@ run('HTTP routes', () => {
   })
 
   describe('POST /api/training (валидация через движок)', () => {
+    it('требует авторизацию', async () => {
+      const res = await request(app)
+        .post('/api/training')
+        .send({ moves: [{ action: {} }], winner: 0 })
+      expect(res.status).toBe(401)
+    })
+
     it('отклоняет мусорные ходы', async () => {
       const moves = Array.from({ length: 10 }, () => ({ action: { placement: { 99: 99 } } }))
       const res = await request(app)
         .post('/api/training')
+        .set('Authorization', `Bearer ${token}`)
         .send({ moves, winner: 0, mode: 'ai', difficulty: 100 })
       expect(res.status).toBe(400)
     })
@@ -249,6 +257,7 @@ run('HTTP routes', () => {
     it('отклоняет слишком короткую партию', async () => {
       const res = await request(app)
         .post('/api/training')
+        .set('Authorization', `Bearer ${token}`)
         .send({ moves: [{ action: {} }], winner: 0 })
       expect(res.status).toBe(400)
     })
@@ -264,6 +273,7 @@ run('HTTP routes', () => {
       }
       const res = await request(app)
         .post('/api/training')
+        .set('Authorization', `Bearer ${token}`)
         .send({ moves, winner: gs.winner ?? -1, mode: 'ai', difficulty: 100 })
       expect(res.status).toBe(200)
       expect(res.body.ok).toBe(true)

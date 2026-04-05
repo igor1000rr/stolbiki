@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
+import '../css/game.css'
 import Mascot from './Mascot'
 import Confetti from './Confetti'
 import {

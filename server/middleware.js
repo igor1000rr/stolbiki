@@ -43,7 +43,13 @@ setInterval(() => {
   const now = Date.now()
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
   for (const [k, v] of gameSubmitLimits) { if (now - v > 60000) gameSubmitLimits.delete(k) }
-  for (const [k, v] of lastSeenCache) { if (now - v > 600000) lastSeenCache.delete(k) }
+  // lastSeenCache содержит два типа значений:
+  //   - число (timestamp) — для last_seen (ключ: userId)
+  //   - объект { at, tv } — для token_version (ключ: 'tv:userId')
+  for (const [k, v] of lastSeenCache) {
+    const t = typeof v === 'number' ? v : v?.at
+    if (typeof t === 'number' && now - t > 600000) lastSeenCache.delete(k)
+  }
   // LRU: если всё ещё много — удаляем самые старые, не сбрасываем всё
   if (rateLimits.size > 50000) {
     const entries = [...rateLimits.entries()].sort((a, b) => a[1].start - b[1].start)
@@ -57,8 +63,28 @@ export function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Нужна авторизация' })
   try {
     req.user = jwt.verify(token, JWT_SECRET)
-    // Обновляем last_seen не чаще раза в 5 минут — снижаем нагрузку на SQLite
+    // Token revocation: проверяем token_version раз в 5 мин (кеш снижает нагрузку на SQLite).
+    // Edge case: если у юзера в DB token_version > 0 (кто-то отзывал токены), но в токене нет `tv`
+    // (старый токен до миграции 7) — тоже отклоняем. Закрывает дыру grace period'а.
     const now = Date.now()
+    const cacheKey = `tv:${req.user.id}`
+    const cached = lastSeenCache.get(cacheKey)
+    let dbTv
+    if (!cached || now - cached.at > LAST_SEEN_INTERVAL) {
+      const row = db.prepare('SELECT token_version FROM users WHERE id = ?').get(req.user.id)
+      dbTv = row?.token_version || 0
+      lastSeenCache.set(cacheKey, { at: now, tv: dbTv })
+    } else {
+      dbTv = cached.tv
+    }
+    const userTv = req.user.tv
+    // Отклоняем если:
+    //   - tv есть в токене и не совпадает с DB
+    //   - tv НЕТ в токене, но в DB token_version > 0 (значит кто-то отзывал)
+    if ((userTv !== undefined && userTv !== dbTv) || (userTv === undefined && dbTv > 0)) {
+      return res.status(401).json({ error: 'Токен отозван', expired: true })
+    }
+    // Обновляем last_seen не чаще раза в 5 минут — снижаем нагрузку на SQLite
     const lastUpdate = lastSeenCache.get(req.user.id)
     if (!lastUpdate || now - lastUpdate > LAST_SEEN_INTERVAL) {
       db.prepare(`UPDATE users SET last_seen = datetime('now') WHERE id = ?`).run(req.user.id)

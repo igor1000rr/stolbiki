@@ -62,13 +62,19 @@ export default function createAdminRouter(rooms, matchQueue) {
   })
 
   router.put('/users/:id', auth, adminOnly, (req, res) => {
-    const { rating, is_admin, username, reset_password } = req.body
+    const { rating, is_admin, username, reset_password, revoke_tokens } = req.body
     const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)
     if (!user) return res.status(404).json({ error: 'Не найден' })
     if (rating !== undefined) db.prepare('UPDATE users SET rating=? WHERE id=?').run(Math.max(100, Math.min(2500, +rating)), user.id)
     if (is_admin !== undefined) db.prepare('UPDATE users SET is_admin=? WHERE id=?').run(is_admin ? 1 : 0, user.id)
     if (username) db.prepare('UPDATE users SET username=? WHERE id=?').run(username, user.id)
-    if (reset_password) { const hash = bcrypt.hashSync(reset_password, 10); db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hash, user.id) }
+    if (reset_password) {
+      const hash = bcrypt.hashSync(reset_password, 10)
+      db.prepare('UPDATE users SET password_hash=?, token_version = COALESCE(token_version, 0) + 1 WHERE id=?').run(hash, user.id)
+    }
+    if (revoke_tokens) {
+      db.prepare('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id=?').run(user.id)
+    }
     res.json({ ok: true })
   })
 
@@ -236,37 +242,38 @@ export default function createAdminRouter(rooms, matchQueue) {
   // ═══ Аналитика поведения ═══
   router.get('/analytics', auth, adminOnly, (req, res) => {
     const days = Math.min(+req.query.days || 7, 90)
-    const since = `datetime('now', '-${days} days')`
+    // Безопаснее: передаём days параметром, не через template literal
+    const sinceParam = `-${days} days`
 
     // Просмотры страниц
     const pageViews = db.prepare(`
       SELECT page, COUNT(*) as views, COUNT(DISTINCT session_id) as sessions
-      FROM analytics_events WHERE event='pageview' AND created_at > ${since}
+      FROM analytics_events WHERE event='pageview' AND created_at > datetime('now', ?)
       GROUP BY page ORDER BY views DESC
-    `).all()
+    `).all(sinceParam)
 
     // Популярные события
     const topEvents = db.prepare(`
       SELECT event, COUNT(*) as count, COUNT(DISTINCT session_id) as sessions
-      FROM analytics_events WHERE created_at > ${since}
+      FROM analytics_events WHERE created_at > datetime('now', ?)
       GROUP BY event ORDER BY count DESC LIMIT 20
-    `).all()
+    `).all(sinceParam)
 
     // По дням
     const byDay = db.prepare(`
       SELECT date(created_at) as day, COUNT(*) as events, COUNT(DISTINCT session_id) as sessions,
         COUNT(DISTINCT user_id) as users
-      FROM analytics_events WHERE created_at > ${since}
+      FROM analytics_events WHERE created_at > datetime('now', ?)
       GROUP BY day ORDER BY day
-    `).all()
+    `).all(sinceParam)
 
     // Активные юзеры
     const activeUsers = db.prepare(`
       SELECT u.username, u.rating, COUNT(e.id) as events, MAX(e.created_at) as last_seen
       FROM analytics_events e JOIN users u ON u.id = e.user_id
-      WHERE e.created_at > ${since} AND e.user_id IS NOT NULL
+      WHERE e.created_at > datetime('now', ?) AND e.user_id IS NOT NULL
       GROUP BY e.user_id ORDER BY events DESC LIMIT 30
-    `).all()
+    `).all(sinceParam)
 
     // User agents (устройства)
     const devices = db.prepare(`
@@ -277,21 +284,21 @@ export default function createAdminRouter(rooms, matchQueue) {
           ELSE 'Desktop'
         END as device,
         COUNT(DISTINCT session_id) as sessions
-      FROM analytics_events WHERE created_at > ${since}
+      FROM analytics_events WHERE created_at > datetime('now', ?)
       GROUP BY device ORDER BY sessions DESC
-    `).all()
+    `).all(sinceParam)
 
     // Среднее время сессии (если есть session_start и session_end)
     const avgSession = db.prepare(`
       SELECT session_id, MIN(created_at) as first_event, MAX(created_at) as last_event,
         COUNT(*) as event_count
-      FROM analytics_events WHERE created_at > ${since} AND session_id != ''
+      FROM analytics_events WHERE created_at > datetime('now', ?) AND session_id != ''
       GROUP BY session_id HAVING event_count > 1
       ORDER BY first_event DESC LIMIT 100
-    `).all()
+    `).all(sinceParam)
 
-    const totalEvents = db.prepare(`SELECT COUNT(*) as c FROM analytics_events WHERE created_at > ${since}`).get()?.c || 0
-    const totalSessions = db.prepare(`SELECT COUNT(DISTINCT session_id) as c FROM analytics_events WHERE created_at > ${since} AND session_id != ''`).get()?.c || 0
+    const totalEvents = db.prepare(`SELECT COUNT(*) as c FROM analytics_events WHERE created_at > datetime('now', ?)`).get(sinceParam)?.c || 0
+    const totalSessions = db.prepare(`SELECT COUNT(DISTINCT session_id) as c FROM analytics_events WHERE created_at > datetime('now', ?) AND session_id != ''`).get(sinceParam)?.c || 0
 
     res.json({ pageViews, topEvents, byDay, activeUsers, devices, avgSession, totalEvents, totalSessions, days })
   })

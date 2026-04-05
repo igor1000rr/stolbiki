@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { db, checkAchievements } from '../db.js'
-import { auth } from '../middleware.js'
+import { auth, rateLimit } from '../middleware.js'
 import { gameSubmitLimits } from '../middleware.js'
 import { addXP, ensureCurrentSeason } from '../helpers.js'
 import { verifyGameFromMoves, walkMoves } from '../anticheat.js'
@@ -235,9 +235,11 @@ router.get('/replays/:id', (req, res) => {
   res.json({ ...replay, moves: JSON.parse(replay.moves) })
 })
 
-// ═══ Сбор training data от всех игроков (анонимных тоже) ═══
-// Rate limit: 30 запросов/час на IP (борьба с мусором в training_data)
-router.post('/training', (req, res) => {
+// ═══ Сбор training data — только от авторизованных игроков ═══
+// Причина: анонимный endpoint позволял training data poisoning — можно было
+// генерировать тысячи валидных партий с плохими ходами, отравляя обучение.
+// Rate limit: 10 партий/час на пользователя.
+router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   const { moves, winner, mode, difficulty } = req.body
   if (!moves || !Array.isArray(moves) || moves.length < 5) {
     return res.status(400).json({ error: 'Минимум 5 ходов' })
@@ -251,7 +253,7 @@ router.post('/training', (req, res) => {
 
   try {
     db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(null, gameData, winner ?? -1, moves.length, mode || 'ai', difficulty || 0)
+      .run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', difficulty || 0)
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: 'Ошибка записи' })

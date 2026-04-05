@@ -50,7 +50,7 @@ router.post('/register', (req, res) => {
     } catch {} // UNIQUE constraint — повторная регистрация
   }
 
-  const token = jwt.sign({ id: userId, username: cleanName, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  const token = jwt.sign({ id: userId, username: cleanName, isAdmin: !!isAdmin, tv: 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
   res.json({ token, user: { id: userId, username: cleanName, rating: 1000, isAdmin: !!isAdmin, referralCode: refCode } })
 })
 
@@ -60,7 +60,7 @@ router.post('/login', (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'Неверный логин или пароль' })
   }
-  const token = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  const token = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
   res.json({ token, user: formatUser(user) })
 })
 
@@ -83,7 +83,11 @@ router.post('/refresh', (req, res) => {
   }
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
-  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  // Проверяем token_version: если юзер сменил пароль или админ отозвал токены, старый tv не совпадёт
+  if (payload.tv !== undefined && payload.tv !== (user.token_version || 0)) {
+    return res.status(401).json({ error: 'Токен отозван. Войдите заново' })
+  }
+  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
   res.json({ token: newToken })
 })
 

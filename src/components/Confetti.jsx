@@ -3,6 +3,7 @@
  * Вызывается при победе, первой победе, ачивках
  */
 import { useEffect, useRef } from 'react'
+import '../css/confetti.css'
 
 const COLORS = ['#ff6066', '#4a9eff', '#ffc145', '#3dd68c', '#ff69b4', '#00bcd4', '#9b59b6']
 

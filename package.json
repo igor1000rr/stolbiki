@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:full": "cd server && npm install && cd .. && vitest run",
+    "server:install": "cd server && npm install",
     "cap:sync": "vite build && npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios"
@@ -27,7 +29,6 @@
     "@capacitor/status-bar": "^8.0.2",
     "chart.js": "^4.5.1",
     "react": "^19.2.4",
-    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
@@ -40,10 +41,10 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "vite": "^8.0.1",
-    "vitest": "^4.1.2",
-    "supertest": "^7.0.0",
-    "better-sqlite3": "^11.6.0",
-    "ws": "^8.18.0",
-    "express": "^4.21.0"
+    "vitest": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   }
 }

@@ -5,7 +5,7 @@
  */
 
 const KNOWN_TYPES = new Set([
-  'auth', 'join', 'spectate', 'findMatch', 'cancelMatch',
+  'auth', 'join', 'spectate', 'findMatch', 'cancelMatch', 'reconnect',
   'move', 'resign', 'chat', 'reaction',
   'drawOffer', 'drawResponse', 'gameOver',
   'rematchOffer', 'rematchResponse',

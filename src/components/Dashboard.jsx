@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart, registerables } from 'chart.js'
-import dashData from '../data/dashboard.json'
 import { getTrainingStats, exportForTraining, clearTrainingData } from '../engine/collector'
+
+// Данные дашборда грузятся лениво (30KB) — хранятся в module-scope после первой загрузки.
+// Все chart-компоненты читают отсюда. Рендер гейтится через Dashboard → SpinnerFallback.
+let dashData = null
 
 Chart.register(...registerables)
 Chart.defaults.color = '#6e6a82'
@@ -141,6 +144,20 @@ function VariantsTable({ data, headers }) {
 }
 
 export default function Dashboard() {
+  const [loaded, setLoaded] = useState(!!dashData)
+
+  useEffect(() => {
+    if (dashData) return
+    fetch('/dashboard-data.json')
+      .then(r => r.json())
+      .then(d => { dashData = d; setLoaded(true) })
+      .catch(() => setLoaded(true))
+  }, [])
+
+  if (!loaded || !dashData) {
+    return <div style={{ textAlign: 'center', padding: '60px 16px', color: 'var(--ink3)' }}>Загрузка дашборда…</div>
+  }
+
   const d = dashData
   const totalIter = d.selfplay.versions.length
   const avgWr = d.selfplay.vs_random.slice(-20).reduce((a,b) => a+b, 0) / 20

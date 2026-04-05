@@ -20,11 +20,13 @@ const MAX_RECONNECT = 15
 let lastRoomId = null
 let lastName = null
 let lastSkins = null
+let isReconnectAttempt = false // true при повторном подключении (отправляем `reconnect` вместо `join`)
 
 export function connect(roomId, name, callback, skins) {
   onMessage = callback
   intentionalClose = false
   reconnectAttempts = 0
+  isReconnectAttempt = false
   lastRoomId = roomId
   lastName = name
   lastSkins = skins
@@ -35,12 +37,23 @@ export function connect(roomId, name, callback, skins) {
 
   ws.onopen = () => {
     reconnectAttempts = 0
-    ws.send(JSON.stringify({ type: 'join', roomId, name, skins: skins || {} }))
+    // Первое подключение → join. Переподключение → reconnect (сохраняет слот и состояние).
+    if (isReconnectAttempt && localStorage.getItem('stolbiki_token')) {
+      ws.send(JSON.stringify({ type: 'reconnect', roomId }))
+    } else {
+      ws.send(JSON.stringify({ type: 'join', roomId, name, skins: skins || {} }))
+    }
   }
 
   ws.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data)
+      // Если сервер не нашёл слот для реконнекта — делаем обычный join (как новый игрок).
+      if (msg.type === 'reconnectFailed') {
+        isReconnectAttempt = false
+        ws.send(JSON.stringify({ type: 'join', roomId, name, skins: skins || {} }))
+        return
+      }
       if (onMessage) onMessage(msg)
     } catch {}
   }
@@ -54,6 +67,7 @@ export function connect(roomId, name, callback, skins) {
       const jitter = Math.random() * 1000
       const delay = base + jitter
       reconnectAttempts++
+      isReconnectAttempt = true // При следующем open отправим `reconnect`
       if (onMessage) onMessage({ type: 'reconnecting', attempt: reconnectAttempts, maxAttempts: MAX_RECONNECT, delay: Math.round(delay / 1000) })
       reconnectTimer = setTimeout(() => {
         if (lastRoomId) connect(lastRoomId, lastName, callback, lastSkins)
