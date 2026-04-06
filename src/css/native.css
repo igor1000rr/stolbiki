@@ -183,6 +183,15 @@ body.native-body { animation: none !important; }
   border-color: var(--accent);
 }
 
+/* Native: action-slots остаются в начале скролла, не сжимаются */
+.native-app .actions .action-slot {
+  min-width: 130px;
+  flex-shrink: 0;
+}
+.native-app .actions .action-slot.primary {
+  min-width: 140px;
+}
+
 /* ═══ NATIVE: Stand touch feedback ═══ */
 .native-app .stand:active {
   transform: scale(0.95) !important;

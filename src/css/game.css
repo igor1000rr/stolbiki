@@ -530,8 +530,11 @@
    ═══════════════════════════════════════════ */
 .action-slot {
   min-width: 160px;
-  order: -1; /* всегда в начале .actions */
 }
+/* Явный порядок: слот 1 (Перенести/Отменить) → слот 2 (Подтвердить) → остальные кнопки */
+.action-slot--swap { order: -2; }
+.action-slot.primary { order: -1; }
+
 .action-slot:disabled {
   opacity: 0.4;
   cursor: default;
@@ -543,6 +546,13 @@
   border-color: var(--surface3);
   color: var(--ink3);
 }
+/* Primary в disabled теряет pulse-анимацию + зелёный градиент */
+.action-slot.primary:disabled {
+  background: var(--surface2);
+  border-color: var(--surface3);
+  color: var(--ink3);
+  animation: none;
+}
 .action-slot--swap {
   animation: actionSlotSwap 0.2s var(--ease-smooth);
 }
@@ -553,9 +563,10 @@
 
 @media (max-width: 640px) {
   .action-slot {
-    min-width: 140px;
-    flex: 1 1 140px;
-    max-width: 50%;
+    min-width: 0;
+    flex: 1 1 0;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
 

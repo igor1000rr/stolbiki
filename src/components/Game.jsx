@@ -971,16 +971,18 @@ export default function Game() {
       <div className="actions">
         {/* ═══ Слот 1: Перенести / Отменить — всегда на экране, свап при активации ═══ */}
         {(() => {
-          const hasPlacements = totalPlaced > 0
-          const transferActive = isMyTurn && phase === 'place' && (transfer || inTransferMode)
-          const inCancelMode = transferActive || (isMyTurn && phase === 'place' && hasPlacements)
+          // «Перенос в процессе» — это либо активная фаза выбора (transfer-select/transfer-dst),
+          // либо перенос уже выбран и игрок вернулся в фазу place расставлять блоки.
+          const transferActive = isMyTurn && (inTransferMode || !!transfer)
+          const hasPlacements = isMyTurn && phase === 'place' && totalPlaced > 0
+          const inCancelMode = transferActive || hasPlacements
           if (inCancelMode) {
             return (
               <button
                 key="slot1-cancel"
                 className="btn action-slot action-slot--swap"
                 onClick={() => {
-                  // Отменить всё: и перенос, и расставленные блоки
+                  // «Отменить» — откат всех действий этого хода: и перенос, и расставленные блоки
                   if (transferActive) cancelTransfer()
                   if (hasPlacements) setPlacement({})
                 }}
