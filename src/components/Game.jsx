@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
 import '../css/game.css'
 import Mascot from './Mascot'
 import Confetti from './Confetti'
+import MascotRunner from './MascotRunner'
 import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
@@ -74,6 +75,8 @@ export default function Game() {
   const [newAch, setNewAch] = useState(null)
   const { sessionStats, firstWinCelebration, setFirstWinCelebration } = useSessionStats({ result, mode, humanPlayer, difficultyRef, gs })
   const [undoStack, setUndoStack] = useState([])
+  // Анимация переноса: Снаппи летит от стойки к стойке
+  const [mascotRun, setMascotRun] = useState(null)
   // Турнирный режим
   const [tournament, setTournament] = useState(null) // { total: 3|5, games: [{won, score}], currentGame: 1 }
   // Daily challenge
@@ -90,17 +93,17 @@ export default function Game() {
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
   const [onlinePlayers, setOnlinePlayers] = useState([])
   const [drawOffered, setDrawOffered] = useState(false)
-  const [rematchOffered, setRematchOffered] = useState(false)  // получили предложение рематча
-  const [rematchPending, setRematchPending] = useState(false)  // отправили предложение, ждём ответ
-  const [floatingEmoji, setFloatingEmoji] = useState(null) // { emoji, key }
+  const [rematchOffered, setRematchOffered] = useState(false)
+  const [rematchPending, setRematchPending] = useState(false)
+  const [floatingEmoji, setFloatingEmoji] = useState(null)
   const [spectatorCount, setSpectatorCount] = useState(0)
-  const onlineRef = useRef(null) // { roomId, playerIdx, myColor }
-  const gsRef = useRef(gs) // актуальное состояние для WS обработчиков
+  const onlineRef = useRef(null)
+  const gsRef = useRef(gs)
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
 
-  const sk = soundClick // тик при <10с
+  const sk = soundClick
   const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
     timerSetting: userSettings.timer,
     gameOver: gs.gameOver,
@@ -115,11 +118,8 @@ export default function Game() {
     onTick: () => sk(),
   })
 
-  // Синхронизируем gsRef с gs
   useEffect(() => { gsRef.current = gs }, [gs])
 
-  // ─── Онлайн мультиплеер: слушаем события из Online.jsx ───
-  // ─── Онлайн мультиплеер: WS-обработчики вынесены в useOnlineGameHandlers ───
   useOnlineGameHandlers({
     gameCtx, gsRef, onlineRef, aiRunning, modeRef, prevScore, moveHistoryRef,
     setGs, setPhase, setSelected, setTransfer, setPlacement, setResult, setHint,
@@ -133,71 +133,38 @@ export default function Game() {
     sounds: { sw, sl, ss, sp, st },
   })
 
-
-  // ─── Daily Challenge: слушаем из Online.jsx через GameContext ───
   useEffect(() => {
     if (!gameCtx) return
     return gameCtx.register('onDailyStart', (daily) => {
       if (!daily) return
-
       setDailyMode(true)
       setDailySeed(daily.seed || daily.date)
-
-      // Строим стартовую позицию из seed
       cancelRecording()
       let state = new GameState()
-
-      // Ход 1: P1 ставит 1 фишку
-      if (daily.firstMove) {
-        state = applyAction(state, { placement: { [daily.firstMove.stand]: 1 } })
-      }
-
-      // Ход 2: P2 swap или установка
+      if (daily.firstMove) state = applyAction(state, { placement: { [daily.firstMove.stand]: 1 } })
       if (daily.swapped) {
         state = applyAction(state, { swap: true })
       } else if (daily.secondMove?.stands?.length) {
         const pl = {}
-        for (const s of daily.secondMove.stands) {
-          pl[s] = (pl[s] || 0) + 1
-        }
+        for (const s of daily.secondMove.stands) pl[s] = (pl[s] || 0) + 1
         state = applyAction(state, { placement: pl })
       }
-
-      // Теперь ход игрока (он всегда играет за текущего)
       const hp = state.currentPlayer
       gsRef.current = state
       setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
       setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(400); difficultyRef.current = 400; setMode('ai')
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
-      startRecording()
-      setGameMeta('daily', 100)
-      resetTimers()
-      setUndoStack([])
-      
-      moveHistoryRef.current = []
-      setShowReplay(false)
-
+      startRecording(); setGameMeta('daily', 100); resetTimers(); setUndoStack([])
+      moveHistoryRef.current = []; setShowReplay(false)
       const seedLabel = (daily.seed || daily.date || '').toString().slice(-4)
       setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(lang === 'en' ? `Challenge #${seedLabel} — beat AI in minimum moves!` : `Челлендж #${seedLabel} — победите AI за минимум ходов!`)
     })
   }, [gameCtx]) // eslint-disable-line
 
+  function getDailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() }
+  function startDaily() { setDailySeed(getDailySeed()); setDailyMode(true); newGame(0, 100, 'ai'); setInfo(lang === 'en' ? `Daily challenge #${getDailySeed() % 10000} — beat AI!` : `Ежедневный челлендж #${getDailySeed() % 10000} — победите AI!`) }
 
-  // ─── Daily Challenge ───
-  function getDailySeed() {
-    const d = new Date()
-    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
-  }
-
-  function startDaily() {
-    setDailySeed(getDailySeed())
-    setDailyMode(true)
-    newGame(0, 100, 'ai')
-    setInfo(lang === 'en' ? `Daily challenge #${getDailySeed() % 10000} — beat AI!` : `Ежедневный челлендж #${getDailySeed() % 10000} — победите AI!`)
-  }
-
-  // ─── Турнирный режим ───
   function startTournament(total = 3) {
     setTournament({ total, games: [], currentGame: 1 })
     newGame(0, difficulty, 'ai')
@@ -213,16 +180,10 @@ export default function Game() {
     setInfo(lang === 'en' ? `Tournament: game ${next} of ${tournament.total}` : `Турнир: партия ${next} из ${tournament.total}`)
   }
 
-  // Слушаем новые ачивки через GameContext
   useEffect(() => {
     if (!gameCtx) return
-    return gameCtx.register('onAchievement', (ach) => {
-      setNewAch(ach)
-      setTimeout(() => setNewAch(null), 4000)
-    })
+    return gameCtx.register('onAchievement', (ach) => { setNewAch(ach); setTimeout(() => setNewAch(null), 4000) })
   }, [gameCtx])
-
-  // Сессионная статистика — extracted to useSessionStats
 
   useEffect(() => {
     const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
@@ -231,24 +192,20 @@ export default function Game() {
     prevScore.current = [s0, s1]
   }, [gs])
 
-  // ─── AI ход ───
   const runAi = useCallback((state) => {
     if (aiRunning.current || state.gameOver) return
-    if (modeRef.current === 'online') return // Никогда не запускаем AI в онлайне
-    aiRunning.current = true
-    setAiThinking(true)
-    setLocked(true)
-    setInfo(t('game.aiThinking'))
+    if (modeRef.current === 'online') return
+    aiRunning.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
     const startTime = Date.now()
     setTimeout(() => {
       const gpu = isGpuReady()
       const diff = difficultyRef.current
       const action = mctsSearch(state, ...(
-        diff >= 1500 ? (gpu ? [5000, 0] : [3000, 15]) : // Impossible: 5000 GPU-симуляций (~6с)
-        diff >= 800 ? (gpu ? [1500, 0] : [1200, 10]) : // Экстрим: 1500 GPU-симуляций (~2с)
-        diff >= 400 ? (gpu ? [600, 0] : [800, 8]) :    // Сложная: 600 GPU-симуляций (~0.8с)
-        diff >= 150 ? (gpu ? [200, 1] : [500, 3]) :    // Средняя
-                       (gpu ? [80, 1]  : [200, 1])      // Лёгкая
+        diff >= 1500 ? (gpu ? [5000, 0] : [3000, 15]) :
+        diff >= 800 ? (gpu ? [1500, 0] : [1200, 10]) :
+        diff >= 400 ? (gpu ? [600, 0] : [800, 8]) :
+        diff >= 150 ? (gpu ? [200, 1] : [500, 3]) :
+                       (gpu ? [80, 1]  : [200, 1])
       ))
       const remaining = Math.max(0, 1000 - (Date.now() - startTime))
       setTimeout(() => {
@@ -274,14 +231,10 @@ export default function Game() {
                 gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false, false, moveHistoryRef.current)
                 API.track('game_end', 'game', { won, score, difficulty: difficultyRef.current, mode: 'ai' })
               }
-              // Турнир — запись результата (AI gameOver)
               if (tournament) {
                 const w = ns.winner === humanPlayer
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
-                setTournament(prev => ({
-                  ...prev,
-                  games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }],
-                }))
+                setTournament(prev => ({ ...prev, games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }] }))
               }
             }, 800)
             return
@@ -291,85 +244,59 @@ export default function Game() {
             return
           }
           setTimeout(() => {
-            setLocked(false)
-            setPhase('place')
-            setTransfer(null)
-            setPlacement({})
+            setLocked(false); setPhase('place'); setTransfer(null); setPlacement({})
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.clickStands'))
-            
           }, 500)
         }, 300)
       }, remaining)
     }, 50)
   }, [difficulty, humanPlayer])
 
-  // ─── Новая игра ───
   function newGame(side, diff, gameMode) {
     cancelRecording()
     const hp = side ?? humanPlayer
     const d = diff ?? difficulty
     let m = gameMode ?? mode
-    // Если были в онлайн-режиме и начинаем новую — сбрасываем в AI
     if ((m === 'online' || m === 'spectate-online') && !gameMode) m = 'ai'
-    if (m === 'online' || m === 'spectate-online') return // Онлайн-игры стартуют через stolbiki-online-start
-    // Сброс онлайн состояния
+    if (m === 'online' || m === 'spectate-online') return
     setOnlineRoom(null); setOnlinePlayerIdx(-1); setOnlinePlayers([])
     onlineRef.current = null
-    
     moveHistoryRef.current = []
     setShowReplay(false)
     const state = new GameState()
     gsRef.current = state
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setRatingDelta(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); difficultyRef.current = d; setMode(m)
-    // Предзагрузка GPU-сети для hard+ (lazy, не блокирует)
     if (d >= 200) preloadGpuNet()
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
-    startRecording()
-    setGameMeta(m, d)
-    resetTimers()
-    setUndoStack([])
+    startRecording(); setGameMeta(m, d); resetTimers(); setUndoStack([])
     if (m === 'pvp') {
       setLog([{ text: lang === 'en' ? 'New game: player vs player' : 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(t('game.place1'))
     } else if (m === 'spectate') {
       setLog([{ text: 'AI vs AI — наблюдение', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-      setInfo('AI vs AI')
-      setLocked(true)
+      setInfo('AI vs AI'); setLocked(true)
       setTimeout(() => runAi(state), 800)
     } else {
       const c = hp === 0 ? t('game.blue').toLowerCase() : t('game.red').toLowerCase()
       setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
-      if (state.currentPlayer !== hp) {
-        setInfo(t('game.aiFirst'))
-        setLocked(true)
-        setTimeout(() => runAi(state), 500)
-      } else {
-        setInfo(t('game.place1first'))
-      }
+      if (state.currentPlayer !== hp) { setInfo(t('game.aiFirst')); setLocked(true); setTimeout(() => runAi(state), 500) }
+      else setInfo(t('game.place1first'))
     }
   }
 
   useEffect(() => { newGame(0, 50) }, []) // eslint-disable-line
 
-  // ELO дельта — получаем от Profile через GameContext
   useEffect(() => {
     if (!gameCtx) return
     return gameCtx.register('onRatingDelta', (d) => setRatingDelta(d))
   }, [gameCtx])
 
-  // Горячие клавиши — extracted hook
-
-  // Таймеры (elapsed + player) управляются useGameTimer hook
-
-  // ─── Клик по стойке — ОБЫЧНАЯ ФУНКЦИЯ, всегда свежий state ───
-  // Автоподтверждение — когда макс фишек расставлены
   useEffect(() => {
     if (!userSettings.autoConfirm || phase !== 'place' || gs.gameOver || locked) return
     const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
     const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
     if (totalPlaced >= maxTotal) {
-      // Откладываем на следующий tick чтобы стейт обновился
       const t = setTimeout(() => confirmTurn(), 200)
       return () => clearTimeout(t)
     }
@@ -383,21 +310,14 @@ export default function Game() {
 
     if (phase === 'transfer-select') {
       const [, ts] = gs.topGroup(i)
-      if (ts > 0) {
-        setSelected(i)
-        setPhase('transfer-dst')
-        setInfo(lang === 'en' ? `Where to transfer blocks from stand ${SL(i)}?` : `Куда перенести блоки со стойки ${SL(i)}?`)
-      }
+      if (ts > 0) { setSelected(i); setPhase('transfer-dst'); setInfo(lang === 'en' ? `Where to transfer blocks from stand ${SL(i)}?` : `Куда перенести блоки со стойки ${SL(i)}?`) }
       return
     }
 
     if (phase === 'transfer-dst') {
       if (i === selected) { setSelected(null); setPhase('transfer-select'); setInfo(t('game.selectTransferFrom')); return }
       if (getValidTransfers(gs).some(([s, d]) => s === selected && d === i)) {
-        setTransfer([selected, i])
-        setSelected(null)
-        setPhase('place')
-        st()
+        setTransfer([selected, i]); setSelected(null); setPhase('place'); st()
         addLog(`${lang === 'en' ? 'Transfer' : 'Перенос'}: ${SL(selected)} → ${SL(i)}`, humanPlayer)
         setInfo(t('game.transferSelected'))
       } else {
@@ -411,53 +331,40 @@ export default function Game() {
       const currentTotal = Object.values(placement).reduce((a, b) => a + b, 0)
       const numStands = Object.keys(placement).length
       const canClose = gs.canCloseByPlacement()
-
       let space = gs.standSpace(i)
-      // Учитываем pending-перенос: фишки уже визуально ушли / пришли
       if (transfer) {
         const [src, dst] = transfer
         const [, grpSize] = gs.topGroup(src)
-        if (i === src) space += grpSize   // фишки ушли — стало больше места
-        if (i === dst) space -= grpSize   // фишки пришли — стало меньше места
+        if (i === src) space += grpSize
+        if (i === dst) space -= grpSize
       }
       if (!canClose) space = Math.max(0, space - 1)
       if (space <= 0) { setInfo(lang === 'en' ? `Stand ${SL(i)} is full` : `Стойка ${SL(i)} заполнена`); return }
-
       if (i in placement) {
         const current = placement[i]
         const remaining = maxTotal - currentTotal
         const spaceLeft = space - current
-
         if (remaining > 0 && spaceLeft > 0) {
           const newPlacement = { ...placement, [i]: current + 1 }
-          setPlacement(newPlacement)
-          sp()
+          setPlacement(newPlacement); sp()
           const newTotal = currentTotal + 1
           setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'blocks' : 'блоков'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
         } else {
-          // Достигнут макс — убираем с этой стойки
-          const newPlacement = { ...placement }
-          delete newPlacement[i]
-          setPlacement(newPlacement)
+          const newPlacement = { ...placement }; delete newPlacement[i]; setPlacement(newPlacement)
           const newTotal = currentTotal - current
           setInfo(`${lang === 'en' ? 'Removed' : 'Убрано'}. ${newTotal}/${maxTotal}`)
         }
         return
       }
-
-      // Новая стойка — ставим 1
       if (numStands >= MAX_PLACE_STANDS) { setInfo(t('game.max2stands')); return }
       if (currentTotal >= maxTotal) { setInfo(t('game.allPlaced')); return }
-
       const newPlacement = { ...placement, [i]: 1 }
-      setPlacement(newPlacement)
-      sp()
+      setPlacement(newPlacement); sp()
       const newTotal = currentTotal + 1
       setInfo(`${newTotal}/${maxTotal} ${lang === 'en' ? 'blocks' : 'блоков'}${newTotal >= maxTotal ? (lang === 'en' ? ' — confirm' : ' — подтвердите') : ''}`)
     }
   }
 
-  // ─── Long press на стойку — жестовый перенос ───
   function onStandLongPress(i) {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
@@ -465,7 +372,6 @@ export default function Game() {
     if (phase !== 'place') return
     if (gs.isFirstTurn()) return
     if (!getValidTransfers(gs).some(([s]) => s === i)) return
-    // Haptics на Capacitor
     try { window.Capacitor?.Plugins?.Haptics?.impact?.({ style: 'MEDIUM' }) } catch {}
     soundClick()
     setSelected(i)
@@ -473,7 +379,6 @@ export default function Game() {
     setInfo(lang === 'en' ? `Where to transfer from stand ${SL(i)}?` : `Куда перенести со стойки ${SL(i)}?`)
   }
 
-  // ─── Подтверждение ───
   function confirmTurn() {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (!currentIsHuman || gs.gameOver || locked) return
@@ -482,14 +387,16 @@ export default function Game() {
     recordMove(gs, action, gs.currentPlayer)
     moveHistoryRef.current.push({ action: { ...action }, player: gs.currentPlayer })
     addLog(describeAction(action, gs.currentPlayer, t), gs.currentPlayer)
+    if (mode === 'online') MP.sendMove(action, playerTime)
 
-    // Онлайн — отправляем ход противнику (с локальным временем для sync)
-    if (mode === 'online') {
-      MP.sendMove(action, playerTime)
+    // ─── Анимация переноса: Snappy летит от стойки к стойке ───
+    if (action.transfer) {
+      const [src, dst] = action.transfer
+      const [topColor, topCount] = gs.topGroup(src)
+      setMascotRun({ from: src, to: dst, color: topColor, count: topCount, key: Date.now().toString() })
     }
 
     const ns = applyAction(gs, action)
-    // Звуки
     if (action.transfer) soundTransfer()
     else if (Object.keys(action.placement || {}).length) soundPlace()
     const newClosed = Object.keys(ns.closed).length
@@ -498,21 +405,15 @@ export default function Game() {
 
     setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
     setGs(ns)
-    
+
     if (ns.gameOver) {
-      // Онлайн — сообщаем серверу о победителе
-      if (mode === 'online') {
-        MP.sendGameOver(ns.winner)
-      }
+      if (mode === 'online') MP.sendGameOver(ns.winner)
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
         finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
         saveBuildingOnWin(ns)
         const won = (mode === 'pvp') ? true : ns.winner === humanPlayer
-        setTimeout(() => {
-          won ? sw() : sl()
-          if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
-        }, 300)
+        setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
         if (gameCtx) {
           const w = ns.winner === humanPlayer
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
@@ -520,53 +421,29 @@ export default function Game() {
           const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
           gameCtx.emit('recordGame', w, score, difficulty >= 400, closedGolden, false, mode === 'online', moveHistoryRef.current)
         }
-        // Турнир — запись результата
         if (tournament) {
           const w = ns.winner === humanPlayer
           const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
-          setTournament(prev => ({
-            ...prev,
-            games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }],
-          }))
+          setTournament(prev => ({ ...prev, games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }] }))
         }
-        // Daily — отправка результата
         if (dailyMode && API.isLoggedIn()) {
           const w = ns.winner === humanPlayer ? 1 : 0
-          fetch('/api/daily/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
-            body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - timerStartTime) / 1000), won: w }),
-          }).catch(() => {})
+          fetch('/api/daily/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` }, body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - timerStartTime) / 1000), won: w }) }).catch(() => {})
           setDailyMode(false)
         }
       }, 800)
       return
     }
-    if (mode === 'online') {
-      setLocked(true)
-      setPhase('place')
-      setInfo(t('game.opponentTurn'))
-    } else if (mode === 'pvp') {
+    if (mode === 'online') { setLocked(true); setPhase('place'); setInfo(t('game.opponentTurn')) }
+    else if (mode === 'pvp') {
       setPhase('place')
       const name = ns.currentPlayer === 0 ? t('game.blue') : t('game.red')
       setInfo(ns.isFirstTurn() ? `${name}: ${lang === 'en' ? 'place 1 block' : 'поставьте 1 блок'}` : `${name}: ${lang === 'en' ? 'place blocks' : 'расставьте блоки'}`)
-    } else {
-      setLocked(true)
-      
-      setPhase('ai')
-      setTimeout(() => runAi(ns), 500)
-    }
+    } else { setLocked(true); setPhase('ai'); setTimeout(() => runAi(ns), 500) }
   }
 
-  function startTransfer() {
-    setPhase('transfer-select')
-    setInfo(t('game.selectTransferFrom'))
-  }
-
-  function cancelTransfer() {
-    setSelected(null); setTransfer(null); setPhase('place')
-    setInfo(t('game.transferCancelled'))
-  }
+  function startTransfer() { setPhase('transfer-select'); setInfo(t('game.selectTransferFrom')) }
+  function cancelTransfer() { setSelected(null); setTransfer(null); setPhase('place'); setInfo(t('game.transferCancelled')) }
 
   function undoMove() {
     if (undoStack.length === 0 || mode !== 'pvp') return
@@ -584,10 +461,7 @@ export default function Game() {
     setResult(winner); setPhase('done'); setLocked(false)
     setInfo(t('game.resigned'))
     finishRecording(winner, [gs.countClosed(0), gs.countClosed(1)])
-    // Notify opponent in online
-    if (mode === 'online') {
-      MP.send({ type: 'resign' })
-    }
+    if (mode === 'online') MP.send({ type: 'resign' })
     sl()
   }
 
@@ -598,7 +472,6 @@ export default function Game() {
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
   }
 
-  // ─── Computed ───
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
@@ -606,7 +479,6 @@ export default function Game() {
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
-  // Горячие клавиши (inlined — не extracted hook, чтобы избежать TDZ)
   useEffect(() => {
     function handleKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return
@@ -626,13 +498,8 @@ export default function Game() {
   })
 
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('stolbiki_tutorial_seen'))
+  function dismissTutorial() { setShowTutorial(false); localStorage.setItem('stolbiki_tutorial_seen', '1') }
 
-  function dismissTutorial() {
-    setShowTutorial(false)
-    localStorage.setItem('stolbiki_tutorial_seen', '1')
-  }
-
-  // Сохраняем здание в БД при победе игрока
   async function saveBuildingOnWin(ns) {
     if (mode === 'pvp' || mode === 'spectate' || mode === 'spectate-online') return
     if (!API.isLoggedIn()) return
@@ -644,20 +511,11 @@ export default function Game() {
     try {
       await fetch('/api/buildings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
         body: JSON.stringify({
-          stands_snapshot: ns.stands.map((chips, idx) => ({
-            idx, chips, owner: ns.closed[idx] ?? null,
-          })),
-          result,
-          is_ai: mode === 'ai',
-          ai_difficulty: mode === 'ai' ? difficultyRef.current : null,
-          opponent_name: opponentName,
-          player_skin_id: null,
-          background_id: null,
+          stands_snapshot: ns.stands.map((chips, idx) => ({ idx, chips, owner: ns.closed[idx] ?? null })),
+          result, is_ai: mode === 'ai', ai_difficulty: mode === 'ai' ? difficultyRef.current : null,
+          opponent_name: opponentName, player_skin_id: null, background_id: null,
         }),
       })
     } catch {}
@@ -665,6 +523,9 @@ export default function Game() {
 
   return (
     <div className={isNative ? 'native-game-wrapper' : ''}>
+      {/* Анимация Снаппи при переносе */}
+      <MascotRunner run={mascotRun} onDone={() => setMascotRun(null)} />
+
       {/* Туториал для новых игроков */}
       {showTutorial && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isNative ? 12 : 20, overflowY: 'auto' }}
@@ -746,7 +607,6 @@ export default function Game() {
       </div>
       )}
 
-      {/* ═══ NATIVE: компактный game bar ═══ */}
       {mode !== 'online' && mode !== 'spectate-online' && isNative && (
         <div className="m-game-bar">
           <div className="m-game-bar-info">
@@ -771,13 +631,11 @@ export default function Game() {
         </div>
       )}
 
-      {/* Mobile settings sheet */}
       {showMobileSettings && isNative && (
         <div className="m-sheet-overlay" onClick={() => setShowMobileSettings(false)}>
           <div className="m-sheet" onClick={e => e.stopPropagation()}>
             <div className="m-sheet-handle" />
             <div className="m-sheet-title">{lang === 'en' ? 'Game Settings' : 'Настройки игры'}</div>
-
             <div className="m-setting-row">
               <span className="m-setting-label">{lang === 'en' ? 'Mode' : 'Режим'}</span>
               <select value={mode} onChange={e => { newGame(humanPlayer, difficulty, e.target.value); setShowMobileSettings(false) }}>
@@ -786,7 +644,6 @@ export default function Game() {
                 <option value="spectate">AI vs AI</option>
               </select>
             </div>
-
             {mode === 'ai' && (
               <div className="m-setting-row">
                 <span className="m-setting-label">{lang === 'en' ? 'Difficulty' : 'Сложность'}</span>
@@ -800,7 +657,6 @@ export default function Game() {
                 </div>
               </div>
             )}
-
             {mode === 'ai' && !tournament && (
               <div className="m-setting-row">
                 <span className="m-setting-label">{lang === 'en' ? 'Series' : 'Серия'}</span>
@@ -810,13 +666,11 @@ export default function Game() {
                 </div>
               </div>
             )}
-
             <button className="m-sheet-close" onClick={() => setShowMobileSettings(false)}>{lang === 'en' ? 'Done' : 'Готово'}</button>
           </div>
         </div>
       )}
 
-      {/* Турнирный прогресс */}
       {tournament && (
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 10,
           background: 'rgba(240,160,48,0.06)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(255,193,69,0.12)' }}>
@@ -851,7 +705,6 @@ export default function Game() {
         </div>
       )}
 
-      {/* Сессионная статистика */}
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
           <span>{lang === 'en' ? 'Wins' : 'Побед'}: <b style={{ color: 'var(--green)' }}>{sessionStats.wins}</b></span>
@@ -907,7 +760,6 @@ export default function Game() {
         flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar}
         ghostTransfer={transfer ? { from: transfer[0], to: transfer[1], color: gs.topGroup(transfer[0])[0], count: gs.topGroup(transfer[0])[1] } : null} />
 
-      {/* Таймер игроков */}
       {timerLimit > 0 && !gs.gameOver && (
         <div style={{ display: 'flex', justifyContent: 'space-between', margin: isNative ? '2px 12px 4px' : '4px 16px 8px', fontSize: isNative ? 12 : 13, fontFamily: 'monospace' }}>
           <div style={{ color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 0 ? 700 : 400,
@@ -924,7 +776,6 @@ export default function Game() {
         </div>
       )}
 
-      {/* Стабильный разделитель — ход, время, статус фишек (всегда видим) */}
       <div style={{ textAlign: 'center', fontSize: isNative ? 10 : 11, color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px', minHeight: isNative ? 16 : 18 }}>
         {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
         {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
@@ -932,12 +783,9 @@ export default function Game() {
         )}
       </div>
 
-      {/* Swap кнопка */}
       {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
         <div style={{ textAlign: 'center', margin: '8px 0' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>
-            {t('game.swapQuestion')}
-          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.swapQuestion')}</div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button className="btn" onClick={() => {
               const action = { swap: true }
@@ -947,50 +795,22 @@ export default function Game() {
               addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
               ss()
               const ns = applyAction(gs, action)
-              setGs(ns)
-              setPhase('place')
-              if (mode === 'online') {
-                setHumanPlayer(0)
-                onlineRef.current && (onlineRef.current.myColor = 0)
-                setLocked(false)
-                setInfo(t('game.swapOnlineDone'))
-              } else {
-                setInfo(t('game.swapDone'))
-              }
-            }} style={{ borderColor: 'var(--purple)', color: 'var(--purple)', padding: '10px 20px' }}>
-              Swap
-            </button>
-            <button className="btn" onClick={() => {
-              setInfo(t('game.swapDeclined'))
-            }} style={{ fontSize: 12, padding: '10px 16px' }}>
-              {t('game.noContinue')}
-            </button>
+              setGs(ns); setPhase('place')
+              if (mode === 'online') { setHumanPlayer(0); onlineRef.current && (onlineRef.current.myColor = 0); setLocked(false); setInfo(t('game.swapOnlineDone')) }
+              else setInfo(t('game.swapDone'))
+            }} style={{ borderColor: 'var(--purple)', color: 'var(--purple)', padding: '10px 20px' }}>Swap</button>
+            <button className="btn" onClick={() => setInfo(t('game.swapDeclined'))} style={{ fontSize: 12, padding: '10px 16px' }}>{t('game.noContinue')}</button>
           </div>
         </div>
       )}
 
-      {/* Draw offer from opponent */}
       {drawOffered && !gs.gameOver && mode === 'online' && (
         <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
           background: 'rgba(155,89,182,0.08)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.2)' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>
-            {t('game.drawOfferReceived')}
-          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.drawOfferReceived')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button className="btn" onClick={() => {
-              MP.send({ type: 'drawResponse', accepted: true })
-              setResult(-1); setPhase('done'); setLocked(false)
-              setInfo(t('game.drawAgreed'))
-              setDrawOffered(false)
-            }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
-              {t('game.accept')}
-            </button>
-            <button className="btn" onClick={() => {
-              MP.send({ type: 'drawResponse', accepted: false })
-              setDrawOffered(false)
-            }} style={{ fontSize: 12 }}>
-              {t('game.decline')}
-            </button>
+            <button className="btn" onClick={() => { MP.send({ type: 'drawResponse', accepted: true }); setResult(-1); setPhase('done'); setLocked(false); setInfo(t('game.drawAgreed')); setDrawOffered(false) }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>{t('game.accept')}</button>
+            <button className="btn" onClick={() => { MP.send({ type: 'drawResponse', accepted: false }); setDrawOffered(false) }} style={{ fontSize: 12 }}>{t('game.decline')}</button>
           </div>
         </div>
       )}
@@ -998,90 +818,50 @@ export default function Game() {
       {rematchOffered && gs.gameOver && mode === 'online' && (
         <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
           background: 'rgba(61,214,140,0.08)', borderRadius: 10, border: '1px solid rgba(61,214,140,0.2)' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>
-            {t('game.rematchOffer')}
-          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.rematchOffer')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button className="btn" onClick={() => {
-              MP.sendRematchResponse(true)
-              setRematchOffered(false)
-            }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
-              {t('game.accept')}
-            </button>
-            <button className="btn" onClick={() => {
-              MP.sendRematchResponse(false)
-              setRematchOffered(false)
-            }} style={{ fontSize: 12 }}>
-              {t('game.decline')}
-            </button>
+            <button className="btn" onClick={() => { MP.sendRematchResponse(true); setRematchOffered(false) }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>{t('game.accept')}</button>
+            <button className="btn" onClick={() => { MP.sendRematchResponse(false); setRematchOffered(false) }} style={{ fontSize: 12 }}>{t('game.decline')}</button>
           </div>
         </div>
       )}
 
       <div className="actions">
-        {/* ═══ Слот 1: Перенести / Отменить — всегда на экране, свап при активации ═══ */}
         {(() => {
-          // «Перенос в процессе» — это либо активная фаза выбора (transfer-select/transfer-dst),
-          // либо перенос уже выбран и игрок вернулся в фазу place расставлять блоки.
           const transferActive = isMyTurn && (inTransferMode || !!transfer)
           const hasPlacements = isMyTurn && phase === 'place' && totalPlaced > 0
           const inCancelMode = transferActive || hasPlacements
           if (inCancelMode) {
             return (
-              <button
-                key="slot1-cancel"
-                className="btn action-slot action-slot--swap"
-                onClick={() => {
-                  // «Отменить» — откат всех действий этого хода: и перенос, и расставленные блоки
-                  if (transferActive) cancelTransfer()
-                  if (hasPlacements) setPlacement({})
-                }}
-                title="Esc"
-              >
+              <button key="slot1-cancel" className="btn action-slot action-slot--swap"
+                onClick={() => { if (transferActive) cancelTransfer(); if (hasPlacements) setPlacement({}) }}
+                title="Esc">
                 {t('game.cancelTransfer')}
               </button>
             )
           }
           return (
-            <button
-              key="slot1-transfer"
-              className="btn action-slot action-slot--swap"
+            <button key="slot1-transfer" className="btn action-slot action-slot--swap"
               disabled={!(isMyTurn && phase === 'place' && hasTransfers)}
-              onClick={startTransfer}
-            >
+              onClick={startTransfer}>
               {t('game.transfer')}
             </button>
           )
         })()}
 
-        {/* ═══ Слот 2: Подтвердить — всегда на экране ═══ */}
-        <button
-          className="btn primary action-slot"
-          disabled={!(isMyTurn && phase === 'place' && canConfirm)}
-          onClick={confirmTurn}
-          title="Enter"
-        >
+        <button className="btn primary action-slot" disabled={!(isMyTurn && phase === 'place' && canConfirm)} onClick={confirmTurn} title="Enter">
           {t('game.confirm')} ⏎
         </button>
 
         <button className="btn" onClick={() => newGame()} title="N">{t('game.newGame')}</button>
         {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
-          <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">
-            ↩ Undo
-          </button>
+          <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">↩ Undo</button>
         )}
         {!gs.gameOver && mode !== 'pvp' && mode !== 'spectate-online' && (
-          <button className="btn" onClick={resign} style={{ fontSize: 11, color: 'var(--p2)', borderColor: '#ff606640' }}>
-            {t('game.resign')}
-          </button>
+          <button className="btn" onClick={resign} style={{ fontSize: 11, color: 'var(--p2)', borderColor: '#ff606640' }}>{t('game.resign')}</button>
         )}
         {!gs.gameOver && mode === 'online' && (
-          <button className="btn" onClick={() => {
-            MP.send({ type: 'drawOffer' })
-            setInfo(t('game.drawOffered'))
-          }} style={{ fontSize: 11, opacity: 0.6 }}>
-            {t('game.offerDraw')}
-          </button>
+          <button className="btn" onClick={() => { MP.send({ type: 'drawOffer' }); setInfo(t('game.drawOffered')) }} style={{ fontSize: 11, opacity: 0.6 }}>{t('game.offerDraw')}</button>
         )}
         <button className="btn" onClick={() => setSoundOnState(p => !p)}
           style={{ fontSize: 13, opacity: 0.5, padding: '6px 8px', minWidth: 0 }}
@@ -1097,7 +877,6 @@ export default function Game() {
         )}
       </div>
 
-      {/* Emoji reactions — online */}
       {mode === 'online' && !gs.gameOver && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 6 }}>
           {['👍', '🔥', '😮', '😂', '💪', '🎉'].map(e => (
@@ -1114,15 +893,12 @@ export default function Game() {
         </div>
       )}
 
-      {/* Floating emoji from opponent */}
       {floatingEmoji && (
         <div key={floatingEmoji.key} style={{
           position: 'fixed', top: '30%', left: '50%', transform: 'translateX(-50%)',
           fontSize: 64, zIndex: 9999, pointerEvents: 'none',
           animation: 'emojiFloat 2s ease-out forwards',
-        }}>
-          {floatingEmoji.emoji}
-        </div>
+        }}>{floatingEmoji.emoji}</div>
       )}
 
       {hint && (
@@ -1151,7 +927,6 @@ export default function Game() {
         ))}
       </div>
 
-      {/* Конфетти */}
       {confetti && (
         <div className="confetti-container">
           {Array.from({ length: 40 }).map((_, i) => (
@@ -1168,7 +943,6 @@ export default function Game() {
         </div>
       )}
 
-      {/* Ачивка popup */}
       {newAch && (
         <div className="achievement-popup">
           <Mascot pose="celebrate" size={40} animate={false} />
@@ -1179,7 +953,6 @@ export default function Game() {
         </div>
       )}
 
-      {/* First win celebration — один раз */}
       {firstWinCelebration && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 3000,
@@ -1204,7 +977,6 @@ export default function Game() {
         </div>
       )}
 
-      {/* Анимированный повтор */}
       {showReplay && moveHistoryRef.current.length > 0 && (
         <ReplayViewer moves={moveHistoryRef.current} onClose={() => setShowReplay(false)} />
       )}
@@ -1214,7 +986,6 @@ export default function Game() {
         </Suspense>
       )}
 
-      {/* Keyboard shortcuts overlay */}
       {showShortcuts && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowShortcuts(false)}>
