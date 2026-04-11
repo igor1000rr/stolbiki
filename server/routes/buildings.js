@@ -1,11 +1,34 @@
 /**
  * Маршруты Города побед — снимки финальных раскладок после побед
  * См. issue #2
+ *
+ * Таблица victory_buildings создаётся при импорте модуля (CREATE TABLE IF NOT EXISTS).
+ * Это позволяет деплоить роутер автономно, без правки миграций в db.js.
  */
 
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
+
+// ─── Bootstrap: таблица victory_buildings ───
+db.exec(`
+  CREATE TABLE IF NOT EXISTS victory_buildings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    game_id INTEGER,
+    opponent_name TEXT,
+    is_ai INTEGER DEFAULT 0,
+    ai_difficulty TEXT,
+    stands_snapshot TEXT NOT NULL,
+    player_skin_id TEXT,
+    background_id TEXT,
+    result TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_victory_buildings_user
+    ON victory_buildings(user_id, created_at DESC);
+`)
 
 const router = Router()
 
@@ -23,7 +46,6 @@ router.post('/', auth, (req, res) => {
       background_id = null,
     } = req.body || {}
 
-    // Валидация
     if (!Array.isArray(stands_snapshot) || stands_snapshot.length === 0) {
       return res.status(400).json({ error: 'stands_snapshot обязателен (массив)' })
     }
@@ -95,7 +117,6 @@ router.get('/:userId', (req, res) => {
     ORDER BY created_at DESC
     LIMIT ? OFFSET ?
   `).all(userId, limit, offset)
-  // Парсим snapshot для удобства фронта
   const buildings = rows.map(r => ({
     ...r,
     is_ai: !!r.is_ai,
