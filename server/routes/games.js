@@ -5,6 +5,7 @@ import { gameSubmitLimits } from '../middleware.js'
 import { addXP, ensureCurrentSeason } from '../helpers.js'
 import { verifyGameFromMoves, walkMoves } from '../anticheat.js'
 import { awardBricks } from './bricks.js'
+import { updateBPProgress } from './battlepass.js'
 
 const router = Router()
 
@@ -24,7 +25,6 @@ router.post('/games', auth, (req, res) => {
   const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
   const safeDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 150)))
 
-  // ═══ АНТИЧИТ: если moves[] передан — верифицируем результат через движок ═══
   let verifiedWon = !!won
   let verifiedScore = score
   let verifiedTurns = safeTurns
@@ -36,9 +36,7 @@ router.post('/games', auth, (req, res) => {
     verifiedTurns = v.turns
     if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
   } else {
-    if (!isOnline) {
-      return res.status(400).json({ error: 'Требуется история ходов для AI-игры' })
-    }
+    if (!isOnline) return res.status(400).json({ error: 'Требуется история ходов для AI-игры' })
   }
 
   const now = Date.now()
@@ -89,31 +87,38 @@ router.post('/games', auth, (req, res) => {
 
   db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
 
-  // Сохраняем ходы для обучения AI (если переданы)
   if (moves && Array.isArray(moves) && moves.length >= 5) {
     try {
       const gameData = JSON.stringify(moves)
       if (gameData.length < 500000) {
-        const winner = verifiedWon ? 0 : 1
-        const mode = isOnline ? 'online' : 'ai'
         db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(req.user.id, gameData, winner, moves.length, mode, safeDifficulty)
+          .run(req.user.id, gameData, verifiedWon ? 0 : 1, moves.length, isOnline ? 'online' : 'ai', safeDifficulty)
       }
     } catch {}
   }
 
-  // ─── Начисление кирпичей за победу ───
+  // ─── Кирпичи за победу ───
   let bricksDelta = 0
   let bricksAfter = null
   if (verifiedWon) {
-    if (isOnline) {
-      // Победа над живым соперником — 5 кирпичей
-      bricksDelta = 5
-    } else {
-      // Победа над AI: 1 (Easy) / 2 (Medium) / 3 (Hard+)
-      bricksDelta = safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
-    }
+    bricksDelta = isOnline ? 5 : safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
     bricksAfter = awardBricks(req.user.id, bricksDelta, `win:${isOnline ? 'pvp' : `ai_${safeDifficulty}`}`, gameResult.lastInsertRowid)
+  }
+
+  // ─── Battle Pass прогресс ───
+  // always: play_n (каждая партия)
+  updateBPProgress(req.user.id, 'play', {})
+  if (verifiedWon) {
+    if (isOnline) {
+      updateBPProgress(req.user.id, 'win_online', {})
+    } else if (safeDifficulty >= 400) {
+      updateBPProgress(req.user.id, 'win_ai_hard', {})
+    } else {
+      updateBPProgress(req.user.id, 'win', {})
+    }
+  }
+  if (closedGolden) {
+    updateBPProgress(req.user.id, 'close_golden', {})
   }
 
   const currentSeason = ensureCurrentSeason()
@@ -142,7 +147,6 @@ router.get('/games', auth, (req, res) => {
   res.json({ games, total, limit, offset })
 })
 
-// Статистика по сложности AI
 router.get('/games/stats', auth, (req, res) => {
   const stats = db.prepare(`
     SELECT difficulty,
@@ -156,8 +160,6 @@ router.get('/games/stats', auth, (req, res) => {
   res.set('Cache-Control', 'private, max-age=10')
   res.json(stats)
 })
-
-// ═══ Seasons / Leaderboard ═══
 
 router.get('/seasons/current', (req, res) => {
   const season = ensureCurrentSeason()
@@ -173,7 +175,6 @@ router.get('/seasons/history', (req, res) => {
   res.json(seasons)
 })
 
-// ═══ Сезонные награды ═══
 router.get('/seasons/rewards', auth, (req, res) => {
   const pastSeasons = db.prepare("SELECT * FROM seasons WHERE active=0 AND end_date < date('now')").all()
   for (const season of pastSeasons) {
@@ -182,10 +183,7 @@ router.get('/seasons/rewards', auth, (req, res) => {
     const top = db.prepare('SELECT user_id, rating FROM season_ratings WHERE season_id=? AND games >= 5 ORDER BY rating DESC LIMIT 10').all(season.id)
     const rewardMap = { 1: 'season_champion', 2: 'season_silver', 3: 'season_bronze' }
     const insert = db.prepare('INSERT OR IGNORE INTO season_rewards (user_id, season_id, placement, reward_type, reward_id) VALUES (?, ?, ?, ?, ?)')
-    top.forEach((p, i) => {
-      const reward = rewardMap[i + 1] || 'season_top10'
-      insert.run(p.user_id, season.id, i + 1, 'achievement', reward)
-    })
+    top.forEach((p, i) => { insert.run(p.user_id, season.id, i + 1, 'achievement', rewardMap[i + 1] || 'season_top10') })
   }
   const myRewards = db.prepare(`
     SELECT sr.placement, sr.reward_type, sr.reward_id, sr.claimed, s.name as season_name
@@ -199,15 +197,9 @@ router.get('/leaderboard', (req, res) => {
   const limit = Math.min(+req.query.limit || 20, 100)
   const users = db.prepare('SELECT id, username, rating, games_played, wins, losses, best_streak, level, xp FROM users ORDER BY rating DESC LIMIT ?').all(limit)
   res.set('Cache-Control', 'public, max-age=15')
-  res.json(users.map(u => ({
-    username: u.username, rating: u.rating,
-    games: u.games_played, wins: u.wins,
-    winRate: u.games_played > 0 ? +(u.wins / u.games_played * 100).toFixed(1) : 0,
-    bestStreak: u.best_streak,
-  })))
+  res.json(users.map(u => ({ username: u.username, rating: u.rating, games: u.games_played, wins: u.wins, winRate: u.games_played > 0 ? +(u.wins / u.games_played * 100).toFixed(1) : 0, bestStreak: u.best_streak })))
 })
 
-// ═══ Replays ═══
 router.post('/replays', auth, (req, res) => {
   const { moves, result, score, mode, turns } = req.body
   if (!moves || !Array.isArray(moves)) return res.status(400).json({ error: 'moves обязателен' })
@@ -218,15 +210,12 @@ router.post('/replays', auth, (req, res) => {
   const movesJson = JSON.stringify(moves)
   if (movesJson.length > 512000) return res.status(400).json({ error: 'Реплей слишком большой (макс 500KB)' })
   const count = db.prepare('SELECT COUNT(*) as c FROM replays WHERE user_id=?').get(req.user.id).c
-  if (count >= 50) {
-    db.prepare('DELETE FROM replays WHERE id = (SELECT id FROM replays WHERE user_id=? ORDER BY created_at ASC LIMIT 1)').run(req.user.id)
-  }
+  if (count >= 50) db.prepare('DELETE FROM replays WHERE id = (SELECT id FROM replays WHERE user_id=? ORDER BY created_at ASC LIMIT 1)').run(req.user.id)
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   try {
-    db.prepare('INSERT INTO replays (id, user_id, moves, result, score, mode, turns) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(id, req.user.id, movesJson, result ?? null, score || null, mode || 'ai', turns || 0)
+    db.prepare('INSERT INTO replays (id, user_id, moves, result, score, mode, turns) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, req.user.id, movesJson, result ?? null, score || null, mode || 'ai', turns || 0)
     res.json({ id, url: `/replay/${id}` })
-  } catch (e) { res.status(500).json({ error: 'Ошибка сохранения' }) }
+  } catch { res.status(500).json({ error: 'Ошибка сохранения' }) }
 })
 
 router.get('/replays/:id', (req, res) => {
@@ -235,25 +224,18 @@ router.get('/replays/:id', (req, res) => {
   res.json({ ...replay, moves: JSON.parse(replay.moves) })
 })
 
-// ═══ Сбор training data ═══
 router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   const { moves, winner, mode, difficulty } = req.body
-  if (!moves || !Array.isArray(moves) || moves.length < 5) {
-    return res.status(400).json({ error: 'Минимум 5 ходов' })
-  }
+  if (!moves || !Array.isArray(moves) || moves.length < 5) return res.status(400).json({ error: 'Минимум 5 ходов' })
   if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинная партия' })
   const v = walkMoves(moves)
   if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
   const gameData = JSON.stringify(moves)
   if (gameData.length > 500000) return res.status(400).json({ error: 'Слишком большая партия' })
-
   try {
-    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', difficulty || 0)
+    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)').run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', difficulty || 0)
     res.json({ ok: true })
-  } catch (e) {
-    res.status(500).json({ error: 'Ошибка записи' })
-  }
+  } catch { res.status(500).json({ error: 'Ошибка записи' }) }
 })
 
 export default router
