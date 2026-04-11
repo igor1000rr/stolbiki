@@ -4,6 +4,7 @@ import { auth, rateLimit } from '../middleware.js'
 import { gameSubmitLimits } from '../middleware.js'
 import { addXP, ensureCurrentSeason } from '../helpers.js'
 import { verifyGameFromMoves, walkMoves } from '../anticheat.js'
+import { awardBricks } from './bricks.js'
 
 const router = Router()
 
@@ -24,23 +25,18 @@ router.post('/games', auth, (req, res) => {
   const safeDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 150)))
 
   // ═══ АНТИЧИТ: если moves[] передан — верифицируем результат через движок ═══
-  // Для AI-игр клиент должен передавать moves. Без moves принимаем только low-reward игры.
   let verifiedWon = !!won
   let verifiedScore = score
   let verifiedTurns = safeTurns
   if (moves && Array.isArray(moves) && moves.length >= 5) {
     const v = verifyGameFromMoves(moves)
     if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
-    // humanPlayer всегда 0 в AI-играх (сервер не знает humanPlayer в PvP, но PvP идёт через ws.js и сюда не попадает)
     verifiedWon = v.winner === 0
     verifiedScore = v.scoreStr
     verifiedTurns = v.turns
-    // Проверяем согласованность с клиентом
     if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
   } else {
-    // Без moves — режем рейтинг-дельту в 3 раза и блокируем награды
     if (!isOnline) {
-      // AI-игра без moves = подозрительно, не засчитываем рейтинг
       return res.status(400).json({ error: 'Требуется история ходов для AI-игры' })
     }
   }
@@ -97,13 +93,27 @@ router.post('/games', auth, (req, res) => {
   if (moves && Array.isArray(moves) && moves.length >= 5) {
     try {
       const gameData = JSON.stringify(moves)
-      if (gameData.length < 500000) { // макс ~500KB на партию
+      if (gameData.length < 500000) {
         const winner = verifiedWon ? 0 : 1
         const mode = isOnline ? 'online' : 'ai'
         db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
           .run(req.user.id, gameData, winner, moves.length, mode, safeDifficulty)
       }
     } catch {}
+  }
+
+  // ─── Начисление кирпичей за победу ───
+  let bricksDelta = 0
+  let bricksAfter = null
+  if (verifiedWon) {
+    if (isOnline) {
+      // Победа над живым соперником — 5 кирпичей
+      bricksDelta = 5
+    } else {
+      // Победа над AI: 1 (Easy) / 2 (Medium) / 3 (Hard+)
+      bricksDelta = safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
+    }
+    bricksAfter = awardBricks(req.user.id, bricksDelta, `win:${isOnline ? 'pvp' : `ai_${safeDifficulty}`}`, gameResult.lastInsertRowid)
   }
 
   const currentSeason = ensureCurrentSeason()
@@ -121,7 +131,7 @@ router.post('/games', auth, (req, res) => {
   const xpGain = verifiedWon ? 20 : 5
   addXP(req.user.id, xpGain)
 
-  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain })
+  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain, bricksDelta, bricksAfter })
 })
 
 router.get('/games', auth, (req, res) => {
@@ -164,14 +174,11 @@ router.get('/seasons/history', (req, res) => {
 })
 
 // ═══ Сезонные награды ═══
-// Проверяем завершённые сезоны и раздаём награды top-10
 router.get('/seasons/rewards', auth, (req, res) => {
-  // Раздаём награды за прошлые сезоны (если ещё не розданы)
   const pastSeasons = db.prepare("SELECT * FROM seasons WHERE active=0 AND end_date < date('now')").all()
   for (const season of pastSeasons) {
     const already = db.prepare('SELECT COUNT(*) as c FROM season_rewards WHERE season_id=?').get(season.id)
-    if (already.c > 0) continue // Уже розданы
-    // Top-10 игроков сезона
+    if (already.c > 0) continue
     const top = db.prepare('SELECT user_id, rating FROM season_ratings WHERE season_id=? AND games >= 5 ORDER BY rating DESC LIMIT 10').all(season.id)
     const rewardMap = { 1: 'season_champion', 2: 'season_silver', 3: 'season_bronze' }
     const insert = db.prepare('INSERT OR IGNORE INTO season_rewards (user_id, season_id, placement, reward_type, reward_id) VALUES (?, ?, ?, ?, ?)')
@@ -180,7 +187,6 @@ router.get('/seasons/rewards', auth, (req, res) => {
       insert.run(p.user_id, season.id, i + 1, 'achievement', reward)
     })
   }
-  // Возвращаем награды текущего юзера
   const myRewards = db.prepare(`
     SELECT sr.placement, sr.reward_type, sr.reward_id, sr.claimed, s.name as season_name
     FROM season_rewards sr JOIN seasons s ON s.id = sr.season_id
@@ -206,19 +212,13 @@ router.post('/replays', auth, (req, res) => {
   const { moves, result, score, mode, turns } = req.body
   if (!moves || !Array.isArray(moves)) return res.status(400).json({ error: 'moves обязателен' })
   if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинный реплей (макс 500 ходов)' })
-  // Базовая структурная валидация: каждый ход должен иметь action и player
   if (moves.some(m => !m || typeof m !== 'object')) return res.status(400).json({ error: 'Некорректный формат хода' })
-  // Валидация через движок: все ходы должны быть легальны.
-  // verifyGameFromMoves требует, чтобы партия была завершена. Для реплеев допускаем
-  // и незавершённые — делаем упрощённую проверку легальности через walkMoves.
   const v = walkMoves(moves)
   if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов в реплее' })
   const movesJson = JSON.stringify(moves)
   if (movesJson.length > 512000) return res.status(400).json({ error: 'Реплей слишком большой (макс 500KB)' })
-  // Лимит: максимум 50 реплеев на юзера
   const count = db.prepare('SELECT COUNT(*) as c FROM replays WHERE user_id=?').get(req.user.id).c
   if (count >= 50) {
-    // Удаляем самый старый
     db.prepare('DELETE FROM replays WHERE id = (SELECT id FROM replays WHERE user_id=? ORDER BY created_at ASC LIMIT 1)').run(req.user.id)
   }
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -235,17 +235,13 @@ router.get('/replays/:id', (req, res) => {
   res.json({ ...replay, moves: JSON.parse(replay.moves) })
 })
 
-// ═══ Сбор training data — только от авторизованных игроков ═══
-// Причина: анонимный endpoint позволял training data poisoning — можно было
-// генерировать тысячи валидных партий с плохими ходами, отравляя обучение.
-// Rate limit: 10 партий/час на пользователя.
+// ═══ Сбор training data ═══
 router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   const { moves, winner, mode, difficulty } = req.body
   if (!moves || !Array.isArray(moves) || moves.length < 5) {
     return res.status(400).json({ error: 'Минимум 5 ходов' })
   }
   if (moves.length > 500) return res.status(400).json({ error: 'Слишком длинная партия' })
-  // Валидация через движок — каждый ход должен быть легален. Защита от накрутки training_data мусором.
   const v = walkMoves(moves)
   if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
   const gameData = JSON.stringify(moves)
