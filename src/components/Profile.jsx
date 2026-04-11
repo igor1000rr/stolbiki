@@ -9,15 +9,15 @@ import ProfileAnalytics from './ProfileAnalytics'
 import Mascot from './Mascot'
 import VictoryCity from './VictoryCity'
 import BrickBalance from './BrickBalance'
+import SeasonPass from './SeasonPass'
 
-// Аватары — SVG символы
 const AVATARS = {
   default: { label: 'Default', bg: 'linear-gradient(135deg, #6db4ff, #9b59b6)', render: (name) => name.charAt(0).toUpperCase() },
   cat: { label: 'Cat', bg: 'linear-gradient(135deg, #ff9a56, #ff6b6b)', render: () => '🐱' },
   dog: { label: 'Dog', bg: 'linear-gradient(135deg, #8B5E3C, #D4A574)', render: () => '🐶' },
   fox: { label: 'Fox', bg: 'linear-gradient(135deg, #ff6b35, #ffc145)', render: () => '🦊' },
   bear: { label: 'Bear', bg: 'linear-gradient(135deg, #6B4226, #A0522D)', render: () => '🐻' },
-  owl: { label: 'Owl', bg: 'linear-gradient(135deg, #5c6bc0, #3dd68c)', render: () => '🦉' },
+  owl: { label: 'Owl', bg: 'linear-gradient(135deg, #5c6bc0, #3dd68c)', render: () => '🦩' },
   robot: { label: 'Robot', bg: 'linear-gradient(135deg, #455a64, #78909c)', render: () => '🤖' },
   crown: { label: 'Crown', bg: 'linear-gradient(135deg, #ffc145, #ff9800)', render: () => '👑' },
   fire: { label: 'Fire', bg: 'linear-gradient(135deg, #ff5722, #ff9800)', render: () => '🔥' },
@@ -327,7 +327,6 @@ export default function Profile({ viewUsername, onClose }) {
     })
   }, [serverOnline, gameCtx])
 
-  // ─── Публичный профиль ───
   if (viewUsername) {
     if (publicLoading) return <div className="dash-card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center', padding: 40 }}><div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}><img src="/mascot/wave.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} /></div></div>
     if (!publicProfile) return <div className="dash-card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center', padding: 40 }}><div style={{ fontSize: 14, color: 'var(--p2)' }}>{en ? 'User not found' : 'Пользователь не найден'}</div>{onClose && <button className="btn" onClick={onClose} style={{ marginTop: 12 }}>← {en ? 'Back' : 'Назад'}</button>}</div>
@@ -354,7 +353,6 @@ export default function Profile({ viewUsername, onClose }) {
     )
   }
 
-  // Не залогинен
   if (!profile) {
     const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a', background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
     return (
@@ -383,6 +381,7 @@ export default function Profile({ viewUsername, onClose }) {
 
   const tabs = [
     { id: 'profile', label: en ? 'Profile' : 'Профиль' },
+    { id: 'battlepass', label: en ? 'Battle Pass' : 'Battle Pass 🎯' },
     { id: 'analytics', label: en ? 'Analytics' : 'Аналитика' },
     { id: 'history', label: `${en ? 'History' : 'История'} (${(profile.history || []).length})` },
     { id: 'achievements', label: `${en ? 'Achievements' : 'Ачивки'} (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
@@ -421,8 +420,7 @@ export default function Profile({ viewUsername, onClose }) {
                       {streakData.streak}
                     </span>
                   )}
-                  {/* Баланс кирпичей */}
-                  <BrickBalance bricks={profile.bricks ?? 0} />
+                  <BrickBalance bricks={profile.bricks ?? 0} onClick={() => setTab('battlepass')} />
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -510,6 +508,12 @@ export default function Profile({ viewUsername, onClose }) {
 
           <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 8 }}>{en ? 'Logout' : 'Выйти из профиля'}</button>
         </>
+      )}
+
+      {tab === 'battlepass' && (
+        <div>
+          <SeasonPass />
+        </div>
       )}
 
       {tab === 'analytics' && <ProfileAnalytics en={en} data={analyticsData} />}
