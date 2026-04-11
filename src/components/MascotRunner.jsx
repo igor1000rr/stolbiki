@@ -1,115 +1,115 @@
 /**
- * MascotRunner — анимация Снэппи, пробегающего от стойки-источника к стойке-цели.
- * Issue #1 («Убрать кнопку перенос — сделать с помощью нативных нажатий.
- *             Енот подбегает, забирает столбики»).
+ * MascotRunner — Snappy летит дугой от стойки-источника к стойке-цели при переносе блоков
+ * Issue #1: «Енот подбегает, забирает столбики»
  *
- * Использование:
- *   <MascotRunner from={srcIdx} to={dstIdx} onDone={() => setMascotAnim(null)} />
+ * Использует data-stand={i} атрибуты на .board-stand (добавлены в Board.jsx),
+ * что корректно работает при любом порядке стоек (включая flip).
  *
- * Компонент сам находит DOM-элементы стоек по '.board-stand',
- * вычисляет координаты через getBoundingClientRect и анимирует позицию через CSS transition.
+ * Props:
+ *   run: { from: number, to: number, color: 0|1, count: number, key: string } | null
+ *   onDone: () => void
  */
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-// Заглушка-конверт если изображение не загрузилось
-const FALLBACK = '\uD83E\uDD9D' // 🦝
-
-export default function MascotRunner({ from: fromIdx, to: toIdx, onDone }) {
-  const [visible, setVisible] = useState(false)
-  const [pos, setPos] = useState(null)
-  const [flipped, setFlipped] = useState(false)
-  const [phase, setPhase] = useState('init') // init → run → done
-  const doneRef = useRef(false)
+export default function MascotRunner({ run, onDone }) {
+  const [anim, setAnim] = useState(null)
+  const styleRef = useRef(null)
 
   useEffect(() => {
-    if (doneRef.current) return
+    if (!run) { setAnim(null); return }
 
-    const stands = document.querySelectorAll('.board-stand')
-    const fromEl = stands[fromIdx]
-    const toEl = stands[toIdx]
+    const srcEl = document.querySelector(`.board-stand[data-stand="${run.from}"]`)
+    const dstEl = document.querySelector(`.board-stand[data-stand="${run.to}"]`)
+    if (!srcEl || !dstEl) { onDone?.(); return }
 
-    if (!fromEl || !toEl) {
+    const srcRect = srcEl.getBoundingClientRect()
+    const dstRect = dstEl.getBoundingClientRect()
+
+    const x1 = srcRect.left + srcRect.width / 2
+    const y1 = srcRect.top + srcRect.height * 0.25
+
+    const x2 = dstRect.left + dstRect.width / 2
+    const y2 = dstRect.top + dstRect.height * 0.25
+
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    const arcH = Math.min(dist * 0.5, 90) // высота дуги
+
+    // Уникальное имя keyframe на случай быстрых повторных переносов
+    const animId = `_mr${Date.now()}`
+    const css = `
+      @keyframes ${animId} {
+        0%   { transform: translate(${x1}px, ${y1}px) translate(-50%, -50%) scale(0.75); opacity: 0.5; }
+        15%  { opacity: 1; transform: translate(${x1 + dx * 0.15}px, ${y1 + dy * 0.15 - arcH * 0.65}px) translate(-50%, -50%) scale(1.1); }
+        50%  { transform: translate(${x1 + dx * 0.5}px, ${y1 + dy * 0.5 - arcH}px) translate(-50%, -50%) scale(1.18); }
+        85%  { transform: translate(${x1 + dx * 0.85}px, ${y1 + dy * 0.85 - arcH * 0.3}px) translate(-50%, -50%) scale(1.05); }
+        100% { transform: translate(${x2}px, ${y2}px) translate(-50%, -50%) scale(0.8); opacity: 0.3; }
+      }
+    `
+
+    styleRef.current?.remove()
+    const styleEl = document.createElement('style')
+    styleEl.textContent = css
+    document.head.appendChild(styleEl)
+    styleRef.current = styleEl
+
+    setAnim({ x1, y1, color: run.color, count: run.count, animId, dir: dx })
+
+    const t = setTimeout(() => {
+      setAnim(null)
+      styleEl.remove()
       onDone?.()
-      return
-    }
+    }, 760)
 
-    const fromR = fromEl.getBoundingClientRect()
-    const toR = toEl.getBoundingClientRect()
+    return () => { clearTimeout(t); styleEl.remove() }
+  }, [run?.key]) // eslint-disable-line
 
-    const SIZE = 52
-    const startX = fromR.left + fromR.width / 2 - SIZE / 2
-    const startY = fromR.top - SIZE - 6
+  // Cleanup on unmount
+  useEffect(() => () => styleRef.current?.remove(), [])
 
-    setFlipped(toR.left < fromR.left)
-    setPos({ x: startX, y: startY })
-    setVisible(true)
-    setPhase('init')
+  if (!anim) return null
 
-    // Даём браузеру один кадр нарисовать начальную позицию, потом стартуем переход
-    const raf1 = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const endX = toR.left + toR.width / 2 - SIZE / 2
-        const endY = toR.top - SIZE - 6
-        setPos({ x: endX, y: endY })
-        setPhase('run')
-      })
-    })
-
-    // По окончании анимации — скрываем
-    const timeout = setTimeout(() => {
-      doneRef.current = true
-      setPhase('done')
-      setVisible(false)
-      onDone?.()
-    }, 750)
-
-    return () => {
-      cancelAnimationFrame(raf1)
-      clearTimeout(timeout)
-    }
-  }, []) // eslint-disable-line
-
-  if (!visible || !pos) return null
+  const chipColor = anim.color === 0 ? 'var(--p1)' : 'var(--p2)'
+  const chipGlow  = anim.color === 0 ? 'rgba(74,158,255,0.6)' : 'rgba(255,96,102,0.6)'
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        left: pos.x,
-        top: pos.y,
-        width: 52,
-        height: 52,
-        zIndex: 9500,
-        pointerEvents: 'none',
-        transition: phase === 'run' ? 'left 0.55s cubic-bezier(.4,0,.2,1), top 0.55s cubic-bezier(.4,0,.2,1)' : 'none',
-        transform: flipped ? 'scaleX(-1)' : 'scaleX(1)',
-        willChange: 'left, top',
-      }}
-    >
-      <img
-        src="/mascot/wave.webp"
-        alt={FALLBACK}
-        draggable={false}
-        style={{
-          width: 52,
-          height: 52,
-          objectFit: 'contain',
-          animation: 'mascotRunBounce 0.25s ease-in-out infinite',
-          filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))',
-        }}
-        onError={e => { e.target.style.display = 'none' }}
-      />
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1500 }}>
       <div style={{
-        position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
-        fontSize: 18, lineHeight: 1, display: 'none',
-      }}>{FALLBACK}</div>
-      <style>{`
-        @keyframes mascotRunBounce {
-          0%, 100% { transform: translateY(0) rotate(-3deg); }
-          25% { transform: translateY(-5px) rotate(3deg); }
-          75% { transform: translateY(-2px) rotate(-1deg); }
-        }
-      `}</style>
+        position: 'absolute', left: 0, top: 0,
+        animation: `${anim.animId} 0.76s cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+        willChange: 'transform',
+      }}>
+        {/* Блоки над головой */}
+        {Array.from({ length: Math.min(anim.count, 4) }).map((_, i) => (
+          <div key={i} style={{
+            position: 'absolute',
+            top: -(28 + i * 9), left: -11,
+            width: 22, height: 7, borderRadius: 4,
+            background: chipColor,
+            boxShadow: `0 0 8px ${chipGlow}`,
+            opacity: 0.95,
+          }} />
+        ))}
+
+        {/* Снаппи */}
+        <img
+          src="/mascot/celebrate.webp"
+          alt="Snappy"
+          width={54}
+          height={54}
+          draggable={false}
+          style={{
+            display: 'block',
+            objectFit: 'contain',
+            marginLeft: -27,
+            marginTop: -27,
+            userSelect: 'none',
+            transform: anim.dir < 0 ? 'scaleX(-1)' : 'none',
+            filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.5))',
+          }}
+        />
+      </div>
     </div>
   )
 }
