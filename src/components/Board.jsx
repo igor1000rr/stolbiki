@@ -15,22 +15,12 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghos
     }
   }, [isNew, delay])
 
-  if (isPending) {
-    return <div className={`chip p${color} chip-pending`} />
-  }
-
-  if (ghostOut) {
-    return <div className={`chip p${color} chip-ghost-out`} />
-  }
-
-  if (ghostIn) {
-    return <div className={`chip p${color} chip-ghost-in`} />
-  }
+  if (isPending) return <div className={`chip p${color} chip-pending`} />
+  if (ghostOut) return <div className={`chip p${color} chip-ghost-out`} />
+  if (ghostIn) return <div className={`chip p${color} chip-ghost-in`} />
 
   return (
-    <div
-      className={`chip p${color} ${isNew && visible ? 'chip-drop' : ''} ${isNew && !visible ? 'chip-hidden' : ''}`}
-    />
+    <div className={`chip p${color} ${isNew && visible ? 'chip-drop' : ''} ${isNew && !visible ? 'chip-hidden' : ''}`} />
   )
 })
 
@@ -62,6 +52,7 @@ function StandItem({
   return (
     <div
       className={cls + ' board-stand'}
+      data-stand={i}
       style={{ transformOrigin: 'bottom center' }}
       role="button"
       tabIndex={0}
