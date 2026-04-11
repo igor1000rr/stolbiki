@@ -42,6 +42,7 @@ import puzzlesRouter from './routes/puzzles.js'
 import blogRouter from './routes/blog.js'
 import createAdminRouter from './routes/admin.js'
 import buildingsRouter from './routes/buildings.js'
+import bricksRouter from './routes/bricks.js'
 
 const app = express()
 
@@ -254,8 +255,6 @@ app.post('/api/track', rateLimit(60000, 300), (req, res) => {
 })
 
 // ═══ Client error reporting ═══
-// Таблица error_reports создаётся в db.js (миграция 6)
-
 app.post('/api/error-report', rateLimit(60000, 5), (req, res) => {
   const { message, stack, component, url, ua } = req.body
   if (!message) return res.status(400).json({ error: 'message required' })
@@ -326,6 +325,7 @@ app.use('/api/puzzles', puzzlesRouter)
 app.use('/api/blog', blogRouter)
 app.use('/api/admin', createAdminRouter(rooms, matchQueue))
 app.use('/api/buildings', buildingsRouter)
+app.use('/api/bricks', bricksRouter)
 
 // ═══ API 404 — неизвестные эндпоинты ═══
 app.use('/api/', (req, res) => {
