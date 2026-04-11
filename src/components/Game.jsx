@@ -264,6 +264,7 @@ export default function Game() {
             setTimeout(() => {
               setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
               finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
+              saveBuildingOnWin(ns)
               const won = modeRef.current === 'spectate' ? true : ns.winner === humanPlayer
               setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
               if (gameCtx) {
@@ -506,6 +507,7 @@ export default function Game() {
       setTimeout(() => {
         setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
         finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
+        saveBuildingOnWin(ns)
         const won = (mode === 'pvp') ? true : ns.winner === humanPlayer
         setTimeout(() => {
           won ? sw() : sl()
@@ -628,6 +630,37 @@ export default function Game() {
   function dismissTutorial() {
     setShowTutorial(false)
     localStorage.setItem('stolbiki_tutorial_seen', '1')
+  }
+
+  // Сохраняем здание в БД при победе игрока
+  async function saveBuildingOnWin(ns) {
+    if (mode === 'pvp' || mode === 'spectate' || mode === 'spectate-online') return
+    if (!API.isLoggedIn()) return
+    const myColor = mode === 'online' ? (onlineRef.current?.myColor ?? humanPlayer) : humanPlayer
+    if (ns.winner !== myColor) return
+    const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+    const result = (s0 === s1) ? 'draw_won' : 'win'
+    const opponentName = mode === 'ai' ? 'Snappy' : (onlinePlayers?.[1 - myColor] || null)
+    try {
+      await fetch('/api/buildings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}`,
+        },
+        body: JSON.stringify({
+          stands_snapshot: ns.stands.map((chips, idx) => ({
+            idx, chips, owner: ns.closed[idx] ?? null,
+          })),
+          result,
+          is_ai: mode === 'ai',
+          ai_difficulty: mode === 'ai' ? difficultyRef.current : null,
+          opponent_name: opponentName,
+          player_skin_id: null,
+          background_id: null,
+        }),
+      })
+    } catch {}
   }
 
   return (
