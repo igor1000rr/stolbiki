@@ -456,6 +456,22 @@ export default function Game() {
     }
   }
 
+  // ─── Long press на стойку — жестовый перенос ───
+  function onStandLongPress(i) {
+    const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
+    if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
+    if (i in gs.closed) return
+    if (phase !== 'place') return
+    if (gs.isFirstTurn()) return
+    if (!getValidTransfers(gs).some(([s]) => s === i)) return
+    // Haptics на Capacitor
+    try { window.Capacitor?.Plugins?.Haptics?.impact?.({ style: 'MEDIUM' }) } catch {}
+    soundClick()
+    setSelected(i)
+    setPhase('transfer-dst')
+    setInfo(lang === 'en' ? `Where to transfer from stand ${SL(i)}?` : `Куда перенести со стойки ${SL(i)}?`)
+  }
+
   // ─── Подтверждение ───
   function confirmTurn() {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
@@ -629,13 +645,13 @@ export default function Game() {
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
               {lang === 'en' ? <>
                 <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Click stands</b> to place blocks (up to 3 on 2 stands)</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — move top group from one stand to another</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — hold a stand to start transfer, tap destination</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Completing</b> — stand with 11 blocks is complete. Top group color = owner</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
                 <p><b style={{ color: 'var(--green)' }}></b> Close <b>6+ stands</b> out of 10 to win</p>
               </> : <>
                 <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить блоки (до 3 на 2 стойки)</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — кнопка «↗ Сделать перенос» (переместите верхнюю группу)</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — удержите стойку (long press) → тапните цель. Или кнопка «↗»</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Достройка</b> — высотка с 11 блоками достроена. Цвет верхней группы = владелец</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
                 <p><b style={{ color: 'var(--green)' }}></b> Достройте <b>6+ высоток</b> из 10 чтобы победить</p>
@@ -853,7 +869,8 @@ export default function Game() {
 
       <Board state={gs} pending={placement} selected={selected} phase={phase}
         humanPlayer={mode === 'pvp' ? gs.currentPlayer : humanPlayer}
-        onStandClick={onStandClick} aiThinking={aiThinking} onlineMode={mode === 'online'}
+        onStandClick={onStandClick} onStandLongPress={onStandLongPress}
+        aiThinking={aiThinking} onlineMode={mode === 'online'}
         flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar}
         ghostTransfer={transfer ? { from: transfer[0], to: transfer[1], color: gs.topGroup(transfer[0])[0], count: gs.topGroup(transfer[0])[1] } : null} />
 
