@@ -41,6 +41,7 @@ import arenaRouter from './routes/arena.js'
 import puzzlesRouter from './routes/puzzles.js'
 import blogRouter from './routes/blog.js'
 import createAdminRouter from './routes/admin.js'
+import buildingsRouter from './routes/buildings.js'
 
 const app = express()
 
@@ -324,6 +325,7 @@ app.use('/api/arena', arenaRouter)
 app.use('/api/puzzles', puzzlesRouter)
 app.use('/api/blog', blogRouter)
 app.use('/api/admin', createAdminRouter(rooms, matchQueue))
+app.use('/api/buildings', buildingsRouter)
 
 // ═══ API 404 — неизвестные эндпоинты ═══
 app.use('/api/', (req, res) => {
