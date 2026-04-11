@@ -7,6 +7,7 @@ import ProfileAccount from './ProfileAccount'
 import ProfileFriends from './ProfileFriends'
 import ProfileAnalytics from './ProfileAnalytics'
 import Mascot from './Mascot'
+import VictoryCity from './VictoryCity'
 
 // Аватары — SVG символы
 const AVATARS = {
@@ -601,6 +602,7 @@ export default function Profile({ viewUsername, onClose }) {
     { id: 'achievements', label: `${en ? 'Achievements' : 'Ачивки'} (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
     { id: 'leaderboard', label: en ? 'Ranking' : 'Рейтинг' },
     { id: 'friends', label: en ? 'Friends' : 'Друзья' },
+    { id: 'city', label: en ? 'Victory City' : 'Город' },
     ...(serverOnline && API.isLoggedIn() ? [
       { id: 'referrals', label: en ? 'Invite' : 'Пригласить' },
       { id: 'account', label: en ? 'Account' : 'Аккаунт' },
@@ -934,6 +936,16 @@ export default function Profile({ viewUsername, onClose }) {
 
       {/* ─── Друзья ─── */}
       {tab === 'friends' && <ProfileFriends en={en} serverOnline={serverOnline} friendsList={friendsList} pendingFriends={pendingFriends} onRefresh={loadFriends} onError={setError} />}
+
+      {/* ─── Город побед ─── */}
+      {tab === 'city' && (
+        <div className="dash-card">
+          <h3 style={{ margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            🏙️ {en ? 'Victory City' : 'Город побед'}
+          </h3>
+          <VictoryCity userId={profile?.id} />
+        </div>
+      )}
 
       {/* ─── Аккаунт ─── */}
       {/* ─── Рефералы ─── */}
