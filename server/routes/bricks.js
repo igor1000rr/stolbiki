@@ -47,35 +47,35 @@ db.exec(`
 `)
 
 const seedSkins = [
-  { id: 'blocks_classic',  type: 'blocks', ru: '\u041a\u043b\u0430\u0441\u0441\u0438\u043a\u0430',  en: 'Classic',   price: 0,   rarity: 'common' },
-  { id: 'blocks_flat',     type: 'blocks', ru: '\u041f\u043b\u043e\u0441\u043a\u0438\u0435',   en: 'Flat',      price: 0,   rarity: 'common' },
-  { id: 'blocks_round',    type: 'blocks', ru: '\u041a\u0440\u0443\u0433\u043b\u044b\u0435',   en: 'Round',     price: 50,  rarity: 'common' },
-  { id: 'blocks_glass',    type: 'blocks', ru: '\u0421\u0442\u0435\u043a\u043b\u043e',    en: 'Glass',     price: 80,  rarity: 'rare' },
-  { id: 'blocks_metal',    type: 'blocks', ru: '\u041c\u0435\u0442\u0430\u043b\u043b',    en: 'Metal',     price: 120, rarity: 'rare' },
+  { id: 'blocks_classic',  type: 'blocks', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
+  { id: 'blocks_flat',     type: 'blocks', ru: 'Плоские',   en: 'Flat',      price: 0,   rarity: 'common' },
+  { id: 'blocks_round',    type: 'blocks', ru: 'Круглые',   en: 'Round',     price: 50,  rarity: 'common' },
+  { id: 'blocks_glass',    type: 'blocks', ru: 'Стекло',    en: 'Glass',     price: 80,  rarity: 'rare' },
+  { id: 'blocks_metal',    type: 'blocks', ru: 'Металл',    en: 'Metal',     price: 120, rarity: 'rare' },
   { id: 'blocks_candy',    type: 'blocks', ru: 'Candy',     en: 'Candy',     price: 200, rarity: 'epic' },
-  { id: 'blocks_pixel',    type: 'blocks', ru: '\u041f\u0438\u043a\u0441\u0435\u043b\u044c',   en: 'Pixel',     price: 150, rarity: 'rare' },
-  { id: 'blocks_neon',     type: 'blocks', ru: '\u041d\u0435\u043e\u043d',      en: 'Neon',      price: 300, rarity: 'epic' },
-  { id: 'blocks_glow',     type: 'blocks', ru: '\u0421\u0432\u0435\u0447\u0435\u043d\u0438\u0435',  en: 'Glow',      price: 350, rarity: 'legendary' },
-  { id: 'stands_classic',  type: 'stands', ru: '\u041a\u043b\u0430\u0441\u0441\u0438\u043a\u0430',  en: 'Classic',   price: 0,   rarity: 'common' },
-  { id: 'stands_marble',   type: 'stands', ru: '\u041c\u0440\u0430\u043c\u043e\u0440',    en: 'Marble',    price: 60,  rarity: 'common' },
-  { id: 'stands_concrete', type: 'stands', ru: '\u0411\u0435\u0442\u043e\u043d',     en: 'Concrete',  price: 40,  rarity: 'common' },
-  { id: 'stands_bamboo',   type: 'stands', ru: '\u0411\u0430\u043c\u0431\u0443\u043a',    en: 'Bamboo',    price: 100, rarity: 'rare' },
-  { id: 'stands_obsidian', type: 'stands', ru: '\u041e\u0431\u0441\u0438\u0434\u0438\u0430\u043d',  en: 'Obsidian',  price: 180, rarity: 'epic' },
-  { id: 'stands_crystal',  type: 'stands', ru: '\u041a\u0440\u0438\u0441\u0442\u0430\u043b\u043b',  en: 'Crystal',   price: 250, rarity: 'epic' },
-  { id: 'stands_rust',     type: 'stands', ru: '\u0420\u0436\u0430\u0432\u0447\u0438\u043d\u0430',  en: 'Rust',      price: 200, rarity: 'rare' },
+  { id: 'blocks_pixel',    type: 'blocks', ru: 'Пиксель',   en: 'Pixel',     price: 150, rarity: 'rare' },
+  { id: 'blocks_neon',     type: 'blocks', ru: 'Неон',      en: 'Neon',      price: 300, rarity: 'epic' },
+  { id: 'blocks_glow',     type: 'blocks', ru: 'Свечение',  en: 'Glow',      price: 350, rarity: 'legendary' },
+  { id: 'stands_classic',  type: 'stands', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
+  { id: 'stands_marble',   type: 'stands', ru: 'Мрамор',    en: 'Marble',    price: 60,  rarity: 'common' },
+  { id: 'stands_concrete', type: 'stands', ru: 'Бетон',     en: 'Concrete',  price: 40,  rarity: 'common' },
+  { id: 'stands_bamboo',   type: 'stands', ru: 'Бамбук',    en: 'Bamboo',    price: 100, rarity: 'rare' },
+  { id: 'stands_obsidian', type: 'stands', ru: 'Обсидиан',  en: 'Obsidian',  price: 180, rarity: 'epic' },
+  { id: 'stands_crystal',  type: 'stands', ru: 'Кристалл',  en: 'Crystal',   price: 250, rarity: 'epic' },
+  { id: 'stands_rust',     type: 'stands', ru: 'Ржавчина',  en: 'Rust',      price: 200, rarity: 'rare' },
   { id: 'stands_void',     type: 'stands', ru: 'Void',      en: 'Void',      price: 400, rarity: 'legendary' },
-  { id: 'stands_ice',      type: 'stands', ru: '\u041b\u0451\u0434',       en: 'Ice',       price: 500, rarity: 'legendary' },
-  { id: 'theme_default',   type: 'theme', ru: '\u0422\u0451\u043c\u043d\u0430\u044f',  en: 'Dark',     price: 0,   rarity: 'common' },
-  { id: 'theme_forest',    type: 'theme', ru: '\u041b\u0435\u0441',      en: 'Forest',   price: 0,   rarity: 'common' },
-  { id: 'theme_minimal',   type: 'theme', ru: '\u0421\u0432\u0435\u0442\u043b\u0430\u044f',  en: 'Light',    price: 0,   rarity: 'common' },
-  { id: 'theme_ocean',     type: 'theme', ru: '\u041e\u043a\u0435\u0430\u043d',    en: 'Ocean',    price: 300, rarity: 'rare' },
-  { id: 'theme_sunset',    type: 'theme', ru: '\u0417\u0430\u043a\u0430\u0442',    en: 'Sunset',   price: 400, rarity: 'rare' },
-  { id: 'theme_royal',     type: 'theme', ru: '\u041a\u043e\u0440\u043e\u043b\u0435\u0432\u0441\u043a\u0430\u044f', en: 'Royal',  price: 400, rarity: 'epic' },
-  { id: 'theme_sakura',    type: 'theme', ru: '\u0421\u0430\u043a\u0443\u0440\u0430',   en: 'Sakura',   price: 500, rarity: 'epic' },
-  { id: 'theme_neon',      type: 'theme', ru: '\u041d\u0435\u043e\u043d',     en: 'Neon',     price: 600, rarity: 'legendary' },
-  { id: 'theme_wood',      type: 'theme', ru: '\u0414\u0435\u0440\u0435\u0432\u043e',   en: 'Wood',     price: 300, rarity: 'rare' },
-  { id: 'theme_arctic',    type: 'theme', ru: '\u0410\u0440\u043a\u0442\u0438\u043a\u0430',  en: 'Arctic',   price: 400, rarity: 'rare' },
-  { id: 'theme_retro',     type: 'theme', ru: '\u0420\u0435\u0442\u0440\u043e',    en: 'Retro',    price: 500, rarity: 'epic' },
+  { id: 'stands_ice',      type: 'stands', ru: 'Лёд',       en: 'Ice',       price: 500, rarity: 'legendary' },
+  { id: 'theme_default',   type: 'theme', ru: 'Тёмная',  en: 'Dark',     price: 0,   rarity: 'common' },
+  { id: 'theme_forest',    type: 'theme', ru: 'Лес',      en: 'Forest',   price: 0,   rarity: 'common' },
+  { id: 'theme_minimal',   type: 'theme', ru: 'Светлая',  en: 'Light',    price: 0,   rarity: 'common' },
+  { id: 'theme_ocean',     type: 'theme', ru: 'Океан',    en: 'Ocean',    price: 300, rarity: 'rare' },
+  { id: 'theme_sunset',    type: 'theme', ru: 'Закат',    en: 'Sunset',   price: 400, rarity: 'rare' },
+  { id: 'theme_royal',     type: 'theme', ru: 'Королевская', en: 'Royal',  price: 400, rarity: 'epic' },
+  { id: 'theme_sakura',    type: 'theme', ru: 'Сакура',   en: 'Sakura',   price: 500, rarity: 'epic' },
+  { id: 'theme_neon',      type: 'theme', ru: 'Неон',     en: 'Neon',     price: 600, rarity: 'legendary' },
+  { id: 'theme_wood',      type: 'theme', ru: 'Дерево',   en: 'Wood',     price: 300, rarity: 'rare' },
+  { id: 'theme_arctic',    type: 'theme', ru: 'Арктика',  en: 'Arctic',   price: 400, rarity: 'rare' },
+  { id: 'theme_retro',     type: 'theme', ru: 'Ретро',    en: 'Retro',    price: 500, rarity: 'epic' },
 ]
 const insertSkin = db.prepare('INSERT OR IGNORE INTO skins (id, type, name_ru, name_en, price_bricks, rarity) VALUES (?,?,?,?,?,?)')
 for (const s of seedSkins) insertSkin.run(s.id, s.type, s.ru, s.en, s.price, s.rarity)
@@ -118,35 +118,51 @@ router.get('/active', auth, (req, res) => {
 
 router.post('/equip', auth, (req, res) => {
   const { skinId } = req.body
-  if (!skinId) return res.status(400).json({ error: 'skinId \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d' })
-
+  if (!skinId) return res.status(400).json({ error: 'skinId обязателен' })
   const skin = db.prepare('SELECT * FROM skins WHERE id=?').get(skinId)
-  if (!skin) return res.status(404).json({ error: '\u0421\u043a\u0438\u043d \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d' })
-
+  if (!skin) return res.status(404).json({ error: 'Скин не найден' })
   if (skin.price_bricks > 0) {
     const owned = db.prepare('SELECT 1 FROM user_skins WHERE user_id=? AND skin_id=?').get(req.user.id, skinId)
-    if (!owned) return res.status(403).json({ error: '\u0421\u043a\u0438\u043d \u043d\u0435 \u043a\u0443\u043f\u043b\u0435\u043d' })
+    if (!owned) return res.status(403).json({ error: 'Скин не куплен' })
   }
-
   if (skin.type === 'blocks') {
     db.prepare('UPDATE users SET active_skin_blocks=? WHERE id=?').run(skinId, req.user.id)
   } else if (skin.type === 'stands') {
     db.prepare('UPDATE users SET active_skin_stands=? WHERE id=?').run(skinId, req.user.id)
-  } else if (skin.type === 'theme') {
-    // \u0422\u0435\u043c\u044b \u0445\u0440\u0430\u043d\u044f\u0442\u0441\u044f \u0432 localStorage \u043d\u0430 \u043a\u043b\u0438\u0435\u043d\u0442\u0435, \u0437\u0434\u0435\u0441\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u0432\u043b\u0430\u0434\u0435\u043d\u0438\u0435
-  } else {
-    return res.status(400).json({ error: '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u0442\u0438\u043f \u0441\u043a\u0438\u043d\u0430' })
+  } else if (skin.type !== 'theme') {
+    return res.status(400).json({ error: 'Неизвестный тип скина' })
   }
-
   res.json({ ok: true, type: skin.type, skinId })
 })
 
+// ─── POST /api/bricks/award-rewarded — +10 кирпичей за просмотр рекламы (Rewarded AdMob) ───
+// Rate limit: не более 10 просмотров в сутки
+router.post('/award-rewarded', auth, (req, res) => {
+  const REWARD_AMOUNT = 10
+  const DAILY_LIMIT = 10
+  try {
+    const now = Math.floor(Date.now() / 1000)
+    const dayStart = now - (now % 86400) // начало текущих суток UTC
+    const todayCount = db.prepare(
+      `SELECT COUNT(*) as c FROM brick_transactions
+       WHERE user_id=? AND reason='rewarded_ad' AND created_at >= ?`
+    ).get(req.user.id, dayStart)?.c || 0
+    if (todayCount >= DAILY_LIMIT) {
+      return res.status(429).json({ error: 'Лимит просмотров рекламы на сегодня исчерпан (10/10)' })
+    }
+    const newBalance = awardBricks(req.user.id, REWARD_AMOUNT, 'rewarded_ad')
+    res.json({ ok: true, bricks: newBalance, amount: REWARD_AMOUNT, todayCount: todayCount + 1, dailyLimit: DAILY_LIMIT })
+  } catch {
+    res.status(500).json({ error: 'Ошибка начисления' })
+  }
+})
+
 router.post('/award', auth, (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ error: '\u0422\u043e\u043b\u044c\u043a\u043e \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440' })
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Только администратор' })
   const { userId, amount, reason } = req.body
-  if (!userId || !amount || !reason) return res.status(400).json({ error: 'userId, amount, reason \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u044b' })
+  if (!userId || !amount || !reason) return res.status(400).json({ error: 'userId, amount, reason обязательны' })
   const target = db.prepare('SELECT id, username FROM users WHERE id=?').get(parseInt(userId, 10))
-  if (!target) return res.status(404).json({ error: '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d' })
+  if (!target) return res.status(404).json({ error: 'Пользователь не найден' })
   const newBalance = awardBricks(target.id, parseInt(amount, 10), `admin:${reason}`)
   res.json({ ok: true, userId: target.id, username: target.username, bricks: newBalance })
 })
@@ -159,7 +175,6 @@ router.get('/skins', auth, (req, res) => {
   const user = db.prepare('SELECT active_skin_blocks, active_skin_stands, bricks FROM users WHERE id=?').get(req.user.id)
   const activeBlocks = user?.active_skin_blocks || 'blocks_classic'
   const activeStands = user?.active_skin_stands || 'stands_classic'
-
   res.set('Cache-Control', 'private, max-age=10')
   res.json({
     skins: allSkins.map(s => ({
@@ -187,27 +202,21 @@ router.get('/owned', auth, (req, res) => {
 
 router.post('/purchase', auth, (req, res) => {
   const { skinId } = req.body
-  if (!skinId) return res.status(400).json({ error: 'skinId \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d' })
-
+  if (!skinId) return res.status(400).json({ error: 'skinId обязателен' })
   const skin = db.prepare('SELECT * FROM skins WHERE id=? AND is_active=1').get(skinId)
-  if (!skin) return res.status(404).json({ error: '\u0421\u043a\u0438\u043d \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d' })
-
+  if (!skin) return res.status(404).json({ error: 'Скин не найден' })
   const alreadyOwned = db.prepare('SELECT 1 FROM user_skins WHERE user_id=? AND skin_id=?').get(req.user.id, skinId)
-  if (alreadyOwned) return res.status(409).json({ error: '\u0421\u043a\u0438\u043d \u0443\u0436\u0435 \u0435\u0441\u0442\u044c' })
-
+  if (alreadyOwned) return res.status(409).json({ error: 'Скин уже есть' })
   if (skin.price_bricks === 0) {
     db.prepare('INSERT OR IGNORE INTO user_skins (user_id, skin_id, acquired_via) VALUES (?,?,?)').run(req.user.id, skinId, 'free')
     return res.json({ ok: true, bricks: null })
   }
-
   const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(req.user.id)
   if (!user || user.bricks < skin.price_bricks) {
-    return res.status(400).json({ error: '\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043a\u0438\u0440\u043f\u0438\u0447\u0435\u0439', required: skin.price_bricks, current: user?.bricks ?? 0 })
+    return res.status(400).json({ error: 'Недостаточно кирпичей', required: skin.price_bricks, current: user?.bricks ?? 0 })
   }
-
   const newBalance = awardBricks(req.user.id, -skin.price_bricks, `purchase_skin:${skinId}`)
   db.prepare('INSERT INTO user_skins (user_id, skin_id, acquired_via) VALUES (?,?,?)').run(req.user.id, skinId, 'bricks')
-
   res.json({ ok: true, bricks: newBalance, skinId })
 })
 
