@@ -1,38 +1,36 @@
 /**
- * Монетизация — валюта-кирпичи (bricks) + каталог скинов + покупка
- * Issue #3 эпика «Монетизация»
- *
- * Bootstrap: bricks в users, brick_transactions, skins catalog, user_skins
- *
- * Экспортирует awardBricks(userId, amount, reason, refId?) — вызывается из games.js
+ * Монетизация — кирпичи + каталог скинов + покупка + экипировка
+ * Issue #3, #8 (экипировка)
  *
  * Эндпоинты:
  *   GET  /api/bricks/balance        — текущий баланс
- *   GET  /api/bricks/history        — последние транзакции
+ *   GET  /api/bricks/history        — транзакции
  *   POST /api/bricks/award          — ручная выдача (admin)
- *   GET  /api/bricks/skins          — каталог скинов
+ *   GET  /api/bricks/skins          — каталог
  *   GET  /api/bricks/owned          — мои скины
- *   POST /api/bricks/purchase       — купить скин за кирпичи
+ *   POST /api/bricks/purchase       — купить скин
+ *   POST /api/bricks/equip          — экипировать скин
+ *   GET  /api/bricks/active         — активные скины игрока
  */
 
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
 
-// ─── Bootstrap: bricks column ───
-try {
-  db.prepare('ALTER TABLE users ADD COLUMN bricks INTEGER NOT NULL DEFAULT 50').run()
-} catch {}
+// ─── Bootstrap: bricks + active_skin columns ───
+try { db.prepare('ALTER TABLE users ADD COLUMN bricks INTEGER NOT NULL DEFAULT 50').run() } catch {}
+try { db.prepare('ALTER TABLE users ADD COLUMN active_skin_blocks TEXT NOT NULL DEFAULT \'blocks_classic\'').run() } catch {}
+try { db.prepare('ALTER TABLE users ADD COLUMN active_skin_stands TEXT NOT NULL DEFAULT \'stands_classic\'').run() } catch {}
 
 // ─── Bootstrap: brick_transactions ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS brick_transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    amount INTEGER NOT NULL,
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL,
+    amount     INTEGER NOT NULL,
     balance_after INTEGER NOT NULL DEFAULT 0,
-    reason TEXT NOT NULL,
-    ref_id INTEGER,
+    reason     TEXT    NOT NULL,
+    ref_id     INTEGER,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
@@ -43,51 +41,47 @@ db.exec(`
 // ─── Bootstrap: skins catalog ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS skins (
-    id TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    name_ru TEXT, name_en TEXT,
+    id           TEXT PRIMARY KEY,
+    type         TEXT NOT NULL,
+    name_ru      TEXT, name_en TEXT,
     price_bricks INTEGER NOT NULL DEFAULT 0,
-    rarity TEXT NOT NULL DEFAULT 'common',
-    is_active INTEGER NOT NULL DEFAULT 1,
-    released_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    rarity       TEXT NOT NULL DEFAULT 'common',
+    is_active    INTEGER NOT NULL DEFAULT 1,
+    released_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
   );
-
   CREATE TABLE IF NOT EXISTS user_skins (
-    user_id INTEGER NOT NULL,
-    skin_id TEXT NOT NULL,
+    user_id     INTEGER NOT NULL,
+    skin_id     TEXT    NOT NULL,
     acquired_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-    acquired_via TEXT DEFAULT 'bricks',
+    acquired_via TEXT   DEFAULT 'bricks',
     PRIMARY KEY (user_id, skin_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 `)
 
-// ─── Seed: базовые скины (бесплатные, выдаются всем новым) ───
+// ─── Seed: каталог скинов ───
 const seedSkins = [
-  // Блоки — бесплатные (доступны по уровню)
-  { id: 'blocks_classic', type: 'blocks', ru: 'Классика', en: 'Classic', price: 0, rarity: 'common' },
-  { id: 'blocks_flat',    type: 'blocks', ru: 'Плоские',  en: 'Flat',    price: 0, rarity: 'common' },
-  // Блоки — платные (за кирпичи)
-  { id: 'blocks_glass',   type: 'blocks', ru: 'Стекло',   en: 'Glass',   price: 80,  rarity: 'rare' },
-  { id: 'blocks_metal',   type: 'blocks', ru: 'Металл',   en: 'Metal',   price: 120, rarity: 'rare' },
-  { id: 'blocks_candy',   type: 'blocks', ru: 'Candy',    en: 'Candy',   price: 200, rarity: 'epic' },
-  { id: 'blocks_pixel',   type: 'blocks', ru: 'Пиксель',  en: 'Pixel',   price: 150, rarity: 'rare' },
-  { id: 'blocks_glow',    type: 'blocks', ru: 'Свечение', en: 'Glow',    price: 350, rarity: 'legendary' },
-  // Стойки — бесплатные
-  { id: 'stands_classic',  type: 'stands', ru: 'Классика',  en: 'Classic',  price: 0,   rarity: 'common' },
-  { id: 'stands_marble',   type: 'stands', ru: 'Мрамор',    en: 'Marble',   price: 60,  rarity: 'common' },
-  // Стойки — платные
-  { id: 'stands_bamboo',   type: 'stands', ru: 'Бамбук',    en: 'Bamboo',   price: 100, rarity: 'rare' },
-  { id: 'stands_obsidian', type: 'stands', ru: 'Обсидиан',  en: 'Obsidian', price: 180, rarity: 'epic' },
-  { id: 'stands_crystal',  type: 'stands', ru: 'Кристалл',  en: 'Crystal',  price: 250, rarity: 'epic' },
-  { id: 'stands_void',     type: 'stands', ru: 'Void',       en: 'Void',     price: 400, rarity: 'legendary' },
-  { id: 'stands_ice',      type: 'stands', ru: 'Лёд',        en: 'Ice',      price: 500, rarity: 'legendary' },
+  { id: 'blocks_classic',  type: 'blocks', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
+  { id: 'blocks_flat',     type: 'blocks', ru: 'Плоские',   en: 'Flat',      price: 0,   rarity: 'common' },
+  { id: 'blocks_round',    type: 'blocks', ru: 'Круглые',   en: 'Round',     price: 50,  rarity: 'common' },
+  { id: 'blocks_glass',    type: 'blocks', ru: 'Стекло',    en: 'Glass',     price: 80,  rarity: 'rare' },
+  { id: 'blocks_metal',    type: 'blocks', ru: 'Металл',    en: 'Metal',     price: 120, rarity: 'rare' },
+  { id: 'blocks_candy',    type: 'blocks', ru: 'Candy',     en: 'Candy',     price: 200, rarity: 'epic' },
+  { id: 'blocks_pixel',    type: 'blocks', ru: 'Пиксель',   en: 'Pixel',     price: 150, rarity: 'rare' },
+  { id: 'blocks_glow',     type: 'blocks', ru: 'Свечение',  en: 'Glow',      price: 350, rarity: 'legendary' },
+  { id: 'blocks_neon',     type: 'blocks', ru: 'Неон',      en: 'Neon',      price: 300, rarity: 'epic' },
+  { id: 'stands_classic',  type: 'stands', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
+  { id: 'stands_marble',   type: 'stands', ru: 'Мрамор',    en: 'Marble',    price: 60,  rarity: 'common' },
+  { id: 'stands_concrete', type: 'stands', ru: 'Бетон',     en: 'Concrete',  price: 40,  rarity: 'common' },
+  { id: 'stands_bamboo',   type: 'stands', ru: 'Бамбук',    en: 'Bamboo',    price: 100, rarity: 'rare' },
+  { id: 'stands_obsidian', type: 'stands', ru: 'Обсидиан',  en: 'Obsidian',  price: 180, rarity: 'epic' },
+  { id: 'stands_crystal',  type: 'stands', ru: 'Кристалл',  en: 'Crystal',   price: 250, rarity: 'epic' },
+  { id: 'stands_rust',     type: 'stands', ru: 'Ржавчина',  en: 'Rust',      price: 200, rarity: 'rare' },
+  { id: 'stands_void',     type: 'stands', ru: 'Void',      en: 'Void',      price: 400, rarity: 'legendary' },
+  { id: 'stands_ice',      type: 'stands', ru: 'Лёд',       en: 'Ice',       price: 500, rarity: 'legendary' },
 ]
-
 const insertSkin = db.prepare('INSERT OR IGNORE INTO skins (id, type, name_ru, name_en, price_bricks, rarity) VALUES (?,?,?,?,?,?)')
-for (const s of seedSkins) {
-  insertSkin.run(s.id, s.type, s.ru, s.en, s.price, s.rarity)
-}
+for (const s of seedSkins) insertSkin.run(s.id, s.type, s.ru, s.en, s.price, s.rarity)
 
 // ─── Хелпер: начисление / списание кирпичей ───
 export function awardBricks(userId, amount, reason, refId = null) {
@@ -114,11 +108,48 @@ router.get('/history', auth, (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100)
   const rows = db.prepare(`
     SELECT id, amount, balance_after, reason, ref_id, created_at
-    FROM brick_transactions
-    WHERE user_id=?
+    FROM brick_transactions WHERE user_id=?
     ORDER BY created_at DESC LIMIT ?
   `).all(req.user.id, limit)
   res.json({ transactions: rows })
+})
+
+// ─── GET /api/bricks/active — активные скины игрока ───
+router.get('/active', auth, (req, res) => {
+  const user = db.prepare(`
+    SELECT active_skin_blocks, active_skin_stands
+    FROM users WHERE id=?
+  `).get(req.user.id)
+  res.json({
+    blocks: user?.active_skin_blocks || 'blocks_classic',
+    stands: user?.active_skin_stands || 'stands_classic',
+  })
+})
+
+// ─── POST /api/bricks/equip — экипировать скин ───
+router.post('/equip', auth, (req, res) => {
+  const { skinId } = req.body
+  if (!skinId) return res.status(400).json({ error: 'skinId обязателен' })
+
+  const skin = db.prepare('SELECT * FROM skins WHERE id=?').get(skinId)
+  if (!skin) return res.status(404).json({ error: 'Скин не найден' })
+
+  // Бесплатные скины экипируются без владения
+  if (skin.price_bricks > 0) {
+    const owned = db.prepare('SELECT 1 FROM user_skins WHERE user_id=? AND skin_id=?').get(req.user.id, skinId)
+    if (!owned) return res.status(403).json({ error: 'Скин не куплен' })
+  }
+
+  // Обновляем активный скин
+  if (skin.type === 'blocks') {
+    db.prepare('UPDATE users SET active_skin_blocks=? WHERE id=?').run(skinId, req.user.id)
+  } else if (skin.type === 'stands') {
+    db.prepare('UPDATE users SET active_skin_stands=? WHERE id=?').run(skinId, req.user.id)
+  } else {
+    return res.status(400).json({ error: 'Неизвестный тип скина' })
+  }
+
+  res.json({ ok: true, type: skin.type, skinId })
 })
 
 // ─── POST /api/bricks/award — ручная выдача (admin) ───
@@ -132,14 +163,23 @@ router.post('/award', auth, (req, res) => {
   res.json({ ok: true, userId: target.id, username: target.username, bricks: newBalance })
 })
 
-// ─── GET /api/bricks/skins — каталог + owned ───
+// ─── GET /api/bricks/skins — каталог + owned + active ───
 router.get('/skins', auth, (req, res) => {
   const allSkins = db.prepare('SELECT * FROM skins WHERE is_active=1 ORDER BY type, price_bricks').all()
   const ownedRows = db.prepare('SELECT skin_id FROM user_skins WHERE user_id=?').all(req.user.id)
   const owned = new Set(ownedRows.map(r => r.skin_id))
+  const user = db.prepare('SELECT active_skin_blocks, active_skin_stands FROM users WHERE id=?').get(req.user.id)
+  const activeBlocks = user?.active_skin_blocks || 'blocks_classic'
+  const activeStands = user?.active_skin_stands || 'stands_classic'
+
   res.set('Cache-Control', 'private, max-age=10')
   res.json({
-    skins: allSkins.map(s => ({ ...s, owned: owned.has(s.id) })),
+    skins: allSkins.map(s => ({
+      ...s,
+      owned: owned.has(s.id) || s.price_bricks === 0,
+      equipped: s.id === activeBlocks || s.id === activeStands,
+    })),
+    active: { blocks: activeBlocks, stands: activeStands },
   })
 })
 
@@ -151,7 +191,11 @@ router.get('/owned', auth, (req, res) => {
     WHERE us.user_id=?
     ORDER BY us.acquired_at DESC
   `).all(req.user.id)
-  res.json({ skins: rows })
+  // Добавляем бесплатные скины которых нет в user_skins
+  const freeBase = db.prepare("SELECT id, type, name_ru, name_en, rarity FROM skins WHERE price_bricks=0 AND is_active=1").all()
+  const ownedIds = new Set(rows.map(r => r.id))
+  const freeMissing = freeBase.filter(s => !ownedIds.has(s.id))
+  res.json({ skins: [...rows, ...freeMissing.map(s => ({ ...s, acquired_via: 'free', acquired_at: 0 }))] })
 })
 
 // ─── POST /api/bricks/purchase — купить скин ───
@@ -162,17 +206,14 @@ router.post('/purchase', auth, (req, res) => {
   const skin = db.prepare('SELECT * FROM skins WHERE id=? AND is_active=1').get(skinId)
   if (!skin) return res.status(404).json({ error: 'Скин не найден' })
 
-  // Проверяем что ещё не владеет
   const alreadyOwned = db.prepare('SELECT 1 FROM user_skins WHERE user_id=? AND skin_id=?').get(req.user.id, skinId)
   if (alreadyOwned) return res.status(409).json({ error: 'Скин уже есть' })
 
-  // Бесплатный скин (price=0) — просто выдаём
   if (skin.price_bricks === 0) {
     db.prepare('INSERT OR IGNORE INTO user_skins (user_id, skin_id, acquired_via) VALUES (?,?,?)').run(req.user.id, skinId, 'free')
     return res.json({ ok: true, bricks: null })
   }
 
-  // Платный — списываем кирпичи
   const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(req.user.id)
   if (!user || user.bricks < skin.price_bricks) {
     return res.status(400).json({ error: 'Недостаточно кирпичей', required: skin.price_bricks, current: user?.bricks ?? 0 })
