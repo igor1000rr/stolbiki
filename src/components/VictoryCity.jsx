@@ -1,6 +1,8 @@
 /**
  * VictoryCity — изометрический «Город побед»
  * Каждая победа = здание. Цвет этажей = цвет скина игрока на момент победы.
+ * Высота здания = реальные блоки + бонусные шпили за сложность AI:
+ *   Easy=0, Medium=+1, Hard=+2, Extreme=+3, Impossible=+4
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -29,6 +31,35 @@ const CHIP_DEFAULT = {
   g: ['#ffd86e','#bf8800','#8a5f00'],
 }
 
+// Шпили за сложность AI: тёмно-золотые этажи поверх здания
+const SPIRE_COLORS = {
+  1: ['#d4a017','#9a7010','#6a4c08'],  // Medium — тёмное золото
+  2: ['#e8b830','#b08820','#806012'],  // Hard — золото
+  3: ['#ffc845','#c09020','#906814'],  // Extreme — яркое золото
+  4: ['#ffe080','#e0a030','#a07020'],  // Impossible — белое золото
+}
+
+// Бонус этажей по сложности AI
+function getDiffBonus(aiDifficulty) {
+  if (!aiDifficulty) return 0
+  const d = typeof aiDifficulty === 'number' ? aiDifficulty : parseInt(aiDifficulty, 10) || 0
+  if (d >= 1500) return 4
+  if (d >= 800)  return 3
+  if (d >= 400)  return 2
+  if (d >= 150)  return 1
+  return 0
+}
+
+function getDiffLabel(aiDifficulty, en) {
+  if (!aiDifficulty) return null
+  const d = typeof aiDifficulty === 'number' ? aiDifficulty : parseInt(aiDifficulty, 10) || 0
+  if (d >= 1500) return en ? 'Impossible' : 'Невозможно'
+  if (d >= 800)  return en ? 'Extreme' : 'Экстрим'
+  if (d >= 400)  return en ? 'Hard' : 'Сложно'
+  if (d >= 150)  return en ? 'Medium' : 'Средняя'
+  return en ? 'Easy' : 'Лёгкая'
+}
+
 function getSkinColors(skinId, colorIdx) {
   if (skinId && SKIN_PALETTE[skinId]) {
     return colorIdx === 0 ? SKIN_PALETTE[skinId].p1 : SKIN_PALETTE[skinId].p2
@@ -40,9 +71,11 @@ function pts(arr) {
   return arr.map(([a, b]) => `${a},${b}`).join(' ')
 }
 
-function IsoFloor({ bx, by, i, color, golden, skinId }) {
+function IsoFloor({ bx, by, i, color, golden, skinId, spireLevel = 0 }) {
   let c
-  if (golden) {
+  if (spireLevel > 0) {
+    c = SPIRE_COLORS[spireLevel] || SPIRE_COLORS[1]
+  } else if (golden) {
     c = CHIP_DEFAULT.g
   } else {
     c = getSkinColors(skinId, color)
@@ -61,21 +94,23 @@ function IsoFloor({ bx, by, i, color, golden, skinId }) {
   )
 }
 
-function Building({ bx, by, chips, golden, skinId, selected, onSelect }) {
+function Building({ bx, by, chips, golden, skinId, extraFloors = 0, selected, onSelect }) {
   if (!chips.length) return null
   const n = chips.length
+  const totalFloors = n + extraFloors
   const outline = pts([
-    [bx, by - n * FH - HH],
-    [bx + HW, by - n * FH],
+    [bx, by - totalFloors * FH - HH],
+    [bx + HW, by - totalFloors * FH],
     [bx + HW, by],
     [bx, by + HH],
     [bx - HW, by],
-    [bx - HW, by - n * FH],
+    [bx - HW, by - totalFloors * FH],
   ])
   return (
     <g onClick={onSelect} style={{ cursor: 'pointer' }}>
+      {/* Основные этажи */}
       {chips.map((c, i) => {
-        const isTop = i === n - 1
+        const isTop = i === n - 1 && extraFloors === 0
         return (
           <IsoFloor
             key={i}
@@ -84,6 +119,22 @@ function Building({ bx, by, chips, golden, skinId, selected, onSelect }) {
             color={c}
             golden={isTop && golden}
             skinId={skinId}
+          />
+        )
+      })}
+      {/* Бонусные шпили (золотые этажи за сложность) */}
+      {extraFloors > 0 && Array.from({ length: extraFloors }).map((_, j) => {
+        const spireLevel = extraFloors - j // убывает: нижние темнее, верхние ярче
+        const clamped = Math.max(1, Math.min(4, spireLevel))
+        return (
+          <IsoFloor
+            key={`spire-${j}`}
+            bx={bx} by={by}
+            i={n + j}
+            color={0}
+            golden={false}
+            skinId={skinId}
+            spireLevel={clamped}
           />
         )
       })}
@@ -129,15 +180,25 @@ export default function VictoryCity({ userId }) {
   }, [userId])
 
   const positioned = buildings
-    .map((b, i) => ({ b, col: i % COLS, row: Math.floor(i / COLS), chips: getChips(b) }))
+    .map((b, i) => ({
+      b,
+      col: i % COLS,
+      row: Math.floor(i / COLS),
+      chips: getChips(b),
+      extraFloors: b.is_ai ? getDiffBonus(b.ai_difficulty) : 0,
+    }))
     .filter(p => p.chips.length)
     .sort((a, b_) => (a.col + a.row) - (b_.col + b_.row))
 
   const rows = Math.max(1, Math.ceil(buildings.length / COLS))
+  // Учитываем максимальную высоту с учётом шпилей
+  const maxExtra = positioned.reduce((m, p) => Math.max(m, p.extraFloors), 0)
+  const maxChips = positioned.reduce((m, p) => Math.max(m, p.chips.length), 11)
   const pad = 14
+  const totalMaxH = maxChips + maxExtra
   const vx0 = -(rows - 1) * HW - HW - pad
   const vx1 = (COLS - 1) * HW + HW + pad
-  const vy0 = -11 * FH - HH - pad
+  const vy0 = -totalMaxH * FH - HH - pad
   const vy1 = (COLS - 1 + rows - 1) * HH + HH * 2 + pad
   const vw0 = vx1 - vx0, vh0 = vy1 - vy0
 
@@ -219,6 +280,23 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
+      {/* Легенда шпилей */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {([
+          [en ? 'Easy' : 'Лёгкая', 'var(--ink3)', 0],
+          [en ? 'Medium' : 'Средняя', '#d4a017', 1],
+          [en ? 'Hard' : 'Сложная', '#e8b830', 2],
+          [en ? 'Extreme' : 'Экстрим', '#ffc845', 3],
+          [en ? 'Impossible' : 'Невозможно', '#ffe080', 4],
+        ]).map(([label, color, bonus]) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)' }}>
+            <span style={{ color, fontWeight: 700 }}>{'▲'.repeat(bonus || 1).slice(0, 1)}</span>
+            <span style={{ color }}>{label}</span>
+            {bonus > 0 && <span style={{ color: 'var(--ink3)', opacity: 0.5 }}>+{bonus}</span>}
+          </div>
+        ))}
+      </div>
+
       <div
         ref={containerRef}
         style={{
@@ -238,7 +316,7 @@ export default function VictoryCity({ userId }) {
         <svg
           viewBox={`${cv.x} ${cv.y} ${cv.w} ${cv.h}`}
           width="100%"
-          style={{ display: 'block', aspectRatio: `${vw0} / ${vh0}`, maxHeight: 420 }}
+          style={{ display: 'block', aspectRatio: `${vw0} / ${vh0}`, maxHeight: 440 }}
         >
           {Array.from({ length: 40 }).map((_, i) => (
             <circle
@@ -253,7 +331,7 @@ export default function VictoryCity({ userId }) {
           <circle cx={vx1 - 22} cy={vy0 + 22} r={11}  fill="#f5e6b0" opacity="0.18" />
           <circle cx={vx1 - 17} cy={vy0 + 18} r={9}   fill="#06060f" opacity="0.95" />
 
-          {positioned.map(({ b, col, row, chips }) => (
+          {positioned.map(({ b, col, row, chips, extraFloors }) => (
             <Building
               key={b.id}
               bx={(col - row) * HW}
@@ -261,6 +339,7 @@ export default function VictoryCity({ userId }) {
               chips={chips}
               golden={b.result === 'draw_won'}
               skinId={b.player_skin_id || 'blocks_classic'}
+              extraFloors={extraFloors}
               selected={selId === b.id}
               onSelect={(e) => {
                 e.stopPropagation()
@@ -271,75 +350,80 @@ export default function VictoryCity({ userId }) {
         </svg>
       </div>
 
-      {selB && (
-        <div style={{
-          marginTop: 10, padding: '14px 16px',
-          background: 'var(--surface)', borderRadius: 10,
-          border: '1px solid rgba(255,193,69,0.22)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: selB.result === 'draw_won' ? 'var(--gold)' : 'var(--green)' }}>
-                {selB.result === 'draw_won' ? '★ ' : '🏆 '}
-                {selB.result === 'draw_won'
-                  ? (en ? 'Golden victory' : 'Победа по золотой')
-                  : (en ? 'Victory' : 'Победа')}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>
-                {new Date(selB.created_at * 1000).toLocaleDateString(
-                  en ? 'en-US' : 'ru',
-                  { day: 'numeric', month: 'long', year: 'numeric' }
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setSelId(null)}
-              style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}
-            >✕</button>
-          </div>
-          <div style={{ display: 'flex', gap: 20, fontSize: 12, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ color: 'var(--ink3)' }}>{en ? 'Opponent' : 'Соперник'}</div>
-              <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
-                {selB.opponent_name || (selB.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок'))}
-              </div>
-            </div>
-            <div>
-              <div style={{ color: 'var(--ink3)' }}>{en ? 'Floors' : 'Этажей'}</div>
-              <div style={{ fontWeight: 700, color: 'var(--gold)', marginTop: 2, fontSize: 16 }}>
-                {getChips(selB).length}
-              </div>
-            </div>
-            <div>
-              <div style={{ color: 'var(--ink3)' }}>{en ? 'Closed' : 'Достроено'}</div>
-              <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
-                {(selB.stands_snapshot || []).filter(s => s.owner !== null).length} / 10
-              </div>
-            </div>
-            {selB.player_skin_id && selB.player_skin_id !== 'blocks_classic' && (
+      {selB && (() => {
+        const diffBonus = selB.is_ai ? getDiffBonus(selB.ai_difficulty) : 0
+        const diffLabel = getDiffLabel(selB.ai_difficulty, en)
+        return (
+          <div style={{
+            marginTop: 10, padding: '14px 16px',
+            background: 'var(--surface)', borderRadius: 10,
+            border: '1px solid rgba(255,193,69,0.22)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Skin' : 'Скин'}</div>
-                <div style={{ fontWeight: 600, color: 'var(--accent)', marginTop: 2, fontSize: 11 }}>
-                  {selB.player_skin_id.replace('blocks_', '')}
+                <div style={{ fontSize: 15, fontWeight: 700, color: selB.result === 'draw_won' ? 'var(--gold)' : 'var(--green)' }}>
+                  {selB.result === 'draw_won' ? '★ ' : '🏆 '}
+                  {selB.result === 'draw_won'
+                    ? (en ? 'Golden victory' : 'Победа по золотой')
+                    : (en ? 'Victory' : 'Победа')}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>
+                  {new Date(selB.created_at * 1000).toLocaleDateString(
+                    en ? 'en-US' : 'ru',
+                    { day: 'numeric', month: 'long', year: 'numeric' }
+                  )}
                 </div>
               </div>
-            )}
-            {selB.ai_difficulty && (
+              <button
+                onClick={() => setSelId(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}
+              >✕</button>
+            </div>
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap' }}>
               <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Difficulty' : 'Сложность'}</div>
-                <div style={{ fontWeight: 600, color: 'var(--p1)', marginTop: 2 }}>
-                  {selB.ai_difficulty}
+                <div style={{ color: 'var(--ink3)' }}>{en ? 'Opponent' : 'Соперник'}</div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
+                  {selB.opponent_name || (selB.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок'))}
                 </div>
               </div>
-            )}
+              <div>
+                <div style={{ color: 'var(--ink3)' }}>{en ? 'Floors' : 'Этажей'}</div>
+                <div style={{ fontWeight: 700, color: 'var(--gold)', marginTop: 2, fontSize: 16 }}>
+                  {getChips(selB).length}
+                  {diffBonus > 0 && <span style={{ fontSize: 11, color: '#ffc845', marginLeft: 4 }}>+{diffBonus}▲</span>}
+                </div>
+              </div>
+              <div>
+                <div style={{ color: 'var(--ink3)' }}>{en ? 'Closed' : 'Достроено'}</div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
+                  {(selB.stands_snapshot || []).filter(s => s.owner !== null).length} / 10
+                </div>
+              </div>
+              {diffLabel && (
+                <div>
+                  <div style={{ color: 'var(--ink3)' }}>{en ? 'Difficulty' : 'Сложность'}</div>
+                  <div style={{ fontWeight: 600, color: diffBonus >= 3 ? '#ffc845' : diffBonus >= 1 ? '#e8b830' : 'var(--ink)', marginTop: 2 }}>
+                    {diffLabel} {diffBonus > 0 && '⭐'.repeat(diffBonus)}
+                  </div>
+                </div>
+              )}
+              {selB.player_skin_id && selB.player_skin_id !== 'blocks_classic' && (
+                <div>
+                  <div style={{ color: 'var(--ink3)' }}>{en ? 'Skin' : 'Скин'}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--accent)', marginTop: 2, fontSize: 11 }}>
+                    {selB.player_skin_id.replace('blocks_', '')}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, opacity: 0.6 }}>
         {en
-          ? 'Scroll to zoom · Drag to pan · Tap a building for details · Color = skin used in that game'
-          : 'Колёсико — зум · Тащи — пан · Тап — детали · Цвет = скин в той партии'}
+          ? 'Scroll to zoom · Drag to pan · Tap a building for details · Gold spires = AI difficulty'
+          : 'Колёсико — зум · Тащи — пан · Тап — детали · Золотые шпили = сложность AI'}
       </div>
     </div>
   )
