@@ -63,8 +63,8 @@ addPost('v471-security-audit', 'v4.7.1: Аудит безопасности, WS 
 addPost('v480-victory-city',
   'v4.8.0: Город побед — каждая победа становится зданием',
   'v4.8.0: Victory City — every win becomes a building',
-  'Каждая победа → изометрическое здание в профиле. Высота = блоки, цвет = ваши блоки, золотая крыша = 5:5.\n\nВ этом релизе:\n**Кирпичи 🧱** — валюта за победы. AI Easy=1, Medium=2, Hard+=3, PvP=5.\n**Магазин скинов** — цены в кирпичах, rarity badges.\n**Battle Pass** — 30 квестов на сезон.',
-  'Every win → isometric building in profile. Height = blocks, color = your chips, golden roof = 5:5.\n\nAlso in this release:\n**Bricks 🧱** — currency per win. AI Easy=1, Medium=2, Hard+=3, PvP=5.\n**Skin shop** — brick prices, rarity badges.\n**Battle Pass** — 30 quests per season.',
+  'Каждая победа → изометрическое здание в профиле. Высота = блоки, цвет = ваши блоки, золотая крыша = 5:5.\n\n**Кирпичи 🧱** — валюта за победы.\n**Магазин скинов** — 9 скинов блоков, 9 стоек.\n**Battle Pass** — 30 квестов на сезон.',
+  'Every win → isometric building in profile. Height = blocks, color = your chips, golden roof = 5:5.\n\n**Bricks 🧱** — currency per win.\n**Skin shop** — 9 block skins, 9 stand skins.\n**Battle Pass** — 30 quests per season.',
   'feature', '2026-04-11 15:00:00')
 
 addPost('v490-share-rarity',
@@ -77,25 +77,67 @@ addPost('v490-share-rarity',
 addPost('v500-clubs',
   'v5.0.0: Клубы 🦝, экипировка скинов, глобальный чат',
   'v5.0.0: Clubs 🦝, skin equip, global chat',
-  'Три социальных фичи одним релизом.\n\n**🦝 Клубы**\nСоздай клуб с тегом [SNCH], рекруть участников, набирай победы в общий зачёт. До 50 участников, роли Owner/Officer/Member.\n\n**🎨 Экипировка скинов**\nКнопка «Экипировать» в магазине — активный скин сохраняется на сервере и синхронизируется между устройствами.\n\n**💬 Глобальный чат**\nWS real-time в онлайн-лобби. История 50 сообщений, счётчик онлайн, фильтр плохих слов.\n\n**Рефераьные кирпичи**: +20 при регистрации, +30 при 10 партиях.',
-  'Three social features in one release.\n\n**🦝 Clubs**\nCreate a club with tag [SNCH], recruit up to 50 members, accumulate wins. Owner/Officer/Member roles.\n\n**🎨 Skin equip**\n"Equip" button in shop — active skin synced to server and across devices.\n\n**💬 Global chat**\nWS real-time in online lobby. 50 message history, online counter, bad word filter.\n\n**Referral bricks**: +20 on signup, +30 at 10 games.',
+  '**🦝 Клубы** — создай, вступай, Owner/Officer/Member, лидерборд. До 50 участников.\n\n**🎨 Экипировка скинов** — кнопка «Экипировать» в магазине, скин синхронизируется с аккаунтом.\n\n**💬 Глобальный чат** — WS real-time в онлайн-лобби. История 50 сообщений.\n\n**Реферальные кирпичи**: +20 при регистрации, +30 при 10 партиях.',
+  '**🦝 Clubs** — create, join, Owner/Officer/Member, leaderboard. Up to 50 members.\n\n**🎨 Skin equip** — "Equip" button in shop, synced to server and across devices.\n\n**💬 Global chat** — WS real-time in online lobby. 50 message history.\n\n**Referral bricks**: +20 on signup, +30 at 10 games.',
   'feature', '2026-04-12 14:00:00')
 
 addPost('v510-modifiers',
   'v5.1.0: Геймплейные модификаторы — туман войны, двойной перенос, авто-пас',
   'v5.1.0: Gameplay modifiers — fog of war, double transfer, auto-pass',
-  'Три новых игровых режима по запросу от Александра. Включаются кнопками под выбором сложности.\n\n**🌫 Туман войны**\nЧужие блоки скрыты — видны только ваши и счётчик стойки (?). Играете по памяти. Полностью меняет тактику.\n\n**↔ ×2 Перенос**\nДва переноса за ход вместо одного. После первого переноса без расстановки — можно перенести ещё раз или расставить блоки. Для активных игроков.\n\n**⚡ Авто-пас**\nПри истечении таймера (любого: blitz/rapid/classical) ход пропускается автоматически вместо поражения. Для весёлых партий с таймером.\n\nМодификаторы комбинируются: туман + двойной перенос + авто-пас = хаотичный режим для ветеранов.\n\nНа мобиле — в настройках игры (шестерёнка).',
-  'Three new game modes by Alexander\'s request. Toggle buttons below difficulty selector.\n\n**🌫 Fog of War**\nOpponent blocks hidden — only your chips and stand counter (?) visible. Play from memory. Completely changes tactics.\n\n**↔ ×2 Transfer**\nTwo transfers per turn instead of one. After first transfer without placement — transfer again or place blocks. For aggressive players.\n\n**⚡ Auto-pass**\nWhen timer runs out (any: blitz/rapid/classical) the turn auto-passes instead of losing. For fun timed games.\n\nModifiers combine: fog + double transfer + auto-pass = chaos mode for veterans.\n\nOn mobile — in game settings (gear icon).',
+  'Три новых игровых режима. Включаются кнопками под выбором сложности.\n\n**🌫 Туман войны** — чужие блоки скрыты, видны только ваши и счётчик (?). Играете по памяти.\n\n**↔ ×2 Перенос** — два переноса за ход вместо одного.\n\n**⚡ Авто-пас** — при истечении таймера ход пропускается вместо поражения.\n\nМодификаторы комбинируются. На мобиле — в шестерёнке.',
+  'Three new game modes. Toggle buttons below difficulty selector.\n\n**🌫 Fog of War** — opponent blocks hidden, only your chips and counter visible.\n\n**↔ ×2 Transfer** — two transfers per turn instead of one.\n\n**⚡ Auto-pass** — timer runs out = auto-pass, not loss.\n\nModifiers combine. On mobile — gear icon.',
   'feature', '2026-04-12 16:00:00')
+
+// Главный пост v5.1.0 — покрывает все фичи релиза
+addPost('v510-full-release',
+  'v5.1.0: Платные темы, Город скинов, TikTok-клипы',
+  'v5.1.0: Paid themes, Victory City skins, TikTok clips',
+  `Полный список всего нового в v5.1.0.
+
+**🎬 TikTok/Reels-клип**
+После партии (≥4 ходов) в результатах появляется кнопка «🎬 TikTok». Нажмите — генерируется короткое 9:16 видео с лучшими моментами: закрытия стоек, переносы, финал. Цвета блоков = ваш активный скин. Скачайте WebM и поделитесь в TikTok, Instagram Reels или YouTube Shorts. Требует Chrome/Edge.
+
+**🧱 Платные темы в магазине**
+Три темы остаются бесплатными навсегда: Тёмная, Лес, Светлая.
+Остальные восемь — за кирпичи:
+- Ocean, Дерево — 300🧱
+- Закат, Арктика, Королевская — 400🧱
+- Ретро, Сакура — 500🧱
+- Неон — 600🧱
+
+**🏙 Город побед с цветом скина**
+Здания в Городе побед теперь отражают цвет скина блоков из той конкретной партии. Победили с Neon-скином — здание голубое. С Metal — стальное. Старые здания сохраняют классический цвет.
+
+**🎮 Модификаторы (напоминание)**
+Туман войны 🌫, ×2 перенос ↔, Авто-пас ⚡ — кнопки под выбором сложности.`,
+  `Full list of everything new in v5.1.0.
+
+**🎬 TikTok/Reels clip**
+After a game (≥4 moves) a "🎬 TikTok" button appears in results. Click it — generates a short 9:16 video with highlights: stand closures, transfers, final moment. Block colors = your active skin. Download WebM and share to TikTok, Instagram Reels or YouTube Shorts. Requires Chrome/Edge.
+
+**🧱 Paid themes in shop**
+Three themes stay free forever: Dark, Forest, Light.
+The other eight cost bricks:
+- Ocean, Wood — 300🧱
+- Sunset, Arctic, Royal — 400🧱
+- Retro, Sakura — 500🧱
+- Neon — 600🧱
+
+**🏙 Victory City with skin colors**
+Buildings in Victory City now reflect the block skin color used in that specific game. Won with Neon skin — building is cyan. With Metal — steel. Old buildings keep classic color.
+
+**🎮 Modifiers (reminder)**
+Fog of War 🌫, ×2 Transfer ↔, Auto-pass ⚡ — toggle buttons below difficulty.`,
+  'release', '2026-04-12 18:00:00')
 
 // Удаляем устаревшее
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → v5.1.0
+// Pin → главный v5.1.0 пост
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v510-modifiers'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v510-full-release'").run()
 
 
 // ═══ Blog Endpoints ═══
