@@ -4,6 +4,7 @@ import { GameProvider, useGameContext } from './engine/GameContext'
 import { useAuth } from './engine/AuthContext'
 import * as API from './engine/api'
 import Icon from './components/Icon'
+import BrickBalance from './components/BrickBalance'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
@@ -47,13 +48,11 @@ function LazyFallback() {
   </div>
 }
 
-const APP_NAV = ['landing','game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog']
-
 export default function App() {
   const i18n = useI18nProvider()
   const { t, lang, setLang } = i18n
   const gameCtx = useGameContext()
-  const { authUser, isAdmin, login, register, loginLocal, logout } = useAuth()
+  const { authUser, setAuthUser, isAdmin, login, register, loginLocal, logout } = useAuth()
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
@@ -131,6 +130,14 @@ export default function App() {
   }
 
   function doLogout() { logout(); setAuthOpen(false) }
+
+  // Обновить bricks в authUser + localStorage
+  function updateBricks(newBricks) {
+    if (!authUser) return
+    const updated = { ...authUser, bricks: newBricks }
+    localStorage.setItem('stolbiki_profile', JSON.stringify(updated))
+    setAuthUser(updated)
+  }
 
   useEffect(() => {
     if (isNative) return
@@ -277,7 +284,6 @@ export default function App() {
 
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
-      {/* Что нового — показывается при смене версии */}
       {showWhatsNew && !showSplash && tab !== 'landing' && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION) }}>
@@ -411,6 +417,15 @@ export default function App() {
           </nav>
 
           <div className="site-actions">
+            {/* Баланс кирпичей — только для залогиненных */}
+            {authUser && (
+              <BrickBalance
+                bricks={authUser.bricks || 0}
+                onClick={() => setShowSkinShop(true)}
+                style={{ marginRight: 4 }}
+              />
+            )}
+
             {authUser && (
               <div style={{ position: 'relative' }}>
                 <button onClick={() => { setNotifOpen(v => !v); setAuthOpen(false) }}
@@ -486,6 +501,7 @@ export default function App() {
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{authUser.name}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
                           {en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000} · {en ? 'Games' : 'Партий'}: {authUser.gamesPlayed || 0}
+                          {(authUser.bricks || 0) > 0 && ` · 🧱 ${authUser.bricks}`}
                         </div>
                       </div>
                       <button onClick={() => { go('profile'); setAuthOpen(false) }} className="header-auth-item">
@@ -591,7 +607,10 @@ export default function App() {
                   <div className="m-more-avatar">{authUser.name.charAt(0).toUpperCase()}</div>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{authUser.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                      {en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000}
+                      {(authUser.bricks || 0) > 0 && <span style={{ color: 'var(--gold)', marginLeft: 8 }}>🧱 {authUser.bricks}</span>}
+                    </div>
                   </div>
                 </div>
               )}
@@ -616,7 +635,7 @@ export default function App() {
               <button className="m-more-item" onClick={() => setShowSkinShop(true)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 <span>{en ? 'Customize' : 'Оформление'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+                {authUser && (authUser.bricks || 0) > 0 && <span className="m-more-value" style={{ color: 'var(--gold)' }}>🧱 {authUser.bricks}</span>}
               </button>
               <button className="m-more-item" onClick={() => go('openings')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M3 20l4-8 4 4 4-12 6 16"/></svg>
@@ -672,7 +691,18 @@ export default function App() {
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => { setShowLessons(false); setTab('game') }} /></Suspense>}
       {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} /></Suspense>}
-      {showSkinShop && <Suspense fallback={<LazyFallback />}><SkinShop onClose={() => setShowSkinShop(false)} userLevel={authUser?.level || 1} currentTheme={theme} onThemeChange={setTheme} /></Suspense>}
+      {showSkinShop && (
+        <Suspense fallback={<LazyFallback />}>
+          <SkinShop
+            onClose={() => setShowSkinShop(false)}
+            userLevel={authUser?.level || 1}
+            currentTheme={theme}
+            onThemeChange={setTheme}
+            bricks={authUser?.bricks || 0}
+            onBricksChange={updateBricks}
+          />
+        </Suspense>
+      )}
 
       {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
