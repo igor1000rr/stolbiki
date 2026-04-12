@@ -1,12 +1,17 @@
-// Firebase Push Notifications (Capacitor)
-// Отключено: требует @capacitor/push-notifications + google-services.json
-// Для включения: npm install @capacitor/push-notifications, настроить Firebase, раскомментировать код
+// Push + AdMob — инициализация натив-плагинов при запуске
+
+import { initAdMob } from './admob.js'
 
 export async function initPush() {
-  // Push notifications отключены — нет google-services.json
+  const native = !!window.Capacitor?.isNativePlatform?.()
+  if (!native) return
+
+  // Инициализируем AdMob
+  await initAdMob()
+
+  // Push отключены — нет google-services.json
   // Когда настроишь Firebase:
   // 1. npm install @capacitor/push-notifications
-  // 2. Скачай google-services.json из Firebase Console → android/app/
-  // 3. Раскомментируй код ниже
-  // 4. npx cap sync && cd android && ./gradlew assembleRelease
+  // 2. Скачай google-services.json → android/app/
+  // 3. Разкомментируй код ниже
 }
