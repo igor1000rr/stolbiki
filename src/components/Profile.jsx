@@ -10,6 +10,7 @@ import Mascot from './Mascot'
 import VictoryCity from './VictoryCity'
 import BrickBalance from './BrickBalance'
 import SeasonPass from './SeasonPass'
+import Clubs from './Clubs'
 
 const AVATARS = {
   default: { label: 'Default', bg: 'linear-gradient(135deg, #6db4ff, #9b59b6)', render: (name) => name.charAt(0).toUpperCase() },
@@ -47,10 +48,8 @@ function defaultProfile(name) {
 
 const ACH_COLORS = { bronze: 'var(--bronze)', silver: 'var(--silver)', gold: 'var(--gold)', diamond: 'var(--p1-light)', ruby: 'var(--p2)', emerald: 'var(--green)' }
 
-// rarity: common = серый, rare = синий, epic = фиолетовый, legendary = золотой
-// holdersPercent: приблизительный % игроков с ачивкой
 const RARITY_COLORS = { common: 'var(--ink3)', rare: '#4a9eff', epic: '#9b59b6', legendary: '#ffc145' }
-const RARITY_LABELS_RU = { common: 'Обычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная' }
+const RARITY_LABELS_RU = { common: '\u041E\u0431\u044B\u0447\u043D\u0430\u044F', rare: '\u0420\u0435\u0434\u043A\u0430\u044F', epic: '\u042D\u043F\u0438\u0447\u0435\u0441\u043A\u0430\u044F', legendary: '\u041B\u0435\u0433\u0435\u043D\u0434\u0430\u0440\u043D\u0430\u044F' }
 const RARITY_LABELS_EN = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' }
 
 const ALL_ACHIEVEMENTS = [
@@ -145,7 +144,6 @@ function AchievementCard({ ach, unlocked, profile, en }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? 'var(--ink)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
           {name}
-          {/* Rarity badge */}
           {ach.rarity && ach.rarity !== 'common' && (
             <span style={{ fontSize: 8, fontWeight: 700, color: rarityColor, letterSpacing: 0.3, opacity: 0.85 }}>
               {rarityLabel}
@@ -153,7 +151,6 @@ function AchievementCard({ ach, unlocked, profile, en }) {
           )}
         </div>
         <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{desc}</div>
-        {/* % держателей */}
         {ach.holders !== undefined && (
           <div style={{ fontSize: 9, color: rarityColor, opacity: 0.6, marginTop: 1 }}>
             {ach.holders}% {en ? 'of players' : '\u0438\u0433\u0440\u043E\u043A\u043E\u0432'}
@@ -411,6 +408,7 @@ export default function Profile({ viewUsername, onClose }) {
     { id: 'leaderboard', label: en ? 'Ranking' : '\u0420\u0435\u0439\u0442\u0438\u043D\u0433' },
     { id: 'friends', label: en ? 'Friends' : '\u0414\u0440\u0443\u0437\u044C\u044F' },
     { id: 'city', label: en ? 'Victory City' : '\u0413\u043E\u0440\u043E\u0434' },
+    { id: 'clubs', label: en ? 'Clubs \uD83E\uDD9D' : '\u041A\u043B\u0443\u0431\u044B \uD83E\uDD9D' },
     ...(serverOnline && API.isLoggedIn() ? [{ id: 'referrals', label: en ? 'Invite' : '\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C' }, { id: 'account', label: en ? 'Account' : '\u0410\u043A\u043A\u0430\u0443\u043D\u0442' }] : []),
   ]
 
@@ -534,7 +532,6 @@ export default function Profile({ viewUsername, onClose }) {
       )}
 
       {tab === 'battlepass' && <div><SeasonPass /></div>}
-
       {tab === 'analytics' && <ProfileAnalytics en={en} data={analyticsData} />}
 
       {tab === 'history' && (
@@ -568,17 +565,6 @@ export default function Profile({ viewUsername, onClose }) {
                   )
                 })}
               </div>
-              {(profile.history || []).length >= 3 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 6, fontWeight: 600 }}>{en ? 'Rating history' : '\u0414\u0438\u043D\u0430\u043C\u0438\u043A\u0430 \u0440\u0435\u0439\u0442\u0438\u043D\u0433\u0430'}</div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 50 }}>
-                    {[...(profile.history || [])].reverse().slice(-30).map((h, i) => {
-                      const pct = Math.max(0, Math.min(1, (h.ratingAfter - 900) / (1500 - 900)))
-                      return <div key={i} style={{ flex: 1, height: `${pct * 48 + 2}px`, background: h.won ? 'var(--green)' : 'var(--p2)', borderRadius: '2px 2px 0 0', opacity: 0.7 }} title={`${h.ratingAfter}`} />
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -590,7 +576,6 @@ export default function Profile({ viewUsername, onClose }) {
             <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--gold)' }}>{unlockedAch.length}</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>\u0438\u0437 {ALL_ACHIEVEMENTS.length} \u0430\u0447\u0438\u0432\u043E\u043A</div>
             <div style={{ width: '100%', height: 6, background: 'var(--surface2)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}><div style={{ width: `${unlockedAch.length / ALL_ACHIEVEMENTS.length * 100}%`, height: '100%', background: 'linear-gradient(90deg, #ffc145, #3bb8a8)', borderRadius: 3 }} /></div>
-            {/* Легенда рарностей */}
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
               {Object.entries(RARITY_COLORS).map(([rarity, color]) => (
                 <span key={rarity} style={{ fontSize: 10, color, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -651,6 +636,8 @@ export default function Profile({ viewUsername, onClose }) {
           <VictoryCity userId={profile?.id} />
         </div>
       )}
+
+      {tab === 'clubs' && <Clubs />}
 
       {tab === 'referrals' && !referralData && <div className="dash-card" style={{ padding: 40, textAlign: 'center' }}><div style={{ fontSize: 13, color: 'var(--ink3)' }}>{en ? 'Loading...' : '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430...'}</div></div>}
       {tab === 'referrals' && referralData && (() => {
