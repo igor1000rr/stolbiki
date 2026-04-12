@@ -1,8 +1,8 @@
 /**
  * Монетизация — кирпичи + каталог скинов + покупка + экипировка
- * Issue #3, #8 (экипировка)
+ * Issue #3, #8
  *
- * Эндпоинты:
+ * Эндпойнты:
  *   GET  /api/bricks/balance        — текущий баланс
  *   GET  /api/bricks/history        — транзакции
  *   POST /api/bricks/award          — ручная выдача (admin)
@@ -61,6 +61,7 @@ db.exec(`
 
 // ─── Seed: каталог скинов ───
 const seedSkins = [
+  // Блоки
   { id: 'blocks_classic',  type: 'blocks', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
   { id: 'blocks_flat',     type: 'blocks', ru: 'Плоские',   en: 'Flat',      price: 0,   rarity: 'common' },
   { id: 'blocks_round',    type: 'blocks', ru: 'Круглые',   en: 'Round',     price: 50,  rarity: 'common' },
@@ -68,8 +69,9 @@ const seedSkins = [
   { id: 'blocks_metal',    type: 'blocks', ru: 'Металл',    en: 'Metal',     price: 120, rarity: 'rare' },
   { id: 'blocks_candy',    type: 'blocks', ru: 'Candy',     en: 'Candy',     price: 200, rarity: 'epic' },
   { id: 'blocks_pixel',    type: 'blocks', ru: 'Пиксель',   en: 'Pixel',     price: 150, rarity: 'rare' },
-  { id: 'blocks_glow',     type: 'blocks', ru: 'Свечение',  en: 'Glow',      price: 350, rarity: 'legendary' },
   { id: 'blocks_neon',     type: 'blocks', ru: 'Неон',      en: 'Neon',      price: 300, rarity: 'epic' },
+  { id: 'blocks_glow',     type: 'blocks', ru: 'Свечение',  en: 'Glow',      price: 350, rarity: 'legendary' },
+  // Стойки
   { id: 'stands_classic',  type: 'stands', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
   { id: 'stands_marble',   type: 'stands', ru: 'Мрамор',    en: 'Marble',    price: 60,  rarity: 'common' },
   { id: 'stands_concrete', type: 'stands', ru: 'Бетон',     en: 'Concrete',  price: 40,  rarity: 'common' },
@@ -79,6 +81,19 @@ const seedSkins = [
   { id: 'stands_rust',     type: 'stands', ru: 'Ржавчина',  en: 'Rust',      price: 200, rarity: 'rare' },
   { id: 'stands_void',     type: 'stands', ru: 'Void',      en: 'Void',      price: 400, rarity: 'legendary' },
   { id: 'stands_ice',      type: 'stands', ru: 'Лёд',       en: 'Ice',       price: 500, rarity: 'legendary' },
+  // Темы — бесплатные
+  { id: 'theme_default',   type: 'theme', ru: 'Тёмная',  en: 'Dark',     price: 0,   rarity: 'common' },
+  { id: 'theme_forest',    type: 'theme', ru: 'Лес',      en: 'Forest',   price: 0,   rarity: 'common' },
+  { id: 'theme_minimal',   type: 'theme', ru: 'Светлая',  en: 'Light',    price: 0,   rarity: 'common' },
+  // Темы — платные (за кирпичи)
+  { id: 'theme_ocean',     type: 'theme', ru: 'Океан',    en: 'Ocean',    price: 300, rarity: 'rare' },
+  { id: 'theme_sunset',    type: 'theme', ru: 'Закат',    en: 'Sunset',   price: 400, rarity: 'rare' },
+  { id: 'theme_royal',     type: 'theme', ru: 'Королевская', en: 'Royal',  price: 400, rarity: 'epic' },
+  { id: 'theme_sakura',    type: 'theme', ru: 'Сакура',   en: 'Sakura',   price: 500, rarity: 'epic' },
+  { id: 'theme_neon',      type: 'theme', ru: 'Неон',     en: 'Neon',     price: 600, rarity: 'legendary' },
+  { id: 'theme_wood',      type: 'theme', ru: 'Дерево',   en: 'Wood',     price: 300, rarity: 'rare' },
+  { id: 'theme_arctic',    type: 'theme', ru: 'Арктика',  en: 'Arctic',   price: 400, rarity: 'rare' },
+  { id: 'theme_retro',     type: 'theme', ru: 'Ретро',    en: 'Retro',    price: 500, rarity: 'epic' },
 ]
 const insertSkin = db.prepare('INSERT OR IGNORE INTO skins (id, type, name_ru, name_en, price_bricks, rarity) VALUES (?,?,?,?,?,?)')
 for (const s of seedSkins) insertSkin.run(s.id, s.type, s.ru, s.en, s.price, s.rarity)
@@ -140,11 +155,13 @@ router.post('/equip', auth, (req, res) => {
     if (!owned) return res.status(403).json({ error: 'Скин не куплен' })
   }
 
-  // Обновляем активный скин
   if (skin.type === 'blocks') {
     db.prepare('UPDATE users SET active_skin_blocks=? WHERE id=?').run(skinId, req.user.id)
   } else if (skin.type === 'stands') {
     db.prepare('UPDATE users SET active_skin_stands=? WHERE id=?').run(skinId, req.user.id)
+  } else if (skin.type === 'theme') {
+    // Темы хранятся в localStorage на клиенте, здесь только проверяем владение
+    // и подтверждаем ok
   } else {
     return res.status(400).json({ error: 'Неизвестный тип скина' })
   }
@@ -191,7 +208,6 @@ router.get('/owned', auth, (req, res) => {
     WHERE us.user_id=?
     ORDER BY us.acquired_at DESC
   `).all(req.user.id)
-  // Добавляем бесплатные скины которых нет в user_skins
   const freeBase = db.prepare("SELECT id, type, name_ru, name_en, rarity FROM skins WHERE price_bricks=0 AND is_active=1").all()
   const ownedIds = new Set(rows.map(r => r.id))
   const freeMissing = freeBase.filter(s => !ownedIds.has(s.id))
