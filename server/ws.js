@@ -1,5 +1,5 @@
 /**
- * WebSocket модуль — мультиплеер, валидация ходов, турниры
+ * WebSocket модуль — мультиплеер, валидация ходов, турниры, глобальный чат
  * Экспортирует setupWebSocket(app, { db, JWT_SECRET, rooms, matchQueue })
  * Возвращает { server } для последующего listen()
  */
@@ -9,13 +9,26 @@ import { createServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
 import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } from './ws-messages.js'
+import { filterText } from './routes/globalchat.js'
 
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 })
 
-  // ─── Heartbeat: каждые 30с пингуем всех клиентов, мёртвые убиваем ───
-  // Без этого TCP half-open не детектится, мёртвые ws висят в rooms минутами.
+  // ─── Глобальный чат: подписчики ───
+  // Set WS-клиентов подписанных на глобальный чат
+  const chatSubscribers = new Map() // ws → { username, userId, channel }
+
+  function broadcastGlobalChat(channel, msg) {
+    const data = typeof msg === 'string' ? msg : JSON.stringify(msg)
+    for (const [ws, meta] of chatSubscribers) {
+      if (ws.readyState === 1 && meta.channel === channel) {
+        try { ws.send(data) } catch {}
+      }
+    }
+  }
+
+  // ─── Heartbeat ───
   const heartbeat = setInterval(() => {
     wss.clients.forEach(ws => {
       if (ws.isAlive === false) {
@@ -28,15 +41,11 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   }, 30000)
   wss.on('close', () => clearInterval(heartbeat))
 
-  // Верификация WS-клиента по токену
   function wsAuth(token) {
     if (!token) return null
     try { return jwt.verify(token, JWT_SECRET) } catch { return null }
   }
 
-  // ─── Хелперы серверной валидации ходов ───
-
-  /** Сравнение двух action объектов (transfer, placement, swap) */
   function actionsEqual(a, b) {
     if (a.swap || b.swap) return !!a.swap === !!b.swap
     const at = a.transfer, bt = b.transfer
@@ -52,13 +61,11 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     return true
   }
 
-  /** Конвертация game player index → room player index */
   function gameToRoomPlayer(room, gamePlayer) {
     const firstP = room.firstPlayer ?? 0
     return gamePlayer === 0 ? firstP : 1 - firstP
   }
 
-  /** Рассылка сообщения всем зрителям комнаты */
   function broadcastToSpectators(room, msg) {
     if (!room.spectators) return
     const data = typeof msg === 'string' ? msg : JSON.stringify(msg)
@@ -66,7 +73,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     room.spectators.forEach(s => s.send(data))
   }
 
-  /** Обработка gameOver сервером: обновление счёта + турнирная логика */
   function handleServerGameOver(room) {
     const gs = room.gameState
     if (!gs) return
@@ -75,7 +81,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       const roomWinner = gameToRoomPlayer(room, winner)
       room.scores[roomWinner]++
     }
-    // Сохраняем training data
     if (room.moveHistory && room.moveHistory.length >= 5) {
       try {
         const gameData = JSON.stringify(room.moveHistory)
@@ -95,7 +100,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     handleTournamentNext(room)
   }
 
-  /** Турнирная логика: следующая партия или финал */
   function handleTournamentNext(room) {
     if (room.currentGame < room.totalGames) {
       room.currentGame++
@@ -139,42 +143,104 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       }
     }
 
-    // Раздельные rate limits: геймплейные сообщения (move/resign/join) не должны
-    // дропаться из-за спама chat/reaction. chat/reaction/emoji имеют свой лимит.
     let wsGameplayCount = 0
     let wsChatCount = 0
     let wsRateReset = Date.now()
-    const CHAT_TYPES = new Set(['chat', 'reaction', 'drawOffer', 'drawResponse', 'rematchOffer'])
+    const CHAT_TYPES = new Set(['chat', 'reaction', 'drawOffer', 'drawResponse', 'rematchOffer', 'globalChat', 'joinGlobalChat', 'leaveGlobalChat'])
 
     ws.on('message', (raw) => {
       const now = Date.now()
       if (now - wsRateReset > 1000) { wsGameplayCount = 0; wsChatCount = 0; wsRateReset = now }
 
-      // Централизованный парсинг + валидация типа против whitelist
       const parsed = parseRaw(raw)
       if (!parsed.ok) return
       const msg = parsed.msg
 
-      // Применяем rate limit по категории сообщения
       if (CHAT_TYPES.has(msg.type)) {
-        if (++wsChatCount > 5) return // Спам чатом/реакциями: 5/сек
+        if (++wsChatCount > 5) return
       } else {
-        if (++wsGameplayCount > 20) return // Геймплей: 20/сек (ходы + служебка)
+        if (++wsGameplayCount > 20) return
       }
 
-      // Аутентификация через сообщение
       if (msg.type === 'auth') {
         wsUser = wsAuth(msg.token)
         ws.send(JSON.stringify({ type: 'authResult', ok: !!wsUser, username: wsUser?.username }))
         return
       }
 
-      // ─── MATCHMAKING (ELO-based) ───
+      // ─── ГЛОБАЛЬНЫЙ ЧАТ ───
+      if (msg.type === 'joinGlobalChat') {
+        const channel = (msg.channel || 'global').slice(0, 20)
+        chatSubscribers.set(ws, {
+          username: wsUser?.username || msg.username || 'Гость',
+          userId: wsUser?.id || null,
+          channel,
+        })
+        // Отправляем последние 50 сообщений
+        try {
+          const history = db.prepare(
+            'SELECT id, username, text, created_at FROM chat_messages WHERE channel=? ORDER BY id DESC LIMIT 50'
+          ).all(channel).reverse()
+          ws.send(JSON.stringify({ type: 'chatHistory', channel, messages: history }))
+        } catch {}
+        // Рассылаем onlineCount
+        const onlineCount = [...chatSubscribers.values()].filter(m => m.channel === channel).length
+        broadcastGlobalChat(channel, { type: 'chatOnline', channel, count: onlineCount })
+        return
+      }
+
+      if (msg.type === 'leaveGlobalChat') {
+        chatSubscribers.delete(ws)
+        return
+      }
+
+      if (msg.type === 'globalChat') {
+        const meta = chatSubscribers.get(ws)
+        if (!meta) return // не подписан
+        if (!wsUser) return // только авторизованные
+
+        const rawText = (msg.text || '').slice(0, 300)
+        if (!rawText.trim()) return
+
+        const text = filterText(rawText)
+        const ts = Date.now()
+        const channel = meta.channel
+
+        // Сохраняем в БД
+        let msgId = null
+        try {
+          const r = db.prepare(
+            'INSERT INTO chat_messages (channel, user_id, username, text, created_at) VALUES (?,?,?,?,?)'
+          ).run(channel, wsUser.id, wsUser.username, text, ts)
+          msgId = r.lastInsertRowid
+        } catch {}
+
+        // Рассылаем всем подписчикам
+        const outMsg = JSON.stringify({
+          type: 'globalChat',
+          id: msgId,
+          channel,
+          username: wsUser.username,
+          text,
+          created_at: ts,
+        })
+        broadcastGlobalChat(channel, outMsg)
+
+        // Ограничиваем историю: удаляем старые сообщения старше 7 дней
+        if (msgId && msgId % 100 === 0) {
+          try {
+            db.prepare("DELETE FROM chat_messages WHERE channel=? AND created_at < ?")
+              .run(channel, ts - 7 * 86400000)
+          } catch {}
+        }
+        return
+      }
+
+      // ─── MATCHMAKING ───
       if (msg.type === 'findMatch') {
         const name = wsUser?.username || msg.name || 'Player'
         const skins = msg.skins || {}
         const rating = wsUser?.rating || 1000
-        // Чистим мёртвые соединения
         for (let i = matchQueue.length - 1; i >= 0; i--) {
           if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
         }
@@ -183,32 +249,21 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         const entry = { ws, name, userId: wsUser?.id || null, skins, rating, joinedAt: Date.now() }
         matchQueue.push(entry)
 
-        // Пытаемся найти пару по рейтингу
         let matched = null
-        const maxWait = 30000 // 30 сек
+        const maxWait = 30000
         for (const q of matchQueue) {
           if (q.ws === ws) continue
           if (q.ws.readyState !== 1) continue
           const ratingDiff = Math.abs(q.rating - rating)
           const waitTime = Date.now() - Math.min(q.joinedAt, entry.joinedAt)
-          // Расширяем диапазон поиска со временем: +50 ELO каждые 5 сек
           const allowedDiff = 200 + Math.floor(waitTime / 5000) * 50
-          if (ratingDiff <= allowedDiff || waitTime > maxWait) {
-            matched = q
-            break
-          }
+          if (ratingDiff <= allowedDiff || waitTime > maxWait) { matched = q; break }
         }
 
         if (matched) {
-          // Нашли пару
           matchQueue.splice(matchQueue.indexOf(matched), 1)
           matchQueue.splice(matchQueue.indexOf(entry), 1)
-          const roomId = (() => {
-            let id
-            do { id = Math.random().toString(36).slice(2, 8).toUpperCase() } while (rooms.has(id))
-            return id
-          })()
-          // Случайный выбор первого игрока
+          const roomId = (() => { let id; do { id = Math.random().toString(36).slice(2, 8).toUpperCase() } while (rooms.has(id)); return id })()
           const first = Math.random() < 0.5 ? 0 : 1
           const p1 = first === 0 ? entry : matched
           const p2 = first === 0 ? matched : entry
@@ -220,7 +275,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
             ],
             mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0],
             gameState: new GameState(), firstPlayer: 0, spectators: [],
-            timer: msg.timer || null, // Таймер если запрошен
+            timer: msg.timer || null,
             playerTime: msg.timer ? [msg.timer * 60, msg.timer * 60] : null,
           }
           rooms.set(roomId, room)
@@ -260,7 +315,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.state = 'playing'
           room.currentGame = 1
           room.gameState = new GameState()
-      room.moveHistory = []
+          room.moveHistory = []
           room.firstPlayer = 0
           const startMsg = JSON.stringify({
             type: 'start',
@@ -285,90 +340,53 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         room.spectators.push(ws)
         playerRoom = room
         isSpectator = true
-        // Отправляем текущее состояние игры
         const gs = room.gameState
         ws.send(JSON.stringify({
-          type: 'spectateJoined',
-          roomId,
+          type: 'spectateJoined', roomId,
           players: room.players.map(p => p.name),
           playerSkins: room.players.map(p => p.skins || {}),
           scores: room.scores,
           firstPlayer: room.firstPlayer ?? 0,
-          // Сериализуем gameState для восстановления на клиенте
           gameState: gs ? { stands: gs.stands, closed: gs.closed, currentPlayer: gs.currentPlayer, turn: gs.turn, swapAvailable: gs.swapAvailable, gameOver: gs.gameOver, winner: gs.winner } : null,
           spectators: room.spectators.filter(s => s.readyState === 1).length,
         }))
-        // Уведомляем игроков о новом зрителе
         const specCount = room.spectators.filter(s => s.readyState === 1).length
         room.players.forEach(p => {
           if (p.ws?.readyState === 1) p.ws.send(JSON.stringify({ type: 'spectatorCount', count: specCount }))
         })
       }
 
-      // ─── RECONNECT (возврат в партию после разрыва) ───
-      // Требует: JWT (wsUser.id должен совпадать с player.userId в комнате) + roomId.
-      // Восстанавливает слот игрока, отменяет таймер удаления комнаты, отправляет текущий gameState.
+      // ─── RECONNECT ───
       if (msg.type === 'reconnect') {
-        if (!wsUser?.id) {
-          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'no_auth' }))
-          return
-        }
+        if (!wsUser?.id) { ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'no_auth' })); return }
         const roomId = sanitizeRoomId(msg.roomId)
-        if (!roomId) {
-          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'bad_room_id' }))
-          return
-        }
+        if (!roomId) { ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'bad_room_id' })); return }
         const room = rooms.get(roomId)
-        if (!room) {
-          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'room_not_found' }))
-          return
-        }
-        // Ищем слот этого юзера в комнате
+        if (!room) { ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'room_not_found' })); return }
         const slotIdx = room.players.findIndex(p => p.userId === wsUser.id)
-        if (slotIdx === -1) {
-          ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'not_a_player' }))
-          return
-        }
-        // Подменяем ws и сбрасываем disconnectedAt
+        if (slotIdx === -1) { ws.send(JSON.stringify({ type: 'reconnectFailed', reason: 'not_a_player' })); return }
         room.players[slotIdx].ws = ws
         room.players[slotIdx].disconnectedAt = null
         playerRoom = room
         playerIdx = slotIdx
-        // Отменяем таймер удаления комнаты
-        if (room.deleteTimer) {
-          clearTimeout(room.deleteTimer)
-          room.deleteTimer = null
-        }
-        // Отправляем снапшот текущего состояния — клиент восстановит игру
+        if (room.deleteTimer) { clearTimeout(room.deleteTimer); room.deleteTimer = null }
         const gs = room.gameState
         ws.send(JSON.stringify({
-          type: 'reconnected',
-          roomId,
-          playerIdx: slotIdx,
+          type: 'reconnected', roomId, playerIdx: slotIdx,
           players: room.players.map(p => p.name),
           playerSkins: room.players.map(p => p.skins || {}),
-          scores: room.scores,
-          currentGame: room.currentGame,
-          totalGames: room.totalGames,
-          firstPlayer: room.firstPlayer ?? 0,
-          timer: room.timer || null,
-          playerTime: room.playerTime || null,
-          gameState: gs ? {
-            stands: gs.stands, closed: gs.closed, currentPlayer: gs.currentPlayer,
-            turn: gs.turn, swapAvailable: gs.swapAvailable, gameOver: gs.gameOver, winner: gs.winner,
-          } : null,
+          scores: room.scores, currentGame: room.currentGame, totalGames: room.totalGames,
+          firstPlayer: room.firstPlayer ?? 0, timer: room.timer || null, playerTime: room.playerTime || null,
+          gameState: gs ? { stands: gs.stands, closed: gs.closed, currentPlayer: gs.currentPlayer, turn: gs.turn, swapAvailable: gs.swapAvailable, gameOver: gs.gameOver, winner: gs.winner } : null,
           moveHistory: room.moveHistory || [],
         }))
-        // Уведомляем оппонента, что игрок вернулся
         const opponent = room.players[1 - slotIdx]
-        if (opponent?.ws?.readyState === 1) {
-          opponent.ws.send(JSON.stringify({ type: 'opponentReconnected', playerIdx: slotIdx }))
-        }
+        if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'opponentReconnected', playerIdx: slotIdx }))
         broadcastToSpectators(room, { type: 'playerReconnected', playerIdx: slotIdx })
         return
       }
 
-      // ─── MOVE (серверная валидация) ───
+      // ─── MOVE ───
       if (msg.type === 'move' && playerRoom) {
         const room = playerRoom
         const gs = room.gameState
@@ -386,12 +404,10 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
             if (!isLegal) {
               ws.send(JSON.stringify({ type: 'error', msg: 'Недопустимый ход' }))
             } else {
-              // Таймер: вычитаем время хода
               if (room.playerTime && room.lastMoveTime) {
                 const elapsed = (Date.now() - room.lastMoveTime) / 1000
                 room.playerTime[playerIdx] = Math.max(0, room.playerTime[playerIdx] - elapsed)
                 if (room.playerTime[playerIdx] <= 0) {
-                  // Время вышло — проигрыш
                   const timeMsg = JSON.stringify({ type: 'timeUp', loser: playerIdx, time: room.playerTime })
                   room.players.forEach(p => p?.ws?.readyState === 1 && p.ws.send(timeMsg))
                   broadcastToSpectators(room, { type: 'timeUp', loser: playerIdx })
@@ -399,20 +415,15 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
                 }
               }
               room.lastMoveTime = Date.now()
-
               room.gameState = applyAction(gs, action)
               if (!room.moveHistory) room.moveHistory = []
               room.moveHistory.push({ action: { ...action }, player: gamePlayer })
               const opponent = room.players[1 - playerIdx]
               const moveMsg = { type: 'move', action, from: playerIdx }
               if (room.playerTime) moveMsg.time = room.playerTime
-              if (opponent?.ws?.readyState === 1) {
-                opponent.ws.send(JSON.stringify(moveMsg))
-              }
+              if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify(moveMsg))
               broadcastToSpectators(room, moveMsg)
-              if (room.gameState.gameOver) {
-                handleServerGameOver(room)
-              }
+              if (room.gameState.gameOver) handleServerGameOver(room)
             }
           }
         }
@@ -424,34 +435,25 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         const firstP = room.firstPlayer ?? 0
         const resignedGamePlayer = playerIdx === firstP ? 0 : 1
         const winnerGamePlayer = 1 - resignedGamePlayer
-        if (room.gameState) {
-          room.gameState.gameOver = true
-          room.gameState.winner = winnerGamePlayer
-        }
+        if (room.gameState) { room.gameState.gameOver = true; room.gameState.winner = winnerGamePlayer }
         room.players.forEach((p, i) => {
-          if (i !== playerIdx && p.ws?.readyState === 1) {
-            p.ws.send(JSON.stringify({ type: 'resign', from: playerIdx }))
-          }
+          if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(JSON.stringify({ type: 'resign', from: playerIdx }))
         })
         handleServerGameOver(room)
       }
 
-      // ─── CHAT ───
+      // ─── CHAT (комнатный) ───
       if (msg.type === 'chat' && playerRoom && msg.text) {
         const text = sanitizeChat(msg.text)
         if (!text) return
         if (isSpectator) {
-          // Spectator chat — рассылаем всем (игрокам + зрителям)
           const name = wsUser?.username || 'Spectator'
           const chatMsg = JSON.stringify({ type: 'chat', text, from: -1, spectator: true, name })
           playerRoom.players.forEach(p => { if (p.ws?.readyState === 1) p.ws.send(chatMsg) })
           broadcastToSpectators(playerRoom, chatMsg)
         } else {
-          // Обычный чат игрока
           playerRoom.players.forEach((p, i) => {
-            if (i !== playerIdx && p.ws?.readyState === 1) {
-              p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))
-            }
+            if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(JSON.stringify({ type: 'chat', text, from: playerIdx }))
           })
           broadcastToSpectators(playerRoom, { type: 'chat', text, from: playerIdx })
         }
@@ -462,11 +464,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         const emoji = sanitizeEmoji(msg.emoji)
         if (emoji) {
           playerRoom.players.forEach((p, i) => {
-            if (i !== playerIdx && p.ws?.readyState === 1) {
-              p.ws.send(JSON.stringify({ type: 'reaction', emoji, from: playerIdx }))
-            }
+            if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(JSON.stringify({ type: 'reaction', emoji, from: playerIdx }))
           })
-          // Спектаторам тоже (spectators — это массив ws-объектов, не обёрток)
           broadcastToSpectators(playerRoom, { type: 'reaction', emoji, from: playerIdx })
         }
       }
@@ -474,27 +473,18 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       // ─── DRAW ───
       if (msg.type === 'drawOffer' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
-        if (opponent?.ws?.readyState === 1) {
-          opponent.ws.send(JSON.stringify({ type: 'drawOffer', from: playerIdx }))
-        }
+        if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'drawOffer', from: playerIdx }))
       }
-
       if (msg.type === 'drawResponse' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
-        if (opponent?.ws?.readyState === 1) {
-          opponent.ws.send(JSON.stringify({ type: 'drawResponse', accepted: msg.accepted, from: playerIdx }))
-        }
+        if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'drawResponse', accepted: msg.accepted, from: playerIdx }))
         if (msg.accepted) {
           const room = playerRoom
-          if (room.gameState) {
-            room.gameState.gameOver = true
-            room.gameState.winner = -1
-          }
+          if (room.gameState) { room.gameState.gameOver = true; room.gameState.winner = -1 }
           handleServerGameOver(room)
         }
       }
 
-      // Клиентский gameOver — backward compat для старых сессий
       if (msg.type === 'gameOver' && playerRoom) {
         if (!playerRoom.gameState) {
           const room = playerRoom
@@ -507,58 +497,42 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       // ─── REMATCH ───
       if (msg.type === 'rematchOffer' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
-        if (opponent?.ws?.readyState === 1) {
-          opponent.ws.send(JSON.stringify({ type: 'rematchOffer', from: playerIdx }))
-        }
+        if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'rematchOffer', from: playerIdx }))
       }
-
       if (msg.type === 'rematchResponse' && playerRoom) {
         const room = playerRoom
         const opponent = room.players[1 - playerIdx]
         if (msg.accepted) {
-          // Меняем стороны: кто был firstPlayer, становится вторым
           room.firstPlayer = room.firstPlayer === 0 ? 1 : 0
           room.gameState = new GameState()
-      room.moveHistory = []
-          const startMsg = JSON.stringify({
-            type: 'rematchStart',
-            players: room.players.map(p => p.name),
-            firstPlayer: room.firstPlayer,
-            scores: room.scores,
-          })
+          room.moveHistory = []
+          const startMsg = JSON.stringify({ type: 'rematchStart', players: room.players.map(p => p.name), firstPlayer: room.firstPlayer, scores: room.scores })
           room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(startMsg))
         } else {
-          if (opponent?.ws?.readyState === 1) {
-            opponent.ws.send(JSON.stringify({ type: 'rematchDeclined' }))
-          }
+          if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'rematchDeclined' }))
         }
       }
     })
 
     ws.on('close', () => {
+      // Убираем из чата
+      chatSubscribers.delete(ws)
+
       if (playerRoom) {
         const room = playerRoom
         if (isSpectator) {
-          // Зритель отключился — убираем из списка
           if (room.spectators) room.spectators = room.spectators.filter(s => s !== ws)
         } else {
-          // Помечаем игрока как отключённого (но слот сохраняем для реконнекта)
           const player = room.players[playerIdx]
-          if (player) {
-            player.disconnectedAt = Date.now()
-          }
+          if (player) player.disconnectedAt = Date.now()
           const dcMsg = JSON.stringify({ type: 'disconnected', playerIdx })
           room.players.forEach((p, i) => {
             if (i !== playerIdx && p.ws?.readyState === 1) p.ws.send(dcMsg)
           })
           broadcastToSpectators(room, dcMsg)
-          // Grace period 90 сек: если игрок не вернулся — удаляем комнату.
-          // Если вернулся через `reconnect` сообщение — disconnectedAt сбросится и эта проверка ничего не сделает.
           room.deleteTimer = setTimeout(() => {
-            // Удаляем только если игрок так и не вернулся за это время
             const stillDisconnected = room.players.some(p => p.disconnectedAt && (p.ws?.readyState !== 1))
             if (stillDisconnected) {
-              // Уведомляем оставшегося, если он ещё тут
               const abandonMsg = JSON.stringify({ type: 'opponentAbandoned' })
               room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(abandonMsg) } catch {} })
               rooms.delete(room.id)
