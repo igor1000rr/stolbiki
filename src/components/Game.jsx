@@ -31,6 +31,25 @@ const isNative = !!window.Capacitor?.isNativePlatform?.()
 
 const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
+// Модификаторы игры: fog (туман войны), doubleTransfer (двойной перенос), blitz (авто-пас при 0)
+const DEFAULT_MODIFIERS = { fog: false, doubleTransfer: false, blitz: false }
+
+function ModifierBadge({ label, active, onToggle, color = 'var(--accent)' }) {
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        fontSize: 10, padding: '3px 8px', borderRadius: 6, border: `1px solid ${active ? color : 'var(--surface3)'}`,
+        background: active ? `${color}18` : 'transparent',
+        color: active ? color : 'var(--ink3)',
+        cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+        userSelect: 'none',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
 
 export default function Game() {
   const { t, lang } = useI18n()
@@ -45,23 +64,26 @@ export default function Game() {
   const [humanPlayer, setHumanPlayer] = useState(0)
   const [difficulty, setDifficulty] = useState(400)
   const difficultyRef = useRef(400)
-  const [mode, setMode] = useState('ai') // 'ai' | 'pvp'
+  const [mode, setMode] = useState('ai')
   const [soundOn, setSoundOnState] = useState(true)
   useEffect(() => { setSoundOn(soundOn); setMuted(!soundOn) }, [soundOn])
-  // Настройки из Settings
   const [userSettings, setUserSettings] = useState(() => getSettings())
   useEffect(() => {
     setSoundOn(soundOn && userSettings.soundPack !== 'off')
     setMuted(!soundOn || userSettings.soundPack === 'off')
   }, [userSettings, soundOn])
-  // Обновляем настройки мгновенно (focus + GameContext)
   useEffect(() => {
     const refresh = () => setUserSettings(getSettings())
     window.addEventListener('focus', refresh)
     const unsub = gameCtx?.on('settingsChanged', refresh)
     return () => { window.removeEventListener('focus', refresh); unsub?.() }
   }, [gameCtx])
-  // Таймеры (extracted hook)
+
+  // ─── Геймплейные модификаторы ───
+  const [modifiers, setModifiers] = useState({ ...DEFAULT_MODIFIERS })
+  // Для двойного переноса: остаток переносов в текущем ходе
+  const [transfersLeft, setTransfersLeft] = useState(1)
+
   const { log, setLog, addLog, resetLog, logRef } = useGameLog(lang)
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
@@ -75,20 +97,15 @@ export default function Game() {
   const [newAch, setNewAch] = useState(null)
   const { sessionStats, firstWinCelebration, setFirstWinCelebration } = useSessionStats({ result, mode, humanPlayer, difficultyRef, gs })
   const [undoStack, setUndoStack] = useState([])
-  // Анимация переноса: Снаппи летит от стойки к стойке
   const [mascotRun, setMascotRun] = useState(null)
-  // Турнирный режим
-  const [tournament, setTournament] = useState(null) // { total: 3|5, games: [{won, score}], currentGame: 1 }
-  // Daily challenge
+  const [tournament, setTournament] = useState(null)
   const [dailyMode, setDailyMode] = useState(false)
   const [dailySeed, setDailySeed] = useState(null)
-  // Replay — история ходов для повтора
-  const moveHistoryRef = useRef([]) // [{ action, player }]
+  const moveHistoryRef = useRef([])
   const [showReplay, setShowReplay] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [showMobileSettings, setShowMobileSettings] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
-  // Онлайн мультиплеер
   const [onlineRoom, setOnlineRoom] = useState(null)
   const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
   const [onlinePlayers, setOnlinePlayers] = useState([])
@@ -102,6 +119,8 @@ export default function Game() {
   const aiRunning = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
+  const modifiersRef = useRef(modifiers)
+  useEffect(() => { modifiersRef.current = modifiers }, [modifiers])
 
   const sk = soundClick
   const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
@@ -112,6 +131,25 @@ export default function Game() {
     locked,
     aiRunning: aiRunning?.current,
     onTimeUp: (cp) => {
+      // Блиц-модификатор: авто-пас вместо поражения
+      if (modifiersRef.current?.blitz && cp === humanPlayer) {
+        // Пропуск хода с пустым placement
+        setInfo(en ? 'Time’s up — auto-pass!' : 'Время вышло — авто-пас!')
+        setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
+        const action = { transfer: null, placement: {} }
+        recordMove(gsRef.current, action, gsRef.current.currentPlayer)
+        moveHistoryRef.current.push({ action: { ...action }, player: gsRef.current.currentPlayer })
+        addLog(en ? 'Auto-pass (time up)' : 'Авто-пас (время истекло)', humanPlayer)
+        const ns = applyAction(gsRef.current, action)
+        setGs(ns)
+        if (ns.gameOver) {
+          setResult(ns.winner); setPhase('done'); setLocked(false)
+        } else {
+          setLocked(true); setPhase('ai')
+          setTimeout(() => runAi(ns), 500)
+        }
+        return
+      }
       setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
       setLocked(false)
     },
@@ -156,6 +194,7 @@ export default function Game() {
       aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
       startRecording(); setGameMeta('daily', 100); resetTimers(); setUndoStack([])
       moveHistoryRef.current = []; setShowReplay(false)
+      setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
       const seedLabel = (daily.seed || daily.date || '').toString().slice(-4)
       setLog([{ text: `Ежедневный челлендж #${seedLabel}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(lang === 'en' ? `Challenge #${seedLabel} — beat AI in minimum moves!` : `Челлендж #${seedLabel} — победите AI за минимум ходов!`)
@@ -217,6 +256,8 @@ export default function Game() {
           const ns = applyAction(state, action)
           setGs(ns)
           aiRunning.current = false
+          // Сбрасываем переносы для нового хода человека
+          setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
           if (ns.gameOver) {
             setTimeout(() => {
               setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
@@ -270,6 +311,8 @@ export default function Game() {
     if (d >= 200) preloadGpuNet()
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording(); setGameMeta(m, d); resetTimers(); setUndoStack([])
+    // Сбрасываем переносы
+    setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
     if (m === 'pvp') {
       setLog([{ text: lang === 'en' ? 'New game: player vs player' : 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       setInfo(t('game.place1'))
@@ -389,7 +432,6 @@ export default function Game() {
     addLog(describeAction(action, gs.currentPlayer, t), gs.currentPlayer)
     if (mode === 'online') MP.sendMove(action, playerTime)
 
-    // ─── Анимация переноса: Snappy летит от стойки к стойке ───
     if (action.transfer) {
       const [src, dst] = action.transfer
       const [topColor, topCount] = gs.topGroup(src)
@@ -403,7 +445,21 @@ export default function Game() {
     const oldClosed = Object.keys(gs.closed).length
     if (newClosed > oldClosed) soundClose()
 
-    setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
+    setHint(null)
+
+    // ─── Двойной перенос: если был перенос без placement — даём ещё один перенос ───
+    if (modifiers.doubleTransfer && action.transfer && Object.keys(action.placement || {}).length === 0 && transfersLeft > 1) {
+      // Использовали перенос без размещения — даём второй перенос или размещение
+      setTransfersLeft(t => t - 1)
+      setTransfer(null); setPlacement({}); setSelected(null)
+      setGs(ns)
+      setInfo(lang === 'en' ? `Transfer 1 done — transfer again or place blocks` : `Перенос 1/2 — перенесите ещё раз или раставьте блоки`)
+      return
+    }
+
+    setTransfer(null); setPlacement({}); setSelected(null)
+    // Сбрасываем счётчик переносов для следующего хода
+    setTransfersLeft(modifiers.doubleTransfer ? 2 : 1)
     setGs(ns)
 
     if (ns.gameOver) {
@@ -523,10 +579,8 @@ export default function Game() {
 
   return (
     <div className={isNative ? 'native-game-wrapper' : ''}>
-      {/* Анимация Снаппи при переносе */}
       <MascotRunner run={mascotRun} onDone={() => setMascotRun(null)} />
 
-      {/* Туториал для новых игроков */}
       {showTutorial && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isNative ? 12 : 20, overflowY: 'auto' }}
           onClick={dismissTutorial}>
@@ -542,13 +596,13 @@ export default function Game() {
                 <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — hold a stand to start transfer, tap destination</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Completing</b> — stand with 11 blocks is complete. Top group color = owner</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
-                <p><b style={{ color: 'var(--green)' }}></b> Close <b>6+ stands</b> out of 10 to win</p>
+                <p>Close <b>6+ stands</b> out of 10 to win</p>
               </> : <>
                 <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить блоки (до 3 на 2 стойки)</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — удержите стойку (long press) → тапните цель. Или кнопка «↗»</p>
+                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — удержите стойку (long press) → тапните цель</p>
                 <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Достройка</b> — высотка с 11 блоками достроена. Цвет верхней группы = владелец</p>
                 <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
-                <p><b style={{ color: 'var(--green)' }}></b> Достройте <b>6+ высоток</b> из 10 чтобы победить</p>
+                <p>Достройте <b>6+ высоток</b> из 10 чтобы победить</p>
               </>}
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
@@ -560,6 +614,7 @@ export default function Game() {
           </div>
         </div>
       )}
+
       {mode === 'online' && (
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
           background: 'rgba(61,214,140,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(61,214,140,0.15)' }}>
@@ -607,6 +662,31 @@ export default function Game() {
       </div>
       )}
 
+      {/* Модификаторы — только в AI-режиме */}
+      {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 2 }}>{en ? 'Mods:' : 'Моды:'}</span>
+          <ModifierBadge
+            label={en ? '🌫 Fog' : '🌫 Туман'}
+            active={modifiers.fog}
+            onToggle={() => { setModifiers(m => ({ ...m, fog: !m.fog })); newGame() }}
+            color="#4a9eff"
+          />
+          <ModifierBadge
+            label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'}
+            active={modifiers.doubleTransfer}
+            onToggle={() => { setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm }); setTransfersLeft(!modifiers.doubleTransfer ? 2 : 1) }}
+            color="#9b59b6"
+          />
+          <ModifierBadge
+            label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'}
+            active={modifiers.blitz}
+            onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })}
+            color="#ff9800"
+          />
+        </div>
+      )}
+
       {mode !== 'online' && mode !== 'spectate-online' && isNative && (
         <div className="m-game-bar">
           <div className="m-game-bar-info">
@@ -622,6 +702,10 @@ export default function Game() {
               {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 3 }}>GPU</span>}
             </span>
             {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
+            {/* Модификаторы на мобиле */}
+            {modifiers.fog && <span style={{ fontSize: 9, color: '#4a9eff' }}>🌫</span>}
+            {modifiers.doubleTransfer && <span style={{ fontSize: 9, color: '#9b59b6' }}>⇄×2</span>}
+            {modifiers.blitz && <span style={{ fontSize: 9, color: '#ff9800' }}>⚡</span>}
           </div>
           <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)} aria-label="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
@@ -657,6 +741,15 @@ export default function Game() {
                 </div>
               </div>
             )}
+            {/* Модификаторы в мобильном sheet */}
+            <div className="m-setting-row" style={{ flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+              <span className="m-setting-label">{en ? 'Modifiers' : 'Модификаторы'}</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog} onToggle={() => setModifiers(m => { const nm = { ...m, fog: !m.fog }; modifiersRef.current = nm; return nm })} color="#4a9eff" />
+                <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer} onToggle={() => setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm })} color="#9b59b6" />
+                <ModifierBadge label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'} active={modifiers.blitz} onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })} color="#ff9800" />
+              </div>
+            </div>
             {mode === 'ai' && !tournament && (
               <div className="m-setting-row">
                 <span className="m-setting-label">{lang === 'en' ? 'Series' : 'Серия'}</span>
@@ -758,7 +851,10 @@ export default function Game() {
         onStandClick={onStandClick} onStandLongPress={onStandLongPress}
         aiThinking={aiThinking} onlineMode={mode === 'online'}
         flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar}
-        ghostTransfer={transfer ? { from: transfer[0], to: transfer[1], color: gs.topGroup(transfer[0])[0], count: gs.topGroup(transfer[0])[1] } : null} />
+        ghostTransfer={transfer ? { from: transfer[0], to: transfer[1], color: gs.topGroup(transfer[0])[0], count: gs.topGroup(transfer[0])[1] } : null}
+        fogOfWar={modifiers.fog && mode !== 'spectate' && mode !== 'spectate-online'}
+        fogPlayer={humanPlayer}
+      />
 
       {timerLimit > 0 && !gs.gameOver && (
         <div style={{ display: 'flex', justifyContent: 'space-between', margin: isNative ? '2px 12px 4px' : '4px 16px 8px', fontSize: isNative ? 12 : 13, fontFamily: 'monospace' }}>
@@ -768,6 +864,7 @@ export default function Game() {
           </div>
           <div style={{ fontSize: 10, color: 'var(--ink3)', alignSelf: 'center' }}>
             {userSettings.timer === 'blitz' ? '3+0' : userSettings.timer === 'rapid' ? '10+0' : '30+0'}
+            {modifiers.blitz && <span style={{ color: '#ff9800', marginLeft: 4 }}>⚡пас</span>}
           </div>
           <div style={{ color: gs.currentPlayer === 1 ? 'var(--p2)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 1 ? 700 : 400,
             opacity: playerTime[1] < 30 && gs.currentPlayer === 1 ? (playerTime[1] % 2 ? 1 : 0.5) : 1 }}>
@@ -779,7 +876,10 @@ export default function Game() {
       <div style={{ textAlign: 'center', fontSize: isNative ? 10 : 11, color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px', minHeight: isNative ? 16 : 18 }}>
         {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
         {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
-          <> · {totalPlaced}/{maxTotal}{transfer ? ` · ✓` : ''}</>
+          <> · {totalPlaced}/{maxTotal}{transfer ? ` · ✓` : ''}
+          {modifiers.doubleTransfer && transfersLeft === 2 && !gs.isFirstTurn() && <span style={{ color: '#9b59b6', marginLeft: 4 }}>⇄×2</span>}
+          {modifiers.doubleTransfer && transfersLeft === 1 && transfer && <span style={{ color: '#9b59b6', marginLeft: 4 }}>⇄×1</span>}
+          </>
         )}
       </div>
 
@@ -844,7 +944,9 @@ export default function Game() {
             <button key="slot1-transfer" className="btn action-slot action-slot--swap"
               disabled={!(isMyTurn && phase === 'place' && hasTransfers)}
               onClick={startTransfer}>
-              {t('game.transfer')}
+              {modifiers.doubleTransfer && transfersLeft > 1 && !transfer
+                ? (en ? '⇄⇄ Transfer' : '⇄⇄ Перенос')
+                : t('game.transfer')}
             </button>
           )
         })()}
@@ -865,7 +967,7 @@ export default function Game() {
         )}
         <button className="btn" onClick={() => setSoundOnState(p => !p)}
           style={{ fontSize: 13, opacity: 0.5, padding: '6px 8px', minWidth: 0 }}
-          aria-label={soundOn ? 'Mute' : 'Unmute'} title={soundOn ? 'Mute' : 'Unmute'}>
+          aria-label={soundOn ? 'Mute' : 'Unmute'}>
           {soundOn
             ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
             : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>}
