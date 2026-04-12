@@ -1,24 +1,20 @@
 /**
- * \u0421\u043f\u0438\u0441\u043e\u043a \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u0434\u043b\u044f \u043c\u043e\u0434\u0430\u043b\u043a\u0438 \"\u0427\u0442\u043e \u043d\u043e\u0432\u043e\u0433\u043e\".
- * \u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u043d \u0441 \u0432\u0435\u0440\u0441\u0438\u0435\u0439 \u0432 package.json \u0447\u0435\u0440\u0435\u0437 APP_VERSION.
+ * Список изменений для модалки "Что нового".
+ * Синхронизирован с версией в package.json через APP_VERSION.
  */
 export const WHATS_NEW = {
   ru: [
-    '\u041a\u043b\u0443\u0431\u044b \uD83E\uDD9D \u2014 \u0441\u043e\u0437\u0434\u0430\u0439, \u0432\u0441\u0442\u0443\u043f\u0430\u0439, \u0441\u043e\u0431\u0438\u0440\u0430\u0439 \u043f\u043e\u0431\u0435\u0434\u044b \u043a\u043b\u0430\u043d\u0430',
-    '\u042d\u043a\u0438\u043f\u0438\u0440\u043e\u0432\u043a\u0430 \u0441\u043a\u0438\u043d\u043e\u0432: \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u0441\u043a\u0438\u043d \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u0441 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u043e\u043c',
-    '\u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u044b\u0439 \u0447\u0430\u0442 WS real-time \u0432 \u043e\u043d\u043b\u0430\u0439\u043d-\u043b\u043e\u0431\u0431\u0438',
-    '\uD83C\uDF2B \u0422\u0443\u043c\u0430\u043d \u0432\u043e\u0439\u043d\u044b, \u21C4 \xD72 \u043f\u0435\u0440\u0435\u043d\u043e\u0441, \u26A1 \u0410\u0432\u0442\u043e-\u043f\u0430\u0441 \u2014 \u043d\u043e\u0432\u044b\u0435 \u0440\u0435\u0436\u0438\u043c\u044b',
-    '\u0417\u0434\u0430\u043d\u0438\u044f \u0413\u043e\u0440\u043e\u0434\u0430 \u043f\u043e\u0431\u0435\u0434 \u0442\u0435\u043f\u0435\u0440\u044c \u043e\u0442\u0440\u0430\u0436\u0430\u044e\u0442 \u0446\u0432\u0435\u0442 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0433\u043e \u0441\u043a\u0438\u043d\u0430',
-    '\u041f\u043b\u0430\u0442\u043d\u044b\u0435 \u0442\u0435\u043c\u044b: Ocean, Royal, Sakura \u0437\u0430 \u043a\u0438\u0440\u043f\u0438\u0447\u0438',
-    '\u0420\u0435\u0444\u0435\u0440\u0430\u043b\u044c\u043d\u044b\u0435 \u043a\u0438\u0440\u043f\u0438\u0447\u0438: +20 \u043f\u0440\u0438 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438, +30 \u043f\u0440\u0438 10 \u043f\u0430\u0440\u0442\u0438\u044f\u0445',
+    '🎬 TikTok/Reels-клип из партии — кнопка в результатах',
+    '🧱 Платные темы: Ocean, Royal, Sakura, Neon, Retro, Sunset, Arctic, Wood',
+    '🏙 Город побед: цвет зданий = скин из той партии',
+    '🌫 Туман войны, ⇄×2 перенос, ⚡ Авто-пас — новые моды',
+    '🦝 Клубы + глобальный чат + реферальные кирпичи',
   ],
   en: [
-    'Clubs \uD83E\uDD9D \u2014 create, join, earn wins for your clan',
-    'Skin equip: active skin synced to your account',
-    'Global chat WS real-time in online lobby',
-    '\uD83C\uDF2B Fog of War, \u21C4 \xD72 Transfer, \u26A1 Auto-pass \u2014 new modifiers',
-    'Victory City buildings now reflect your active skin color',
-    'Paid themes: Ocean, Royal, Sakura for bricks',
-    'Referral bricks: +20 on signup, +30 at 10 games',
+    '🎬 TikTok/Reels clip from any game — button in results',
+    '🧱 Paid themes: Ocean, Royal, Sakura, Neon, Retro, Sunset, Arctic, Wood',
+    '🏙 Victory City: building color = skin used in that game',
+    '🌫 Fog of War, ⇄×2 Transfer, ⚡ Auto-pass — new modifiers',
+    '🦝 Clubs + global chat + referral bricks',
   ],
 }
