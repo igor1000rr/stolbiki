@@ -6,6 +6,7 @@ import { addXP, ensureCurrentSeason } from '../helpers.js'
 import { verifyGameFromMoves, walkMoves } from '../anticheat.js'
 import { awardBricks } from './bricks.js'
 import { updateBPProgress } from './battlepass.js'
+import { awardBricksToReferrer, REFERRAL_BRICKS_GAMES } from './auth.js'
 
 const router = Router()
 
@@ -58,6 +59,7 @@ router.post('/games', auth, (req, res) => {
   const newStreak = verifiedWon ? user.win_streak + 1 : 0
   const bestStreak = Math.max(user.best_streak, newStreak)
   const isFastWin = verifiedWon && verifiedTurns > 0 && verifiedTurns <= 10
+  const gamesPlayedBefore = user.games_played
 
   db.prepare(`UPDATE users SET
     rating = ?, games_played = games_played + 1,
@@ -105,21 +107,19 @@ router.post('/games', auth, (req, res) => {
     bricksAfter = awardBricks(req.user.id, bricksDelta, `win:${isOnline ? 'pvp' : `ai_${safeDifficulty}`}`, gameResult.lastInsertRowid)
   }
 
+  // ─── Рефераьная программа: +30 кирпичей рефереру при 10 партиях ───
+  if (gamesPlayedBefore < 10 && gamesPlayedBefore + 1 >= 10 && user.referred_by) {
+    awardBricksToReferrer(user.referred_by, REFERRAL_BRICKS_GAMES, 'referral_10games', req.user.id)
+  }
+
   // ─── Battle Pass прогресс ───
-  // always: play_n (каждая партия)
   updateBPProgress(req.user.id, 'play', {})
   if (verifiedWon) {
-    if (isOnline) {
-      updateBPProgress(req.user.id, 'win_online', {})
-    } else if (safeDifficulty >= 400) {
-      updateBPProgress(req.user.id, 'win_ai_hard', {})
-    } else {
-      updateBPProgress(req.user.id, 'win', {})
-    }
+    if (isOnline) updateBPProgress(req.user.id, 'win_online', {})
+    else if (safeDifficulty >= 400) updateBPProgress(req.user.id, 'win_ai_hard', {})
+    else updateBPProgress(req.user.id, 'win', {})
   }
-  if (closedGolden) {
-    updateBPProgress(req.user.id, 'close_golden', {})
-  }
+  if (closedGolden) updateBPProgress(req.user.id, 'close_golden', {})
 
   const currentSeason = ensureCurrentSeason()
   if (currentSeason) {
@@ -233,7 +233,7 @@ router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   const gameData = JSON.stringify(moves)
   if (gameData.length > 500000) return res.status(400).json({ error: 'Слишком большая партия' })
   try {
-    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)').run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', difficulty || 0)
+    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)').run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', safeDifficulty || 0)
     res.json({ ok: true })
   } catch { res.status(500).json({ error: 'Ошибка записи' }) }
 })
