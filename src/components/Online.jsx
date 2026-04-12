@@ -5,16 +5,13 @@ import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings } from '../engine/settings'
 import Icon from './Icon'
-
-// Ежедневный челлендж
 import DailyChallenge from './DailyChallenge'
+import GlobalChat from './GlobalChat'
 
-// QR генерация через canvas (без библиотек)
 function QRCode({ text, size = 160 }) {
   const ref = useRef(null)
   useEffect(() => {
     if (!ref.current || !text) return
-    // Простой QR через Google Charts API (fallback)
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&bgcolor=1a1a2a&color=eae8f2`
@@ -33,13 +30,13 @@ export default function Online() {
   const en = lang === 'en'
   const gameCtx = useGameContext()
   const isNative = !!window.Capacitor?.isNativePlatform?.()
-  const [screen, setScreen] = useState('lobby') // lobby | waiting | playing | result | searching
+  const [screen, setScreen] = useState('lobby')
   const [roomId, setRoomId] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [playerName, setPlayerName] = useState(localStorage.getItem('stolbiki_online_name') || '')
   const [playerIdx, setPlayerIdx] = useState(-1)
   const [players, setPlayers] = useState([])
-  const [mode, setMode] = useState('single') // single | tournament3 | tournament5
+  const [mode, setMode] = useState('single')
   const [scores, setScores] = useState([0, 0])
   const [currentGame, setCurrentGame] = useState(0)
   const [totalGames, setTotalGames] = useState(1)
@@ -51,16 +48,14 @@ export default function Online() {
   const [activeRooms, setActiveRooms] = useState([])
   const [loadingRooms, setLoadingRooms] = useState(false)
   const [opponentSkins, setOpponentSkins] = useState(null)
-  const [reconnectInfo, setReconnectInfo] = useState(null) // { attempt, maxAttempts, delay }
+  const [reconnectInfo, setReconnectInfo] = useState(null)
   const [opponentRating, setOpponentRating] = useState(null)
 
-  // Свои скины для передачи оппоненту
   function getMySkins() {
     const s = getSettings()
     return { chipStyle: s.chipStyle, standStyle: s.standStyle }
   }
 
-  // Refs для актуальных значений в WS callback (не stale)
   const roomIdRef = useRef('')
   const playerIdxRef = useRef(-1)
   const playersRef = useRef([])
@@ -70,38 +65,22 @@ export default function Online() {
   useEffect(() => { playersRef.current = players }, [players])
   useEffect(() => { gameCtxRef.current = gameCtx }, [gameCtx])
 
-  // Обработчик WS сообщений
   function handleWS(msg) {
     switch (msg.type) {
       case 'joined':
-        setRoomId(msg.roomId)
-        roomIdRef.current = msg.roomId
-        setPlayerIdx(msg.playerIdx)
-        playerIdxRef.current = msg.playerIdx
-        setMode(msg.mode || 'single')
-        setTotalGames(msg.totalGames || 1)
-        setScreen('waiting')
-        setStatus(en ? 'Waiting for opponent...' : 'Ждём второго игрока...')
+        setRoomId(msg.roomId); roomIdRef.current = msg.roomId
+        setPlayerIdx(msg.playerIdx); playerIdxRef.current = msg.playerIdx
+        setMode(msg.mode || 'single'); setTotalGames(msg.totalGames || 1)
+        setScreen('waiting'); setStatus(en ? 'Waiting for opponent...' : 'Ждём второго игрока...')
         break
       case 'waiting':
-        setPlayers(msg.players)
-        playersRef.current = msg.players
-        setScreen('waiting')
+        setPlayers(msg.players); playersRef.current = msg.players; setScreen('waiting')
         break
       case 'start':
-        setPlayers(msg.players)
-        playersRef.current = msg.players
-        setScores(msg.scores || [0, 0])
-        setCurrentGame(msg.currentGame || 1)
-        setScreen('playing')
-        setStatus('')
-        setReconnectInfo(null)
-        // Скины оппонента
-        if (msg.playerSkins) {
-          const oppIdx = playerIdxRef.current === 0 ? 1 : 0
-          setOpponentSkins(msg.playerSkins[oppIdx] || null)
-        }
-        // Передаём в Game через GameContext (используем refs — актуальные значения)
+        setPlayers(msg.players); playersRef.current = msg.players
+        setScores(msg.scores || [0, 0]); setCurrentGame(msg.currentGame || 1)
+        setScreen('playing'); setStatus(''); setReconnectInfo(null)
+        if (msg.playerSkins) { const oppIdx = playerIdxRef.current === 0 ? 1 : 0; setOpponentSkins(msg.playerSkins[oppIdx] || null) }
         gameCtxRef.current?.emit('onOnlineStart', { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, timer: msg.timer || null, ratings: msg.ratings || null })
         break
       case 'move':
@@ -111,13 +90,11 @@ export default function Online() {
         gameCtxRef.current?.emit('onTimeUp', { loser: msg.loser, time: msg.time })
         break
       case 'nextGame':
-        setScores(msg.scores)
-        setCurrentGame(msg.currentGame)
+        setScores(msg.scores); setCurrentGame(msg.currentGame)
         gameCtxRef.current?.emit('onOnlineStart', { players: playersRef.current, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true })
         break
       case 'tournamentOver':
-        setTournamentResult(msg)
-        setScreen('result')
+        setTournamentResult(msg); setScreen('result')
         break
       case 'chat':
         setMessages(prev => [...prev.slice(-50), { from: msg.from, text: msg.text, time: Date.now() }])
@@ -132,7 +109,6 @@ export default function Online() {
         gameCtxRef.current?.emit('onOnlineResign', { from: msg.from })
         break
       case 'serverGameOver':
-        // Серверное подтверждение gameOver — обновляем счёт
         setScores(msg.scores)
         gameCtxRef.current?.emit('onServerGameOver', { winner: msg.winner, scores: msg.scores })
         break
@@ -149,8 +125,7 @@ export default function Online() {
         gameCtxRef.current?.emit('onRematchDeclined')
         break
       case 'rematchStart':
-        setScores(msg.scores || [0, 0])
-        setScreen('playing')
+        setScores(msg.scores || [0, 0]); setScreen('playing')
         gameCtxRef.current?.emit('onOnlineStart', { players: msg.players, firstPlayer: msg.firstPlayer, roomId: roomIdRef.current, playerIdx: playerIdxRef.current, nextGame: true })
         break
       case 'disconnected':
@@ -160,9 +135,7 @@ export default function Online() {
         setReconnectInfo({ attempt: msg.attempt, maxAttempts: msg.maxAttempts, delay: msg.delay })
         break
       case 'reconnectFailed':
-        setReconnectInfo(null)
-        setStatus(en ? 'Connection lost' : 'Соединение потеряно')
-        setScreen('lobby')
+        setReconnectInfo(null); setStatus(en ? 'Connection lost' : 'Соединение потеряно'); setScreen('lobby')
         break
       case 'error':
         setError(msg.msg)
@@ -171,28 +144,17 @@ export default function Online() {
         setScreen('searching')
         break
       case 'matchFound':
-        setRoomId(msg.roomId)
-        roomIdRef.current = msg.roomId
-        setPlayerIdx(msg.playerIdx)
-        playerIdxRef.current = msg.playerIdx
-        setOpponentRating(msg.opponentRating || null)
-        setReconnectInfo(null)
+        setRoomId(msg.roomId); roomIdRef.current = msg.roomId
+        setPlayerIdx(msg.playerIdx); playerIdxRef.current = msg.playerIdx
+        setOpponentRating(msg.opponentRating || null); setReconnectInfo(null)
         break
       case 'matchCancelled':
         setScreen('lobby')
         break
       case 'spectateJoined':
-        setScreen('spectating')
-        setPlayers(msg.players || [])
-        playersRef.current = msg.players || []
-        setScores(msg.scores || [0, 0])
-        // Передаём состояние в Game.jsx через GameContext
-        gameCtxRef.current?.emit('onSpectateStart', {
-          players: msg.players,
-          firstPlayer: msg.firstPlayer ?? 0,
-          gameState: msg.gameState,
-          spectators: msg.spectators,
-        })
+        setScreen('spectating'); setPlayers(msg.players || []); playersRef.current = msg.players || []
+        setScores(msg.scores || [])
+        gameCtxRef.current?.emit('onSpectateStart', { players: msg.players, firstPlayer: msg.firstPlayer ?? 0, gameState: msg.gameState, spectators: msg.spectators })
         break
     }
   }
@@ -201,11 +163,8 @@ export default function Online() {
     if (!playerName.trim()) { setError(en ? 'Enter name' : 'Введите имя'); return }
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
-    try {
-      const id = await MP.createRoom(mode)
-      setRoomId(id)
-      MP.connect(id, playerName.trim(), handleWS, getMySkins())
-    } catch { setError(en ? 'Failed to create room' : 'Ошибка создания комнаты') }
+    try { const id = await MP.createRoom(mode); setRoomId(id); MP.connect(id, playerName.trim(), handleWS, getMySkins()) }
+    catch { setError(en ? 'Failed to create room' : 'Ошибка создания комнаты') }
   }
 
   async function joinRoom() {
@@ -213,8 +172,7 @@ export default function Online() {
     if (!joinCode.trim()) { setError(en ? 'Enter room code' : 'Введите код комнаты'); return }
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
-    const code = joinCode.trim().toUpperCase()
-    MP.connect(code, playerName.trim(), handleWS, getMySkins())
+    MP.connect(joinCode.trim().toUpperCase(), playerName.trim(), handleWS, getMySkins())
   }
 
   function sendChat() {
@@ -225,51 +183,32 @@ export default function Online() {
   }
 
   function findMatch() {
-    if (!playerName.trim()) { setError(en ? 'Enter name' : en ? 'Enter name' : 'Введите имя'); return }
+    if (!playerName.trim()) { setError(en ? 'Enter name' : 'Введите имя'); return }
     setError('')
     localStorage.setItem('stolbiki_online_name', playerName.trim())
     setScreen('searching')
     API.track('matchmaking', 'online'); MP.findMatch(playerName.trim(), handleWS, getMySkins())
   }
 
-  function cancelSearch() {
-    MP.cancelMatch()
-    MP.disconnect()
-    setScreen('lobby')
-  }
+  function cancelSearch() { MP.cancelMatch(); MP.disconnect(); setScreen('lobby') }
 
   function backToLobby() {
-    MP.disconnect()
-    setScreen('lobby')
-    setRoomId('')
-    setError('')
-    setStatus('')
-    setTournamentResult(null)
-    setMessages([])
-    setScores([0, 0])
+    MP.disconnect(); setScreen('lobby'); setRoomId(''); setError(''); setStatus('')
+    setTournamentResult(null); setMessages([]); setScores([0, 0])
   }
 
   async function loadActiveRooms() {
     setLoadingRooms(true)
-    try {
-      const list = await MP.getActiveRooms()
-      setActiveRooms(list)
-    } catch { setActiveRooms([]) }
+    try { const list = await MP.getActiveRooms(); setActiveRooms(list) } catch { setActiveRooms([]) }
     setLoadingRooms(false)
   }
 
-  function startSpectate(targetRoomId) {
-    MP.spectateRoom(targetRoomId, handleWS)
-  }
+  function startSpectate(targetRoomId) { MP.spectateRoom(targetRoomId, handleWS) }
 
   useEffect(() => () => MP.disconnect(), [])
 
-  // Авто-загрузка активных комнат при входе в лобби
-  useEffect(() => {
-    if (screen === 'lobby') loadActiveRooms()
-  }, [screen])
+  useEffect(() => { if (screen === 'lobby') loadActiveRooms() }, [screen])
 
-  // Из Game.jsx: кнопка "В лобби" после завершения онлайн-партии
   useEffect(() => {
     const back = () => backToLobby()
     window.addEventListener('stolbiki-back-to-lobby', back)
@@ -278,21 +217,11 @@ export default function Online() {
 
   const roomUrl = roomId ? `${location.origin}?room=${roomId}` : ''
 
-  // Проверяем URL при загрузке
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const room = params.get('room')
-    if (room) {
-      setJoinCode(room)
-      history.replaceState(null, '', location.pathname)
-    }
-    // Deep link из Capacitor native app
-    const handleDeepLink = (e) => {
-      if (e.detail?.room) {
-        setJoinCode(e.detail.room)
-        setScreen('lobby')
-      }
-    }
+    if (room) { setJoinCode(room); history.replaceState(null, '', location.pathname) }
+    const handleDeepLink = (e) => { if (e.detail?.room) { setJoinCode(e.detail.room); setScreen('lobby') } }
     window.addEventListener('stolbiki-deeplink-room', handleDeepLink)
     return () => window.removeEventListener('stolbiki-deeplink-room', handleDeepLink)
   }, [])
@@ -308,7 +237,6 @@ export default function Online() {
     return (
       <div>
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
-          
           <h3 style={{ fontSize: 18, marginBottom: 4, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 12 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
           {activeRooms.length > 0 && (
@@ -317,12 +245,9 @@ export default function Online() {
               {activeRooms.length} {en ? 'game' : 'игр'}{activeRooms.length > 1 && (en ? 's' : '')} {en ? 'live' : 'сейчас'}
             </div>
           )}
-
           {error && <div style={{ color: 'var(--p2)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
-
           <input type="text" placeholder={en ? 'Your name' : 'Ваше имя'} value={playerName}
             onChange={e => setPlayerName(e.target.value)} style={inputStyle} />
-
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {[['single', en ? '1 game' : '1 партия'], ['tournament3', en ? 'Best of 3' : 'Серия 3'], ['tournament5', en ? 'Best of 5' : 'Серия 5']].map(([m, l]) => (
               <button key={m} className={`btn ${mode === m ? 'primary' : ''}`}
@@ -331,24 +256,18 @@ export default function Online() {
               </button>
             ))}
           </div>
-
           <button className="btn primary" onClick={createRoom}
             style={{ width: '100%', justifyContent: 'center', fontSize: 14, padding: '12px 0', marginBottom: 10 }}>
             {en ? 'Create room' : 'Создать комнату'}
           </button>
-
           <button className="btn" onClick={findMatch}
-            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 10,
-              borderColor: '#3dd68c40', color: 'var(--green)' }}>
+            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 10, borderColor: '#3dd68c40', color: 'var(--green)' }}>
             {en ? 'Find random opponent' : 'Найти случайного соперника'}
           </button>
-
           <button className="btn" onClick={() => gameCtx?.emit('openArena')}
-            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16,
-              borderColor: '#ffc14540', color: 'var(--gold)' }}>
+            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '11px 0', marginBottom: 16, borderColor: '#ffc14540', color: 'var(--gold)' }}>
             {en ? 'Arena Tournament' : 'Турнир Arena'}
           </button>
-
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
             <p style={{ color: 'var(--ink3)', fontSize: 11, marginBottom: 8 }}>{en ? 'Or enter friend\'s code:' : 'Или введите код друга:'}</p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -360,31 +279,30 @@ export default function Online() {
           </div>
         </div>
 
-        {/* QR код сайта — только для десктопа */}
         {!isNative && (
-        <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto', textAlign: 'center' }}>
-          <h3 style={{ marginBottom: 12 }}>{en ? 'QR — open on phone' : 'QR — открой с телефона'}</h3>
-          <QRCode text={location.origin} size={180} />
-          <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10 }}>{en ? 'Scan to play on mobile' : 'Отсканируй чтобы играть на телефоне'}</p>
-        </div>
+          <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto', textAlign: 'center' }}>
+            <h3 style={{ marginBottom: 12 }}>{en ? 'QR — open on phone' : 'QR — открой с телефона'}</h3>
+            <QRCode text={location.origin} size={180} />
+            <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10 }}>{en ? 'Scan to play on mobile' : 'Отсканируй чтобы играть на телефоне'}</p>
+          </div>
         )}
 
-        {/* Ежедневный челлендж */}
         <DailyChallenge />
 
-        {/* Наблюдение за играми */}
+        {/* Глобальный чат */}
+        <div style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto' }}>
+          <GlobalChat lang={lang} compact />
+        </div>
+
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '16px auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{ fontSize: 14, color: 'var(--ink)', marginBottom: 0 }}>{en ? 'Live games' : 'Живые партии'}</h3>
-            <button className="btn" onClick={loadActiveRooms} disabled={loadingRooms}
-              style={{ fontSize: 10, padding: '4px 10px' }}>
+            <button className="btn" onClick={loadActiveRooms} disabled={loadingRooms} style={{ fontSize: 10, padding: '4px 10px' }}>
               {loadingRooms ? '...' : (en ? 'Refresh' : 'Обновить')}
             </button>
           </div>
           {activeRooms.length === 0 ? (
-            <p style={{ color: 'var(--ink3)', fontSize: 12 }}>
-              {en ? 'No active games right now' : 'Сейчас нет активных игр'}
-            </p>
+            <p style={{ color: 'var(--ink3)', fontSize: 12 }}>{en ? 'No active games right now' : 'Сейчас нет активных игр'}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {activeRooms.map(r => (
@@ -397,8 +315,7 @@ export default function Online() {
                       {r.spectators > 0 && ` · ${r.spectators} ${en ? 'watching' : 'зрит.'}`}
                     </span>
                   </div>
-                  <button className="btn" onClick={() => startSpectate(r.id)}
-                    style={{ fontSize: 10, padding: '4px 10px' }}>
+                  <button className="btn" onClick={() => startSpectate(r.id)} style={{ fontSize: 10, padding: '4px 10px' }}>
                     {en ? 'Watch' : 'Смотреть'}
                   </button>
                 </div>
@@ -412,7 +329,6 @@ export default function Online() {
 
   // ─── SEARCHING ───
   if (screen === 'searching') {
-    // Получаем рейтинг юзера из localStorage
     const userRating = (() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.rating || 1000 } catch { return 1000 } })()
     return (
       <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 130px)' } : undefined}>
@@ -424,18 +340,10 @@ export default function Online() {
               ))}
             </div>
           </div>
-          <h3 style={{ fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>
-            {en ? 'Looking for opponent...' : 'Ищем соперника...'}
-          </h3>
-          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>
-            {en ? 'Your rating' : 'Ваш рейтинг'}: <b style={{ color: 'var(--gold)' }}>{userRating}</b>
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 20 }}>
-            {en ? 'ELO ±200, range expands over time' : 'ELO ±200, диапазон расширяется со временем'}
-          </p>
-          <button className="btn" onClick={cancelSearch} style={{ fontSize: 12 }}>
-            {en ? 'Cancel' : 'Отмена'}
-          </button>
+          <h3 style={{ fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>{en ? 'Looking for opponent...' : 'Ищем соперника...'}</h3>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>{en ? 'Your rating' : 'Ваш рейтинг'}: <b style={{ color: 'var(--gold)' }}>{userRating}</b></div>
+          <p style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 20 }}>{en ? 'ELO ±200, range expands over time' : 'ELO ±200, диапазон расширяется со временем'}</p>
+          <button className="btn" onClick={cancelSearch} style={{ fontSize: 12 }}>{en ? 'Cancel' : 'Отмена'}</button>
         </div>
       </div>
     )
@@ -452,32 +360,17 @@ export default function Online() {
         <p style={{ color: 'var(--ink2)', fontSize: 13, marginBottom: 16 }}>
           {mode === 'tournament3' ? (en ? 'Tournament: best of 3' : 'Турнир: серия из 3') : mode === 'tournament5' ? (en ? 'Tournament: best of 5' : 'Турнир: серия из 5') : (en ? 'Single game' : 'Одна партия')}
         </p>
-
-        {/* Код */}
-        <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 8, color: 'var(--gold)', marginBottom: 16,
-          fontFamily: 'DM Serif Display, serif' }}>
-          {roomId}
-        </div>
-
-        {/* QR ссылки на комнату */}
+        <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 8, color: 'var(--gold)', marginBottom: 16, fontFamily: 'DM Serif Display, serif' }}>{roomId}</div>
         <QRCode text={roomUrl} size={160} />
-
-        <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10, marginBottom: 8 }}>
-          {en ? 'Send link or code to a friend' : 'Отправь ссылку или код другу'}
-        </p>
-
+        <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10, marginBottom: 8 }}>{en ? 'Send link or code to a friend' : 'Отправь ссылку или код другу'}</p>
         <button className="btn" onClick={() => {
           if (navigator.share) navigator.share({ text: en ? `Play Snatch Highrise! Room: ${roomId}` : `Играем в Snatch Highrise! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
           else navigator.clipboard?.writeText(roomUrl)
         }} style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }}>
           {en ? 'Share link' : 'Поделиться ссылкой'}
         </button>
-
         <div className="thinking-dots" style={{ color: 'var(--ink3)', fontSize: 13 }}>{en ? 'Waiting for opponent' : 'Ждём второго игрока'}</div>
-
-        <button className="btn" onClick={backToLobby} style={{ marginTop: 16, width: '100%', justifyContent: 'center', fontSize: 12 }}>
-          {en ? '← Back' : '← Назад'}
-        </button>
+        <button className="btn" onClick={backToLobby} style={{ marginTop: 16, width: '100%', justifyContent: 'center', fontSize: 12 }}>{en ? '← Back' : '← Назад'}</button>
       </div>
     )
   }
@@ -486,45 +379,26 @@ export default function Online() {
   if (screen === 'playing') {
     return (
       <div>
-        {/* Турнирный счёт */}
         {totalGames > 1 && (
-          <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
-            background: 'rgba(240,96,64,0.06)', borderRadius: 12, border: '1px solid rgba(240,96,64,0.1)' }}>
+          <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12, background: 'rgba(240,96,64,0.06)', borderRadius: 12, border: '1px solid rgba(240,96,64,0.1)' }}>
             <span style={{ fontSize: 11, color: 'var(--ink2)' }}>{en ? 'Game' : 'Партия'} {currentGame}/{totalGames}</span>
-            <span style={{ fontSize: 16, fontWeight: 700, margin: '0 12px', color: 'var(--ink)' }}>
-              {scores[0]} : {scores[1]}
-            </span>
-            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>
-              {players[0]} vs {players[1]}
-            </span>
+            <span style={{ fontSize: 16, fontWeight: 700, margin: '0 12px', color: 'var(--ink)' }}>{scores[0]} : {scores[1]}</span>
+            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{players[0]} vs {players[1]}</span>
           </div>
         )}
-
-        {status && (
-          <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>
-            {status}
-          </div>
-        )}
-
-        {/* WS Reconnect UI */}
+        {status && <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>{status}</div>}
         {reconnectInfo && (
-          <div style={{ textAlign: 'center', padding: '10px 16px', marginBottom: 8, borderRadius: 8,
-            background: 'rgba(255,193,69,0.08)', border: '1px solid rgba(255,193,69,0.15)' }}>
-            <div style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 600, marginBottom: 4 }}>
-              {en ? 'Reconnecting...' : 'Переподключение...'}
-            </div>
+          <div style={{ textAlign: 'center', padding: '10px 16px', marginBottom: 8, borderRadius: 8, background: 'rgba(255,193,69,0.08)', border: '1px solid rgba(255,193,69,0.15)' }}>
+            <div style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 600, marginBottom: 4 }}>{en ? 'Reconnecting...' : 'Переподключение...'}</div>
             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
               {en ? `Attempt ${reconnectInfo.attempt}/${reconnectInfo.maxAttempts}` : `Попытка ${reconnectInfo.attempt}/${reconnectInfo.maxAttempts}`}
               {reconnectInfo.delay > 0 && ` · ${reconnectInfo.delay}${en ? 's' : 'с'}`}
             </div>
             <div style={{ marginTop: 6, height: 3, borderRadius: 2, background: 'rgba(255,193,69,0.1)', overflow: 'hidden' }}>
-              <div style={{ width: `${(reconnectInfo.attempt / reconnectInfo.maxAttempts) * 100}%`, height: '100%',
-                background: 'var(--gold)', borderRadius: 2, transition: 'width 0.5s' }} />
+              <div style={{ width: `${(reconnectInfo.attempt / reconnectInfo.maxAttempts) * 100}%`, height: '100%', background: 'var(--gold)', borderRadius: 2 }} />
             </div>
           </div>
         )}
-
-        {/* Скины оппонента */}
         {opponentSkins && (opponentSkins.chipStyle !== 'classic' || opponentSkins.standStyle !== 'classic') && (
           <div style={{ textAlign: 'center', padding: '4px 12px', marginBottom: 8, fontSize: 11, color: 'var(--ink3)' }}>
             {players[playerIdx === 0 ? 1 : 0]}
@@ -532,11 +406,8 @@ export default function Online() {
             {opponentSkins.standStyle !== 'classic' && <span style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: 'var(--ink2)' }}>🏗 {opponentSkins.standStyle}</span>}
           </div>
         )}
-
-        {/* Чат */}
         {messages.length > 0 && (
-          <div style={{ maxHeight: 80, overflowY: 'auto', padding: '6px 10px', marginBottom: 8,
-            background: 'rgba(26,26,42,0.5)', borderRadius: 8, fontSize: 11 }}>
+          <div style={{ maxHeight: 80, overflowY: 'auto', padding: '6px 10px', marginBottom: 8, background: 'rgba(26,26,42,0.5)', borderRadius: 8, fontSize: 11 }}>
             {messages.slice(-5).map((m, i) => (
               <div key={i} style={{ color: m.from === playerIdx ? 'var(--p1)' : 'var(--p2)' }}>
                 <b>{players[m.from] || '?'}:</b> {m.text}
@@ -544,7 +415,6 @@ export default function Online() {
             ))}
           </div>
         )}
-
         <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
           {['gg', 'gl', 'nice', 'wp', '!'].map(q => (
             <button key={q} className="btn" onClick={() => { MP.sendChat(q); setMessages(p => [...p.slice(-50), { from: playerIdx, text: q, time: Date.now() }]) }}
@@ -567,25 +437,16 @@ export default function Online() {
   if (screen === 'spectating') {
     return (
       <div>
-        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12,
-          background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
+        <div style={{ textAlign: 'center', padding: '8px 16px', marginBottom: 12, background: 'rgba(155,89,182,0.08)', borderRadius: 12, border: '1px solid rgba(155,89,182,0.15)' }}>
           <span style={{ fontSize: 12, color: 'var(--purple)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="#c8a4e8" strokeWidth="2"><circle cx="10" cy="10" r="3"/><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/></svg>
             {en ? 'Spectating' : 'Наблюдение'} — {players.join(' vs ')}
           </span>
-          <span style={{ fontSize: 14, fontWeight: 700, margin: '0 10px', color: 'var(--ink)' }}>
-            {scores[0]}:{scores[1]}
-          </span>
+          <span style={{ fontSize: 14, fontWeight: 700, margin: '0 10px', color: 'var(--ink)' }}>{scores[0]}:{scores[1]}</span>
         </div>
-        {status && (
-          <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>
-            {status}
-          </div>
-        )}
+        {status && <div style={{ textAlign: 'center', padding: 8, color: 'var(--gold)', fontSize: 12, marginBottom: 8 }}>{status}</div>}
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <button className="btn" onClick={backToLobby} style={{ fontSize: 12 }}>
-            {en ? '← Back to lobby' : '← В лобби'}
-          </button>
+          <button className="btn" onClick={backToLobby} style={{ fontSize: 12 }}>{en ? '← Back to lobby' : '← В лобби'}</button>
         </div>
       </div>
     )
@@ -607,12 +468,8 @@ export default function Online() {
           <span style={{ color: 'var(--surface3)', margin: '0 8px' }}>:</span>
           <span style={{ color: !won || draw ? 'var(--green)' : 'var(--p2)' }}>{tournamentResult.scores[1 - playerIdx]}</span>
         </div>
-        <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>
-          {players[0]} vs {players[1]} • {totalGames} {en ? 'games' : 'партий'}
-        </p>
-        <button className="btn primary" onClick={backToLobby} style={{ width: '100%', justifyContent: 'center' }}>
-          {en ? 'New match' : 'Новый матч'}
-        </button>
+        <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 16 }}>{players[0]} vs {players[1]} • {totalGames} {en ? 'games' : 'партий'}</p>
+        <button className="btn primary" onClick={backToLobby} style={{ width: '100%', justifyContent: 'center' }}>{en ? 'New match' : 'Новый матч'}</button>
       </div>
     )
   }
