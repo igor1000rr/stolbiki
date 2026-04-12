@@ -18,8 +18,6 @@ const addPost = (slug, tru, ten, bru, ben, tag, date) => {
     db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at) VALUES (?,?,?,?,?,?,0,?)').run(slug, tru, ten, bru, ben, tag, date)
 }
 
-// ═══ Хронологические посты ═══
-
 addPost('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
   '- 1146 итераций self-play\n- Loss: 0.098\n- Winrate: 97%\n- Баланс P1/P2: 50/50',
   '- 1146 self-play iterations\n- Loss: 0.098\n- Win rate: 97%\n- P1/P2 balance: 50/50',
@@ -41,8 +39,8 @@ addPost('v35-gpu', 'v3.5: GPU-нейросеть в браузере', 'v3.5: GP
   'release', '2026-03-30 10:00:00')
 
 addPost('v37-mobile-app', 'v3.7: Мобильное приложение!', 'v3.7: Mobile app is here!',
-  'Snatch Highrise теперь на Android!\n\n- Полная адаптация UI под мобильный экран\n- Haptic feedback — вибрация при каждом действии\n- Offline mode — AI без интернета\n- Onboarding — 4 экрана при первом запуске',
-  'Snatch Highrise is now on Android!\n\n- Full UI adaptation for mobile\n- Haptic feedback on every action\n- Offline mode — AI without internet\n- Onboarding — 4 intro screens',
+  'Snatch Highrise теперь на Android!\n\n- Полная адаптация UI под мобильный экран\n- Haptic feedback\n- Offline mode\n- Onboarding',
+  'Snatch Highrise is now on Android!\n\n- Full mobile UI\n- Haptic feedback\n- Offline mode\n- Onboarding',
   'release', '2026-03-31 10:00:00')
 
 addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
@@ -50,9 +48,9 @@ addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platfor
   'AI Game Review, Puzzle Rush, Live Arena, 5 lessons, 11 themes, 17 skins.',
   'release', '2026-04-01 00:00:00')
 
-addPost('v44-audit', 'v4.4: Архитектурный аудит — 75 коммитов, 157 тестов', 'v4.4: Architecture audit — 75 commits, 157 tests',
-  'Тесты: 41→164, dist: 14→5.8MB (–59%), GameContext EventEmitter, graceful shutdown, CI/CD.',
-  'Tests: 41→164, dist: 14→5.8MB (–59%), GameContext EventEmitter, graceful shutdown, CI/CD.',
+addPost('v44-audit', 'v4.4: Архитектурный аудит — 157 тестов', 'v4.4: Architecture audit — 157 tests',
+  'Тесты: 41→164, dist: 14→5.8MB (–59%), GameContext EventEmitter, CI/CD.',
+  'Tests: 41→164, dist: 14→5.8MB (–59%), GameContext EventEmitter, CI/CD.',
   'release', '2026-04-03 14:00:00')
 
 addPost('v471-security-audit', 'v4.7.1: Аудит безопасности, WS reconnect', 'v4.7.1: Security audit, WS reconnect',
@@ -77,67 +75,100 @@ addPost('v490-share-rarity',
 addPost('v500-clubs',
   'v5.0.0: Клубы 🦝, экипировка скинов, глобальный чат',
   'v5.0.0: Clubs 🦝, skin equip, global chat',
-  '**🦝 Клубы** — создай, вступай, Owner/Officer/Member, лидерборд. До 50 участников.\n\n**🎨 Экипировка скинов** — кнопка «Экипировать» в магазине, скин синхронизируется с аккаунтом.\n\n**💬 Глобальный чат** — WS real-time в онлайн-лобби. История 50 сообщений.\n\n**Реферальные кирпичи**: +20 при регистрации, +30 при 10 партиях.',
-  '**🦝 Clubs** — create, join, Owner/Officer/Member, leaderboard. Up to 50 members.\n\n**🎨 Skin equip** — "Equip" button in shop, synced to server and across devices.\n\n**💬 Global chat** — WS real-time in online lobby. 50 message history.\n\n**Referral bricks**: +20 on signup, +30 at 10 games.',
+  '**🦝 Клубы** — создай, вступай, Owner/Officer/Member, лидерборд.\n\n**🎨 Экипировка скинов** — кнопка «Экипировать» в магазине.\n\n**💬 Глобальный чат** — WS real-time в онлайн-лобби.\n\n**Реферальные кирпичи**: +20 при регистрации, +30 при 10 партиях.',
+  '**🦝 Clubs** — create, join, Owner/Officer/Member, leaderboard.\n\n**🎨 Skin equip** — "Equip" button in shop.\n\n**💬 Global chat** — WS real-time in online lobby.\n\n**Referral bricks**: +20 on signup, +30 at 10 games.',
   'feature', '2026-04-12 14:00:00')
 
 addPost('v510-modifiers',
   'v5.1.0: Геймплейные модификаторы — туман войны, двойной перенос, авто-пас',
   'v5.1.0: Gameplay modifiers — fog of war, double transfer, auto-pass',
-  'Три новых игровых режима. Включаются кнопками под выбором сложности.\n\n**🌫 Туман войны** — чужие блоки скрыты, видны только ваши и счётчик (?). Играете по памяти.\n\n**↔ ×2 Перенос** — два переноса за ход вместо одного.\n\n**⚡ Авто-пас** — при истечении таймера ход пропускается вместо поражения.\n\nМодификаторы комбинируются. На мобиле — в шестерёнке.',
-  'Three new game modes. Toggle buttons below difficulty selector.\n\n**🌫 Fog of War** — opponent blocks hidden, only your chips and counter visible.\n\n**↔ ×2 Transfer** — two transfers per turn instead of one.\n\n**⚡ Auto-pass** — timer runs out = auto-pass, not loss.\n\nModifiers combine. On mobile — gear icon.',
+  '**🌫 Туман войны** — чужие блоки скрыты.\n\n**↔ ×2 Перенос** — два переноса за ход.\n\n**⚡ Авто-пас** — при истечении таймера ход пропускается.\n\nМодификаторы комбинируются.',
+  '**🌫 Fog of War** — opponent blocks hidden.\n\n**↔ ×2 Transfer** — two transfers per turn.\n\n**⚡ Auto-pass** — timer runs out = auto-pass.\n\nModifiers combine.',
   'feature', '2026-04-12 16:00:00')
 
-// Главный пост v5.1.0 — покрывает все фичи релиза
 addPost('v510-full-release',
   'v5.1.0: Платные темы, Город скинов, TikTok-клипы',
   'v5.1.0: Paid themes, Victory City skins, TikTok clips',
   `Полный список всего нового в v5.1.0.
 
 **🎬 TikTok/Reels-клип**
-После партии (≥4 ходов) в результатах появляется кнопка «🎬 TikTok». Нажмите — генерируется короткое 9:16 видео с лучшими моментами: закрытия стоек, переносы, финал. Цвета блоков = ваш активный скин. Скачайте WebM и поделитесь в TikTok, Instagram Reels или YouTube Shorts. Требует Chrome/Edge.
+После партии (≥4 ходов) кнопка «🎬 TikTok». Генерируется 9:16 видео с лучшими моментами. Цвета блоков = ваш скин. Скачайте WebM и делитесь.
 
-**🧱 Платные темы в магазине**
-Три темы остаются бесплатными навсегда: Тёмная, Лес, Светлая.
-Остальные восемь — за кирпичи:
-- Ocean, Дерево — 300🧱
-- Закат, Арктика, Королевская — 400🧱
-- Ретро, Сакура — 500🧱
-- Неон — 600🧱
+**🧱 Платные темы**
+Три темы бесплатно навсегда: Тёмная, Лес, Светлая.
+Ocean, Дерево — 300🧱 · Закат, Арктика, Королевская — 400🧱 · Ретро, Сакура — 500🧱 · Неон — 600🧱
 
 **🏙 Город побед с цветом скина**
-Здания в Городе побед теперь отражают цвет скина блоков из той конкретной партии. Победили с Neon-скином — здание голубое. С Metal — стальное. Старые здания сохраняют классический цвет.
+Здания отражают скин блоков из той партии. Neon-скин → голубое здание, Metal → стальное.
 
-**🎮 Модификаторы (напоминание)**
-Туман войны 🌫, ×2 перенос ↔, Авто-пас ⚡ — кнопки под выбором сложности.`,
+**🎮 Модификаторы**
+Туман войны 🌫, ×2 перенос ↔, Авто-пас ⚡`,
   `Full list of everything new in v5.1.0.
 
 **🎬 TikTok/Reels clip**
-After a game (≥4 moves) a "🎬 TikTok" button appears in results. Click it — generates a short 9:16 video with highlights: stand closures, transfers, final moment. Block colors = your active skin. Download WebM and share to TikTok, Instagram Reels or YouTube Shorts. Requires Chrome/Edge.
+After a game (≥4 moves) a "🎬 TikTok" button appears. Generates 9:16 highlight video. Block colors = your active skin.
 
-**🧱 Paid themes in shop**
-Three themes stay free forever: Dark, Forest, Light.
-The other eight cost bricks:
-- Ocean, Wood — 300🧱
-- Sunset, Arctic, Royal — 400🧱
-- Retro, Sakura — 500🧱
-- Neon — 600🧱
+**🧱 Paid themes**
+Three free forever: Dark, Forest, Light.
+Ocean, Wood — 300🧱 · Sunset, Arctic, Royal — 400🧱 · Retro, Sakura — 500🧱 · Neon — 600🧱
 
 **🏙 Victory City with skin colors**
-Buildings in Victory City now reflect the block skin color used in that specific game. Won with Neon skin — building is cyan. With Metal — steel. Old buildings keep classic color.
+Buildings reflect the block skin from that game. Neon skin → cyan building, Metal → steel.
 
-**🎮 Modifiers (reminder)**
-Fog of War 🌫, ×2 Transfer ↔, Auto-pass ⚡ — toggle buttons below difficulty.`,
+**🎮 Modifiers**
+Fog of War 🌫, ×2 Transfer ↔, Auto-pass ⚡`,
   'release', '2026-04-12 18:00:00')
+
+// ═══ v5.2.0 ═══
+addPost('v520-blocks-spires-admob',
+  'v5.2.0: Крупнее блоки, шпили за сложность AI, AdMob',
+  'v5.2.0: Bigger blocks, AI difficulty spires, AdMob',
+  `**🏗 Блоки +30% на десктопе**
+На экранах 769px+ стойки и блоки стали крупнее: стойки 56→70px, блоки 40×13→52×17px. Поле теперь занимает больше места — играть приятнее.
+
+**🏙 Золотые шпили за сложность AI**
+Здания в Городе побед теперь растут в зависимости от того, кого вы победили:
+- Easy — обычная высота
+- Medium — +1 золотой этаж
+- Hard — +2 золотых этажа
+- Extreme — +3 золотых этажа
+- Impossible — +4 золотых этажа
+
+Чем сложнее противник — тем выше башня. Видно легенду прямо под городом.
+
+**📢 AdMob реклама**
+Кнопка «▶ Реклама +10 🧱» в магазине скинов. Посмотрите короткую рекламу — получите 10 кирпичей. Лимит 10 просмотров в сутки.
+
+**🧱 Баланс кирпичей**
+Теперь виден в шапке сайта прямо рядом с именем. Кнопка — открывает магазин. Баланс загружается с сервера при каждом открытии магазина.`,
+  `**🏗 Blocks +30% on desktop**
+On screens 769px+ stands and blocks are bigger: stands 56→70px, chips 40×13→52×17px. The board takes more space — more satisfying to play.
+
+**🏙 Gold spires for AI difficulty**
+Victory City buildings now grow based on who you beat:
+- Easy — normal height
+- Medium — +1 gold floor
+- Hard — +2 gold floors
+- Extreme — +3 gold floors
+- Impossible — +4 gold floors
+
+The harder the opponent, the taller the tower. Legend shown below the city.
+
+**📢 AdMob ads**
+"▶ Watch ad +10 🧱" button in the skin shop. Watch a short ad, get 10 bricks. Daily limit: 10 views.
+
+**🧱 Brick balance in header**
+Now visible in the site header next to your name. Click to open the shop. Balance loads from server every time you open the shop.`,
+  'release', '2026-04-13 10:00:00')
 
 // Удаляем устаревшее
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → главный v5.1.0 пост
+// Pin → v5.2.0
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v510-full-release'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v520-blocks-spires-admob'").run()
 
 
 // ═══ Blog Endpoints ═══
