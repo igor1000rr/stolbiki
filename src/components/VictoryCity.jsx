@@ -1,44 +1,56 @@
 /**
  * VictoryCity — изометрический «Город побед»
- * Шаги 3, 5, 6, 7 эпика #2
- *
- * Каждая победа = одно здание. Высота = chips.length в самой высокой
- * закрытой стойке. Цвет этажей = цвет фишек (0=синий, 1=красный).
- * Последний этаж золотого победителя — золотой.
- *
- * Управление: колёсико — зум, тащить — пан, тап — детали здания.
+ * Каждая победа = здание. Цвет этажей = цвет скина игрока на момент победы.
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
 
-// --- Изометрические константы ---
-const HW = 26   // полуширина ячейки (горизонталь)
-const HH = 13   // полувысота ячейки (≈ HW/2)
-const FH = 9    // высота одного этажа в пикселях SVG
-const COLS = 5  // колонок в городской сетке
+const HW = 26
+const HH = 13
+const FH = 9
+const COLS = 5
 
-// Цвета граней фишек: [верх, лево, право]
-const CHIP = {
-  0: ['#6db4ff', '#3a85d0', '#1a5fa0'],   // синий
-  1: ['#ff8888', '#cc3333', '#991111'],   // красный
-  g: ['#ffd86e', '#bf8800', '#8a5f00'],   // золотой (крыша при draw_won)
+// Цветовые палитры для скинов блоков [верх, лево, право]
+const SKIN_PALETTE = {
+  blocks_classic:  { p1: ['#6db4ff','#3a85d0','#1a5fa0'], p2: ['#ff8888','#cc3333','#991111'] },
+  blocks_flat:     { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
+  blocks_round:    { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
+  blocks_glass:    { p1: ['rgba(74,158,255,0.85)','rgba(74,158,255,0.55)','rgba(74,158,255,0.3)'], p2: ['rgba(255,96,102,0.85)','rgba(255,96,102,0.55)','rgba(255,96,102,0.3)'] },
+  blocks_metal:    { p1: ['#b8d4f0','#6a9cc8','#4a7ca8'], p2: ['#f0b8b8','#c86a6a','#a84a4a'] },
+  blocks_candy:    { p1: ['#a0e0ff','#60c0ff','#40a0e0'], p2: ['#ffa0c0','#ff6090','#e04070'] },
+  blocks_pixel:    { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
+  blocks_neon:     { p1: ['#00e5ff','#0099bb','#006688'], p2: ['#ff3090','#bb0060','#880040'] },
+  blocks_glow:     { p1: ['#7ec8ff','#4a9eff','#2a7edf'], p2: ['#ff9090','#ff6066','#cc3333'] },
 }
 
-// Вспомогательная: массив точек → строка для SVG polygon
+const CHIP_DEFAULT = {
+  0: ['#6db4ff','#3a85d0','#1a5fa0'],
+  1: ['#ff8888','#cc3333','#991111'],
+  g: ['#ffd86e','#bf8800','#8a5f00'],
+}
+
+function getSkinColors(skinId, colorIdx) {
+  if (skinId && SKIN_PALETTE[skinId]) {
+    return colorIdx === 0 ? SKIN_PALETTE[skinId].p1 : SKIN_PALETTE[skinId].p2
+  }
+  return CHIP_DEFAULT[colorIdx] || CHIP_DEFAULT[0]
+}
+
 function pts(arr) {
   return arr.map(([a, b]) => `${a},${b}`).join(' ')
 }
 
-// Один изометрический этаж — три видимые грани
-function IsoFloor({ bx, by, i, color }) {
-  const c = CHIP[color] || CHIP[0]
-  const y0 = by - i * FH           // низ этажа
-  const y1 = by - (i + 1) * FH     // верх этажа
-  // Левая грань
+function IsoFloor({ bx, by, i, color, golden, skinId }) {
+  let c
+  if (golden) {
+    c = CHIP_DEFAULT.g
+  } else {
+    c = getSkinColors(skinId, color)
+  }
+  const y0 = by - i * FH
+  const y1 = by - (i + 1) * FH
   const left  = pts([[bx-HW,y1],[bx,y1+HH],[bx,y0+HH],[bx-HW,y0]])
-  // Правая грань
   const right = pts([[bx,y1+HH],[bx+HW,y1],[bx+HW,y0],[bx,y0+HH]])
-  // Верхняя грань (ромб)
   const top   = pts([[bx-HW,y1],[bx,y1-HH],[bx+HW,y1],[bx,y1+HH]])
   return (
     <g>
@@ -49,11 +61,9 @@ function IsoFloor({ bx, by, i, color }) {
   )
 }
 
-// Здание = стопка этажей + хитбокс для клика
-function Building({ bx, by, chips, golden, selected, onSelect }) {
+function Building({ bx, by, chips, golden, skinId, selected, onSelect }) {
   if (!chips.length) return null
   const n = chips.length
-  // Контур для highlight
   const outline = pts([
     [bx, by - n * FH - HH],
     [bx + HW, by - n * FH],
@@ -71,7 +81,9 @@ function Building({ bx, by, chips, golden, selected, onSelect }) {
             key={i}
             bx={bx} by={by}
             i={i}
-            color={isTop && golden ? 'g' : c}
+            color={c}
+            golden={isTop && golden}
+            skinId={skinId}
           />
         )
       })}
@@ -87,7 +99,6 @@ function Building({ bx, by, chips, golden, selected, onSelect }) {
   )
 }
 
-// Извлечь chips из снапшота — берём самую высокую закрытую стойку
 function getChips(building) {
   const snap = building.stands_snapshot || []
   const closed = snap.filter(s => s.owner !== null && Array.isArray(s.chips) && s.chips.length)
@@ -102,11 +113,10 @@ export default function VictoryCity({ userId }) {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [selId, setSelId] = useState(null)
-  const [view, setView] = useState(null)  // { x, y, w, h } — текущий viewBox
+  const [view, setView] = useState(null)
   const containerRef = useRef(null)
   const dragRef = useRef(null)
 
-  // Загрузка зданий и статистики
   useEffect(() => {
     if (!userId) { setLoading(false); return }
     Promise.all([
@@ -118,13 +128,11 @@ export default function VictoryCity({ userId }) {
       .finally(() => setLoading(false))
   }, [userId])
 
-  // Расстановка зданий по изометрической сетке (back-to-front)
   const positioned = buildings
     .map((b, i) => ({ b, col: i % COLS, row: Math.floor(i / COLS), chips: getChips(b) }))
     .filter(p => p.chips.length)
     .sort((a, b_) => (a.col + a.row) - (b_.col + b_.row))
 
-  // Границы SVG-сцены
   const rows = Math.max(1, Math.ceil(buildings.length / COLS))
   const pad = 14
   const vx0 = -(rows - 1) * HW - HW - pad
@@ -133,14 +141,12 @@ export default function VictoryCity({ userId }) {
   const vy1 = (COLS - 1 + rows - 1) * HH + HH * 2 + pad
   const vw0 = vx1 - vx0, vh0 = vy1 - vy0
 
-  // Инициализируем view после загрузки зданий
   useEffect(() => {
     setView({ x: vx0, y: vy0, w: vw0, h: vh0 })
   }, [buildings.length]) // eslint-disable-line
 
   const cv = view || { x: vx0, y: vy0, w: vw0, h: vh0 }
 
-  // --- Управление зумом колёсиком ---
   const onWheel = (e) => {
     e.preventDefault()
     const factor = e.deltaY > 0 ? 1.15 : 0.87
@@ -157,9 +163,7 @@ export default function VictoryCity({ userId }) {
     return () => el.removeEventListener('wheel', onWheel)
   })
 
-  // --- Управление панорамированием (pointer events — мышь + тач) ---
   const onPointerDown = (e) => {
-    // Не перехватываем клики по зданиям
     if (e.target.tagName === 'polygon') return
     dragRef.current = {
       sx: e.clientX, sy: e.clientY,
@@ -177,8 +181,6 @@ export default function VictoryCity({ userId }) {
     setView(v => ({ ...v, x: d.vx - dx, y: d.vy - dy }))
   }
   const onPointerUp = () => { dragRef.current = null }
-
-  // --- Рендер ---
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 32, color: 'var(--ink3)', fontSize: 13 }}>
@@ -201,7 +203,6 @@ export default function VictoryCity({ userId }) {
 
   return (
     <div>
-      {/* Статистика */}
       {stats && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           {[
@@ -218,7 +219,6 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
-      {/* Изометрический город */}
       <div
         ref={containerRef}
         style={{
@@ -240,7 +240,6 @@ export default function VictoryCity({ userId }) {
           width="100%"
           style={{ display: 'block', aspectRatio: `${vw0} / ${vh0}`, maxHeight: 420 }}
         >
-          {/* Звёзды (декор) */}
           {Array.from({ length: 40 }).map((_, i) => (
             <circle
               key={i}
@@ -251,12 +250,9 @@ export default function VictoryCity({ userId }) {
               opacity={0.12 + (i % 8) * 0.06}
             />
           ))}
-
-          {/* Луна (декор) */}
           <circle cx={vx1 - 22} cy={vy0 + 22} r={11}  fill="#f5e6b0" opacity="0.18" />
           <circle cx={vx1 - 17} cy={vy0 + 18} r={9}   fill="#06060f" opacity="0.95" />
 
-          {/* Здания (back-to-front) */}
           {positioned.map(({ b, col, row, chips }) => (
             <Building
               key={b.id}
@@ -264,6 +260,7 @@ export default function VictoryCity({ userId }) {
               by={(col + row) * HH}
               chips={chips}
               golden={b.result === 'draw_won'}
+              skinId={b.player_skin_id || 'blocks_classic'}
               selected={selId === b.id}
               onSelect={(e) => {
                 e.stopPropagation()
@@ -274,7 +271,6 @@ export default function VictoryCity({ userId }) {
         </svg>
       </div>
 
-      {/* Панель выбранного здания */}
       {selB && (
         <div style={{
           marginTop: 10, padding: '14px 16px',
@@ -320,6 +316,14 @@ export default function VictoryCity({ userId }) {
                 {(selB.stands_snapshot || []).filter(s => s.owner !== null).length} / 10
               </div>
             </div>
+            {selB.player_skin_id && selB.player_skin_id !== 'blocks_classic' && (
+              <div>
+                <div style={{ color: 'var(--ink3)' }}>{en ? 'Skin' : 'Скин'}</div>
+                <div style={{ fontWeight: 600, color: 'var(--accent)', marginTop: 2, fontSize: 11 }}>
+                  {selB.player_skin_id.replace('blocks_', '')}
+                </div>
+              </div>
+            )}
             {selB.ai_difficulty && (
               <div>
                 <div style={{ color: 'var(--ink3)' }}>{en ? 'Difficulty' : 'Сложность'}</div>
@@ -334,8 +338,8 @@ export default function VictoryCity({ userId }) {
 
       <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, opacity: 0.6 }}>
         {en
-          ? 'Scroll to zoom · Drag to pan · Tap a building for details'
-          : 'Колёсико — зум · Тащи — пан · Тап — детали здания'}
+          ? 'Scroll to zoom · Drag to pan · Tap a building for details · Color = skin used in that game'
+          : 'Колёсико — зум · Тащи — пан · Тап — детали · Цвет = скин в той партии'}
       </div>
     </div>
   )
