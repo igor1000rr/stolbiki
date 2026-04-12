@@ -4,17 +4,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    '🎬 TikTok/Reels-клип из партии — кнопка в результатах',
-    '🧱 Платные темы: Ocean, Royal, Sakura, Neon, Retro, Sunset, Arctic, Wood',
-    '🏙 Город побед: цвет зданий = скин из той партии',
-    '🌫 Туман войны, ⇄×2 перенос, ⚡ Авто-пас — новые моды',
-    '🦝 Клубы + глобальный чат + реферальные кирпичи',
+    '🏗 Блоки крупнее на десктопе (+30%) — крупнее, заметнее',
+    '🏙 Город побед: золотые шпили за сложность AI (до +4 этажей)',
+    '📢 AdMob реклама: смотри и получай +10 🧱 кирпичей в магазине',
+    '🧱 Баланс кирпичей теперь в шапке — всегда виден',
+    '🐛 Баланс в магазине теперь правильно загружается с сервера',
   ],
   en: [
-    '🎬 TikTok/Reels clip from any game — button in results',
-    '🧱 Paid themes: Ocean, Royal, Sakura, Neon, Retro, Sunset, Arctic, Wood',
-    '🏙 Victory City: building color = skin used in that game',
-    '🌫 Fog of War, ⇄×2 Transfer, ⚡ Auto-pass — new modifiers',
-    '🦝 Clubs + global chat + referral bricks',
+    '🏗 Bigger blocks on desktop (+30%) — larger, bolder',
+    '🏙 Victory City: gold spires for AI difficulty (up to +4 floors)',
+    '📢 AdMob ads: watch and earn +10 🧱 bricks in shop',
+    '🧱 Brick balance now in header — always visible',
+    '🐛 Shop balance now loads correctly from server',
   ],
 }

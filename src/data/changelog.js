@@ -1,5 +1,25 @@
 export default [
   {
+    version: '5.2.0',
+    date: '2026-04-13',
+    title_ru: 'Блоки крупнее, шпили за сложность AI, AdMob',
+    title_en: 'Bigger blocks, AI difficulty spires, AdMob',
+    changes_ru: [
+      { type: 'new', text: '🏗 Блоки +30% на десктопе (769px+): стойки 70px, блоки 52×17px — крупнее и заметнее' },
+      { type: 'new', text: '🏙 Город побед: высота здания = сложность AI. Easy=0, Medium=+1, Hard=+2, Extreme=+3, Impossible=+4 золотых шпиля' },
+      { type: 'new', text: '📢 AdMob интеграция: interstitial каждые 3 партии, rewarded «▶ Реклама +10 🧱» в магазине (лимит 10/день)' },
+      { type: 'fix', text: 'Баланс кирпичей в магазине загружается с сервера при открытии (был 0)' },
+      { type: 'fix', text: 'BrickBalance 🧱 N в шапке — видно сразу без открытия магазина' },
+    ],
+    changes_en: [
+      { type: 'new', text: '🏗 Blocks +30% on desktop (769px+): stands 70px, chips 52×17px — bigger and bolder' },
+      { type: 'new', text: '🏙 Victory City: building height = AI difficulty. Easy=0, Medium=+1, Hard=+2, Extreme=+3, Impossible=+4 gold spires' },
+      { type: 'new', text: '📢 AdMob integration: interstitial every 3 games, rewarded "▶ Watch ad +10 🧱" in shop (10/day limit)' },
+      { type: 'fix', text: 'Brick balance in shop now loads from server on open (was always 0)' },
+      { type: 'fix', text: 'BrickBalance 🧱 N badge in header — visible without opening shop' },
+    ],
+  },
+  {
     version: '5.1.0',
     date: '2026-04-12',
     title_ru: 'Платные темы, Город скинов, TikTok-клипы',
