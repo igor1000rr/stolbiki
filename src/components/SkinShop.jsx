@@ -1,13 +1,16 @@
 /**
  * SkinShop — popup для кастомизации: темы, скины блоков, скины стоек
  * v5.1: платные темы (ocean/sunset/royal/sakura/neon/wood/arctic/retro за кирпичи)
- * v5.2: bricks загружается из API при открытии
+ * v5.2: bricks с сервера, кнопка Rewarded (смотри рекламу → +10 кирпичей)
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
 import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
+import { showRewarded } from '../engine/admob'
+
+const isNative = () => !!window.Capacitor?.isNativePlatform?.()
 
 const CHIP_SKINS = [
   { id: 'blocks_classic', legacyId: 'classic', ru: 'Классика', en: 'Classic', level: 1, price: 0, rarity: 'common',
@@ -153,6 +156,8 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
   const [equipping, setEquipping] = useState(null)
   const [localBricks, setLocalBricks] = useState(bricks)
   const [serverActive, setServerActive] = useState({ blocks: null, stands: null })
+  const [watchingAd, setWatchingAd] = useState(false)
+  const [rewardMsg, setRewardMsg] = useState(null)
 
   // Загружаем owned skins + active + bricks при открытии
   useEffect(() => {
@@ -163,7 +168,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
       .then(d => {
         if (d.skins) setOwnedSkins(new Set(d.skins.filter(s => s.owned).map(s => s.id)))
         if (d.active) setServerActive(d.active)
-        // Загружаем актуальный баланс кирпичей с сервера
         if (typeof d.bricks === 'number') {
           setLocalBricks(d.bricks)
           onBricksChange?.(d.bricks)
@@ -172,7 +176,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
       .catch(() => {})
   }, [])
 
-  // Синхронизируем с пропсом если он обновился
   useEffect(() => { setLocalBricks(bricks) }, [bricks])
 
   useEffect(() => {
@@ -254,6 +257,30 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     setPurchasing(null)
   }
 
+  // Rewarded: посмотри рекламу → +10 кирпичей (через /api/bricks/award на серв)
+  async function watchAdForBricks() {
+    if (!localStorage.getItem('stolbiki_token')) return
+    setWatchingAd(true)
+    try {
+      const rewarded = await showRewarded(async (rewardAmount) => {
+        // Начисляем кирпичи через сервер
+        const r = await fetch('/api/bricks/award-rewarded', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` },
+          body: JSON.stringify({ amount: rewardAmount || 10 }),
+        })
+        const d = await r.json()
+        if (r.ok && typeof d.bricks === 'number') {
+          setLocalBricks(d.bricks)
+          onBricksChange?.(d.bricks)
+          setRewardMsg(`+${rewardAmount || 10} 🧱`)
+          setTimeout(() => setRewardMsg(null), 3000)
+        }
+      })
+    } catch {}
+    setWatchingAd(false)
+  }
+
   function renderSkinCard(skin, isChip) {
     const unlocked = isUnlocked(skin)
     const activeId = isChip ? (serverActive.blocks || settings.chipStyle) : (serverActive.stands || settings.standStyle)
@@ -324,6 +351,12 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
           <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{en ? 'Customize' : 'Оформление'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Reward notification */}
+          {rewardMsg && (
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', animation: 'fadeIn 0.3s ease' }}>
+              {rewardMsg}
+            </span>
+          )}
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)',
             background: 'rgba(255,193,69,0.1)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,193,69,0.2)' }}>
             🧱 {localBricks}
@@ -409,11 +442,40 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
           </div>
         )}
 
-        <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--surface)',
-          borderRadius: 10, border: '1px solid var(--surface2)', fontSize: 11, color: 'var(--ink3)', lineHeight: 1.8 }}>
-          🧱 — {en
-            ? 'Earn bricks by winning (1–5 per game). Free themes: Dark, Forest, Light.'
-            : 'Кирпичи зарабатываются за победы (1–5 за игру). Бесплатные темы: Тёмная, Лес, Светлая.'}
+        {/* Блок заработка кирпичей */}
+        <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--surface)',
+          borderRadius: 10, border: '1px solid var(--surface2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>
+                {en ? 'Earn bricks' : 'Заработать кирпичи'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.6 }}>
+                {en
+                  ? 'Win games (1–5 per game) · Watch an ad for +10 🧱'
+                  : 'Побеждай (1–5 за игру) · Смотри рекламу за +10 🧱'}
+              </div>
+            </div>
+            {/* Rewarded кнопка — только если залогинен */}
+            {localStorage.getItem('stolbiki_token') && (
+              <button
+                onClick={watchAdForBricks}
+                disabled={watchingAd}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,193,69,0.3)',
+                  background: 'rgba(255,193,69,0.1)', color: 'var(--gold)',
+                  cursor: watchingAd ? 'default' : 'pointer',
+                  fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                  opacity: watchingAd ? 0.6 : 1, transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                }}
+              >
+                {watchingAd
+                  ? (en ? 'Loading…' : 'Загрузка…')
+                  : (en ? '▶ Watch ad +10 🧱' : '▶ Реклама +10 🧱')}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
