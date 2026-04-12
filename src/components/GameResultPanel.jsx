@@ -1,8 +1,9 @@
 /**
  * GameResultPanel — экран результата после партии
- * Извлечён из Game.jsx (~200 строк JSX → отдельный компонент)
+ * Извлечён из Game.jsx
  */
 
+import { useState } from 'react'
 import Mascot from './Mascot'
 import Confetti from './Confetti'
 import * as MP from '../engine/multiplayer'
@@ -15,14 +16,55 @@ export default function GameResultPanel({
   newGame, tournamentNextGame, gameCtx, moveHistoryRef,
   rematchPending, setRematchPending, setInfo, setShowReplay, setShowReview,
 }) {
+  const [sharePreview, setSharePreview] = useState(null) // dataURL превью
+
   if (result === null) return null
 
+  const en = lang === 'en'
   const isDraw = result === -1
   const won = isDraw ? false : (mode === 'pvp') ? true : result === humanPlayer
   const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
   const goldenOwned = (0 in gs.closed)
   const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
   const accentColor = isDraw ? 'var(--purple)' : won ? 'var(--green)' : 'var(--p2)'
+
+  // Генерация share-картинки и шаринг
+  async function doShare() {
+    try {
+      const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
+      const canvas = generateShareImage(gs, won, isDraw, s0, s1, {
+        playerName: profile?.name, rating: profile?.rating, ratingDelta,
+        difficulty, moves: gs.turn, elapsed, mode, lang,
+      })
+      API.track('share_card', 'game', { won, isDraw })
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+      const file = new File([blob], 'snatch-result.png', { type: 'image/png' })
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ text: shareText, files: [file] }).catch(() => {})
+      } else if (navigator.share) {
+        await navigator.share({ text: shareText }).catch(() => {})
+      } else {
+        // Desktop: скачать
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = 'snatch-result.png'; a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch { navigator.clipboard?.writeText(shareText) }
+  }
+
+  // Предпросмотр share-картинки
+  function showPreview() {
+    try {
+      const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
+      const canvas = generateShareImage(gs, won, isDraw, s0, s1, {
+        playerName: profile?.name, rating: profile?.rating, ratingDelta,
+        difficulty, moves: gs.turn, elapsed, mode, lang,
+      })
+      setSharePreview(canvas.toDataURL('image/png'))
+    } catch {}
+  }
 
   const inner = (
     <div className="game-result" style={{ ...(isNative ? {} : { borderLeft: `3px solid ${accentColor}` }), textAlign: 'center' }}>
@@ -43,7 +85,7 @@ export default function GameResultPanel({
       <div style={{ fontSize: isNative ? 12 : 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
         <span>{t('game.moves')}: {gs.turn}</span>
         <span>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}</span>
-        {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {lang === 'en' ? 'Golden' : 'Золотая'}</span>}
+        {goldenOwned && <span style={{ color: 'var(--gold)' }}>★ {en ? 'Golden' : 'Золотая'}</span>}
       </div>
       {ratingDelta && (
         <div style={{ marginTop: isNative ? 12 : 8, fontSize: isNative ? 20 : 16, fontWeight: 700, color: ratingDelta > 0 ? 'var(--green)' : 'var(--p2)', animation: 'fadeIn 0.5s ease' }}>
@@ -94,23 +136,14 @@ export default function GameResultPanel({
             {t('game.tryEasier')}
           </button>
         )}
-        <button className="btn" onClick={async () => {
-          try {
-            const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
-            const c = generateShareImage(gs, won, isDraw, s0, s1, {
-              playerName: profile?.name, rating: profile?.rating, ratingDelta,
-              difficulty, moves: gs.turn, elapsed, mode,
-            })
-            const blob = await new Promise(r => c.toBlob(r, 'image/png'))
-            const file = new File([blob], 'stolbiki-result.png', { type: 'image/png' })
-            API.track('share_card', 'game', { won, isDraw })
-            if (navigator.canShare?.({ files: [file] })) navigator.share({ text: shareText, files: [file] }).catch(() => {})
-            else if (navigator.share) navigator.share({ text: shareText }).catch(() => {})
-            else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'stolbiki-result.png'; a.click(); URL.revokeObjectURL(url) }
-          } catch { navigator.clipboard?.writeText(shareText) }
-        }} style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center' }}>
-          {t('game.share')}
+
+        {/* ─── Share: превью + шаринг ─── */}
+        <button className="btn" onClick={showPreview}
+          style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center',
+            borderColor: accentColor, color: accentColor }}>
+          {en ? '📸 Share Image' : '📸 Поделиться'}
         </button>
+
         {moveHistoryRef.current.length > 0 && (
           <button className="btn" onClick={() => setShowReplay(true)} style={{ fontSize: 12, padding: '8px 12px' }}>
             {t('game.replay')}
@@ -127,11 +160,11 @@ export default function GameResultPanel({
               if (data.id) {
                 const url = `${location.origin}/#replay/${data.id}`
                 if (navigator.share) navigator.share({ text: `${shareText}\n${url}` }).catch(() => {})
-                else { navigator.clipboard?.writeText(url); setInfo(lang === 'en' ? 'Link copied!' : 'Ссылка скопирована!') }
+                else { navigator.clipboard?.writeText(url); setInfo(en ? 'Link copied!' : 'Ссылка скопирована!') }
               }
-            } catch { setInfo(lang === 'en' ? 'Error saving replay' : 'Ошибка сохранения') }
+            } catch { setInfo(en ? 'Error saving replay' : 'Ошибка сохранения') }
           }} style={{ fontSize: 12, padding: '8px 12px', borderColor: 'var(--accent)', color: 'var(--accent)' }}>
-            {lang === 'en' ? '🔗 Share replay' : '🔗 Поделиться'}
+            {en ? '🔗 Share replay' : '🔗 Поделиться'}
           </button>
         )}
         {moveHistoryRef.current.length > 2 && (
@@ -139,16 +172,15 @@ export default function GameResultPanel({
             fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px',
             borderColor: 'var(--purple)', color: 'var(--purple)', justifyContent: 'center',
           }}>
-            {lang === 'en' ? 'AI Analysis' : 'AI Анализ'}
+            {en ? 'AI Analysis' : 'AI Анализ'}
           </button>
         )}
       </div>
       {sessionStats.streak > 1 && won && (
         <div style={{ marginTop: 8, fontSize: 12, color: 'var(--gold)' }}>
-          {lang === 'en' ? 'Win streak' : 'Серия побед'}: {sessionStats.streak}
+          {en ? 'Win streak' : 'Серия побед'}: {sessionStats.streak}
         </div>
       )}
-      {/* Турнир */}
       {tournament && (() => {
         const tWins = tournament.games.filter(g => g.won).length
         const tLosses = tournament.games.filter(g => !g.won).length
@@ -176,14 +208,38 @@ export default function GameResultPanel({
         return (
           <div style={{ marginTop: 12, padding: '10px 16px', background: 'rgba(74,158,255,0.06)', borderRadius: 12, border: '1px solid rgba(74,158,255,0.1)' }}>
             <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 6 }}>
-              {lang === 'en' ? 'Tournament' : 'Турнир'}: {tWins} : {tLosses} · {lang === 'en' ? 'Game' : 'Партия'} {tournament.games.length} {lang === 'en' ? 'of' : 'из'} {tournament.total}
+              {en ? 'Tournament' : 'Турнир'}: {tWins} : {tLosses} · {en ? 'Game' : 'Партия'} {tournament.games.length} {en ? 'of' : 'из'} {tournament.total}
             </div>
             <button className="btn primary" onClick={tournamentNextGame} style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '10px 0' }}>
-              ▶ {lang === 'en' ? 'Next game' : 'Следующая партия'}
+              ▶ {en ? 'Next game' : 'Следующая партия'}
             </button>
           </div>
         )
       })()}
+
+      {/* ─── Превью share-картинки (модалка) ─── */}
+      {sharePreview && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.92)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: 20,
+        }} onClick={() => setSharePreview(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: 340, width: '100%' }}>
+            <img src={sharePreview} alt="Share preview"
+              style={{ width: '100%', borderRadius: 12, boxShadow: '0 8px 40px rgba(0,0,0,0.6)', marginBottom: 16 }} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn primary" onClick={doShare}
+                style={{ flex: 1, justifyContent: 'center', fontSize: 14, padding: '12px 0' }}>
+                {en ? '↑ Share' : '↑ Поделиться'}
+              </button>
+              <button className="btn" onClick={() => setSharePreview(null)}
+                style={{ flex: 1, justifyContent: 'center', fontSize: 14, padding: '12px 0' }}>
+                {en ? 'Close' : 'Закрыть'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 
