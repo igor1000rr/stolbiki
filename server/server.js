@@ -41,6 +41,7 @@ import createAdminRouter from './routes/admin.js'
 import buildingsRouter from './routes/buildings.js'
 import bricksRouter from './routes/bricks.js'
 import bpRouter from './routes/battlepass.js'
+import globalChatRouter from './routes/globalchat.js'
 
 const app = express()
 
@@ -283,6 +284,7 @@ app.use('/api/admin', createAdminRouter(rooms, matchQueue))
 app.use('/api/buildings', buildingsRouter)
 app.use('/api/bricks', bricksRouter)
 app.use('/api/bp', bpRouter)
+app.use('/api/chat', globalChatRouter)
 
 // ═══ API 404 ═══
 app.use('/api/', (req, res) => {
@@ -324,6 +326,10 @@ if (!isTest) {
       db.prepare("DELETE FROM error_reports WHERE created_at < datetime('now', '-30 days')").run()
       db.prepare("DELETE FROM analytics_events WHERE created_at < datetime('now', '-90 days')").run()
       db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND game_data IS NULL").run()
+      // Чат: очищаем старые сообщения (>7 дней)
+      try {
+        db.prepare("DELETE FROM chat_messages WHERE created_at < ?").run(Date.now() - 7 * 86400000)
+      } catch {}
       db.pragma('wal_checkpoint(TRUNCATE)')
       console.log(`🔧 DB maintenance done: ${new Date().toISOString()}`)
     } catch (e) { console.error('DB maintenance error:', e.message) }
