@@ -1,7 +1,6 @@
 /**
- * SkinShop — popup для кастомизации: темы, скины фишек, скины стоек
- * v5.0: экипировка скинов через сервер (POST /api/bricks/equip)
- * Issue #8
+ * SkinShop — popup для кастомизации: темы, скины блоков, скины стоек
+ * v5.1: платные темы (ocean/sunset/royal/sakura/neon/wood/arctic/retro за кирпичи)
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -64,18 +63,19 @@ const STAND_SKINS = [
     bg: 'linear-gradient(180deg, rgba(180,220,255,0.3), rgba(120,180,240,0.15), rgba(180,220,255,0.25))', border: 'rgba(120,180,240,0.25)' },
 ]
 
+// Темы: price > 0 → платные, требуют покупки. themeId → id в БД
 const THEMES = [
-  { id: 'default', ru: 'Тёмная', en: 'Dark', bg: '#0c0c12', surface: '#1a1a2a', accent: '#3bb8a8', p1: '#4a9eff', p2: '#ff6066' },
-  { id: 'ocean', ru: 'Океан', en: 'Ocean', bg: '#0a1628', surface: '#132840', accent: '#00bcd4', p1: '#4fc3f7', p2: '#ef5350' },
-  { id: 'sunset', ru: 'Закат', en: 'Sunset', bg: '#1a0e1e', surface: '#2e1a32', accent: '#ff7043', p1: '#ffa726', p2: '#ab47bc' },
-  { id: 'forest', ru: 'Лес', en: 'Forest', bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784', p2: '#e57373' },
-  { id: 'royal', ru: 'Королевская', en: 'Royal', bg: '#0e0a18', surface: '#1e1638', accent: '#9c27b0', p1: '#ce93d8', p2: '#ef5350' },
-  { id: 'sakura', ru: 'Сакура', en: 'Sakura', bg: '#1a0e14', surface: '#2e1824', accent: '#f06292', p1: '#f48fb1', p2: '#4fc3f7' },
-  { id: 'neon', ru: 'Неон', en: 'Neon', bg: '#05050a', surface: '#0f0f22', accent: '#ff00ff', p1: '#00e5ff', p2: '#ff3090' },
-  { id: 'wood', ru: 'Дерево', en: 'Wood', bg: '#2c1e0f', surface: '#4a3520', accent: '#d4803a', p1: '#f0ece0', p2: '#2a2018' },
-  { id: 'arctic', ru: 'Арктика', en: 'Arctic', bg: '#0a1520', surface: '#122436', accent: '#40c4ff', p1: '#80d8ff', p2: '#ff8a80' },
-  { id: 'retro', ru: 'Ретро', en: 'Retro', bg: '#0a0a00', surface: '#1a1a06', accent: '#76ff03', p1: '#76ff03', p2: '#ff6e40' },
-  { id: 'minimal', ru: 'Светлая', en: 'Light', bg: '#f5f5f7', surface: '#ffffff', accent: '#0071e3', p1: '#007aff', p2: '#ff3b30' },
+  { id: 'default',  themeId: 'theme_default',  ru: 'Тёмная',      en: 'Dark',    price: 0,   rarity: 'common',    bg: '#0c0c12', surface: '#1a1a2a', accent: '#3bb8a8', p1: '#4a9eff',  p2: '#ff6066' },
+  { id: 'forest',   themeId: 'theme_forest',   ru: 'Лес',         en: 'Forest',  price: 0,   rarity: 'common',    bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784',  p2: '#e57373' },
+  { id: 'minimal',  themeId: 'theme_minimal',  ru: 'Светлая',     en: 'Light',   price: 0,   rarity: 'common',    bg: '#f5f5f7', surface: '#ffffff', accent: '#0071e3', p1: '#007aff',  p2: '#ff3b30' },
+  { id: 'ocean',    themeId: 'theme_ocean',    ru: 'Океан',       en: 'Ocean',   price: 300, rarity: 'rare',      bg: '#0a1628', surface: '#132840', accent: '#00bcd4', p1: '#4fc3f7',  p2: '#ef5350' },
+  { id: 'wood',     themeId: 'theme_wood',     ru: 'Дерево',      en: 'Wood',    price: 300, rarity: 'rare',      bg: '#2c1e0f', surface: '#4a3520', accent: '#d4803a', p1: '#f0ece0',  p2: '#2a2018' },
+  { id: 'sunset',   themeId: 'theme_sunset',   ru: 'Закат',       en: 'Sunset',  price: 400, rarity: 'rare',      bg: '#1a0e1e', surface: '#2e1a32', accent: '#ff7043', p1: '#ffa726',  p2: '#ab47bc' },
+  { id: 'arctic',   themeId: 'theme_arctic',   ru: 'Арктика',     en: 'Arctic',  price: 400, rarity: 'rare',      bg: '#0a1520', surface: '#122436', accent: '#40c4ff', p1: '#80d8ff',  p2: '#ff8a80' },
+  { id: 'royal',    themeId: 'theme_royal',    ru: 'Королевская', en: 'Royal',   price: 400, rarity: 'epic',      bg: '#0e0a18', surface: '#1e1638', accent: '#9c27b0', p1: '#ce93d8',  p2: '#ef5350' },
+  { id: 'retro',    themeId: 'theme_retro',    ru: 'Ретро',       en: 'Retro',   price: 500, rarity: 'epic',      bg: '#0a0a00', surface: '#1a1a06', accent: '#76ff03', p1: '#76ff03',  p2: '#ff6e40' },
+  { id: 'sakura',   themeId: 'theme_sakura',   ru: 'Сакура',      en: 'Sakura',  price: 500, rarity: 'epic',      bg: '#1a0e14', surface: '#2e1824', accent: '#f06292', p1: '#f48fb1',  p2: '#4fc3f7' },
+  { id: 'neon',     themeId: 'theme_neon',     ru: 'Неон',        en: 'Neon',    price: 600, rarity: 'legendary', bg: '#05050a', surface: '#0f0f22', accent: '#ff00ff', p1: '#00e5ff',  p2: '#ff3090' },
 ]
 
 const RARITY_COLOR = { common: 'var(--ink3)', rare: '#4a9eff', epic: '#9b59b6', legendary: '#ffc145' }
@@ -153,10 +153,8 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
   const [purchasing, setPurchasing] = useState(null)
   const [equipping, setEquipping] = useState(null)
   const [localBricks, setLocalBricks] = useState(bricks)
-  // Активные скины из сервера (синхронизированы)
   const [serverActive, setServerActive] = useState({ blocks: null, stands: null })
 
-  // Загружаем owned skins + active при открытии
   useEffect(() => {
     const token = localStorage.getItem('stolbiki_token')
     if (!token) return
@@ -171,7 +169,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
 
   useEffect(() => { setLocalBricks(bricks) }, [bricks])
 
-  // Применяем активные скины из сервера в localStorage при загрузке
   useEffect(() => {
     if (!serverActive.blocks && !serverActive.stands) return
     const chipSkin = CHIP_SKINS.find(s => s.id === serverActive.blocks)
@@ -180,28 +177,22 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
       const ns = { ...getSettings() }
       if (chipSkin) ns.chipStyle = chipSkin.legacyId || chipSkin.id
       if (standSkin) ns.standStyle = standSkin.legacyId || standSkin.id
-      setSettings(ns)
-      saveSettings(ns)
-      applySettings(ns)
+      setSettings(ns); saveSettings(ns); applySettings(ns)
     }
   }, [serverActive])
 
   function isUnlocked(skin) {
     if (skin.price === 0) return true
-    return ownedSkins.has(skin.id)
+    return ownedSkins.has(skin.id) || ownedSkins.has(skin.themeId)
   }
 
-  // Экипировка скина: локально + на сервер
+  // Экипировка скина блоков/стоек: локально + на сервер
   async function equip(skin, isChip) {
     const selectKey = isChip ? 'chipStyle' : 'standStyle'
     const selectVal = skin.legacyId || skin.id
-
-    // Локально сразу
     const ns = { ...settings, [selectKey]: selectVal }
     setSettings(ns); saveSettings(ns); applySettings(ns)
     gameCtx?.emit('settingsChanged')
-
-    // На сервер
     const token = localStorage.getItem('stolbiki_token')
     if (token) {
       setEquipping(skin.id)
@@ -217,7 +208,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     }
   }
 
-  // Покупка за кирпичи
+  // Покупка за кирпичи (скины блоков/стоек)
   async function purchase(skin) {
     if (localBricks < skin.price) return
     setPurchasing(skin.id)
@@ -238,6 +229,29 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     setPurchasing(null)
   }
 
+  // Покупка темы за кирпичи
+  async function purchaseTheme(th) {
+    if (localBricks < th.price) return
+    setPurchasing(th.themeId)
+    try {
+      const r = await fetch('/api/bricks/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` },
+        body: JSON.stringify({ skinId: th.themeId }),
+      })
+      const d = await r.json()
+      if (r.ok) {
+        setOwnedSkins(prev => new Set([...prev, th.themeId]))
+        if (d.bricks !== null && d.bricks !== undefined) {
+          setLocalBricks(d.bricks); onBricksChange?.(d.bricks)
+        }
+        // Применяем купленную тему сразу
+        onThemeChange?.(th.id)
+      }
+    } catch {}
+    setPurchasing(null)
+  }
+
   function renderSkinCard(skin, isChip) {
     const unlocked = isUnlocked(skin)
     const activeId = isChip ? (serverActive.blocks || settings.chipStyle) : (serverActive.stands || settings.standStyle)
@@ -251,18 +265,15 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         opacity: !unlocked && skin.price === 0 ? 0.4 : 1,
         transition: 'all 0.2s', position: 'relative',
       }}>
-        {/* Rarity badge */}
         <div style={{ position: 'absolute', top: 6, right: 8, display: 'flex', gap: 4, alignItems: 'center' }}>
           <RarityBadge rarity={skin.rarity} en={en} />
         </div>
 
-        {/* Preview */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0 8px',
           background: 'rgba(0,0,0,0.15)', borderRadius: 8, marginBottom: 8, minHeight: 60, alignItems: 'center' }}>
           {isChip ? <ChipPreview skin={skin} /> : <StandPreview skin={skin} />}
         </div>
 
-        {/* Name */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)' }}>
             {en ? skin.en : skin.ru}
@@ -270,7 +281,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
           {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
         </div>
 
-        {/* Buttons */}
         {unlocked ? (
           <button
             onClick={() => equip(skin, isChip)}
@@ -280,8 +290,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
               background: active ? 'rgba(59,184,168,0.1)' : 'rgba(255,255,255,0.05)',
               color: active ? 'var(--accent)' : 'var(--ink2)',
               cursor: active ? 'default' : 'pointer',
-              fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-              transition: 'all 0.15s',
+              fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
             }}
           >
             {equipping === skin.id ? '…' : active ? (en ? 'Equipped ✓' : 'Экипирован ✓') : (en ? 'Equip' : 'Экипировать')}
@@ -355,20 +364,45 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
             {THEMES.map(th => {
               const active = currentTheme === th.id
+              const owned = isUnlocked(th)
+              const buyLoading = purchasing === th.themeId
+              const canBuy = !owned && th.price > 0 && localBricks >= th.price
               return (
-                <div key={th.id} onClick={() => onThemeChange?.(th.id)} style={{
-                  padding: 12, borderRadius: 12, cursor: 'pointer',
-                  background: 'var(--surface)',
-                  border: `2px solid ${active ? 'var(--accent)' : 'var(--surface2)'}`,
+                <div key={th.id} style={{
+                  padding: 12, borderRadius: 12, cursor: owned ? 'pointer' : 'default',
+                  background: active ? 'rgba(59,184,168,0.08)' : 'var(--surface)',
+                  border: `2px solid ${active ? 'var(--accent)' : owned ? 'var(--surface2)' : RARITY_COLOR[th.rarity] + '50'}`,
+                  opacity: !owned ? 0.75 : 1,
                   transition: 'all 0.2s',
-                }}>
+                }} onClick={() => owned && onThemeChange?.(th.id)}>
                   <ThemePreview theme={th} />
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)' }}>
                       {en ? th.en : th.ru}
                     </span>
                     {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
+                    {!owned && <RarityBadge rarity={th.rarity} en={en} />}
                   </div>
+                  {/* Кнопка покупки/применения */}
+                  {!owned && th.price > 0 ? (
+                    <button
+                      onClick={e => { e.stopPropagation(); purchaseTheme(th) }}
+                      disabled={!canBuy || buyLoading}
+                      style={{
+                        width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
+                        background: canBuy ? 'rgba(255,193,69,0.15)' : 'var(--surface2)',
+                        color: canBuy ? 'var(--gold)' : 'var(--ink3)',
+                        cursor: canBuy ? 'pointer' : 'default',
+                        fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
+                      }}
+                    >
+                      {buyLoading ? '…' : `🧱 ${th.price}`}
+                    </button>
+                  ) : owned && !active ? (
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'center', padding: '4px 0' }}>
+                      {en ? 'Click to apply' : 'Нажми чтобы применить'}
+                    </div>
+                  ) : null}
                 </div>
               )
             })}
@@ -390,8 +424,8 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--surface)',
           borderRadius: 10, border: '1px solid var(--surface2)', fontSize: 11, color: 'var(--ink3)', lineHeight: 1.8 }}>
           🧱 — {en
-            ? 'Earn bricks by winning (1–5 per game). Premium skins unlock with bricks. Skins are saved to your account.'
-            : 'Кирпичи зарабатываются за победы (1–5 за игру). Активный скин синхронизируется с аккаунтом.'}
+            ? 'Earn bricks by winning (1–5 per game). Themes & skins unlock with bricks. Free themes: Dark, Forest, Light.'
+            : 'Кирпичи зарабатываются за победы (1–5 за игру). Бесплатные темы: Тёмная, Лес, Светлая.'}
         </div>
       </div>
     </div>
