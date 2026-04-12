@@ -4,8 +4,7 @@ import '../css/stand-skins.css'
 import { GOLDEN_STAND } from '../engine/game'
 import { useLongPress } from '../hooks/useLongPress'
 
-// Фишка — memo чтобы не пересоздавалась
-const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghostIn }) {
+const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghostIn, fog }) {
   const [visible, setVisible] = useState(!isNew)
 
   useEffect(() => {
@@ -15,21 +14,21 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghos
     }
   }, [isNew, delay])
 
+  if (fog) return <div className="chip chip-fog" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>?</div>
   if (isPending) return <div className={`chip p${color} chip-pending`} />
   if (ghostOut) return <div className={`chip p${color} chip-ghost-out`} />
   if (ghostIn) return <div className={`chip p${color} chip-ghost-in`} />
-
   return (
     <div className={`chip p${color} ${isNew && visible ? 'chip-drop' : ''} ${isNew && !visible ? 'chip-hidden' : ''}`} />
   )
 })
 
-// StandItem — отдельный компонент чтобы useLongPress вызывался не внутри .map()
 function StandItem({
   i, chips, closedOwner, isGolden, isSelected, isTarget, isFlashing,
   newInfo, pendingCount, humanPlayer, ghostTransfer, particles,
   showChipCount, showFillBar, maxChips,
   onStandClick, onStandLongPress,
+  fogOfWar, fogPlayer,
 }) {
   const { pressing, handlers } = useLongPress(
     onStandLongPress ? () => onStandLongPress(i) : null,
@@ -49,6 +48,12 @@ function StandItem({
   if (ghostTransfer?.to === i) cls += ' stand-ghost-to'
   if (pressing && onStandLongPress) cls += ' stand-long-pressing'
 
+  // Определяем для каждого чипа — скрывать ли (fog of war)
+  // Скрываем чипы противника: те что не принадлежат fogPlayer
+  function isChipFogged(chipColor) {
+    return fogOfWar && chipColor !== fogPlayer
+  }
+
   return (
     <div
       className={cls + ' board-stand'}
@@ -58,7 +63,7 @@ function StandItem({
       tabIndex={0}
       aria-label={isClosed ? `Stand ${i} closed, owner P${closedOwner + 1}` : `Stand ${i}, ${chips.length} of 11 chips`}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStandClick?.(i) } }}
-      title={isClosed ? `Достроена: П${closedOwner + 1}` : `${chips.length}/11 блоков, свободно: ${11 - chips.length}`}
+      title={isClosed ? `Достроена: П${closedOwner + 1}` : `${chips.length}/11 блоков`}
       {...handlers}
     >
       <span className="stand-label">{isGolden ? '★' : 'ABCDEFGHI'[i - 1]}</span>
@@ -70,11 +75,11 @@ function StandItem({
           color: chips.length >= 9 ? 'var(--p2)' : chips.length >= 7 ? 'var(--gold)' : 'var(--ink3)',
           opacity: chips.length > 0 ? 1 : 0.4,
         }}>
-          {chips.length}
+          {fogOfWar ? '?' : chips.length}
         </div>
       )}
 
-      {showFillBar && !isClosed && chips.length > 0 && (
+      {showFillBar && !isClosed && !fogOfWar && chips.length > 0 && (
         <div style={{
           position: 'absolute', bottom: 2, left: '10%', right: '10%', height: 2,
           background: 'var(--surface2)', borderRadius: 1, overflow: 'hidden', opacity: 0.6,
@@ -91,14 +96,16 @@ function StandItem({
         const isNew = newInfo && j >= newInfo.from
         const staggerIdx = isNew ? j - newInfo.from : 0
         const isGhostOut = ghostTransfer && ghostTransfer.from === i && j >= chips.length - ghostTransfer.count
+        const fogged = isChipFogged(c)
         return (
           <Chip
             key={`${i}-${j}`}
             color={c}
-            isNew={isNew}
+            isNew={isNew && !fogged}
             delay={staggerIdx * 150}
             isPending={false}
-            ghostOut={isGhostOut}
+            ghostOut={isGhostOut && !fogged}
+            fog={fogged}
           />
         )
       })}
@@ -126,11 +133,25 @@ function StandItem({
           ))}
         </div>
       )}
+
+      {/* Fog overlay */}
+      {fogOfWar && !isClosed && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 'inherit',
+          background: 'rgba(0,0,0,0.15)',
+          backdropFilter: 'blur(1px)',
+          pointerEvents: 'none',
+        }} />
+      )}
     </div>
   )
 }
 
-function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick, onStandLongPress, aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null }) {
+function Board({
+  state, pending = {}, selected, phase, humanPlayer, onStandClick, onStandLongPress,
+  aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null,
+  fogOfWar = false, fogPlayer = 0,
+}) {
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
   const [newChipMap, setNewChipMap] = useState({})
   const [flashSet, setFlashSet] = useState(new Set())
@@ -147,9 +168,7 @@ function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick
       const oldLen = prev.stands[i]?.length || 0
       const newLen = state.stands[i].length
 
-      if (newLen > oldLen) {
-        nc[i] = { from: oldLen, count: newLen - oldLen }
-      }
+      if (newLen > oldLen) nc[i] = { from: oldLen, count: newLen - oldLen }
 
       if ((i in state.closed) && !(i in prev.closed)) {
         fl.add(i)
@@ -157,8 +176,7 @@ function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick
         const baseColor = owner === 0 ? ['var(--p1)', 'var(--p1-light)', 'var(--p1-light)'] : ['var(--p2)', 'var(--p2-light)', 'var(--p2-light)']
         const sparkColors = ['var(--gold)', '#fff', ...baseColor]
         newParticles[i] = Array.from({ length: 14 }, (_, j) => ({
-          id: j,
-          color: sparkColors[j % sparkColors.length],
+          id: j, color: sparkColors[j % sparkColors.length],
           angle: (j / 14) * 360 + Math.random() * 20,
           dist: 30 + Math.random() * 40,
           size: 3 + Math.random() * 5,
@@ -168,7 +186,6 @@ function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick
     }
 
     prevRef.current = { stands: state.stands.map(s => [...s]), closed: { ...state.closed } }
-
     const timers = []
 
     if (Object.keys(nc).length > 0) {
@@ -196,7 +213,7 @@ function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick
   const standOrder = flip ? [...Array(state.numStands).keys()].reverse() : [...Array(state.numStands).keys()]
 
   return (
-    <div className={`board board-3d ${aiThinking ? 'board-thinking' : ''} ${flip ? 'board-flipped' : ''} ${shaking ? 'board-shake' : ''}`}>
+    <div className={`board board-3d ${aiThinking ? 'board-thinking' : ''} ${flip ? 'board-flipped' : ''} ${shaking ? 'board-shake' : ''} ${fogOfWar ? 'board-fog' : ''}`}>
       {standOrder.map((i) => {
         const isClosed = i in state.closed
         const isTarget = phase === 'transfer-dst' && !isClosed && i !== selected
@@ -221,6 +238,8 @@ function Board({ state, pending = {}, selected, phase, humanPlayer, onStandClick
             maxChips={state.maxChips || 11}
             onStandClick={onStandClick}
             onStandLongPress={onStandLongPress}
+            fogOfWar={fogOfWar}
+            fogPlayer={fogPlayer}
           />
         )
       })}
