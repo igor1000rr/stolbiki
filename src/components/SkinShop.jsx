@@ -1,6 +1,7 @@
 /**
  * SkinShop — popup для кастомизации: темы, скины блоков, скины стоек
  * v5.1: платные темы (ocean/sunset/royal/sakura/neon/wood/arctic/retro за кирпичи)
+ * v5.2: bricks загружается из API при открытии
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -8,7 +9,6 @@ import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
 
-// ─── Данные скинов ───
 const CHIP_SKINS = [
   { id: 'blocks_classic', legacyId: 'classic', ru: 'Классика', en: 'Classic', level: 1, price: 0, rarity: 'common',
     css0: 'linear-gradient(180deg, #85c4ff, #4a9eff, #3580d4)',
@@ -63,7 +63,6 @@ const STAND_SKINS = [
     bg: 'linear-gradient(180deg, rgba(180,220,255,0.3), rgba(120,180,240,0.15), rgba(180,220,255,0.25))', border: 'rgba(120,180,240,0.25)' },
 ]
 
-// Темы: price > 0 → платные, требуют покупки. themeId → id в БД
 const THEMES = [
   { id: 'default',  themeId: 'theme_default',  ru: 'Тёмная',      en: 'Dark',    price: 0,   rarity: 'common',    bg: '#0c0c12', surface: '#1a1a2a', accent: '#3bb8a8', p1: '#4a9eff',  p2: '#ff6066' },
   { id: 'forest',   themeId: 'theme_forest',   ru: 'Лес',         en: 'Forest',  price: 0,   rarity: 'common',    bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784',  p2: '#e57373' },
@@ -155,6 +154,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
   const [localBricks, setLocalBricks] = useState(bricks)
   const [serverActive, setServerActive] = useState({ blocks: null, stands: null })
 
+  // Загружаем owned skins + active + bricks при открытии
   useEffect(() => {
     const token = localStorage.getItem('stolbiki_token')
     if (!token) return
@@ -163,10 +163,16 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
       .then(d => {
         if (d.skins) setOwnedSkins(new Set(d.skins.filter(s => s.owned).map(s => s.id)))
         if (d.active) setServerActive(d.active)
+        // Загружаем актуальный баланс кирпичей с сервера
+        if (typeof d.bricks === 'number') {
+          setLocalBricks(d.bricks)
+          onBricksChange?.(d.bricks)
+        }
       })
       .catch(() => {})
   }, [])
 
+  // Синхронизируем с пропсом если он обновился
   useEffect(() => { setLocalBricks(bricks) }, [bricks])
 
   useEffect(() => {
@@ -186,7 +192,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     return ownedSkins.has(skin.id) || ownedSkins.has(skin.themeId)
   }
 
-  // Экипировка скина блоков/стоек: локально + на сервер
   async function equip(skin, isChip) {
     const selectKey = isChip ? 'chipStyle' : 'standStyle'
     const selectVal = skin.legacyId || skin.id
@@ -208,7 +213,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     }
   }
 
-  // Покупка за кирпичи (скины блоков/стоек)
   async function purchase(skin) {
     if (localBricks < skin.price) return
     setPurchasing(skin.id)
@@ -229,7 +233,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     setPurchasing(null)
   }
 
-  // Покупка темы за кирпичи
   async function purchaseTheme(th) {
     if (localBricks < th.price) return
     setPurchasing(th.themeId)
@@ -245,7 +248,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         if (d.bricks !== null && d.bricks !== undefined) {
           setLocalBricks(d.bricks); onBricksChange?.(d.bricks)
         }
-        // Применяем купленную тему сразу
         onThemeChange?.(th.id)
       }
     } catch {}
@@ -265,7 +267,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         opacity: !unlocked && skin.price === 0 ? 0.4 : 1,
         transition: 'all 0.2s', position: 'relative',
       }}>
-        <div style={{ position: 'absolute', top: 6, right: 8, display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ position: 'absolute', top: 6, right: 8 }}>
           <RarityBadge rarity={skin.rarity} en={en} />
         </div>
 
@@ -282,32 +284,24 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         </div>
 
         {unlocked ? (
-          <button
-            onClick={() => equip(skin, isChip)}
-            disabled={active || equipping === skin.id}
-            style={{
-              width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
-              background: active ? 'rgba(59,184,168,0.1)' : 'rgba(255,255,255,0.05)',
-              color: active ? 'var(--accent)' : 'var(--ink2)',
-              cursor: active ? 'default' : 'pointer',
-              fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
-            }}
-          >
+          <button onClick={() => equip(skin, isChip)} disabled={active || equipping === skin.id} style={{
+            width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
+            background: active ? 'rgba(59,184,168,0.1)' : 'rgba(255,255,255,0.05)',
+            color: active ? 'var(--accent)' : 'var(--ink2)',
+            cursor: active ? 'default' : 'pointer',
+            fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
+          }}>
             {equipping === skin.id ? '…' : active ? (en ? 'Equipped ✓' : 'Экипирован ✓') : (en ? 'Equip' : 'Экипировать')}
           </button>
         ) : skin.price > 0 ? (
-          <button
-            onClick={() => purchase(skin)}
-            disabled={localBricks < skin.price || purchasing === skin.id}
-            style={{
-              width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
-              background: localBricks >= skin.price ? 'rgba(255,193,69,0.15)' : 'var(--surface2)',
-              color: localBricks >= skin.price ? 'var(--gold)' : 'var(--ink3)',
-              cursor: localBricks >= skin.price ? 'pointer' : 'default',
-              fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-              opacity: purchasing === skin.id ? 0.6 : 1, transition: 'all 0.15s',
-            }}
-          >
+          <button onClick={() => purchase(skin)} disabled={localBricks < skin.price || purchasing === skin.id} style={{
+            width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
+            background: localBricks >= skin.price ? 'rgba(255,193,69,0.15)' : 'var(--surface2)',
+            color: localBricks >= skin.price ? 'var(--gold)' : 'var(--ink3)',
+            cursor: localBricks >= skin.price ? 'pointer' : 'default',
+            fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+            opacity: purchasing === skin.id ? 0.6 : 1, transition: 'all 0.15s',
+          }}>
             {purchasing === skin.id ? '…' : `🧱 ${skin.price}`}
           </button>
         ) : (
@@ -372,8 +366,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
                   padding: 12, borderRadius: 12, cursor: owned ? 'pointer' : 'default',
                   background: active ? 'rgba(59,184,168,0.08)' : 'var(--surface)',
                   border: `2px solid ${active ? 'var(--accent)' : owned ? 'var(--surface2)' : RARITY_COLOR[th.rarity] + '50'}`,
-                  opacity: !owned ? 0.75 : 1,
-                  transition: 'all 0.2s',
+                  opacity: !owned ? 0.75 : 1, transition: 'all 0.2s',
                 }} onClick={() => owned && onThemeChange?.(th.id)}>
                   <ThemePreview theme={th} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 6 }}>
@@ -383,19 +376,14 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
                     {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
                     {!owned && <RarityBadge rarity={th.rarity} en={en} />}
                   </div>
-                  {/* Кнопка покупки/применения */}
                   {!owned && th.price > 0 ? (
-                    <button
-                      onClick={e => { e.stopPropagation(); purchaseTheme(th) }}
-                      disabled={!canBuy || buyLoading}
-                      style={{
-                        width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
-                        background: canBuy ? 'rgba(255,193,69,0.15)' : 'var(--surface2)',
-                        color: canBuy ? 'var(--gold)' : 'var(--ink3)',
-                        cursor: canBuy ? 'pointer' : 'default',
-                        fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
-                      }}
-                    >
+                    <button onClick={e => { e.stopPropagation(); purchaseTheme(th) }} disabled={!canBuy || buyLoading} style={{
+                      width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
+                      background: canBuy ? 'rgba(255,193,69,0.15)' : 'var(--surface2)',
+                      color: canBuy ? 'var(--gold)' : 'var(--ink3)',
+                      cursor: canBuy ? 'pointer' : 'default',
+                      fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
+                    }}>
                       {buyLoading ? '…' : `🧱 ${th.price}`}
                     </button>
                   ) : owned && !active ? (
@@ -424,7 +412,7 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--surface)',
           borderRadius: 10, border: '1px solid var(--surface2)', fontSize: 11, color: 'var(--ink3)', lineHeight: 1.8 }}>
           🧱 — {en
-            ? 'Earn bricks by winning (1–5 per game). Themes & skins unlock with bricks. Free themes: Dark, Forest, Light.'
+            ? 'Earn bricks by winning (1–5 per game). Free themes: Dark, Forest, Light.'
             : 'Кирпичи зарабатываются за победы (1–5 за игру). Бесплатные темы: Тёмная, Лес, Светлая.'}
         </div>
       </div>
