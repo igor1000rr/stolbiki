@@ -1,14 +1,17 @@
 /**
  * GameResultPanel — экран результата после партии
  * Извлечён из Game.jsx
+ * v5.1: TikTok highlight reel кнопка
  */
 
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import Mascot from './Mascot'
 import Confetti from './Confetti'
 import * as MP from '../engine/multiplayer'
 import * as API from '../engine/api'
 import { generateShareImage } from './gameUtils'
+
+const GameHighlightReel = lazy(() => import('./GameHighlightReel'))
 
 export default function GameResultPanel({
   result, mode, humanPlayer, gs, elapsed, ratingDelta,
@@ -16,7 +19,8 @@ export default function GameResultPanel({
   newGame, tournamentNextGame, gameCtx, moveHistoryRef,
   rematchPending, setRematchPending, setInfo, setShowReplay, setShowReview,
 }) {
-  const [sharePreview, setSharePreview] = useState(null) // dataURL превью
+  const [sharePreview, setSharePreview] = useState(null)
+  const [showHighlightReel, setShowHighlightReel] = useState(false)
 
   if (result === null) return null
 
@@ -28,7 +32,6 @@ export default function GameResultPanel({
   const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
   const accentColor = isDraw ? 'var(--purple)' : won ? 'var(--green)' : 'var(--p2)'
 
-  // Генерация share-картинки и шаринг
   async function doShare() {
     try {
       const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
@@ -39,13 +42,11 @@ export default function GameResultPanel({
       API.track('share_card', 'game', { won, isDraw })
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
       const file = new File([blob], 'snatch-result.png', { type: 'image/png' })
-
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ text: shareText, files: [file] }).catch(() => {})
       } else if (navigator.share) {
         await navigator.share({ text: shareText }).catch(() => {})
       } else {
-        // Desktop: скачать
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url; a.download = 'snatch-result.png'; a.click()
@@ -54,7 +55,6 @@ export default function GameResultPanel({
     } catch { navigator.clipboard?.writeText(shareText) }
   }
 
-  // Предпросмотр share-картинки
   function showPreview() {
     try {
       const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
@@ -64,6 +64,16 @@ export default function GameResultPanel({
       })
       setSharePreview(canvas.toDataURL('image/png'))
     } catch {}
+  }
+
+  // Активный скин для рил
+  function getActiveSkinId() {
+    try {
+      const s = JSON.parse(localStorage.getItem('stolbiki_settings') || '{}')
+      const cs = s.chipStyle || 'classic'
+      const m = { classic: 'blocks_classic', flat: 'blocks_flat', rounded: 'blocks_round', glass: 'blocks_glass', metal: 'blocks_metal', candy: 'blocks_candy', pixel: 'blocks_pixel', neon: 'blocks_neon', glow: 'blocks_glow' }
+      return cs.startsWith('blocks_') ? cs : (m[cs] || 'blocks_classic')
+    } catch { return 'blocks_classic' }
   }
 
   const inner = (
@@ -98,6 +108,7 @@ export default function GameResultPanel({
           {sessionStats.streak} {t('game.winStreak')}
         </div>
       )}
+
       <div style={{ marginTop: isNative ? 24 : 10, display: 'flex', gap: isNative ? 10 : 8, justifyContent: 'center', flexWrap: 'wrap', ...(isNative ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', maxWidth: 320, margin: '24px auto 0' } : {}) }}>
         {!tournament && (
           <button className="btn primary" onClick={() => {
@@ -137,34 +148,25 @@ export default function GameResultPanel({
           </button>
         )}
 
-        {/* ─── Share: превью + шаринг ─── */}
+        {/* ─── Share ─── */}
         <button className="btn" onClick={showPreview}
           style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center',
             borderColor: accentColor, color: accentColor }}>
           {en ? '📸 Share Image' : '📸 Поделиться'}
         </button>
 
+        {/* ─── TikTok видео ─── */}
+        {moveHistoryRef.current.length >= 4 && (
+          <button className="btn" onClick={() => setShowHighlightReel(true)}
+            style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center',
+              borderColor: '#ff0050', color: '#ff0050' }}>
+            🎬 TikTok
+          </button>
+        )}
+
         {moveHistoryRef.current.length > 0 && (
           <button className="btn" onClick={() => setShowReplay(true)} style={{ fontSize: 12, padding: '8px 12px' }}>
             {t('game.replay')}
-          </button>
-        )}
-        {moveHistoryRef.current.length > 0 && API.isLoggedIn() && (
-          <button className="btn" onClick={async () => {
-            try {
-              const resp = await fetch('/api/replays', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API.getToken()}` },
-                body: JSON.stringify({ moves: moveHistoryRef.current, result, score: `${s0}:${s1}`, mode, turns: gs.turn })
-              })
-              const data = await resp.json()
-              if (data.id) {
-                const url = `${location.origin}/#replay/${data.id}`
-                if (navigator.share) navigator.share({ text: `${shareText}\n${url}` }).catch(() => {})
-                else { navigator.clipboard?.writeText(url); setInfo(en ? 'Link copied!' : 'Ссылка скопирована!') }
-              }
-            } catch { setInfo(en ? 'Error saving replay' : 'Ошибка сохранения') }
-          }} style={{ fontSize: 12, padding: '8px 12px', borderColor: 'var(--accent)', color: 'var(--accent)' }}>
-            {en ? '🔗 Share replay' : '🔗 Поделиться'}
           </button>
         )}
         {moveHistoryRef.current.length > 2 && (
@@ -181,6 +183,7 @@ export default function GameResultPanel({
           {en ? 'Win streak' : 'Серия побед'}: {sessionStats.streak}
         </div>
       )}
+
       {tournament && (() => {
         const tWins = tournament.games.filter(g => g.won).length
         const tLosses = tournament.games.filter(g => !g.won).length
@@ -217,7 +220,7 @@ export default function GameResultPanel({
         )
       })()}
 
-      {/* ─── Превью share-картинки (модалка) ─── */}
+      {/* ─── Превью share ─── */}
       {sharePreview && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.92)',
@@ -239,6 +242,19 @@ export default function GameResultPanel({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── TikTok Highlight Reel ─── */}
+      {showHighlightReel && (
+        <Suspense fallback={null}>
+          <GameHighlightReel
+            moveHistory={moveHistoryRef.current}
+            result={result}
+            humanPlayer={humanPlayer}
+            skinId={getActiveSkinId()}
+            onClose={() => setShowHighlightReel(false)}
+          />
+        </Suspense>
       )}
     </div>
   )
