@@ -4,6 +4,7 @@ import { useContent } from '../engine/content'
 import { useRef, useEffect, useState } from 'react'
 import Icon from './Icon'
 import Mascot from './Mascot'
+import { APP_VERSION } from '../version'
 
 // Scroll-triggered animation hook
 function useReveal(threshold = 0.15) {
@@ -24,12 +25,10 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
   const en = lang === 'en'
   const { c } = useContent(lang)
 
-  // Per-section reveal refs
   const [heroRef, heroVis] = useReveal(0.1)
   const [stepRef, stepVis] = useReveal()
   const [featRef, featVis] = useReveal(0.1)
   const [screensRef, screensVis] = useReveal()
-  
   const [dlRef, dlVis] = useReveal()
   const [faqRef, faqVis] = useReveal()
 
@@ -46,14 +45,12 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           {c('site.tagline', en ? 'Strategy board game with AI' : 'Стратегическая настольная игра с AI')}
         </h1>
         <p className="l-hero-sub" style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink2)', marginBottom: 8 }}>
-          {en
-            ? 'Sneaky raccoons build highrises and snatch them from others.'
-            : 'Хитрые еноты строят высотки и перехватывают их у других.'}
+          {en ? 'Sneaky raccoons build highrises and snatch them from others.' : 'Хитрые еноты строят высотки и перехватывают их у других.'}
         </p>
         <p className="l-hero-sub">
           {en
-            ? '10 highrises. 11 blocks each. Many strategies. Play with friends or against a trained neural network. Think chess or checkers, but more fun!'
-            : '10 высоток. 11 блоков на каждой. Множество стратегий. Играйте с друзьями или против обученной нейросети. Нашу игру можно сравнить с шахматами или шашками, но она интереснее и веселее!'}
+            ? '10 highrises. 11 blocks each. Many strategies. Play with friends or against a trained neural network.'
+            : '10 высоток. 11 блоков на каждой. Множество стратегий. Играйте с друзьями или против обученной нейросети.'}
         </p>
         <div className="l-hero-meta">
           <span className="beta-badge">beta</span>
@@ -87,7 +84,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ STEPS — staggered reveal with animated line ═══ */}
+      {/* ═══ STEPS ═══ */}
       <section className="l-section">
         <h2 className="l-title">{c('landing.steps_title', en ? 'Learn in 3 steps' : 'Научитесь за 3 шага')}</h2>
         <div className={`l-steps ${stepVis ? 'in' : ''}`} ref={stepRef}>
@@ -108,27 +105,34 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ FEATURES — symmetric 3×2 grid with animated diagrams ═══ */}
+      {/* ═══ FEATURES ═══ */}
       <section className="l-section">
         <h2 className="l-title">{c('landing.features_title', en ? "What's inside" : 'Что внутри')}</h2>
         <div className={`l-feat-grid ${featVis ? 'in' : ''}`} ref={featRef}>
           {[
-            { color: '#4a9eff', title: en ? 'AlphaZero AI' : 'AI нейросеть', desc: en ? 'Trained on 10M games. 5 difficulty levels.' : 'Обучена на 10M партиях. 5 уровней сложности.',
+            { color: '#4a9eff', title: en ? 'AlphaZero AI' : 'AI нейросеть', desc: en ? 'Trained on 10M games. 5 difficulty levels + Fog, Double transfer, Auto-pass mods.' : 'Обучена на 10M партиях. 5 уровней + моды: туман, двойной перенос, авто-пас.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[18,32,24,40,28,36,20,44,30,22].map((h,i)=><rect key={i} className="l-bar-wave" x={4+i*12} y={48-h} width={8} height={h} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} style={{animationDelay:`${i*0.15}s`,transformOrigin:`${4+i*12+4}px 48px`}}/>)}</svg> },
-            { color: '#3dd68c', title: en ? 'Online' : 'Онлайн', desc: en ? 'Link to a friend — play in seconds. No signup.' : 'Ссылка другу — игра через секунды. Без регистрации.',
+            { color: '#3dd68c', title: en ? 'Online' : 'Онлайн', desc: en ? 'Link to a friend — play in seconds. Clubs, global chat, leaderboards.' : 'Ссылка другу — игра за секунды. Клубы 🦝, глобальный чат, лидерборды.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><circle cx="30" cy="24" r="10" fill="none" stroke="#3dd68c" strokeWidth="1.5" opacity="0.5"/><circle cx="90" cy="24" r="10" fill="none" stroke="#4a9eff" strokeWidth="1.5" opacity="0.5"/><line x1="40" y1="24" x2="80" y2="24" stroke="#3dd68c50" strokeWidth="1" strokeDasharray="4 3" className="l-feat-dash"/><circle cx="30" cy="24" r="3" fill="#3dd68c" className="l-feat-pulse"/><circle cx="90" cy="24" r="3" fill="#4a9eff" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/><circle className="l-packet" cx="30" cy="24" r="2" fill="#ffc145"/></svg> },
             { color: '#ffc145', title: en ? 'Puzzles' : 'Головоломки', desc: en ? 'Daily + weekly. 50 puzzles. Leaderboards.' : 'Ежедневные + еженедельные. 50 штук. Лидерборды.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><g>{[[25,6,28,22],[50,6,28,22],[75,6,28,22]].map(([x,y,w,h],i)=><rect key={i} x={x} y={y} width={w} height={h} rx={4} fill="none" stroke="#ffc14540" strokeWidth="1"/>)}<text className="l-puzzle-q" x="39" y="22" fill="#ffc145" fontSize="16" fontWeight="800" textAnchor="middle">?</text><text className="l-puzzle-a" x="64" y="22" fill="#3dd68c" fontSize="16" fontWeight="800" textAnchor="middle">✓</text><text className="l-puzzle-q" x="89" y="22" fill="#ffc145" fontSize="16" fontWeight="800" textAnchor="middle" style={{animationDelay:'1.5s'}}>?</text></g><rect x="25" y="36" width="70" height="3" rx="1.5" fill="#1a1a2e"/><rect className="l-puzzle-bar" x="25" y="36" width="0" height="3" rx="1.5" fill="#ffc14580"/></svg> },
-            { color: '#9b59b6', title: en ? '11 themes + 17 skins' : '11 тем + 17 скинов', desc: en ? 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow.' : 'Sakura, Neon, Retro, Arctic + Glass, Metal, Glow.',
+            { color: '#9b59b6', title: en ? '11 themes + skins' : '11 тем + скины', desc: en ? 'Free: Dark, Forest, Light. Paid: Ocean, Royal, Sakura, Neon + 17 block & stand skins.' : 'Бесплатно: Dark, Forest, Light. Платно: Ocean, Royal, Sakura, Neon + 17 скинов.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{['#4a9eff','#ff00ff','#ff69b4','#00bcd4','#ffc145','#3dd68c','#ff6066'].map((c,i)=><circle key={i} className="l-skin-dot" cx={18+i*14} cy={20} r={6} fill={c} style={{animationDelay:`${i*0.2}s`}}/>)}</svg> },
-            { color: '#3dd68c', title: 'AI ' + (en ? 'Review' : 'Анализ'), desc: en ? 'Every move: excellent → blunder. Accuracy %.' : 'Каждый ход: отличный → грубая ошибка. Accuracy %.',
+            { color: '#3dd68c', title: en ? 'AI Review' : 'AI Анализ', desc: en ? 'Every move: excellent → blunder. Accuracy %.' : 'Каждый ход: отличный → грубая ошибка. Accuracy %.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[['✓','#3dd68c'],['✓','#3dd68c'],['○','#ffc145'],['✕','#ff6066'],['✓','#3dd68c'],['✓','#3dd68c']].map(([s,c],i)=><text key={i} className="l-review-mark" x={12+i*20} y={22} fill={c} fontSize="14" textAnchor="middle" fontWeight="700" style={{animationDelay:`${i*0.3}s`}}>{s}</text>)}<rect x="10" y="34" width="100" height="4" rx="2" fill="#1a1a2e"/><rect className="l-review-bar" x="10" y="34" width="0" height="4" rx="2" fill="#3dd68c80"/></svg> },
-            { color: '#ff6066', title: en ? 'Arena & XP' : 'Арена и прогресс', desc: en ? 'Tournaments, missions, 33 achievements, levels.' : 'Турниры, миссии, 33 ачивки, уровни.',
+            { color: '#ff6066', title: en ? 'Arena & Battle Pass' : 'Арена и Battle Pass', desc: en ? 'Tournaments, 30 seasonal quests, missions, 33 achievements, XP levels.' : 'Турниры, 30 квестов в сезоне, миссии, 33 ачивки, уровни XP.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[12,20,32,24,40,16,28,36].map((h,i)=><rect key={i} className="l-bar-wave" x={8+i*14} y={48-h} width={10} height={h} rx={2} fill={`hsl(${340+i*8},70%,60%)`} style={{animationDelay:`${i*0.12}s`,transformOrigin:`${8+i*14+5}px 48px`}}/>)}</svg> },
-            { color: '#ff9800', title: en ? 'Challenge friends' : 'Вызов друзьям', desc: en ? 'Challenge a friend directly. Room created instantly.' : 'Вызовите друга на дуэль. Комната создаётся мгновенно.',
-              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><text x="35" y="30" fontSize="24" className="l-feat-pulse">⚔️</text><circle cx="20" cy="24" r="8" fill="none" stroke="#ff980060" strokeWidth="1.5"/><circle cx="100" cy="24" r="8" fill="none" stroke="#ff980060" strokeWidth="1.5"/><line x1="28" y1="24" x2="92" y2="24" stroke="#ff980030" strokeWidth="1" strokeDasharray="4 3" className="l-feat-dash"/></svg> },
-            { color: '#e040fb', title: en ? 'Share & Invite' : 'Делись и приглашай', desc: en ? 'Share result cards. Invite friends — earn XP.' : 'Карточки результатов. Пригласи друзей — получи XP.',
-              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><rect x="30" y="8" width="60" height="32" rx="6" fill="none" stroke="#e040fb40" strokeWidth="1.5"/><text x="60" y="22" fontSize="10" fill="#e040fb" textAnchor="middle" fontWeight="700">6 : 4</text><text x="60" y="34" fontSize="7" fill="#e040fb80" textAnchor="middle">+25 ELO</text><circle className="l-feat-pulse" cx="105" cy="14" r="4" fill="#3dd68c" style={{animationDelay:'0.3s'}}/><text x="105" y="32" fontSize="8" fill="#3dd68c80" textAnchor="middle">+XP</text></svg> },
+            { color: '#ff9800', title: en ? 'Victory City 🏙' : 'Город побед 🏙', desc: en ? 'Every win builds a skyscraper in your profile. Color = skin used in that game.' : 'Каждая победа — здание в профиле. Цвет = скин из той партии.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg">
+                {/* Изометрические мини-здания */}
+                {[[20,38,6,2,'#4a9eff'],[38,32,8,3,'#ff6066'],[58,36,5,2,'#9b59b6'],[76,28,10,4,'#00e5ff'],[96,34,7,2,'#ffc145']].map(([bx,by,w,floors,color],bi) =>
+                  Array.from({length:floors}).map((_,fi) => (
+                    <rect key={`${bi}-${fi}`} x={bx} y={by-fi*4} width={w} height={3} rx={0.5} fill={color} opacity={0.7+fi*0.05} style={{animationDelay:`${(bi*floors+fi)*0.08}s`}} className="l-bar-wave"/>
+                  ))
+                )}
+              </svg> },
+            { color: '#e040fb', title: en ? 'Share & Bricks 🧱' : 'Шер и кирпичи 🧱', desc: en ? 'Share story cards. Earn bricks per win. Buy skins, themes, unlock cosmetics.' : 'Share-картинки 1080×1920. Кирпичи за победы. Покупай скины и темы.',
+              visual: <svg viewBox="0 0 120 48" className="l-feat-svg"><rect x="30" y="8" width="60" height="32" rx="6" fill="none" stroke="#e040fb40" strokeWidth="1.5"/><text x="60" y="22" fontSize="10" fill="#e040fb" textAnchor="middle" fontWeight="700">6 : 4</text><text x="60" y="34" fontSize="7" fill="#e040fb80" textAnchor="middle">+25 ELO</text><circle className="l-feat-pulse" cx="105" cy="14" r="4" fill="#3dd68c" style={{animationDelay:'0.3s'}}/><text x="105" y="32" fontSize="8" fill="#ffc14580" textAnchor="middle">🧱+3</text></svg> },
           ].map((f, i) => (
             <div key={i} className="l-feat-card" style={{ '--i': i, '--color': f.color }}>
               <div className="l-feat-visual">{f.visual}</div>
@@ -139,7 +143,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
-      {/* ═══ SCREENSHOTS — 6 тем, блоки ставятся по одному ═══ */}
+      {/* ═══ SCREENSHOTS ═══ */}
       <section className="l-section">
         <h2 className="l-title">{en ? 'The game in action' : 'Игра в действии'}</h2>
         <div className={`l-screens ${screensVis ? 'in' : ''}`} ref={screensRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 960, margin: '0 auto' }}>
@@ -151,7 +155,6 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             { theme: 'Arctic', bg: '#0a1520', surface: '#122436', p1: '#80d8ff', p2: '#ff8a80' },
             { theme: 'Sunset', bg: '#1a0e1e', surface: '#2e1a32', p1: '#ffa726', p2: '#ab47bc' },
           ].map((s, i) => {
-            // Генерируем "партию" — фиксированные высоты стоек для каждой темы
             const heights = [[3,5,2,7,4,6,1,5,3,4],[4,2,6,3,7,5,2,4,6,3],[5,3,4,6,2,7,4,3,5,2],[2,6,3,5,7,4,6,2,3,5],[6,4,5,2,3,7,5,4,2,6],[3,7,4,5,2,6,3,5,4,7]][i]
             return (
               <div key={i} className="l-theme-card" style={{ '--i': i, background: s.bg, borderRadius: 14, padding: '16px 12px 12px', border: `1px solid ${s.p1}15`, cursor: 'pointer', overflow: 'hidden' }}
@@ -171,13 +174,16 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: s.p1 }}>{s.theme}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: s.p1 }}>{s.theme}</div>
+                  {i > 0 && <div style={{ fontSize: 9, color: 'var(--gold)', opacity: 0.7 }}>🧱</div>}
+                </div>
               </div>
             )
           })}
         </div>
         <div style={{ textAlign: 'center', marginTop: 14, fontSize: 13, color: 'var(--ink3)' }}>
-          {en ? '+ 5 more themes, 8 block skins, 9 stand skins' : '+ ещё 5 тем, 8 скинов блоков, 9 скинов стоек'}
+          {en ? '🆓 Dark, Forest, Light — free  ·  🧱 6 more themes for bricks' : '🆓 Dark, Forest, Light — бесплатно  ·  🧱 ещё 6 тем за кирпичи'}
         </div>
       </section>
 
@@ -185,18 +191,18 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       <section className="l-section">
         <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'center', padding: '40px 36px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)' }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>{en ? 'Coming soon' : 'Скоро'}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Android</div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 12px', lineHeight: 1.2 }}>
               {en ? 'Play anywhere' : 'Играйте где угодно'}
             </h2>
             <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>
               {en
-                ? 'Your account, rating, achievements and friends — all synced. AI works offline, no internet needed. Push notifications when a friend challenges you.'
-                : 'Ваш аккаунт, рейтинг, ачивки и друзья — всё синхронизировано. AI работает офлайн, интернет не нужен. Пуш-уведомления когда друг бросает вызов.'}
+                ? 'Android app available via Capacitor. Full cloud sync, offline AI, push notifications.'
+                : 'Приложение для Android уже готово. Синхронизация, офлайн AI, пуш-уведомления.'}
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
               {(en ? ['Offline AI','Cloud sync','Push alerts','All 11 themes'] : ['Офлайн AI','Облачная синхронизация','Пуш-уведомления','Все 11 тем']).map((t,i) => (
-                <span key={i} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(74,158,255,0.1)', color: '#4a9eff', fontWeight: 500 }}>{t}</span>
+                <span key={i} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(61,214,140,0.1)', color: '#3dd68c', fontWeight: 500 }}>{t}</span>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -214,42 +220,26 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <svg viewBox="0 0 180 340" width="180" style={{ filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.5))' }}>
-              {/* Корпус */}
               <rect x="16" y="8" width="148" height="324" rx="28" fill="#1a1a2e" stroke="rgba(255,255,255,0.12)" strokeWidth="2"/>
-              {/* Боковые кнопки */}
               <rect x="14" y="80" width="2" height="24" rx="1" fill="rgba(255,255,255,0.08)"/>
               <rect x="14" y="120" width="2" height="40" rx="1" fill="rgba(255,255,255,0.08)"/>
               <rect x="164" y="100" width="2" height="32" rx="1" fill="rgba(255,255,255,0.08)"/>
-              {/* Экран */}
               <rect x="22" y="16" width="136" height="308" rx="22" fill="#0a0a12"/>
-              {/* Dynamic Island */}
               <rect x="66" y="22" width="48" height="16" rx="8" fill="#1a1a2e"/>
               <circle cx="82" cy="30" r="3" fill="#0a0a12" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
-              {/* Статус бар */}
               <text x="38" y="34" fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="600">9:41</text>
-              <g transform="translate(134,27)">
-                <rect x="0" y="0" width="10" height="6" rx="1" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/>
-                <rect x="1" y="1" width="7" height="4" rx="0.5" fill="rgba(61,214,140,0.6)"/>
-                <rect x="10" y="1.5" width="1.5" height="3" rx="0.5" fill="rgba(255,255,255,0.3)"/>
-              </g>
-              {/* Контент — игровое поле */}
               <text x="90" y="62" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="700" opacity="0.7">SNATCH HIGHRISE</text>
               <text x="90" y="75" textAnchor="middle" fill="var(--accent)" fontSize="6" opacity="0.5">vs Snappy · Easy</text>
-              {/* Счёт */}
               <text x="65" y="96" textAnchor="middle" fill="#4a9eff" fontSize="18" fontWeight="800">4</text>
               <text x="90" y="94" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="12">:</text>
               <text x="115" y="96" textAnchor="middle" fill="#ff6066" fontSize="18" fontWeight="800">3</text>
-              {/* Игровое поле — 10 столбиков */}
               <rect x="30" y="108" width="120" height="140" rx="10" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>
-              {[0,1,2,3,4,5,6,7,8,9].map(i => <rect key={i} className="l-bar-wave" x={36+i*11} y={228-[35,55,45,70,40,60,50,72,42,58][i]} width={7} height={[35,55,45,70,40,60,50,72,42,58][i]} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.75" style={{animationDelay:`${i*0.12}s`,transformOrigin:`${36+i*11+3.5}px 228px`}}/>)}
-              {/* Буквы стоек */}
+              {[0,1,2,3,4,5,6,7,8,9].map(i => <rect key={i} x={36+i*11} y={228-[35,55,45,70,40,60,50,72,42,58][i]} width={7} height={[35,55,45,70,40,60,50,72,42,58][i]} rx={2} fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.75"/>)}
               {['★','A','B','C','D','E','F','G','H','I'].map((l,i) => <text key={i} x={39.5+i*11} y={242} textAnchor="middle" fill="rgba(255,255,255,0.15)" fontSize="5">{l}</text>)}
-              {/* Кнопки внизу */}
               <rect x="42" y="258" width="36" height="18" rx="6" fill="rgba(74,158,255,0.15)" stroke="#4a9eff40" strokeWidth="0.5"/>
               <text x="60" y="270" textAnchor="middle" fill="#4a9eff" fontSize="6" fontWeight="600">{en?'Confirm':'Ход'}</text>
               <rect x="84" y="258" width="26" height="18" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
               <text x="97" y="270" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="6">{en?'New':'Новая'}</text>
-              {/* Home indicator */}
               <rect x="70" y="312" width="40" height="4" rx="2" fill="rgba(255,255,255,0.15)"/>
             </svg>
           </div>
@@ -262,61 +252,22 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           <a href="/print-and-play.pdf" target="_blank" style={{ textDecoration: 'none', display: 'block', padding: '36px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)', transition: 'border-color 0.3s, transform 0.3s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,214,140,0.4)'; e.currentTarget.style.transform = 'translateY(-4px)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.transform = '' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <svg viewBox="0 0 160 80" width="180">
-                {/* Поле */}
-                <rect x="10" y="5" width="60" height="70" rx="8" fill="#0d0d14" stroke="#3dd68c" strokeWidth="1" opacity="0.4"/>
-                {[0,1,2,3,4,5,6,7,8].map(i => <rect key={i} className="l-bar-wave" x={16+i*6} y={60-[18,28,22,32,20,30,24,34,26][i]} width={4} height={[18,28,22,32,20,30,24,34,26][i]} rx={1.5} fill={i%2===0?'#4a9eff':'#ff6066'} opacity="0.7" style={{animationDelay:`${i*0.1}s`,transformOrigin:`${16+i*6+2}px 60px`}}/>)}
-                {/* Блоки */}
-                <g transform="translate(85,10)">
-                  {[0,1,2].map(r => [0,1,2,3,4].map(c => <rect key={`${r}-${c}`} x={c*13} y={r*13} width={11} height={11} rx={2.5}
-                    fill={(r+c)%2===0?'#4a9eff18':'#ff606618'} stroke={(r+c)%2===0?'#4a9eff35':'#ff606635'} strokeWidth="0.5"
-                    className="l-feat-pulse" style={{animationDelay:`${(r*5+c)*0.1}s`}}/>))}
-                  <text x="32" y="55" textAnchor="middle" fill="#3dd68c80" fontSize="6">110 {en?'blocks':'блоков'}</text>
-                </g>
-                {/* Стрелка */}
-                <path d="M80 68 L80 78" stroke="#3dd68c" strokeWidth="2" strokeDasharray="3 2" className="l-feat-dash"/>
-                <path d="M76 76 L80 80 L84 76" fill="none" stroke="#3dd68c" strokeWidth="1.5" className="l-feat-pulse"/>
-              </svg>
-            </div>
             <div style={{ textAlign: 'center' }}>
               <h3 style={{ fontSize: 20, fontWeight: 700, color: '#3dd68c', marginBottom: 10 }}>Print & Play</h3>
               <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>
-                {en
-                  ? 'Free PDF with game board, 110 blocks and rules. Print, cut, play!'
-                  : 'Бесплатный PDF с полем, 110 блоками и правилами. Распечатай, вырежи, играй!'}
+                {en ? 'Free PDF with game board, 110 blocks and rules. Print, cut, play!' : 'Бесплатный PDF с полем, 110 блоками и правилами. Распечатай, вырежи, играй!'}
               </p>
               <span style={{ fontSize: 15, color: '#3dd68c', fontWeight: 700 }}>{en ? 'Download PDF' : 'Скачать PDF'} →</span>
             </div>
           </a>
 
           <div style={{ padding: '36px 28px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <svg viewBox="0 0 160 80" width="180">
-                {/* Два игрока */}
-                <circle cx="50" cy="30" r="14" fill="none" stroke="#4a9eff" strokeWidth="1" opacity="0.3"/>
-                <circle cx="50" cy="30" r="5" fill="#4a9eff" className="l-feat-pulse"/>
-                <circle cx="110" cy="30" r="14" fill="none" stroke="#ff6066" strokeWidth="1" opacity="0.3"/>
-                <circle cx="110" cy="30" r="5" fill="#ff6066" className="l-feat-pulse" style={{animationDelay:'0.5s'}}/>
-                {/* Связь */}
-                <line x1="64" y1="30" x2="96" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="4 3" className="l-feat-dash"/>
-                <circle className="l-packet" cx="64" cy="30" r="2.5" fill="#ffc145"/>
-                {/* Сердце */}
-                <g transform="translate(68,52)">
-                  <path className="l-heart-beat" d="M12 18 C8 14 2 11 2 7 C2 4 4 2 7 2 C9 2 11 4 12 6 C13 4 15 2 17 2 C20 2 22 4 22 7 C22 11 16 14 12 18Z" fill="#ffc14540" stroke="#ffc14560" strokeWidth="0.5"/>
-                </g>
-                {/* Подписи */}
-                <text x="50" y="55" textAnchor="middle" fill="#4a9eff80" fontSize="6">{en?'you':'вы'}</text>
-                <text x="110" y="55" textAnchor="middle" fill="#ff606680" fontSize="6">Snappy</text>
-                <text x="80" y="76" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="6">{en?'made with love':'сделано с душой'}</text>
-              </svg>
-            </div>
             <div style={{ textAlign: 'center' }}>
               <h3 style={{ fontSize: 20, fontWeight: 700, color: '#ffc145', marginBottom: 10 }}>{en ? 'Indie project' : 'Инди-проект'}</h3>
               <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7 }}>
                 {en
-                  ? 'Built by 2 people who love board games. No ads, no paywalls. Free to play, supported by the community.'
-                  : 'Создан двумя людьми, которые любят настольные игры. Без рекламы и платных стен. Бесплатная игра при поддержке сообщества.'}
+                  ? 'Built by 2 people who love board games. No ads. Free to play — skins and themes for bricks earned in-game.'
+                  : 'Создан двумя людьми, которые любят настольные игры. Без рекламы. Бесплатная игра — скины и темы за внутриигровые кирпичи.'}
               </p>
             </div>
           </div>
@@ -328,9 +279,14 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         <h2 className="l-title">{en ? 'Questions' : 'Вопросы'}</h2>
         <div className={`l-qa ${faqVis ? 'in' : ''}`} ref={faqRef}>
           {[
-            [en ? 'Is it free?' : 'Бесплатно?', en ? 'Completely free. No ads, no paywalls, no tricks.' : 'Полностью бесплатно. Без рекламы, без платных стен, без подвохов.'],
-            [en ? 'How long is a game?' : 'Сколько длится партия?', en ? '5-15 minutes depending on skill. Blitz mode available.' : '5-15 минут в зависимости от уровня. Есть блиц-режим.'],
-            [en ? 'What is the golden stand?' : 'Зачем золотая стойка?', en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при счёте 5:5. Контроль над ней — ключевая стратегия.'],
+            [en ? 'Is it free?' : 'Бесплатно?',
+             en ? 'Yes. No ads, no paywalls. The game is free. Optional cosmetics (themes, block skins) are purchased with bricks earned by winning.' : 'Да. Без рекламы и платных стен. Игра бесплатна. Косметика (темы, скины блоков) покупается за кирпичи — внутриигровую валюту, которую зарабатываешь победами.'],
+            [en ? 'How long is a game?' : 'Сколько длится партия?',
+             en ? '5-15 minutes depending on skill. Blitz mode, modifiers (Fog, Double transfer, Auto-pass) available.' : '5-15 минут в зависимости от уровня. Есть блиц-режим и геймплейные моды: туман войны, ×2 перенос, авто-пас.'],
+            [en ? 'What is the golden stand?' : 'Зачем золотая стойка?',
+             en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при счёте 5:5. Контроль над ней — ключевая стратегия.'],
+            [en ? 'What is Victory City?' : 'Что такое Город побед?',
+             en ? 'Every win adds a building to your profile. Building color reflects the block skin you used in that game. Visit your profile to see your city grow.' : 'Каждая победа добавляет здание в профиль. Цвет здания = скин блоков в той партии. Смотри как растёт твой город в профиле.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
               <div className="l-qa-num">{String(i + 1).padStart(2, '0')}</div>
@@ -350,9 +306,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
           <Mascot pose="celebrate" size={120} large className="mascot-bounce" style={{ display: 'block', margin: '0 auto 20px' }} />
           <h2 style={{ fontSize: 36, margin: '0 0 12px', fontWeight: 800 }}>{en ? 'Ready to play?' : 'Готовы играть?'}</h2>
           <p style={{ fontSize: 15, color: 'var(--ink3)', lineHeight: 1.7, margin: '0 auto 32px', maxWidth: 480 }}>
-            {en
-              ? 'An indie game made with love. No ads, no paywalls. Just pure strategy.'
-              : 'Инди-игра, сделанная с душой. Без рекламы и платных стен. Чистая стратегия.'}
+            {en ? 'An indie game made with love. No ads, no paywalls. Just pure strategy.' : 'Инди-игра, сделанная с душой. Без рекламы и платных стен. Чистая стратегия.'}
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
@@ -361,7 +315,6 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </button>
           </div>
 
-          {/* Присоединяйтесь */}
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink3)', marginBottom: 12 }}>{en ? 'Join us:' : 'Присоединяйтесь:'}</div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -383,7 +336,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             </div>
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.3 }}>v4.7.0</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', opacity: 0.3 }}>v{APP_VERSION}</div>
         </div>
       </section>
     </div>
