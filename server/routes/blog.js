@@ -70,25 +70,32 @@ addPost('v480-victory-city',
 addPost('v490-share-rarity',
   'v4.9.0: Share-картинки, рарность ачивок, Snappy при переносе',
   'v4.9.0: Share images, achievement rarity, Snappy transfer',
-  '**📸 Share-картинки Story 1080×1920**\nПосле партии — кнопка «Поделиться». Web Share API на мобиле или PNG на десктопе.\n\n**🏅 Рарность ачивок**\n33 ачивки с тирами: Common / Rare / Epic / Legendary. Показывается % игроков с ачивкой.\n\n**🦝 Snappy при переносе (MascotRunner)**\nПри переносе блоков Snappy летит дугой от стойки к стойке.\n\n**👆 Жестовый перенос**\nLong-press (500ms) на стойку = перенос. Haptic на мобиле.',
-  '**📸 Share images Story 1080×1920**\nAfter game — Share button. Web Share API on mobile or PNG on desktop.\n\n**🏅 Achievement rarity**\n33 achievements with tiers: Common / Rare / Epic / Legendary. Shows % of holders.\n\n**🦝 Snappy on transfer (MascotRunner)**\nSnappy arcs between stands on block transfers.\n\n**👆 Gesture transfer**\nLong-press (500ms) a stand = transfer. Haptic on mobile.',
+  '**📸 Share Story 1080×1920** — после партии кнопка «Поделиться».\n**🏅 Рарность ачивок** — Common/Rare/Epic/Legendary + % игроков.\n**🦝 Snappy при переносе** — MascotRunner летит дугой.\n**👆 Жестовый перенос** — long-press + haptic.',
+  '**📸 Share Story 1080×1920** — Share button after game.\n**🏅 Achievement rarity** — Common/Rare/Epic/Legendary + % of holders.\n**🦝 Snappy on transfer** — MascotRunner arcs between stands.\n**👆 Gesture transfer** — long-press + haptic.',
   'feature', '2026-04-12 10:00:00')
 
 addPost('v500-clubs',
   'v5.0.0: Клубы 🦝, экипировка скинов, глобальный чат',
   'v5.0.0: Clubs 🦝, skin equip, global chat',
-  'Три социальных фичи одним релизом.\n\n**🦝 Клубы**\nСоздай клуб с тегом [SNCH], рекруть участников, набирай победы в общий зачёт. До 50 участников, роли Owner/Officer/Member. Kick офицером, смена владельца при уходе лидера. Лидерборд клубов по победам. Вкладка «Клубы 🦝» в профиле.\n\n**🎨 Экипировка скинов**\nТеперь покупка скина ≠ применение. Кнопка «Экипировать» в магазине — активный скин сохраняется на сервере и синхронизируется между устройствами.\n\n**💬 Глобальный чат**\nЧат в реальном времени через WebSocket в онлайн-лобби. История 50 сообщений при подключении, счётчик онлайн, фильтр плохих слов. REST fallback если WS недоступен.\n\n**Рефераьные кирпичи**\n+20 кирпичей рефереру когда реферал регается, +30 когда доходит до 10 партий.',
-  'Three social features in one release.\n\n**🦝 Clubs**\nCreate a club with a tag [SNCH], recruit members, accumulate wins. Up to 50 members, Owner/Officer/Member roles. Kick by officers, owner transfers on leave. Club leaderboard by wins. "Clubs 🦝" tab in profile.\n\n**🎨 Skin equip**\nBuying a skin ≠ applying it. "Equip" button in shop — active skin saved on server and synced across devices.\n\n**💬 Global chat**\nReal-time WebSocket chat in the online lobby. 50 message history on connect, online counter, bad word filter. REST fallback if WS unavailable.\n\n**Referral bricks**\n+20 bricks to referrer when referral signs up, +30 when they reach 10 games.',
+  'Три социальных фичи одним релизом.\n\n**🦝 Клубы**\nСоздай клуб с тегом [SNCH], рекруть участников, набирай победы в общий зачёт. До 50 участников, роли Owner/Officer/Member.\n\n**🎨 Экипировка скинов**\nКнопка «Экипировать» в магазине — активный скин сохраняется на сервере и синхронизируется между устройствами.\n\n**💬 Глобальный чат**\nWS real-time в онлайн-лобби. История 50 сообщений, счётчик онлайн, фильтр плохих слов.\n\n**Рефераьные кирпичи**: +20 при регистрации, +30 при 10 партиях.',
+  'Three social features in one release.\n\n**🦝 Clubs**\nCreate a club with tag [SNCH], recruit up to 50 members, accumulate wins. Owner/Officer/Member roles.\n\n**🎨 Skin equip**\n"Equip" button in shop — active skin synced to server and across devices.\n\n**💬 Global chat**\nWS real-time in online lobby. 50 message history, online counter, bad word filter.\n\n**Referral bricks**: +20 on signup, +30 at 10 games.',
   'feature', '2026-04-12 14:00:00')
+
+addPost('v510-modifiers',
+  'v5.1.0: Геймплейные модификаторы — туман войны, двойной перенос, авто-пас',
+  'v5.1.0: Gameplay modifiers — fog of war, double transfer, auto-pass',
+  'Три новых игровых режима по запросу от Александра. Включаются кнопками под выбором сложности.\n\n**🌫 Туман войны**\nЧужие блоки скрыты — видны только ваши и счётчик стойки (?). Играете по памяти. Полностью меняет тактику.\n\n**↔ ×2 Перенос**\nДва переноса за ход вместо одного. После первого переноса без расстановки — можно перенести ещё раз или расставить блоки. Для активных игроков.\n\n**⚡ Авто-пас**\nПри истечении таймера (любого: blitz/rapid/classical) ход пропускается автоматически вместо поражения. Для весёлых партий с таймером.\n\nМодификаторы комбинируются: туман + двойной перенос + авто-пас = хаотичный режим для ветеранов.\n\nНа мобиле — в настройках игры (шестерёнка).',
+  'Three new game modes by Alexander\'s request. Toggle buttons below difficulty selector.\n\n**🌫 Fog of War**\nOpponent blocks hidden — only your chips and stand counter (?) visible. Play from memory. Completely changes tactics.\n\n**↔ ×2 Transfer**\nTwo transfers per turn instead of one. After first transfer without placement — transfer again or place blocks. For aggressive players.\n\n**⚡ Auto-pass**\nWhen timer runs out (any: blitz/rapid/classical) the turn auto-passes instead of losing. For fun timed games.\n\nModifiers combine: fog + double transfer + auto-pass = chaos mode for veterans.\n\nOn mobile — in game settings (gear icon).',
+  'feature', '2026-04-12 16:00:00')
 
 // Удаляем устаревшее
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → v5.0.0
+// Pin → v5.1.0
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v500-clubs'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v510-modifiers'").run()
 
 
 // ═══ Blog Endpoints ═══
