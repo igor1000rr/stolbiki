@@ -22,7 +22,7 @@ jobs:
           cache: 'npm'
 
       - name: Install (frontend)
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Install (server)
         run: cd server && npm ci

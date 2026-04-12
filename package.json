@@ -17,6 +17,7 @@
     "cap:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^6.0.0",
     "@capacitor/android": "^8.3.0",
     "@capacitor/app": "^8.1.0",
     "@capacitor/cli": "^8.3.0",
@@ -46,6 +47,5 @@
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
-  },
-  "_admob_note": "AdMob устанавливается локально: npm install @capacitor-community/admob --legacy-peer-deps && npx cap sync android"
+  }
 }
