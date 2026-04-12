@@ -5,14 +5,22 @@ import { formatUser, addXP } from '../helpers.js'
 
 const router = Router()
 
-// Админы задаются через ENV: ADMIN_USERNAMES=admin,igor (запятая-разделитель)
 const ADMIN_NAMES = (process.env.ADMIN_USERNAMES || 'admin').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-
-const TOKEN_EXPIRY = '7d' // Было 30d — снижено для безопасности
-const REFERRAL_XP = 100 // XP реферреру за каждого приглашённого
+const TOKEN_EXPIRY = '7d'
+const REFERRAL_XP = 100           // XP рефереру за регистрацию приглашённого
+const REFERRAL_BRICKS_REG = 20    // Кирпичи за регистрацию рефирала
+const REFERRAL_BRICKS_GAMES = 30  // Кирпичи когда реферал достиг 10 партий
 
 function generateReferralCode(username, id) {
   return username.slice(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, '') + id.toString(36).toUpperCase()
+}
+
+/** Начисляем кирпичи рефереру */
+function awardBricksToReferrer(referrerId, amount, reason, refId) {
+  try {
+    db.prepare('UPDATE users SET bricks = COALESCE(bricks, 0) + ? WHERE id=?').run(amount, referrerId)
+    db.prepare('INSERT INTO brick_transactions (user_id, amount, reason, ref_id, created_at) VALUES (?,?,?,?,?)').run(referrerId, amount, reason, refId || null, Date.now())
+  } catch {}
 }
 
 router.post('/register', (req, res) => {
@@ -42,11 +50,12 @@ router.post('/register', (req, res) => {
   const refCode = generateReferralCode(cleanName, userId)
   db.prepare('UPDATE users SET referral_code=? WHERE id=?').run(refCode, userId)
 
-  // Начисляем XP рефереру
+  // Начисляем XP + кирпичи рефереру за регистрацию
   if (referrerId) {
     try {
       db.prepare('INSERT INTO referrals (referrer_id, referred_id, xp_rewarded) VALUES (?, ?, ?)').run(referrerId, userId, REFERRAL_XP)
       addXP(referrerId, REFERRAL_XP)
+      awardBricksToReferrer(referrerId, REFERRAL_BRICKS_REG, 'referral_signup', userId)
     } catch {} // UNIQUE constraint — повторная регистрация
   }
 
@@ -64,9 +73,6 @@ router.post('/login', (req, res) => {
   res.json({ token, user: formatUser(user) })
 })
 
-// ═══ Token Refresh ═══
-// Принимает даже истёкший токен (с валидной подписью) в течение 30 дней — grace period.
-// Позволяет юзеру не перелогиниваться если не заходил > 7 дней, но не дольше 30.
 router.post('/refresh', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'Нет токена' })
@@ -76,14 +82,12 @@ router.post('/refresh', (req, res) => {
   } catch {
     return res.status(401).json({ error: 'Неверная подпись' })
   }
-  // Grace period: 30 дней после exp
   const now = Math.floor(Date.now() / 1000)
   if (payload.exp && now - payload.exp > 30 * 86400) {
     return res.status(401).json({ error: 'Токен слишком старый, войдите заново' })
   }
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
-  // Проверяем token_version: если юзер сменил пароль или админ отозвал токены, старый tv не совпадёт
   if (payload.tv !== undefined && payload.tv !== (user.token_version || 0)) {
     return res.status(401).json({ error: 'Токен отозван. Войдите заново' })
   }
@@ -91,4 +95,5 @@ router.post('/refresh', (req, res) => {
   res.json({ token: newToken })
 })
 
+export { REFERRAL_BRICKS_GAMES, awardBricksToReferrer }
 export default router
