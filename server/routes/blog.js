@@ -5,178 +5,90 @@ import { auth } from '../middleware.js'
 const router = Router()
 
 // ═══ Seed Data (выполняется при старте) ═══
-// Сид начальных постов (только если пусто)
 const blogCount = db.prepare('SELECT COUNT(*) as c FROM blog_posts').get().c
 if (blogCount === 0) {
   const seed = db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
   seed.run('launch', 'Запуск открытой беты', 'Open beta launch',
-    'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\nЧто уже работает:\n- Игра против AI (3 уровня сложности)\n- Онлайн мультиплеер по ссылке\n- Ежедневные и еженедельные головоломки\n- Режим «Тренер» с оценкой каждого хода\n- 4 цветовые темы\n- Print & Play PDF\n\nМы активно собираем обратную связь.',
-    'Snatch Highrise enters open beta! An original strategy board game with an AlphaZero-based AI opponent.\n\nWhat\'s already working:\n- Play vs AI (3 difficulty levels)\n- Online multiplayer via link\n- Daily and weekly puzzles\n- Trainer mode with move evaluation\n- 4 color themes\n- Print & Play PDF\n\nWe\'re actively collecting feedback.',
+    'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\n- Игра против AI (3 уровня)\n- Онлайн мультиплеер\n- Головоломки дня/недели\n- Режим «Тренер»\n- 4 темы\n- Print & Play PDF',
+    'Snatch Highrise enters open beta! Original strategy board game with AlphaZero AI.\n\n- Play vs AI (3 levels)\n- Online multiplayer\n- Daily/weekly puzzles\n- Trainer mode\n- 4 themes\n- Print & Play PDF',
     'release', 0, '2026-02-15 10:00:00')
 }
 
-// Добавление постов с датой (если ещё нет)
 const addPost = (slug, tru, ten, bru, ben, tag, date) => {
   if (!db.prepare('SELECT id FROM blog_posts WHERE slug=?').get(slug))
     db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at) VALUES (?,?,?,?,?,?,0,?)').run(slug, tru, ten, bru, ben, tag, date)
 }
 
-// ═══ Хронологический порядок (от старых к новым) ═══
+const updatePost = (slug, tru, ten, bru, ben, tag, date) => {
+  if (db.prepare('SELECT id FROM blog_posts WHERE slug=?').get(slug))
+    db.prepare('UPDATE blog_posts SET title_ru=?, title_en=?, body_ru=?, body_en=?, tag=?, created_at=?, updated_at=datetime(?) WHERE slug=?')
+      .run(tru, ten, bru, ben, tag, date, date, slug)
+}
+
+// ═══ Посты (хронологически) ═══
 
 addPost('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
-  'Нейросеть AI прошла 3 прогона GPU-обучения:\n\n- 1146 итераций self-play\n- Loss снизился до 0.098\n- Винрейт лучшей модели: 97%\n- Баланс P1/P2: 50% / 50%\n\nAI стал заметно сильнее в эндшпиле и лучше оценивает позицию золотой стойки.',
-  'The AI neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss dropped to 0.098\n- Best model win rate: 97%\n- P1/P2 balance: 50% / 50%\n\nAI is notably stronger in endgame and better at evaluating the golden stand.',
+  '- 1146 итераций self-play\n- Loss: 0.098\n- Winrate: 97%\n- Баланс P1/P2: 50/50',
+  '- 1146 self-play iterations\n- Loss: 0.098\n- Win rate: 97%\n- P1/P2 balance: 50/50',
   'ai', '2026-02-20 14:00:00')
 
 addPost('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
-  'Добавлены тактические головоломки!\n\n- Головоломка дня — обновляется каждый день\n- Задача недели — сложнее, обновляется по понедельникам\n- Банк из 50 головоломок с 3 уровнями сложности\n- Лидерборды и статистика решений\n\nЦель — закрыть нужные стойки за ограниченное число ходов.',
-  'Tactical puzzles are here!\n\n- Daily puzzle — refreshes every day\n- Weekly challenge — harder, refreshes on Mondays\n- Bank of 50 puzzles with 3 difficulty levels\n- Leaderboards and solve stats\n\nGoal: close the required stands in limited moves.',
-  'feature', '2026-03-01 12:00:00')
-
-addPost('update-march-2026', 'v3.0: Масштабное обновление', 'v3.0: Major update',
-  '26 ачивок, рейтинговые сезоны, 14 настроек и полная мультиязычность.\n\n**Ачивки** — 26 вместо 14. Бронза, серебро, золото, алмаз.\n**Рейтинговые сезоны** — каждый месяц новый сезон с лидербордом топ-20.\n**14 настроек** — таймер, стиль фишек, доступность.\n**Мультиязычность** — полный перевод RU/EN.',
-  '26 achievements, ranked seasons, 14 settings, and full English translation.\n\n**Achievements** — 26 with bronze/silver/gold/diamond tiers.\n**Ranked Seasons** — monthly seasons with top-20 leaderboard.\n**14 Settings** — timer, chip style, accessibility.\n**Multilingual** — full RU/EN translation.',
-  'release', '2026-03-15 10:00:00')
-
-addPost('online-v2', 'Онлайн v2: resign, ничья, чат', 'Online v2: resign, draw, chat',
-  'Онлайн-режим стал полноценным:\n\n**Сдача партии** — кнопка «Сдаться» через WebSocket.\n**Предложение ничьей** — баннер с «Принять» / «Отклонить».\n**Быстрый чат** — 5 кнопок (gg, gl, nice, wp, !) + свободный текст.\n**Уведомления** — мигающий заголовок когда ваш ход.',
-  'Online mode is now fully featured:\n\n**Resign** — instant win for opponent via WebSocket.\n**Draw offer** — banner with Accept/Decline.\n**Quick chat** — 5 preset buttons + free text.\n**Notifications** — blinking title when it\'s your turn.',
-  'feature', '2026-03-18 10:00:00')
-
-addPost('admin-panel', 'Админ-панель и безопасность', 'Admin panel & security',
-  'Полноценная админ-панель с 9 разделами: обзор с метриками, пользователи, партии, блог, комнаты.\n\nБезопасность: WebSocket аутентификация, серверная валидация, антиспам, CSP.',
-  'Full admin panel with 9 sections: overview with metrics, users, games, blog, rooms.\n\nSecurity: WebSocket auth, server validation, anti-spam, CSP.',
-  'update', '2026-03-20 10:00:00')
-
-addPost('design-v3', 'Дизайн v3: лендинг и SEO', 'Design v3: landing & SEO',
-  'Лендинг с 8 секциями и scroll-анимациями. Шапка с 4 пунктами + «Ещё». Авторизация в хедере.\n\nSEO: OG-теги, JSON-LD, sitemap, robots.txt, PWA-иконки.',
-  'Landing with 8 sections and scroll animations. Header with 4 items + "More". Auth in header.\n\nSEO: OG tags, JSON-LD, sitemap, robots.txt, PWA icons.',
-  'update', '2026-03-22 10:00:00')
-
-addPost('v3-3-update', 'v3.3: Адаптивка и тема Wood', 'v3.3: Responsive & Wood theme',
-  '8 брейкпоинтов вместо 4 — корректно от 340px до 1024px. Тема Wood с текстурой дерева. Три интерактивные схемы правил. Страница Changelog.',
-  '8 breakpoints instead of 4 — correct from 340px to 1024px. Wood theme with grain texture. Three interactive rule diagrams. Changelog page.',
-  'update', '2026-03-24 10:00:00')
-
-addPost('v3-4-ux', 'v3.4: UX по результатам тестирования', 'v3.4: UX from playtesting',
-  'Первое тестирование с реальными игроками:\n\n**Правила** переписаны с нуля (SVG-схемы вместо демо).\n**Стойки перевёрнуты** — фишки растут снизу вверх.\n**Счётчик фишек** — всегда виден, красный при 9+.\n**Призрачный перенос** — видно откуда/куда.\n**Онлайн-баги** исправлены.',
-  'First playtest with real users:\n\n**Rules** rewritten from scratch (SVG diagrams).\n**Stands flipped** — chips grow bottom-up.\n**Chip counter** — always visible, red at 9+.\n**Ghost transfer** — visual source/destination.\n**Online bugs** fixed.',
-  'release', '2026-03-27 10:00:00')
-
-addPost('v35-gpu', 'v3.5: GPU-нейросеть в браузере', 'v3.5: GPU neural network in browser',
-  'ResNet 840K параметров загружается в браузер. Сложность «Экстрим» — 1500 GPU-симуляций. Спектатор-режим. Рематч онлайн. Публичные профили. 200 головоломок. Серверная валидация ходов.',
-  'ResNet 840K parameters loads in browser. Extreme difficulty — 1500 GPU simulations. Spectator mode. Online rematch. Public profiles. 200 puzzles. Server-side move validation.',
-  'release', '2026-03-30 10:00:00')
-
-addPost('v37-mobile-app', 'v3.7: Мобильное приложение!', 'v3.7: Mobile app is here!',
-  'Snatch Highrise теперь на Android!\n\n**Полная адаптация UI** — доска на весь экран, tab bar.\n**Haptic feedback** — вибрация при каждом действии.\n**Offline mode** — AI без интернета.\n**Onboarding** — 4 экрана при первом запуске.\n**Новые логотипы**, Privacy Policy, Share & Rate.',
-  'Snatch Highrise is now on Android!\n\n**Full UI adaptation** — board fills screen, tab bar.\n**Haptic feedback** — vibration on every action.\n**Offline mode** — AI without internet.\n**Onboarding** — 4 intro screens.\n**New logos**, Privacy Policy, Share & Rate.',
-  'release', '2026-03-31 10:00:00')
-
-addPost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
-  '✅ Android-приложение\n✅ Haptic + Offline\n✅ GPU-нейросеть 840K\n✅ 200+ головоломок\n✅ 26 ачивок\n\nДалее:\n→ Google Play\n→ Обучение AI на RTX 5090\n→ Push-уведомления\n→ iOS\n→ Турниры',
-  '✅ Android app\n✅ Haptic + Offline\n✅ GPU neural net 840K\n✅ 200+ puzzles\n✅ 26 achievements\n\nNext:\n→ Google Play\n→ AI training on RTX 5090\n→ Push notifications\n→ iOS\n→ Tournaments',
-  'roadmap', '2026-03-31 18:00:00')
-
-addPost('v38-audit', 'v3.8: Аудит, безопасность, retention', 'v3.8: Audit, security, retention',
-  'Полный аудит проекта + новые механики удержания:\n\n**Безопасность**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: все изображения -80% трафика.\n**i18n**: полный перевод Game, Online, Profile, 26 ачивок.\n**AI auto-difficulty**: после 3 поражений подряд — предложение понизить сложность.\n**First Win**: специальное celebration при первой победе.\n**ELO дельта**: +12/-8 отображается после каждой партии.\n**PvP Undo**: кнопка отмены хода.\n**Яндекс.Метрика**: вебвизор + карта кликов.',
-  'Full project audit + new retention mechanics:\n\n**Security**: XSS chat strip, WS rate limit 15/sec, 401 auto-logout, username sanitization.\n**WebP**: all images -80% traffic.\n**i18n**: full translation Game, Online, Profile, 26 achievements.\n**AI auto-difficulty**: after 3 losses in a row — suggest easier level.\n**First Win**: special celebration on first victory.\n**ELO delta**: +12/-8 shown after each game.\n**PvP Undo**: undo move button.\n**Yandex Metrika**: webvisor + click map.',
-  'release', '2026-03-31 22:00:00')
-
-addPost('v39-retention', 'v3.9: Стрики, миссии, XP, уровни', 'v3.9: Streaks, missions, XP, levels',
-  'Пять новых систем удержания:\n\n**Login streak** — серия ежедневных входов с календарём 30 дней. Streak freeze 1 раз в месяц. XP за каждый день (5-50).\n**Daily missions** — 3 задания в день из пула 8 (сыграй, победи, реши). XP за каждое + бонус 100 XP за все три.\n**XP / Level** — уровни 1-50. Прогресс-бар в профиле. XP за победы (20), поражения (5), миссии, стрики.\n**AI auto-difficulty** — после 3 поражений кнопка «Попробовать полегче?».\n**First Win** — celebration при первой победе в жизни.\n\nLayout расширен до 1200px для больших мониторов.',
-  'Five new retention systems:\n\n**Login streak** — daily login streak with 30-day calendar. Streak freeze 1/month. XP for each day (5-50).\n**Daily missions** — 3 per day from pool of 8 (play, win, solve). XP each + 100 XP bonus for all three.\n**XP / Level** — levels 1-50. Progress bar in profile. XP for wins (20), losses (5), missions, streaks.\n**AI auto-difficulty** — after 3 losses suggests easier level.\n**First Win** — celebration on first ever victory.\n\nLayout widened to 1200px for large monitors.',
-  'release', '2026-03-31 23:00:00')
-
-addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
-  'Пять новых режимов превращают Snatch Highrise в полноценную игровую платформу:\n\n**AI Game Review** — после каждой партии AI анализирует все ходы: отличный / хороший / ошибка / грубая ошибка. Итоговая accuracy % и replay с цветовой подсветкой.\n**Puzzle Rush** — 3 минуты, максимум головоломок. +10 сек за правильную, -15 за ошибку. Leaderboard.\n**Live Arena** — турниры Swiss system: 4 раунда, автоматический pairing по очкам, live таблица, XP для топ-3.\n**5 интерактивных уроков** — от основ до стратегии. Интерактивная доска, XP за каждый пройденный.\n**Animated board** — screen shake при закрытии, 3D perspective, золотая пульсация.',
-  'Five new modes turn Snatch Highrise into a full competitive platform:\n\n**AI Game Review** — after every game, AI analyzes each move: excellent / good / mistake / blunder. Accuracy % and color-coded replay.\n**Puzzle Rush** — 3 minutes, max puzzles. +10 sec correct, -15 wrong. Leaderboard.\n**Live Arena** — Swiss system tournaments: 4 rounds, auto-pairing by score, live standings, XP for top 3.\n**5 interactive lessons** — from basics to strategy. Interactive board, XP for each completed.\n**Animated board** — screen shake on close, 3D perspective, golden pulse.',
-  'release', '2026-04-01 00:00:00')
-
-// Удаляем устаревший roadmap и дубли
-db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
-
-// Закрепляем только v4.0 наверху
-db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v40-platform'").run()
-// Удаляем дубли старых постов
-db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
-db.prepare("DELETE FROM blog_posts WHERE slug='v3-4-security-spectator'").run()
-db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
-
-// Принудительное обновление всех постов (даты, заголовки, тексты)
-const updatePost = (slug, tru, ten, bru, ben, tag, date) => {
-  const existing = db.prepare('SELECT id FROM blog_posts WHERE slug=?').get(slug)
-  if (existing) {
-    db.prepare('UPDATE blog_posts SET title_ru=?, title_en=?, body_ru=?, body_en=?, tag=?, created_at=?, updated_at=datetime(?) WHERE slug=?')
-      .run(tru, ten, bru, ben, tag, date, date, slug)
-  }
-}
-updatePost('launch', 'Запуск открытой беты', 'Open beta launch',
-  'Snatch Highrise выходит в открытую бету! Оригинальная стратегическая настольная игра с AI-противником на базе AlphaZero.\n\n- Игра против AI (3 уровня)\n- Онлайн мультиплеер\n- Головоломки дня/недели\n- Режим «Тренер»\n- 4 темы\n- Print & Play PDF',
-  'Snatch Highrise enters open beta! Original strategy board game with AlphaZero AI.\n\n- Play vs AI (3 levels)\n- Online multiplayer\n- Daily/weekly puzzles\n- Trainer mode\n- 4 themes\n- Print & Play PDF',
-  'release', '2026-02-15 10:00:00')
-updatePost('ai-v2', 'AI v2: GPU-обучение завершено', 'AI v2: GPU training complete',
-  'Нейросеть прошла 3 прогона GPU-обучения:\n\n- 1146 итераций self-play\n- Loss: 0.098\n- Winrate: 97%\n- Баланс P1/P2: 50/50',
-  'Neural network completed 3 GPU training runs:\n\n- 1146 self-play iterations\n- Loss: 0.098\n- Win rate: 97%\n- P1/P2 balance: 50/50',
-  'ai', '2026-02-20 14:00:00')
-updatePost('puzzles-launch', 'Запуск головоломок', 'Puzzles launch',
   'Тактические головоломки:\n\n- Головоломка дня\n- Задача недели\n- Банк из 50 задач\n- Лидерборды',
   'Tactical puzzles:\n\n- Daily puzzle\n- Weekly challenge\n- 50 puzzle bank\n- Leaderboards',
   'feature', '2026-03-01 12:00:00')
-updatePost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
-  'Snatch Highrise v4.0 — полноценная игровая платформа:\n\n**AI Game Review** — анализ каждого хода. Accuracy %, replay с подсветкой.\n**Puzzle Rush** — 3 минуты, +10/-15 сек. Leaderboard.\n**Live Arena** — Swiss турниры, 4 раунда, XP для топ-3.\n**5 уроков** — от основ до стратегии.\n**Магазин скинов** — popup с live preview, level-locked.\n**11 тем** — Dark, Ocean, Sunset, Forest, Royal, Sakura, Neon, Wood, Arctic, Retro, Light.\n**8 скинов фишек** — Classic, Flat, Round, Glass, Metal, Candy, Pixel, Glow.\n**9 скинов стоек** — Classic, Marble, Concrete, Bamboo, Obsidian, Crystal, Rust, Void, Ice.\n**Анимации** — screen shake, 3D perspective, golden pulse.',
-  'Snatch Highrise v4.0 — full competitive platform:\n\n**AI Game Review** — analyze every move. Accuracy %, color-coded replay.\n**Puzzle Rush** — 3 min, +10/-15 sec. Leaderboard.\n**Live Arena** — Swiss tournaments, 4 rounds, XP for top 3.\n**5 lessons** — basics to strategy.\n**Skin Shop** — popup with live preview, level-locked.\n**11 themes** — Dark, Ocean, Sunset, Forest, Royal, Sakura, Neon, Wood, Arctic, Retro, Light.\n**8 chip skins** — Classic, Flat, Round, Glass, Metal, Candy, Pixel, Glow.\n**9 stand skins** — Classic, Marble, Concrete, Bamboo, Obsidian, Crystal, Rust, Void, Ice.\n**Animations** — screen shake, 3D perspective, golden pulse.',
+
+addPost('update-march-2026', 'v3.0: Масштабное обновление', 'v3.0: Major update',
+  '26 ачивок, рейтинговые сезоны, 14 настроек и полная мультиязычность.',
+  '26 achievements, ranked seasons, 14 settings, full RU/EN translation.',
+  'release', '2026-03-15 10:00:00')
+
+addPost('v35-gpu', 'v3.5: GPU-нейросеть в браузере', 'v3.5: GPU neural network in browser',
+  'ResNet 840K параметров. Сложность «Экстрим». Спектатор. Рематч. Публичные профили.',
+  'ResNet 840K params in browser. Extreme difficulty. Spectator. Rematch. Public profiles.',
+  'release', '2026-03-30 10:00:00')
+
+addPost('v37-mobile-app', 'v3.7: Мобильное приложение!', 'v3.7: Mobile app is here!',
+  'Snatch Highrise теперь на Android!\n\n- Полная адаптация UI под мобильный экран\n- Haptic feedback — вибрация при каждом действии\n- Offline mode — AI без интернета\n- Onboarding — 4 экрана при первом запуске',
+  'Snatch Highrise is now on Android!\n\n- Full UI adaptation for mobile\n- Haptic feedback on every action\n- Offline mode — AI without internet\n- Onboarding — 4 intro screens',
+  'release', '2026-03-31 10:00:00')
+
+addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
+  'AI Game Review, Puzzle Rush, Live Arena, 5 уроков, 11 тем, 17 скинов.',
+  'AI Game Review, Puzzle Rush, Live Arena, 5 lessons, 11 themes, 17 skins.',
   'release', '2026-04-01 00:00:00')
-addPost('v41-polish', 'v4.1: UI Polish & 11 тем', 'v4.1: UI Polish & 11 themes',
-  'Визуальная полировка интерфейса:\n\n**2 новые темы** — Sakura и Retro. Arctic переписана.\n**SkinShop** — мини-доска, стопки блоков, стойки с текстурой.\n**Профиль** — gradient header, level badge, XP bar.\n**Формы** — styled input/select, custom scrollbar.\n**CSS vars** — все цвета через переменные.',
-  'Interface polish:\n\n**2 new themes** — Sakura and Retro. Arctic rewritten.\n**SkinShop** — mini-board, block stacks, textured stands.\n**Profile** — gradient header, level badge, XP bar.\n**Forms** — styled input/select, custom scrollbar.\n**CSS vars** — all colors through variables.',
-  'release', '2026-04-01 12:00:00')
-updatePost('v41-polish', 'v4.1: UI Polish & 11 тем', 'v4.1: UI Polish & 11 themes',
-  'Визуальная полировка всего интерфейса:\n\n**2 новые темы** — Sakura (вишнёвая) и Retro (CRT терминал). Arctic переписана как тёмно-ледяная.\n**Визуальный SkinShop** — мини-доска для превью тем, стопки фишек и текстурированные стойки.\n**Профиль** — градиентный header, level badge, XP bar с glow, SVG checkmarks.\n**Скины** — обновлённые текстуры: Glass с border+backdrop, Metal 5-stop chrome, Candy 3D, Glow triple layer.\n**Формы** — стилизованные input/select с focus-ring, кастомный scrollbar.\n**Все цвета** → CSS vars. Все 11 тем полностью theme-aware.',
-  'Visual polish of the entire interface:\n\n**2 new themes** — Sakura (cherry blossom) and Retro (CRT terminal). Arctic rewritten as dark icy.\n**Visual SkinShop** — mini-board for theme preview, chip stacks, textured stands.\n**Profile** — gradient header, level badge, XP bar with glow, SVG checkmarks.\n**Skins** — updated textures: Glass with border+backdrop, Metal 5-stop chrome, Candy 3D, Glow triple layer.\n**Forms** — styled input/select with focus-ring, custom scrollbar.\n**All colors** → CSS vars. All 11 themes fully theme-aware.',
-  'release', '2026-04-01 12:00:00')
 
-// Pin только v4.4
-db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v44-audit'").run()
-
-addPost('v44-audit', 'v4.4: Архитектурный аудит — 75 коммитов, 157 тестов', 'v4.4: Full architecture audit — 75 commits, 157 tests',
-  'Масштабный аудит проекта: 75 коммитов, 157 тестов.\n\n**Ключевые цифры:**\n- Тесты: 41 → 164 (+123)\n- dist: 14MB → 5.8MB (–59%)\n- Game.jsx: 1723 → 1489 (–234)\n- Profile.jsx: 1394 → 979 (–415)\n- Online.jsx: 696 → 614 (–82)\n- CustomEvent: 25 → 0, globals: 5 → 0, polling: 4 → 0\n- GPU weights: 8.1MB → 3.2MB binary\n\n**Безопасность:** Admin ENV, JWT 7d + auto-refresh, anti-cheat, Permissions-Policy, error reporting в server DB\n\n**Производительность:** 6 SQL индексов, Cache-Control ×7, ETag, gzip, preconnect, StorageEvent вместо polling\n\n**Архитектура:** GameContext EventEmitter, schema migrations, Smart SW, DB maintenance, graceful shutdown\n\n**Фичи:** Аккаунт (пароль/экспорт/удаление), друзья (decline/remove), WS reconnect UI, matchmaking rating, online timers, PWA install, SEO (BreadcrumbList + FAQ)\n\n**Рефактор:** 10 extracted модулей — GameResultPanel, useSessionStats, useGameTimer, useGameLog, GameContext, ProfileAccount, ProfileFriends, ProfileAnalytics, DailyChallenge\n\n**Online:** Emoji-реакции 👍🔥😮😂💪🎉, счётчик зрителей 👁, quick sound toggle\n\n**UX:** Keyboard shortcuts overlay (?), «Что нового» popup, 7 поз Snappy\n\n**CI/CD:** test → build → backup DB → deploy. Nginx: HTML no-store, assets immutable',
-  'Massive project audit: 75 commits, 157 tests.\n\n**Key numbers:**\n- Tests: 41 → 164 (+123)\n- dist: 14MB → 5.8MB (–59%)\n- Game.jsx: 1723 → 1489 (–234)\n- Profile.jsx: 1394 → 979 (–415)\n- Online.jsx: 696 → 614 (–82)\n- CustomEvents: 25 → 0, globals: 5 → 0, polling: 4 → 0\n- GPU weights: 8.1MB → 3.2MB binary\n\n**Security:** Admin ENV, JWT 7d + auto-refresh, anti-cheat, Permissions-Policy, error reporting to server DB\n\n**Performance:** 6 SQL indexes, Cache-Control ×7, ETag, gzip, preconnect, StorageEvent instead of polling\n\n**Architecture:** GameContext EventEmitter, schema migrations, Smart SW, DB maintenance, graceful shutdown\n\n**Features:** Account (password/export/delete), friends (decline/remove), WS reconnect UI, matchmaking rating, online timers, PWA install, SEO (BreadcrumbList + FAQ)\n\n**Refactor:** 10 extracted modules — GameResultPanel, useSessionStats, useGameTimer, useGameLog, GameContext, ProfileAccount, ProfileFriends, ProfileAnalytics, DailyChallenge\n\n**Online:** Emoji reactions 👍🔥😮😂💪🎉, spectator count 👁, quick sound toggle\n\n**UX:** Keyboard shortcuts overlay (?), What\'s New popup, 7 Snappy poses\n\n**CI/CD:** test → build → backup DB → deploy. Nginx: HTML no-store, assets immutable',
+addPost('v44-audit', 'v4.4: Архитектурный аудит — 75 коммитов, 157 тестов', 'v4.4: Architecture audit — 75 commits, 157 tests',
+  'Масштабный аудит проекта:\n\n**Тесты:** 41 → 164 (+123)\n**dist:** 14MB → 5.8MB (–59%)\n**GameContext v2:** EventEmitter — 25 CustomEvent → 0\n**Безопасность:** anti-cheat, JWT refresh, error reporting\n**Производительность:** 6 SQL индексов, Cache-Control ×7, gzip\n**CI/CD:** test → build → backup DB → deploy',
+  'Massive project audit:\n\n**Tests:** 41 → 164 (+123)\n**dist:** 14MB → 5.8MB (–59%)\n**GameContext v2:** EventEmitter — 25 CustomEvents → 0\n**Security:** anti-cheat, JWT refresh, error reporting\n**Performance:** 6 SQL indexes, Cache-Control ×7, gzip\n**CI/CD:** test → build → backup DB → deploy',
   'release', '2026-04-03 14:00:00')
 
-addPost('v43-seo', 'v4.3: Ranked matchmaking, таймеры, аналитика, SEO', 'v4.3: Ranked matchmaking, timers, analytics, SEO',
-  'Масштабное обновление:\n\n**Ranked matchmaking** — подбор по ELO: ±200 базовый диапазон, расширяется +50 каждые 5 сек. Рейтинг оппонента виден до матча.\n**Online таймеры** — серверная синхронизация: время вычитается при каждом ходе, timeUp при истечении.\n**WS reconnect** — exponential backoff (1→30s), 15 попыток, session restore.\n**24 настройки** — сложность AI, стартовый экран, авто-реванш, Zen mode, лог ходов, приватность, экспорт данных.\n**15 метрик аналитики** — винрейт по сложности, тренд, активность по часам/дням, comeback rate, серия побед.\n**Openings** — 8 дебютов, Swap%, тепловая карта переносов, вкладка «Стратегия» с 6 тактиками.\n**SEO** — path routing, /en/, 16 страниц, hreflang.\n**Replay sharing** + конфетти + Error Boundary.\n**Звуки** — 7 эффектов (были написаны но не вызывались).',
-  'Major update:\n\n**Ranked matchmaking** — ELO-based pairing: ±200 base range, expands +50 every 5 sec. Opponent rating shown.\n**Online timers** — server-side sync: time deducted per move, timeUp on expiry.\n**WS reconnect** — exponential backoff (1→30s), 15 attempts, session restore.\n**24 settings** — AI difficulty, start screen, auto-rematch, Zen mode, move log, privacy, data export.\n**15 analytics metrics** — win rate by difficulty, trend, activity by hour/day, comeback rate, streak.\n**Openings** — 8 openings, Swap%, transfer heatmap, Strategy tab with 6 tactics.\n**SEO** — path routing, /en/, 16 pages, hreflang.\n**Replay sharing** + confetti + Error Boundary.\n**Sounds** — 7 effects (were written but never called).',
-  'release', '2026-04-02 20:00:00')
-
-addPost('v42-terminology', 'v4.2: Маскот Снуппи, терминология, симулятор', 'v4.2: Mascot Snoopy, terminology, simulator',
-  'Большое обновление:\n\n**Маскот Снуппи** — енот-строитель появился на 10 страницах! 6 поз: приветствие, объяснение, победа, поражение, удивление, ура. CSS-анимации bounce и enter.\n**Терминология** — фишка → блок, закрытие → достройка. 10 стоек, 11 блоков на каждой = высотка.\n**Симулятор** — 2 новых параметра: «блоков за ход» (1-6) и «стоек за ход» (1-5).\n**Онлайн-скины** — скины передаются оппоненту через WebSocket.\n**Архитектура** — server.js разбит на 9 модулей, CORS, error handler, 41 тест.',
-  'Major update:\n\n**Mascot Snoopy** — raccoon builder appears on 10 pages! 6 poses: wave, point, celebrate, sad, shock, hero. CSS bounce & enter animations.\n**Terminology** — chip → block, closing → completing. 10 stands, 11 blocks each = highrise.\n**Simulator** — 2 new parameters: "blocks per turn" (1-6) and "stands per turn" (1-5).\n**Online skins** — skins transmitted to opponent via WebSocket.\n**Architecture** — server.js split into 9 modules, CORS, error handler, 41 tests.',
-  'release', '2026-04-02 12:00:00')
-
-updatePost('roadmap-2026', 'Планы на 2026', 'Roadmap 2026',
-  '✅ Android-приложение\n✅ GPU-нейросеть 840K\n✅ AI Game Review\n✅ Puzzle Rush + Live Arena\n✅ 5 уроков + 33 ачивки\n✅ 11 тем + 17 скинов\n✅ Маскот Снуппи\n✅ SEO path routing + /en/\n✅ Replay sharing\n✅ 24 настройки\n✅ 15 метрик аналитики\n✅ Конфетти + Error Boundary\n✅ Ranked matchmaking\n✅ Online таймеры\n✅ WS reconnect\n✅ Архитектурный аудит (v4.4)\n✅ Тесты: 41→157, dist –59%, 10 extracted модулей\n✅ Город побед (v4.8.0): здания из побед в профиле\n\nДалее:\n→ Монетизация: кирпичи + скины (#3)\n→ Battle Pass (#4)\n→ Share-картинки (#5)\n→ Google Play\n→ iOS',
-  '✅ Android app\n✅ GPU neural net 840K\n✅ AI Game Review\n✅ Puzzle Rush + Live Arena\n✅ 5 lessons + 33 achievements\n✅ 11 themes + 17 skins\n✅ Mascot Snoopy\n✅ SEO path routing + /en/\n✅ Replay sharing\n✅ 24 settings\n✅ 15 analytics metrics\n✅ Confetti + Error Boundary\n✅ Ranked matchmaking\n✅ Online timers\n✅ WS reconnect\n✅ Architecture audit (v4.4)\n✅ Tests: 41→157, dist –59%, 10 extracted modules\n✅ Victory City (v4.8.0): buildings from wins in profile\n\nNext:\n→ Monetization: bricks + skins (#3)\n→ Battle Pass (#4)\n→ Share images (#5)\n→ Google Play\n→ iOS',
-  'roadmap', '2026-04-02 01:00:00')
-
 addPost('v471-security-audit', 'v4.7.1: Аудит безопасности, WS reconnect, AuthContext', 'v4.7.1: Security audit, WS reconnect, AuthContext',
-  'Комплексный апдейт: безопасность, стабильность онлайна, рефакторинг клиента.\n\n**🔐 Token revocation** — `token_version` в users. Смена пароля → старые JWT мгновенно невалидны.\n**SQL injection fix** — admin analytics на параметризованные запросы.\n**WS maxPayload 16KB → 4KB** — защита от amplification.\n**WebSocket reconnect** — новая команда `reconnect`, партия продолжается без потери состояния.\n**Раздельные WS rate limits** — геймплей 20/сек, чат/реакции 5/сек.\n**Новый favicon** — SH multi-size (16/32/48).\n**AuthContext** — единый провайдер, убран дубль useEffect.\n**APP_VERSION auto-inject** из package.json.\n**dashboard.json/replays.json → /public** (−50KB бандла).\n**GitHub Actions v5**, Node 24.',
-  'Security, online stability, client refactor.\n\n**🔐 Token revocation** — `token_version` in users. Password reset → old JWTs invalidated instantly.\n**SQL injection fix** — admin analytics on parameterized queries.\n**WS maxPayload 16KB → 4KB** — amplification protection.\n**WebSocket reconnect** — new `reconnect` command, game continues without state loss.\n**Split WS rate limits** — gameplay 20/sec, chat/reactions 5/sec.\n**New favicon** — SH multi-size (16/32/48).\n**AuthContext** — single provider, removed duplicate useEffect.\n**APP_VERSION auto-inject** from package.json.\n**dashboard.json/replays.json → /public** (−50KB bundle).\n**GitHub Actions v5**, Node 24.',
+  '**Token revocation** — смена пароля → старые JWT мгновенно невалидны.\n**WS reconnect** — партия продолжается без потери состояния.\n**SQL injection fix** в admin analytics.\n**WS maxPayload** 16KB → 4KB.\n**Раздельные rate limits:** геймплей 20/сек, чат 5/сек.\n**Новый favicon** — SH multi-size (16/32/48).',
+  '**Token revocation** — password reset instantly invalidates old JWTs.\n**WS reconnect** — game continues without state loss.\n**SQL injection fix** in admin analytics.\n**WS maxPayload** 16KB → 4KB.\n**Split rate limits:** gameplay 20/sec, chat 5/sec.\n**New favicon** — SH multi-size (16/32/48).',
   'release', '2026-04-06 12:00:00')
 
-// ─── v4.8.0: Город побед ───
 addPost('v480-victory-city',
   'v4.8.0: Город побед — каждая победа становится зданием',
   'v4.8.0: Victory City — every win becomes a building',
-  'Главная фича Sprint 1 от Александра — реализована.\n\n**Город побед** превращает победы в визуальный прогресс. После победы в профиле появляется новое здание — изометрическая высотка, форма которой отражает финальную расстановку блоков.\n\n**Как читать здание:**\n- Высота = блоки в самой высокой закрытой стойке (до 11 этажей)\n- Цвет = цвет ваших блоков\n- Золотая крыша = победа 5:5 по золотой стойке\n\n**Управление:** колёсико — зум (×0.3–2.5), тащить — пан, тап по зданию — детали.\n\n**Детали здания:** дата победы, имя соперника, сложность AI, количество этажей, закрытых стоек из 10.\n\n**Статистика в шапке:** всего зданий, vs AI, vs живой соперник, золотые победы ★.\n\n**Декор:** 40 звёзд разной яркости + луна.\n\n**Вкладка «Город»** появилась в профиле рядом с Аналитикой и Ачивками.\n\nСледующий шаг: скины блоков дадут цвет зданиям — покупать скины станет намного смысленнее.',
-  'The key Sprint 1 feature from Alexander — shipped.\n\n**Victory City** turns wins into tangible visual progress. Every win adds an isometric building to your profile — a skyscraper shaped by the final board state.\n\n**Reading a building:**\n- Height = blocks in your highest closed stand (up to 11 floors)\n- Color = your chip color\n- Golden roof = 5:5 golden stand win\n\n**Controls:** scroll to zoom (×0.3–2.5), drag to pan, tap for building details.\n\n**Building details:** win date, opponent name, AI difficulty, floor count, closed stands out of 10.\n\n**City stats header:** total buildings, vs AI, vs human opponent, golden wins ★.\n\n**Decor:** 40 stars with varied brightness + moon.\n\n**"Victory City" tab** added to profile next to Analytics and Achievements.\n\nNext step: block skins will color the buildings — buying skins will feel much more meaningful.',
+  'Главная фича Sprint 1 от Александра — реализована.\n\n**Город побед** превращает победы в визуальный прогресс. После победы в профиле появляется новое здание — изометрическая высотка, форма которой отражает финальную расстановку блоков.\n\n**Как читать здание:**\n- Высота = блоки в самой высокой закрытой стойке (до 11 этажей)\n- Цвет = цвет ваших блоков\n- Золотая крыша = победа 5:5 по золотой стойке\n\n**Управление:** зум ×0.3–2.5, drag-пан, тап — детали здания.\n\n**Вкладка «Город»** появилась в профиле.\n\nТакже в этом релизе:\n**Кирпичи 🧱** — новая валюта. AI Easy=1, Medium=2, Hard+=3, PvP=5 за победу.\n**Магазин скинов** — цены в кирпичах, rarity badges (common/rare/epic/legendary).\n**Battle Pass** — 30 квестов на сезон, прогресс автоматический.',
+  'Key Sprint 1 feature from Alexander — shipped.\n\n**Victory City** turns wins into visual progress. Every win adds an isometric building to your profile — shaped by the final board state.\n\n**Reading a building:**\n- Height = blocks in your highest closed stand (up to 11 floors)\n- Color = your chip color\n- Golden roof = 5:5 golden stand win\n\n**Controls:** zoom ×0.3–2.5, drag-pan, tap for building details.\n\n**"Victory City" tab** added to profile.\n\nAlso in this release:\n**Bricks 🧱** — new currency. AI Easy=1, Medium=2, Hard+=3, PvP=5 per win.\n**Skin shop** — brick prices, rarity badges (common/rare/epic/legendary).\n**Battle Pass** — 30 quests per season, auto-progress.',
   'feature', '2026-04-11 15:00:00')
 
-// Pin только v4.8.0
+addPost('v490-share-rarity',
+  'v4.9.0: Share-картинки, рарность ачивок, Snappy при переносе',
+  'v4.9.0: Share images, achievement rarity, Snappy transfer',
+  'Три новые фичи по roadmap от Александра.\n\n**📸 Share-картинки Story 1080×1920**\nПосле партии — кнопка «Поделиться». Открывается превью, затем Web Share API на мобиле или скачивание PNG на десктопе. Карточка содержит:\n- VICTORY / DEFEAT / DRAW с glow-эффектом\n- Финальная доска — 10 стоек с блоками\n- Счёт крупными цифрами\n- Статистика (ходы, время, сложность/режим)\n- Карточка игрока с ELO дельтой\n- Бренд snatch-highrise.com\n\n**🏅 Рарность ачивок**\nВсе 33 ачивки получили тир редкости:\n- **Common** (серый) — первые шаги, базовые цели\n- **Rare** (синий) — нужна практика\n- **Epic** (фиолетовый) — серьёзное достижение\n- **Legendary** (золотой) — единицы игроков\n\nНа карточке: название тира + «XX% игроков». Легенда рарностей на странице ачивок.\n\n**🦝 Snappy при переносе (MascotRunner)**\nПри каждом переносе блоков Snappy вылетает дугой от стойки-источника к стойке-цели, держа блоки над головой. Flip по направлению движения.\n\n**👆 Жестовый перенос**\nLong-press (500ms) на стойку = жестовый перенос. Вибрация на мобиле. Кнопка «Перенос» оставлена как fallback для десктопа.',
+  'Three new roadmap features from Alexander.\n\n**📸 Share images Story 1080×1920**\nAfter each game — Share button. Shows preview, then Web Share API on mobile or PNG download on desktop. Card includes:\n- VICTORY / DEFEAT / DRAW with glow effect\n- Final board — 10 stands with blocks\n- Big score numbers\n- Stats (moves, time, difficulty/mode)\n- Player card with ELO delta\n- snatch-highrise.com branding\n\n**🏅 Achievement rarity**\nAll 33 achievements now have a rarity tier:\n- **Common** (gray) — first steps, basic goals\n- **Rare** (blue) — requires practice\n- **Epic** (purple) — serious achievement\n- **Legendary** (gold) — very few players have it\n\nEach card shows tier name + "XX% of players". Rarity legend on the achievements page.\n\n**🦝 Snappy on transfer (MascotRunner)**\nEvery block transfer launches Snappy in an arc from source to target stand, holding blocks above his head. Flips based on direction.\n\n**👆 Gesture transfer**\nLong-press (500ms) a stand = gesture transfer. Haptic on mobile. Transfer button kept as desktop fallback.',
+  'feature', '2026-04-12 10:00:00')
+
+// Удаляем устаревшее
+db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
+db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
+db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
+
+// Pin → v4.9.0
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v480-victory-city'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v490-share-rarity'").run()
 
 
 // ═══ Blog Endpoints ═══
