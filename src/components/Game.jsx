@@ -34,6 +34,21 @@ const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 // Модификаторы игры: fog (туман войны), doubleTransfer (двойной перенос), blitz (авто-пас при 0)
 const DEFAULT_MODIFIERS = { fog: false, doubleTransfer: false, blitz: false }
 
+// Маппинг legacy chipStyle → blocks_* ID для сохранения в здание
+const CHIP_STYLE_TO_SKIN_ID = {
+  classic: 'blocks_classic', flat: 'blocks_flat', rounded: 'blocks_round',
+  glass: 'blocks_glass', metal: 'blocks_metal', candy: 'blocks_candy',
+  pixel: 'blocks_pixel', neon: 'blocks_neon', glow: 'blocks_glow',
+}
+
+function getActiveSkinId() {
+  try {
+    const s = JSON.parse(localStorage.getItem('stolbiki_settings') || '{}')
+    const cs = s.chipStyle || 'classic'
+    return cs.startsWith('blocks_') ? cs : (CHIP_STYLE_TO_SKIN_ID[cs] || 'blocks_classic')
+  } catch { return 'blocks_classic' }
+}
+
 function ModifierBadge({ label, active, onToggle, color = 'var(--accent)' }) {
   return (
     <button
@@ -81,7 +96,6 @@ export default function Game() {
 
   // ─── Геймплейные модификаторы ───
   const [modifiers, setModifiers] = useState({ ...DEFAULT_MODIFIERS })
-  // Для двойного переноса: остаток переносов в текущем ходе
   const [transfersLeft, setTransfersLeft] = useState(1)
 
   const { log, setLog, addLog, resetLog, logRef } = useGameLog(lang)
@@ -131,10 +145,8 @@ export default function Game() {
     locked,
     aiRunning: aiRunning?.current,
     onTimeUp: (cp) => {
-      // Блиц-модификатор: авто-пас вместо поражения
       if (modifiersRef.current?.blitz && cp === humanPlayer) {
-        // Пропуск хода с пустым placement
-        setInfo(en ? 'Time’s up — auto-pass!' : 'Время вышло — авто-пас!')
+        setInfo(en ? "Time's up — auto-pass!" : 'Время вышло — авто-пас!')
         setTransfer(null); setPlacement({}); setSelected(null); setHint(null)
         const action = { transfer: null, placement: {} }
         recordMove(gsRef.current, action, gsRef.current.currentPlayer)
@@ -256,7 +268,6 @@ export default function Game() {
           const ns = applyAction(state, action)
           setGs(ns)
           aiRunning.current = false
-          // Сбрасываем переносы для нового хода человека
           setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
           if (ns.gameOver) {
             setTimeout(() => {
@@ -311,7 +322,6 @@ export default function Game() {
     if (d >= 200) preloadGpuNet()
     aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording(); setGameMeta(m, d); resetTimers(); setUndoStack([])
-    // Сбрасываем переносы
     setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
     if (m === 'pvp') {
       setLog([{ text: lang === 'en' ? 'New game: player vs player' : 'Новая партия: игрок против игрока', player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
@@ -447,9 +457,8 @@ export default function Game() {
 
     setHint(null)
 
-    // ─── Двойной перенос: если был перенос без placement — даём ещё один перенос ───
+    // ─── Двойной перенос ───
     if (modifiers.doubleTransfer && action.transfer && Object.keys(action.placement || {}).length === 0 && transfersLeft > 1) {
-      // Использовали перенос без размещения — даём второй перенос или размещение
       setTransfersLeft(t => t - 1)
       setTransfer(null); setPlacement({}); setSelected(null)
       setGs(ns)
@@ -458,7 +467,6 @@ export default function Game() {
     }
 
     setTransfer(null); setPlacement({}); setSelected(null)
-    // Сбрасываем счётчик переносов для следующего хода
     setTransfersLeft(modifiers.doubleTransfer ? 2 : 1)
     setGs(ns)
 
@@ -571,7 +579,7 @@ export default function Game() {
         body: JSON.stringify({
           stands_snapshot: ns.stands.map((chips, idx) => ({ idx, chips, owner: ns.closed[idx] ?? null })),
           result, is_ai: mode === 'ai', ai_difficulty: mode === 'ai' ? difficultyRef.current : null,
-          opponent_name: opponentName, player_skin_id: null, background_id: null,
+          opponent_name: opponentName, player_skin_id: getActiveSkinId(), background_id: null,
         }),
       })
     } catch {}
@@ -606,7 +614,7 @@ export default function Game() {
               </>}
             </div>
             <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
-              {lang === 'en' ? 'Got it, let\'s play!' : 'Понятно, играем!'}
+              {lang === 'en' ? "Got it, let's play!" : 'Понятно, играем!'}
             </button>
             <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: 'var(--ink3)' }}>
               {lang === 'en' ? 'Detailed rules — Rules tab' : 'Подробные правила — вкладка «Правила»'}
@@ -662,28 +670,15 @@ export default function Game() {
       </div>
       )}
 
-      {/* Модификаторы — только в AI-режиме */}
       {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 2 }}>{en ? 'Mods:' : 'Моды:'}</span>
-          <ModifierBadge
-            label={en ? '🌫 Fog' : '🌫 Туман'}
-            active={modifiers.fog}
-            onToggle={() => { setModifiers(m => ({ ...m, fog: !m.fog })); newGame() }}
-            color="#4a9eff"
-          />
-          <ModifierBadge
-            label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'}
-            active={modifiers.doubleTransfer}
-            onToggle={() => { setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm }); setTransfersLeft(!modifiers.doubleTransfer ? 2 : 1) }}
-            color="#9b59b6"
-          />
-          <ModifierBadge
-            label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'}
-            active={modifiers.blitz}
-            onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })}
-            color="#ff9800"
-          />
+          <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog}
+            onToggle={() => { setModifiers(m => ({ ...m, fog: !m.fog })); newGame() }} color="#4a9eff" />
+          <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer}
+            onToggle={() => { setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm }); setTransfersLeft(!modifiers.doubleTransfer ? 2 : 1) }} color="#9b59b6" />
+          <ModifierBadge label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'} active={modifiers.blitz}
+            onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })} color="#ff9800" />
         </div>
       )}
 
@@ -702,7 +697,6 @@ export default function Game() {
               {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 3 }}>GPU</span>}
             </span>
             {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
-            {/* Модификаторы на мобиле */}
             {modifiers.fog && <span style={{ fontSize: 9, color: '#4a9eff' }}>🌫</span>}
             {modifiers.doubleTransfer && <span style={{ fontSize: 9, color: '#9b59b6' }}>⇄×2</span>}
             {modifiers.blitz && <span style={{ fontSize: 9, color: '#ff9800' }}>⚡</span>}
@@ -741,7 +735,6 @@ export default function Game() {
                 </div>
               </div>
             )}
-            {/* Модификаторы в мобильном sheet */}
             <div className="m-setting-row" style={{ flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
               <span className="m-setting-label">{en ? 'Modifiers' : 'Модификаторы'}</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -812,7 +805,7 @@ export default function Game() {
           background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
           borderRadius: 8, display: 'inline-block' }}>
           {mode === 'spectate' || mode === 'spectate-online' ? `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}` :
-           mode === 'online' ? (gs.currentPlayer === humanPlayer ? (lang === 'en' ? 'Your turn' : 'Ваш ход') : (lang === 'en' ? 'Opponent\'s turn' : 'Ходит противник')) :
+           mode === 'online' ? (gs.currentPlayer === humanPlayer ? (lang === 'en' ? 'Your turn' : 'Ваш ход') : (lang === 'en' ? "Opponent's turn" : 'Ходит противник')) :
            `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}`}
         </div>
       )}
