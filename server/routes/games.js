@@ -107,7 +107,7 @@ router.post('/games', auth, (req, res) => {
     bricksAfter = awardBricks(req.user.id, bricksDelta, `win:${isOnline ? 'pvp' : `ai_${safeDifficulty}`}`, gameResult.lastInsertRowid)
   }
 
-  // ─── Рефераьная программа: +30 кирпичей рефереру при 10 партиях ───
+  // ─── Реферальная программа: +30 кирпичей рефереру при 10 партиях ───
   if (gamesPlayedBefore < 10 && gamesPlayedBefore + 1 >= 10 && user.referred_by) {
     awardBricksToReferrer(user.referred_by, REFERRAL_BRICKS_GAMES, 'referral_10games', req.user.id)
   }
@@ -224,6 +224,8 @@ router.get('/replays/:id', (req, res) => {
   res.json({ ...replay, moves: JSON.parse(replay.moves) })
 })
 
+// БАГ-ФИКС: safeDifficulty была undefined — переменная объявляется внутри POST /games,
+// здесь нужен свой Math.max(0, Math.min(...))
 router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   const { moves, winner, mode, difficulty } = req.body
   if (!moves || !Array.isArray(moves) || moves.length < 5) return res.status(400).json({ error: 'Минимум 5 ходов' })
@@ -232,8 +234,9 @@ router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
   const gameData = JSON.stringify(moves)
   if (gameData.length > 500000) return res.status(400).json({ error: 'Слишком большая партия' })
+  const safeTrainingDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 0)))
   try {
-    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)').run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', safeDifficulty || 0)
+    db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)').run(req.user.id, gameData, winner ?? -1, moves.length, mode || 'ai', safeTrainingDifficulty)
     res.json({ ok: true })
   } catch { res.status(500).json({ error: 'Ошибка записи' }) }
 })
