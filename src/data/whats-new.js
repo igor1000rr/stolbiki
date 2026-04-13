@@ -4,17 +4,13 @@
  */
 export const WHATS_NEW = {
   ru: [
-    '🏗 Блоки крупнее на десктопе (+30%) — крупнее, заметнее',
-    '🏙 Город побед: золотые шпили за сложность AI (до +4 этажей)',
-    '📢 AdMob реклама: смотри и получай +10 🧱 кирпичей в магазине',
-    '🧱 Баланс кирпичей теперь в шапке — всегда виден',
-    '🐛 Баланс в магазине теперь правильно загружается с сервера',
+    '🔧 Исправлен CI/CD — автодеплой снова работает',
+    '🧱 Реклама +10 🧱 — исправлено начисление кирпичей',
+    '🗄 Стабильность БД улучшена (proper migrations)',
   ],
   en: [
-    '🏗 Bigger blocks on desktop (+30%) — larger, bolder',
-    '🏙 Victory City: gold spires for AI difficulty (up to +4 floors)',
-    '📢 AdMob ads: watch and earn +10 🧱 bricks in shop',
-    '🧱 Brick balance now in header — always visible',
-    '🐛 Shop balance now loads correctly from server',
+    '🔧 Fixed CI/CD — auto-deploy is working again',
+    '🧱 Watch ad +10 🧱 — fixed brick reward response',
+    '🗄 Improved DB stability (proper migrations)',
   ],
 }
