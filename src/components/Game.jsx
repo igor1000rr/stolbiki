@@ -16,6 +16,7 @@ import * as API from '../engine/api'
 import { getSettings } from '../engine/settings'
 import { useI18n } from '../engine/i18n'
 import { useGameContext } from '../engine/GameContext'
+import { useAuth } from '../engine/AuthContext'
 import { useGameTimer } from '../engine/useGameTimer'
 import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick, setMuted } from '../engine/sounds'
 import Board from './Board'
@@ -69,6 +70,7 @@ export default function Game() {
   const { t, lang } = useI18n()
   const en = lang === 'en'
   const gameCtx = useGameContext()
+  const { authUser } = useAuth()
   const sw = soundWin, sl = soundLose, ss = soundSwap
   const [gs, setGs] = useState(() => new GameState())
   const [phase, setPhase] = useState('place')
@@ -699,7 +701,6 @@ export default function Game() {
       {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 2 }}>{en ? 'Mods:' : 'Моды:'}</span>
-          {/* БАГ-ФИКС: fog использует toggleFog через useEffect чтобы newGame получил новый state */}
           <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog}
             onToggle={toggleFog} color="#4a9eff" />
           <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer}
@@ -837,21 +838,18 @@ export default function Game() {
         </div>
       )}
 
+      {/* РЕФАКТОР: имя игрока берётся из useAuth() вместо localStorage IIFE */}
       <div className="scoreboard">
         <div className="score-player">
           <div className="score-label">{mode === 'ai'
-            ? (humanPlayer === 0
-              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || t('game.player'))
-              : 'Snappy')
+            ? (humanPlayer === 0 ? (authUser?.name || t('game.player')) : 'Snappy')
             : (en ? 'Blue' : 'Синие')}</div>
           <div className={`score-num p0 ${scoreBump === 0 ? 'score-bump' : ''}`}>{gs.countClosed(0)}</div>
         </div>
         <div className="score-sep">:</div>
         <div className="score-player">
           <div className="score-label">{mode === 'ai'
-            ? (humanPlayer === 1
-              ? ((() => { try { return JSON.parse(localStorage.getItem('stolbiki_profile'))?.name } catch { return null } })() || t('game.player'))
-              : 'Snappy')
+            ? (humanPlayer === 1 ? (authUser?.name || t('game.player')) : 'Snappy')
             : (en ? 'Red' : 'Красные')}</div>
           <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
         </div>
@@ -872,7 +870,6 @@ export default function Game() {
         aiThinking={aiThinking} onlineMode={mode === 'online'}
         flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar}
         ghostTransfer={(() => {
-          // БАГ-ФИКС: guard если topGroup вернул null/пустой результат
           if (!transfer) return null
           const [topColor, topCount] = gs.topGroup(transfer[0]) || [0, 0]
           if (!topCount) return null
