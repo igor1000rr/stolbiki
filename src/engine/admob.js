@@ -20,14 +20,12 @@
 
 // ─── ID блоков (заменить на реальные из AdMob консоли) ───
 const ADS_CONFIG = {
-  // Android
   android: {
-    appId:          'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX', // App ID
-    interstitial:   'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // Interstitial
-    rewarded:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // Rewarded
-    banner:         'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // Banner
+    appId:          'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
+    interstitial:   'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    rewarded:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    banner:         'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
   },
-  // iOS (если понадобится)
   ios: {
     appId:          'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
     interstitial:   'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
@@ -43,7 +41,6 @@ const ADS_CONFIG = {
   },
 }
 
-// ─── Состояние ───
 let AdMob = null
 let initialized = false
 let interstitialReady = false
@@ -58,7 +55,6 @@ function getAdUnit(type) {
   return ADS_CONFIG[platform]?.[type] || ADS_CONFIG.android[type]
 }
 
-// ─── Инициализация ───
 export async function initAdMob() {
   if (!isNative()) return
   try {
@@ -70,14 +66,12 @@ export async function initAdMob() {
     })
     initialized = true
     console.log('[AdMob] initialized, test:', useTestAds())
-    // Подгружаем первый interstitial сразу
     await loadInterstitial()
   } catch (e) {
     console.warn('[AdMob] init failed:', e?.message)
   }
 }
 
-// ─── Interstitial (межстраничная реклама) ───
 export async function loadInterstitial() {
   if (!initialized || !AdMob) return
   try {
@@ -92,17 +86,11 @@ export async function loadInterstitial() {
   }
 }
 
-/**
- * Показываем interstitial каждые N партий.
- * Вызывать после окончания партии в Game.jsx.
- * @param {number} everyN — каждые сколько партий (default: 3)
- */
 export async function maybeShowInterstitial(everyN = 3) {
   if (!isNative() || !initialized) return false
   gamesAfterAd++
   if (gamesAfterAd < everyN) return false
   if (!interstitialReady) {
-    // Попробуем загрузить сейчас
     await loadInterstitial()
     if (!interstitialReady) return false
   }
@@ -110,7 +98,6 @@ export async function maybeShowInterstitial(everyN = 3) {
     gamesAfterAd = 0
     interstitialReady = false
     await AdMob.showInterstitial()
-    // Подгружаем следующий в фоне
     setTimeout(() => loadInterstitial(), 1000)
     return true
   } catch (e) {
@@ -119,17 +106,20 @@ export async function maybeShowInterstitial(everyN = 3) {
   }
 }
 
-// ─── Rewarded (реклама за вознаграждение) ───
 /**
- * Показываем rewarded. Если пользователь досмотрел — вызываем onRewarded(bricks).
- * Используется в профиле/магазине: «Посмотри рекламу — получи 10 кирпичей».
+ * Rewarded реклама. Показывается только в native.
+ * На вебе кнопка скрыта — кирпичи только через реальную рекламу.
+ * В DEV режиме симулируем для тестирования UI.
  */
 export async function showRewarded(onRewarded) {
-  if (!isNative() || !initialized || !AdMob) {
-    // На вебе симулируем (для тестирования)
-    if (!isNative()) { onRewarded?.(10); return true }
-    return false
+  // DEV: симулируем просмотр рекламы для тестирования
+  if (import.meta.env.DEV && !isNative()) {
+    await new Promise(r => setTimeout(r, 800)) // имитация задержки
+    onRewarded?.(10)
+    return true
   }
+  // В production на вебе — рекламы нет, кнопка не должна быть видна
+  if (!isNative() || !initialized || !AdMob) return false
   try {
     await AdMob.prepareRewardVideoAd({
       adId: getAdUnit('rewarded'),
@@ -137,7 +127,7 @@ export async function showRewarded(onRewarded) {
     })
     const result = await AdMob.showRewardVideoAd()
     if (result?.rewardAmount > 0 || result?.type === 'ad') {
-      onRewarded?.(10) // +10 кирпичей за просмотр
+      onRewarded?.(10)
       return true
     }
     return false
@@ -147,7 +137,6 @@ export async function showRewarded(onRewarded) {
   }
 }
 
-// ─── Banner (нижний баннер) ───
 export async function showBanner() {
   if (!isNative() || !initialized || !AdMob) return
   try {

@@ -1,7 +1,6 @@
 /**
  * SkinShop — popup для кастомизации: темы, скины блоков, скины стоек
- * v5.1: платные темы (ocean/sunset/royal/sakura/neon/wood/arctic/retro за кирпичи)
- * v5.2: bricks с сервера, кнопка Rewarded (смотри рекламу → +10 кирпичей)
+ * v5.2: bricks с сервера, кнопка Rewarded только в native / DEV
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -11,6 +10,7 @@ import { getSettings, saveSettings, applySettings } from '../engine/settings'
 import { showRewarded } from '../engine/admob'
 
 const isNative = () => !!window.Capacitor?.isNativePlatform?.()
+const showRewardedBtn = () => isNative() || import.meta.env.DEV
 
 const CHIP_SKINS = [
   { id: 'blocks_classic', legacyId: 'classic', ru: 'Классика', en: 'Classic', level: 1, price: 0, rarity: 'common',
@@ -159,7 +159,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
   const [watchingAd, setWatchingAd] = useState(false)
   const [rewardMsg, setRewardMsg] = useState(null)
 
-  // Загружаем owned skins + active + bricks при открытии
   useEffect(() => {
     const token = localStorage.getItem('stolbiki_token')
     if (!token) return
@@ -257,13 +256,11 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
     setPurchasing(null)
   }
 
-  // Rewarded: посмотри рекламу → +10 кирпичей (через /api/bricks/award на серв)
   async function watchAdForBricks() {
     if (!localStorage.getItem('stolbiki_token')) return
     setWatchingAd(true)
     try {
-      const rewarded = await showRewarded(async (rewardAmount) => {
-        // Начисляем кирпичи через сервер
+      await showRewarded(async (rewardAmount) => {
         const r = await fetch('/api/bricks/award-rewarded', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` },
@@ -297,19 +294,16 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         <div style={{ position: 'absolute', top: 6, right: 8 }}>
           <RarityBadge rarity={skin.rarity} en={en} />
         </div>
-
         <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0 8px',
           background: 'rgba(0,0,0,0.15)', borderRadius: 8, marginBottom: 8, minHeight: 60, alignItems: 'center' }}>
           {isChip ? <ChipPreview skin={skin} /> : <StandPreview skin={skin} />}
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)' }}>
             {en ? skin.en : skin.ru}
           </span>
           {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
         </div>
-
         {unlocked ? (
           <button onClick={() => equip(skin, isChip)} disabled={active || equipping === skin.id} style={{
             width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
@@ -351,7 +345,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
           <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{en ? 'Customize' : 'Оформление'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Reward notification */}
           {rewardMsg && (
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', animation: 'fadeIn 0.3s ease' }}>
               {rewardMsg}
@@ -442,7 +435,6 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
           </div>
         )}
 
-        {/* Блок заработка кирпичей */}
         <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--surface)',
           borderRadius: 10, border: '1px solid var(--surface2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -452,12 +444,16 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.6 }}>
                 {en
-                  ? 'Win games (1–5 per game) · Watch an ad for +10 🧱'
-                  : 'Побеждай (1–5 за игру) · Смотри рекламу за +10 🧱'}
+                  ? showRewardedBtn()
+                    ? 'Win games (1–5 per game) · Watch an ad for +10 🧱'
+                    : 'Win games (1–5 per game) · Ad rewards available in the mobile app'
+                  : showRewardedBtn()
+                    ? 'Побеждай (1–5 за игру) · Смотри рекламу за +10 🧱'
+                    : 'Побеждай (1–5 за игру) · Реклама за кирпичи — в мобильном приложении'}
               </div>
             </div>
-            {/* Rewarded кнопка — только если залогинен */}
-            {localStorage.getItem('stolbiki_token') && (
+            {/* Rewarded кнопка — только native или DEV */}
+            {showRewardedBtn() && localStorage.getItem('stolbiki_token') && (
               <button
                 onClick={watchAdForBricks}
                 disabled={watchingAd}
