@@ -41,6 +41,7 @@ import bricksRouter from './routes/bricks.js'
 import bpRouter from './routes/battlepass.js'
 import globalChatRouter from './routes/globalchat.js'
 import clubsRouter from './routes/clubs.js'
+import pushRouter from './routes/push.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -193,6 +194,7 @@ app.use('/api/bricks', bricksRouter)
 app.use('/api/bp', bpRouter)
 app.use('/api/chat', globalChatRouter)
 app.use('/api/clubs', clubsRouter)
+app.use('/api/push', pushRouter)
 
 app.use('/api/', (req, res) => { res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` }) })
 
