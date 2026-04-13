@@ -1,5 +1,25 @@
 export default [
   {
+    version: '5.4.0',
+    date: '2026-04-14',
+    title_ru: 'Модерация чата + Web Push уведомления',
+    title_en: 'Chat moderation + Web Push notifications',
+    changes_ru: [
+      { type: 'new', text: 'Глобальный чат: rate limit 1 сообщение / 3 секунды на юзера' },
+      { type: 'new', text: 'Админ-мут: POST /api/admin/chat/mute (user_id, minutes), unmute, список замученных' },
+      { type: 'new', text: 'Web Push: подписка через /api/push/subscribe, VAPID auto-gen для dev' },
+      { type: 'new', text: 'Push-уведомления: «Ваш ход!», «Ничья?», «Рематч?» при offline оппоненте' },
+      { type: 'fix', text: 'WS globalChat шлёт chatBlocked вместо silent drop при rate limit/mute' },
+    ],
+    changes_en: [
+      { type: 'new', text: 'Global chat: rate limit 1 message / 3 seconds per user' },
+      { type: 'new', text: 'Admin mute: POST /api/admin/chat/mute (user_id, minutes), unmute, muted list' },
+      { type: 'new', text: 'Web Push: subscribe via /api/push/subscribe, VAPID auto-gen for dev' },
+      { type: 'new', text: 'Push notifications: «Your turn!», «Draw?», «Rematch?» when opponent offline' },
+      { type: 'fix', text: 'WS globalChat sends chatBlocked instead of silent drop on rate limit/mute' },
+    ],
+  },
+  {
     version: '5.3.0',
     date: '2026-04-14',
     title_ru: 'Баг-фиксы: CI/CD, /api/training, rewarded field',
