@@ -31,10 +31,8 @@ const isNative = !!window.Capacitor?.isNativePlatform?.()
 
 const SL = i => i === GOLDEN_STAND ? '★' : 'ABCDEFGHI'[i - 1] || String(i)
 
-// Модификаторы игры: fog (туман войны), doubleTransfer (двойной перенос), blitz (авто-пас при 0)
 const DEFAULT_MODIFIERS = { fog: false, doubleTransfer: false, blitz: false }
 
-// Маппинг legacy chipStyle → blocks_* ID для сохранения в здание
 const CHIP_STYLE_TO_SKIN_ID = {
   classic: 'blocks_classic', flat: 'blocks_flat', rounded: 'blocks_round',
   glass: 'blocks_glass', metal: 'blocks_metal', candy: 'blocks_candy',
@@ -94,7 +92,6 @@ export default function Game() {
     return () => { window.removeEventListener('focus', refresh); unsub?.() }
   }, [gameCtx])
 
-  // ─── Геймплейные модификаторы ───
   const [modifiers, setModifiers] = useState({ ...DEFAULT_MODIFIERS })
   const [transfersLeft, setTransfersLeft] = useState(1)
 
@@ -137,6 +134,7 @@ export default function Game() {
   useEffect(() => { modifiersRef.current = modifiers }, [modifiers])
 
   const sk = soundClick
+  // БАГ-ФИКСx: убран onTick — soundClick не должен играть каждую секунду таймера
   const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
     timerSetting: userSettings.timer,
     gameOver: gs.gameOver,
@@ -165,7 +163,6 @@ export default function Game() {
       setResult(1 - cp); setPhase('done'); setInfo(cp === humanPlayer ? t('game.timeUp') : t('game.oppTimeUp'))
       setLocked(false)
     },
-    onTick: () => sk(),
   })
 
   useEffect(() => { gsRef.current = gs }, [gs])
@@ -213,8 +210,12 @@ export default function Game() {
     })
   }, [gameCtx]) // eslint-disable-line
 
-  function getDailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() }
-  function startDaily() { setDailySeed(getDailySeed()); setDailyMode(true); newGame(0, 100, 'ai'); setInfo(lang === 'en' ? `Daily challenge #${getDailySeed() % 10000} — beat AI!` : `Ежедневный челлендж #${getDailySeed() % 10000} — победите AI!`) }
+  // getDailySeed: ISO формат совпадает с сервером (server/helpers.js)
+  function getDailySeed() {
+    const d = new Date()
+    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+  }
+  function startDaily() { setDailySeed(getDailySeed()); setDailyMode(true); newGame(0, 100, 'ai'); setInfo(lang === 'en' ? `Daily challenge — beat AI!` : `Ежедневный челлендж — победите AI!`) }
 
   function startTournament(total = 3) {
     setTournament({ total, games: [], currentGame: 1 })
@@ -274,9 +275,14 @@ export default function Game() {
               setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
               finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
               saveBuildingOnWin(ns)
-              const won = modeRef.current === 'spectate' ? true : ns.winner === humanPlayer
-              setTimeout(() => { won ? sw() : sl(); if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) } }, 300)
-              if (gameCtx) {
+              // БАГ-ФИКС: spectate — confetti не показываем, won только для реального игрока
+              const isSpectate = modeRef.current === 'spectate'
+              const won = isSpectate ? false : ns.winner === humanPlayer
+              setTimeout(() => {
+                if (!isSpectate) { won ? sw() : sl() }
+                if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
+              }, 300)
+              if (gameCtx && !isSpectate) {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
                 const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
@@ -444,8 +450,11 @@ export default function Game() {
 
     if (action.transfer) {
       const [src, dst] = action.transfer
-      const [topColor, topCount] = gs.topGroup(src)
-      setMascotRun({ from: src, to: dst, color: topColor, count: topCount, key: Date.now().toString() })
+      // БАГ-ФИКС: guard от null если topGroup вернул пустой результат
+      const [topColor, topCount] = gs.topGroup(src) || [0, 0]
+      if (topCount > 0) {
+        setMascotRun({ from: src, to: dst, color: topColor, count: topCount, key: Date.now().toString() })
+      }
     }
 
     const ns = applyAction(gs, action)
@@ -457,7 +466,6 @@ export default function Game() {
 
     setHint(null)
 
-    // ─── Двойной перенос ───
     if (modifiers.doubleTransfer && action.transfer && Object.keys(action.placement || {}).length === 0 && transfersLeft > 1) {
       setTransfersLeft(t => t - 1)
       setTransfer(null); setPlacement({}); setSelected(null)
@@ -585,6 +593,19 @@ export default function Game() {
     } catch {}
   }
 
+  // БАГ-ФИКС: fog toggle — используем useEffect чтобы newGame запустился ПОСЛЕ применения нового modifiers
+  const fogTogglePendingRef = useRef(false)
+  useEffect(() => {
+    if (!fogTogglePendingRef.current) return
+    fogTogglePendingRef.current = false
+    newGame()
+  }, [modifiers.fog]) // eslint-disable-line
+
+  function toggleFog() {
+    setModifiers(m => { const nm = { ...m, fog: !m.fog }; modifiersRef.current = nm; return nm })
+    fogTogglePendingRef.current = true
+  }
+
   return (
     <div className={isNative ? 'native-game-wrapper' : ''}>
       <MascotRunner run={mascotRun} onDone={() => setMascotRun(null)} />
@@ -673,8 +694,9 @@ export default function Game() {
       {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 2 }}>{en ? 'Mods:' : 'Моды:'}</span>
+          {/* БАГ-ФИКС: fog использует toggleFog через useEffect чтобы newGame получил новый state */}
           <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog}
-            onToggle={() => { setModifiers(m => ({ ...m, fog: !m.fog })); newGame() }} color="#4a9eff" />
+            onToggle={toggleFog} color="#4a9eff" />
           <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer}
             onToggle={() => { setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm }); setTransfersLeft(!modifiers.doubleTransfer ? 2 : 1) }} color="#9b59b6" />
           <ModifierBadge label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'} active={modifiers.blitz}
@@ -738,7 +760,7 @@ export default function Game() {
             <div className="m-setting-row" style={{ flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
               <span className="m-setting-label">{en ? 'Modifiers' : 'Модификаторы'}</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog} onToggle={() => setModifiers(m => { const nm = { ...m, fog: !m.fog }; modifiersRef.current = nm; return nm })} color="#4a9eff" />
+                <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog} onToggle={toggleFog} color="#4a9eff" />
                 <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer} onToggle={() => setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm })} color="#9b59b6" />
                 <ModifierBadge label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'} active={modifiers.blitz} onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })} color="#ff9800" />
               </div>
@@ -844,7 +866,13 @@ export default function Game() {
         onStandClick={onStandClick} onStandLongPress={onStandLongPress}
         aiThinking={aiThinking} onlineMode={mode === 'online'}
         flip={userSettings.boardFlip} showChipCount={userSettings.showChipCount} showFillBar={userSettings.showFillBar}
-        ghostTransfer={transfer ? { from: transfer[0], to: transfer[1], color: gs.topGroup(transfer[0])[0], count: gs.topGroup(transfer[0])[1] } : null}
+        ghostTransfer={(() => {
+          // БАГ-ФИКС: guard если topGroup вернул null/пустой результат
+          if (!transfer) return null
+          const [topColor, topCount] = gs.topGroup(transfer[0]) || [0, 0]
+          if (!topCount) return null
+          return { from: transfer[0], to: transfer[1], color: topColor, count: topCount }
+        })()}
         fogOfWar={modifiers.fog && mode !== 'spectate' && mode !== 'spectate-online'}
         fogPlayer={humanPlayer}
       />
