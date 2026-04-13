@@ -8,6 +8,8 @@
  * - GET /api/health, /api/stats
  * - 404 на неизвестный endpoint
  * - POST /api/bricks/award-rewarded — rate limit + auth
+ * - GET /api/bp/current — Battle Pass сезон + квесты
+ * - POST /api/bp/quests/:id/claim — получение награды
  *
  * Зависимости: supertest, better-sqlite3. Обе недоступны в sandbox без native build —
  * при отсутствии тесты скипаются. В CI запускаются полностью.
@@ -175,35 +177,24 @@ run('HTTP routes', () => {
     })
 
     it('[e2e] принимает валидную партию, меняет рейтинг', async () => {
-      // Ищем seed дающий законченную партию
       let moves, finalState
       for (let seed = 1; seed < 50; seed++) {
         const r = playFullGame(seed)
         if (r.finalState.gameOver && r.finalState.winner !== null) {
-          moves = r.moves
-          finalState = r.finalState
-          break
+          moves = r.moves; finalState = r.finalState; break
         }
       }
       expect(moves).toBeDefined()
-
       const wonByP0 = finalState.winner === 0
-      // Получаем текущий рейтинг
       const profileRes = await request(app).get('/api/profile').set('Authorization', `Bearer ${token}`)
       const ratingBefore = profileRes.body.rating
-
-      // Ждём 10 сек между submits (anti-spam) — но тут первый submit
       const res = await request(app)
         .post('/api/games')
         .set('Authorization', `Bearer ${token}`)
         .send({
           won: wonByP0,
           score: `${finalState.countClosed(0)}:${finalState.countClosed(1)}`,
-          difficulty: 200,
-          isOnline: false,
-          turns: moves.length,
-          duration: 60,
-          moves,
+          difficulty: 200, isOnline: false, turns: moves.length, duration: 60, moves,
         })
       expect(res.status).toBe(200)
       expect(res.body.ratingAfter).not.toBe(ratingBefore)
@@ -226,9 +217,7 @@ run('HTTP routes', () => {
       const legal = getLegalActions(gs)
       const moves = [{ action: legal[0], player: 0 }]
       const gs2 = applyAction(gs, legal[0])
-      const legal2 = getLegalActions(gs2)
-      moves.push({ action: legal2[0], player: 1 })
-
+      moves.push({ action: getLegalActions(gs2)[0], player: 1 })
       const res = await request(app)
         .post('/api/replays')
         .set('Authorization', `Bearer ${token}`)
@@ -240,41 +229,34 @@ run('HTTP routes', () => {
 
   describe('POST /api/training (валидация через движок)', () => {
     it('требует авторизацию', async () => {
-      const res = await request(app)
-        .post('/api/training')
-        .send({ moves: [{ action: {} }], winner: 0 })
+      const res = await request(app).post('/api/training').send({ moves: [{ action: {} }], winner: 0 })
       expect(res.status).toBe(401)
     })
 
     it('отклоняет мусорные ходы', async () => {
       const moves = Array.from({ length: 10 }, () => ({ action: { placement: { 99: 99 } } }))
       const res = await request(app)
-        .post('/api/training')
-        .set('Authorization', `Bearer ${token}`)
+        .post('/api/training').set('Authorization', `Bearer ${token}`)
         .send({ moves, winner: 0, mode: 'ai', difficulty: 100 })
       expect(res.status).toBe(400)
     })
 
     it('отклоняет слишком короткую партию', async () => {
       const res = await request(app)
-        .post('/api/training')
-        .set('Authorization', `Bearer ${token}`)
+        .post('/api/training').set('Authorization', `Bearer ${token}`)
         .send({ moves: [{ action: {} }], winner: 0 })
       expect(res.status).toBe(400)
     })
 
     it('принимает валидную партию', async () => {
-      // Нужна партия из ≥5 легальных ходов
-      let moves = []
-      let gs = new GameState()
+      let moves = [], gs = new GameState()
       while (moves.length < 5 && !gs.gameOver) {
         const legal = getLegalActions(gs)
         moves.push({ action: legal[0] })
         gs = applyAction(gs, legal[0])
       }
       const res = await request(app)
-        .post('/api/training')
-        .set('Authorization', `Bearer ${token}`)
+        .post('/api/training').set('Authorization', `Bearer ${token}`)
         .send({ moves, winner: gs.winner ?? -1, mode: 'ai', difficulty: 100 })
       expect(res.status).toBe(200)
       expect(res.body.ok).toBe(true)
@@ -315,9 +297,7 @@ run('HTTP routes', () => {
 
   describe('POST /api/rooms', () => {
     it('создаёт комнату, возвращает roomId 6 символов', async () => {
-      const res = await request(app)
-        .post('/api/rooms')
-        .send({ mode: 'single' })
+      const res = await request(app).post('/api/rooms').send({ mode: 'single' })
       expect(res.status).toBe(200)
       expect(res.body.roomId).toMatch(/^[A-Z0-9]{6}$/)
     })
@@ -333,16 +313,13 @@ run('HTTP routes', () => {
     })
 
     it('отклоняет запрос без message', async () => {
-      const res = await request(app)
-        .post('/api/error-report')
-        .send({})
+      const res = await request(app).post('/api/error-report').send({})
       expect(res.status).toBe(400)
     })
   })
 
   describe('JSON body limit', () => {
     it('отклоняет слишком большой payload 413', async () => {
-      // 300 КБ — превышает лимит 256 КБ для обычных эндпоинтов
       const huge = 'x'.repeat(300 * 1024)
       const res = await request(app)
         .post('/api/auth/login')
@@ -360,73 +337,51 @@ run('HTTP routes', () => {
       bob = 'bob_' + Math.random().toString(36).slice(2, 8)
       const r1 = await request(app).post('/api/auth/register').send({ username: alice, password: 'password1' })
       const r2 = await request(app).post('/api/auth/register').send({ username: bob, password: 'password1' })
-      aliceToken = r1.body.token
-      bobToken = r2.body.token
-      aliceId = r1.body.user.id
-      bobId = r2.body.user.id
+      aliceToken = r1.body.token; bobToken = r2.body.token
+      aliceId = r1.body.user.id; bobId = r2.body.user.id
     })
 
     it('alice шлёт запрос bob → bob видит pending', async () => {
       const send = await request(app)
-        .post('/api/friends/request')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ username: bob })
+        .post('/api/friends/request').set('Authorization', `Bearer ${aliceToken}`).send({ username: bob })
       expect(send.status).toBe(200)
-
       const bobFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${bobToken}`)
       expect(bobFriends.body.pending).toEqual(expect.arrayContaining([expect.objectContaining({ username: alice })]))
     })
 
     it('повторный request → 409', async () => {
       const res = await request(app)
-        .post('/api/friends/request')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ username: bob })
+        .post('/api/friends/request').set('Authorization', `Bearer ${aliceToken}`).send({ username: bob })
       expect(res.status).toBe(409)
     })
 
     it('add-self → 400', async () => {
       const res = await request(app)
-        .post('/api/friends/request')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ username: alice })
+        .post('/api/friends/request').set('Authorization', `Bearer ${aliceToken}`).send({ username: alice })
       expect(res.status).toBe(400)
     })
 
     it('несуществующий юзер → 404', async () => {
       const res = await request(app)
-        .post('/api/friends/request')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ username: 'ghost_user_xxx' })
+        .post('/api/friends/request').set('Authorization', `Bearer ${aliceToken}`).send({ username: 'ghost_user_xxx' })
       expect(res.status).toBe(404)
     })
 
     it('[БАГ-ФИКС] accept без pending request → 404, не создаёт одностороннюю дружбу', async () => {
-      // Создаём charlie который НЕ отправлял запрос
       const charlie = 'charlie_' + Math.random().toString(36).slice(2, 8)
       const r = await request(app).post('/api/auth/register').send({ username: charlie, password: 'password1' })
-      const charlieToken = r.body.token
-      const charlieId = r.body.user.id
-
-      // alice пытается "принять" запрос от charlie которого не было
+      const charlieToken = r.body.token; const charlieId = r.body.user.id
       const fake = await request(app)
-        .post('/api/friends/accept')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ userId: charlieId })
+        .post('/api/friends/accept').set('Authorization', `Bearer ${aliceToken}`).send({ userId: charlieId })
       expect(fake.status).toBe(404)
-
-      // Убеждаемся что charlie НЕ видит alice в друзьях
       const charlieFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${charlieToken}`)
       expect(charlieFriends.body.friends).not.toContainEqual(expect.objectContaining({ username: alice }))
     })
 
     it('bob принимает pending от alice → двусторонняя дружба', async () => {
       const accept = await request(app)
-        .post('/api/friends/accept')
-        .set('Authorization', `Bearer ${bobToken}`)
-        .send({ userId: aliceId })
+        .post('/api/friends/accept').set('Authorization', `Bearer ${bobToken}`).send({ userId: aliceId })
       expect(accept.status).toBe(200)
-
       const aliceFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${aliceToken}`)
       const bobFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${bobToken}`)
       expect(aliceFriends.body.friends).toContainEqual(expect.objectContaining({ username: bob }))
@@ -435,25 +390,19 @@ run('HTTP routes', () => {
 
     it('accept с не-числом userId → 400', async () => {
       const res = await request(app)
-        .post('/api/friends/accept')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ userId: 'abc' })
+        .post('/api/friends/accept').set('Authorization', `Bearer ${aliceToken}`).send({ userId: 'abc' })
       expect(res.status).toBe(400)
     })
 
     it('decline с undefined userId → 400', async () => {
       const res = await request(app)
-        .post('/api/friends/decline')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({})
+        .post('/api/friends/decline').set('Authorization', `Bearer ${aliceToken}`).send({})
       expect(res.status).toBe(400)
     })
 
     it('remove удаляет обе стороны дружбы', async () => {
       const res = await request(app)
-        .post('/api/friends/remove')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ userId: bobId })
+        .post('/api/friends/remove').set('Authorization', `Bearer ${aliceToken}`).send({ userId: bobId })
       expect(res.status).toBe(200)
       const aliceFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${aliceToken}`)
       const bobFriends = await request(app).get('/api/friends').set('Authorization', `Bearer ${bobToken}`)
@@ -508,101 +457,67 @@ run('HTTP routes', () => {
   // ═══ PUZZLES ═══
   describe('Puzzles API', () => {
     it('GET /api/puzzles/daily — публичный', async () => {
-      const res = await request(app).get('/api/puzzles/daily')
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/puzzles/daily')).status).toBe(200)
     })
-
     it('GET /api/puzzles/weekly — публичный', async () => {
-      const res = await request(app).get('/api/puzzles/weekly')
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/puzzles/weekly')).status).toBe(200)
     })
-
     it('GET /api/puzzles/bank — банк задач', async () => {
-      const res = await request(app).get('/api/puzzles/bank')
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/puzzles/bank')).status).toBe(200)
     })
-
     it('GET /api/puzzles/rush — конфиг + leaderboard', async () => {
-      const res = await request(app).get('/api/puzzles/rush')
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/puzzles/rush')).status).toBe(200)
     })
-
     it('POST /api/puzzles/submit без токена → 401', async () => {
-      const res = await request(app)
-        .post('/api/puzzles/submit')
+      const res = await request(app).post('/api/puzzles/submit')
         .send({ puzzleType: 'daily', puzzleId: '2026-01-01', solved: true, movesUsed: 3 })
       expect(res.status).toBe(401)
     })
-
     it('POST /api/puzzles/rush/submit с токеном', async () => {
-      const res = await request(app)
-        .post('/api/puzzles/rush/submit')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ score: 10, solved: 5, timeMs: 60000 })
+      const res = await request(app).post('/api/puzzles/rush/submit')
+        .set('Authorization', `Bearer ${token}`).send({ score: 10, solved: 5, timeMs: 60000 })
       expect([200, 400]).toContain(res.status)
     })
-
     it('GET /api/puzzles/user/stats с токеном', async () => {
-      const res = await request(app)
-        .get('/api/puzzles/user/stats')
-        .set('Authorization', `Bearer ${token}`)
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/puzzles/user/stats').set('Authorization', `Bearer ${token}`)).status).toBe(200)
     })
   })
 
   // ═══ MISSIONS / STREAK ═══
   describe('Missions & Streak API', () => {
     it('GET /api/missions требует авторизации', async () => {
-      const res = await request(app).get('/api/missions')
-      expect(res.status).toBe(401)
+      expect((await request(app).get('/api/missions')).status).toBe(401)
     })
-
     it('GET /api/missions возвращает список', async () => {
-      const res = await request(app)
-        .get('/api/missions')
-        .set('Authorization', `Bearer ${token}`)
+      const res = await request(app).get('/api/missions').set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
     })
-
     it('POST /api/streak/checkin — первый вход в день', async () => {
-      const res = await request(app)
-        .post('/api/streak/checkin')
-        .set('Authorization', `Bearer ${token}`)
+      const res = await request(app).post('/api/streak/checkin').set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(200)
       expect(typeof res.body.streak).toBe('number')
     })
-
     it('GET /api/streak возвращает текущий streak', async () => {
-      const res = await request(app)
-        .get('/api/streak')
-        .set('Authorization', `Bearer ${token}`)
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/streak').set('Authorization', `Bearer ${token}`)).status).toBe(200)
     })
   })
 
   // ═══ ARENA ═══
   describe('Arena API', () => {
     it('GET /api/arena/current — публичный', async () => {
-      const res = await request(app).get('/api/arena/current')
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/arena/current')).status).toBe(200)
     })
-
     it('GET /api/arena/history — публичный', async () => {
       const res = await request(app).get('/api/arena/history')
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
     })
-
     it('POST /api/arena/join требует авторизации', async () => {
-      const res = await request(app).post('/api/arena/join')
-      expect(res.status).toBe(401)
+      expect((await request(app).post('/api/arena/join')).status).toBe(401)
     })
-
     it('POST /api/arena/join с токеном', async () => {
-      const res = await request(app)
-        .post('/api/arena/join')
-        .set('Authorization', `Bearer ${token}`)
+      const res = await request(app).post('/api/arena/join').set('Authorization', `Bearer ${token}`)
       expect([200, 400, 403]).toContain(res.status)
     })
   })
@@ -614,117 +529,67 @@ run('HTTP routes', () => {
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
     })
-
     it('POST /api/blog требует admin (обычный юзер → 403)', async () => {
-      const res = await request(app)
-        .post('/api/blog')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ slug: 'test', title_ru: 'x', body_ru: 'y' })
+      const res = await request(app).post('/api/blog')
+        .set('Authorization', `Bearer ${token}`).send({ slug: 'test', title_ru: 'x', body_ru: 'y' })
       expect([401, 403]).toContain(res.status)
     })
   })
 
-  // ═══ ADMIN (с fixture: создаём admin user через прямой UPDATE) ═══
+  // ═══ ADMIN ═══
   describe('Admin API', () => {
     let adminToken, adminUsername
 
     beforeAll(async () => {
       adminUsername = 'admin_' + Math.random().toString(36).slice(2, 8)
-      // Регаем обычного юзера
-      await request(app)
-        .post('/api/auth/register')
-        .send({ username: adminUsername, password: 'adminpass1' })
-      // Даём ему admin права напрямую в БД
+      await request(app).post('/api/auth/register').send({ username: adminUsername, password: 'adminpass1' })
       db.prepare('UPDATE users SET is_admin = 1 WHERE username = ?').run(adminUsername)
-      // Перелогиниваем чтобы получить свежий JWT с isAdmin=true
-      const login = await request(app)
-        .post('/api/auth/login')
-        .send({ username: adminUsername, password: 'adminpass1' })
+      const login = await request(app).post('/api/auth/login').send({ username: adminUsername, password: 'adminpass1' })
       adminToken = login.body.token
     })
 
     it('GET /api/admin/overview требует admin (обычный юзер → 403)', async () => {
-      const res = await request(app)
-        .get('/api/admin/overview')
-        .set('Authorization', `Bearer ${token}`)
-      expect(res.status).toBe(403)
+      expect((await request(app).get('/api/admin/overview').set('Authorization', `Bearer ${token}`)).status).toBe(403)
     })
-
     it('GET /api/admin/overview без токена → 401', async () => {
-      const res = await request(app).get('/api/admin/overview')
-      expect(res.status).toBe(401)
+      expect((await request(app).get('/api/admin/overview')).status).toBe(401)
     })
-
     it('GET /api/admin/overview с admin токеном → 200', async () => {
-      const res = await request(app)
-        .get('/api/admin/overview')
-        .set('Authorization', `Bearer ${adminToken}`)
+      const res = await request(app).get('/api/admin/overview').set('Authorization', `Bearer ${adminToken}`)
       expect(res.status).toBe(200)
-      expect(res.body).toBeDefined()
     })
-
     it('GET /api/admin/users возвращает список юзеров', async () => {
-      const res = await request(app)
-        .get('/api/admin/users')
-        .set('Authorization', `Bearer ${adminToken}`)
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/admin/users').set('Authorization', `Bearer ${adminToken}`)).status).toBe(200)
     })
-
     it('GET /api/admin/games возвращает партии', async () => {
-      const res = await request(app)
-        .get('/api/admin/games')
-        .set('Authorization', `Bearer ${adminToken}`)
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/admin/games').set('Authorization', `Bearer ${adminToken}`)).status).toBe(200)
     })
-
     it('GET /api/admin/blog возвращает все посты', async () => {
-      const res = await request(app)
-        .get('/api/admin/blog')
-        .set('Authorization', `Bearer ${adminToken}`)
+      const res = await request(app).get('/api/admin/blog').set('Authorization', `Bearer ${adminToken}`)
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
     })
-
     it('GET /api/admin/seasons возвращает сезоны', async () => {
-      const res = await request(app)
-        .get('/api/admin/seasons')
-        .set('Authorization', `Bearer ${adminToken}`)
+      const res = await request(app).get('/api/admin/seasons').set('Authorization', `Bearer ${adminToken}`)
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
     })
-
     it('GET /api/admin/rooms возвращает комнаты', async () => {
-      const res = await request(app)
-        .get('/api/admin/rooms')
-        .set('Authorization', `Bearer ${adminToken}`)
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/admin/rooms').set('Authorization', `Bearer ${adminToken}`)).status).toBe(200)
     })
-
     it('GET /api/admin/server возвращает метрики', async () => {
-      const res = await request(app)
-        .get('/api/admin/server')
-        .set('Authorization', `Bearer ${adminToken}`)
-      expect(res.status).toBe(200)
+      expect((await request(app).get('/api/admin/server').set('Authorization', `Bearer ${adminToken}`)).status).toBe(200)
     })
-
     it('GET /api/admin/content возвращает CMS', async () => {
-      const res = await request(app)
-        .get('/api/admin/content')
-        .set('Authorization', `Bearer ${adminToken}`)
+      const res = await request(app).get('/api/admin/content').set('Authorization', `Bearer ${adminToken}`)
       expect(res.status).toBe(200)
       expect(Array.isArray(res.body)).toBe(true)
     })
-
     it('PUT /api/admin/content/:key обновляет запись', async () => {
-      // Создаём тестовую запись
-      await request(app)
-        .post('/api/admin/content')
-        .set('Authorization', `Bearer ${adminToken}`)
+      await request(app).post('/api/admin/content').set('Authorization', `Bearer ${adminToken}`)
         .send({ key: 'test.audit', section: 'test', value_ru: 'ru', value_en: 'en', label: 'audit' })
-      const res = await request(app)
-        .put('/api/admin/content/test.audit')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ value_ru: 'новое', value_en: 'new' })
+      const res = await request(app).put('/api/admin/content/test.audit')
+        .set('Authorization', `Bearer ${adminToken}`).send({ value_ru: 'новое', value_en: 'new' })
       expect(res.status).toBe(200)
     })
   })
@@ -732,15 +597,11 @@ run('HTTP routes', () => {
   // ═══ BRICKS API ═══
   describe('Bricks API', () => {
     it('POST /api/bricks/award-rewarded без токена → 401', async () => {
-      const res = await request(app).post('/api/bricks/award-rewarded')
-      expect(res.status).toBe(401)
+      expect((await request(app).post('/api/bricks/award-rewarded')).status).toBe(401)
     })
 
     it('POST /api/bricks/award-rewarded с токеном → начисляет кирпичи', async () => {
-      const res = await request(app)
-        .post('/api/bricks/award-rewarded')
-        .set('Authorization', `Bearer ${token}`)
-      // 200 при первом вызове за сегодня
+      const res = await request(app).post('/api/bricks/award-rewarded').set('Authorization', `Bearer ${token}`)
       expect([200, 429]).toContain(res.status)
       if (res.status === 200) {
         expect(typeof res.body.bricks).toBe('number')
@@ -750,18 +611,13 @@ run('HTTP routes', () => {
     })
 
     it('POST /api/bricks/award-rewarded повторно → 429 rate limit', async () => {
-      // Сбрасываем лимит через прямое обнуление в БД (тест-хелпер)
-      // Делаем 10 вызовов чтобы гарантированно выбрать лимит
       const brickToken = (await request(app)
         .post('/api/auth/register')
         .send({ username: 'brick_' + Math.random().toString(36).slice(2, 8), password: 'brickpass1' })
       ).body.token
-
       let lastStatus = 200
       for (let i = 0; i < 11; i++) {
-        const r = await request(app)
-          .post('/api/bricks/award-rewarded')
-          .set('Authorization', `Bearer ${brickToken}`)
+        const r = await request(app).post('/api/bricks/award-rewarded').set('Authorization', `Bearer ${brickToken}`)
         lastStatus = r.status
         if (r.status === 429) break
       }
@@ -769,16 +625,71 @@ run('HTTP routes', () => {
     })
 
     it('GET /api/bricks/balance с токеном → возвращает баланс', async () => {
-      const res = await request(app)
-        .get('/api/bricks/balance')
-        .set('Authorization', `Bearer ${token}`)
+      const res = await request(app).get('/api/bricks/balance').set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(200)
       expect(typeof res.body.bricks).toBe('number')
     })
 
     it('GET /api/bricks/balance без токена → 401', async () => {
-      const res = await request(app).get('/api/bricks/balance')
-      expect(res.status).toBe(401)
+      expect((await request(app).get('/api/bricks/balance')).status).toBe(401)
+    })
+
+    it('GET /api/bricks/skins возвращает каталог', async () => {
+      const res = await request(app).get('/api/bricks/skins').set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+      expect(Array.isArray(res.body.skins)).toBe(true)
+      expect(typeof res.body.bricks).toBe('number')
+    })
+  })
+
+  // ═══ BATTLE PASS API ═══
+  describe('Battle Pass API', () => {
+    it('GET /api/bp/current без токена → 401', async () => {
+      expect((await request(app).get('/api/bp/current')).status).toBe(401)
+    })
+
+    it('GET /api/bp/current с токеном → возвращает сезон и квесты', async () => {
+      const res = await request(app).get('/api/bp/current').set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+      // Сезон может быть null если не засеян, или объект
+      if (res.body.season) {
+        expect(Array.isArray(res.body.quests)).toBe(true)
+        expect(res.body.quests.length).toBeGreaterThan(0)
+        expect(res.body.stats).toBeDefined()
+        expect(typeof res.body.stats.totalQuests).toBe('number')
+        expect(typeof res.body.stats.completedCount).toBe('number')
+        // Квест имеет нужные поля
+        const q = res.body.quests[0]
+        expect(q).toHaveProperty('id')
+        expect(q).toHaveProperty('type')
+        expect(q).toHaveProperty('target')
+        expect(q).toHaveProperty('reward_bricks')
+        expect(q).toHaveProperty('progress')
+      }
+    })
+
+    it('POST /api/bp/quests/:id/claim — некорректный id → 400', async () => {
+      const res = await request(app).post('/api/bp/quests/0/claim').set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(400)
+    })
+
+    it('POST /api/bp/quests/:id/claim — несуществующий квест → 404', async () => {
+      const res = await request(app).post('/api/bp/quests/999999/claim').set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(404)
+    })
+
+    it('POST /api/bp/quests/:id/claim без токена → 401', async () => {
+      expect((await request(app).post('/api/bp/quests/1/claim')).status).toBe(401)
+    })
+
+    it('GET /api/bp/current — квесты содержат progress и reward_claimed', async () => {
+      const res = await request(app).get('/api/bp/current').set('Authorization', `Bearer ${token}`)
+      if (res.status === 200 && res.body.quests?.length > 0) {
+        const q = res.body.quests[0]
+        expect(typeof q.progress).toBe('number')
+        expect(typeof q.reward_claimed).toBe('number')
+        expect(q.reward_claimed).toBe(0) // новый юзер — ничего не клеймил
+      }
     })
   })
 })
