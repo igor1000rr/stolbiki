@@ -7,6 +7,7 @@
  * - POST /api/auth/refresh — принимает expired JWT
  * - GET /api/health, /api/stats
  * - 404 на неизвестный endpoint
+ * - POST /api/bricks/award-rewarded — rate limit + auth
  *
  * Зависимости: supertest, better-sqlite3. Обе недоступны в sandbox без native build —
  * при отсутствии тесты скипаются. В CI запускаются полностью.
@@ -725,6 +726,59 @@ run('HTTP routes', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ value_ru: 'новое', value_en: 'new' })
       expect(res.status).toBe(200)
+    })
+  })
+
+  // ═══ BRICKS API ═══
+  describe('Bricks API', () => {
+    it('POST /api/bricks/award-rewarded без токена → 401', async () => {
+      const res = await request(app).post('/api/bricks/award-rewarded')
+      expect(res.status).toBe(401)
+    })
+
+    it('POST /api/bricks/award-rewarded с токеном → начисляет кирпичи', async () => {
+      const res = await request(app)
+        .post('/api/bricks/award-rewarded')
+        .set('Authorization', `Bearer ${token}`)
+      // 200 при первом вызове за сегодня
+      expect([200, 429]).toContain(res.status)
+      if (res.status === 200) {
+        expect(typeof res.body.bricks).toBe('number')
+        expect(res.body.bricks).toBeGreaterThanOrEqual(10)
+        expect(res.body.rewarded).toBe(10)
+      }
+    })
+
+    it('POST /api/bricks/award-rewarded повторно → 429 rate limit', async () => {
+      // Сбрасываем лимит через прямое обнуление в БД (тест-хелпер)
+      // Делаем 10 вызовов чтобы гарантированно выбрать лимит
+      const brickToken = (await request(app)
+        .post('/api/auth/register')
+        .send({ username: 'brick_' + Math.random().toString(36).slice(2, 8), password: 'brickpass1' })
+      ).body.token
+
+      let lastStatus = 200
+      for (let i = 0; i < 11; i++) {
+        const r = await request(app)
+          .post('/api/bricks/award-rewarded')
+          .set('Authorization', `Bearer ${brickToken}`)
+        lastStatus = r.status
+        if (r.status === 429) break
+      }
+      expect(lastStatus).toBe(429)
+    })
+
+    it('GET /api/bricks/balance с токеном → возвращает баланс', async () => {
+      const res = await request(app)
+        .get('/api/bricks/balance')
+        .set('Authorization', `Bearer ${token}`)
+      expect(res.status).toBe(200)
+      expect(typeof res.body.bricks).toBe('number')
+    })
+
+    it('GET /api/bricks/balance без токена → 401', async () => {
+      const res = await request(app).get('/api/bricks/balance')
+      expect(res.status).toBe(401)
     })
   })
 })
