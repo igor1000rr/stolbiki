@@ -26,7 +26,6 @@ export const JWT_SECRET = process.env.JWT_SECRET || (() => {
     console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
     process.exit(1)
   }
-  // Dev: персистим сгенерированный секрет в файл, чтобы токены не инвалидировались при рестарте
   const secretPath = resolve(__dirname, '.jwt-secret')
   if (existsSync(secretPath)) return readFileSync(secretPath, 'utf8').trim()
   const secret = 'stolbiki_dev_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
@@ -35,20 +34,17 @@ export const JWT_SECRET = process.env.JWT_SECRET || (() => {
 })()
 const DB_PATH = process.env.VITEST ? ':memory:' : (process.env.DB_PATH || './data/stolbiki.db')
 
-// Создаём директорию для БД (кроме :memory:)
 if (DB_PATH !== ':memory:') {
   const dbDir = dirname(resolve(DB_PATH))
   if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
 }
 
-// ═══ База данных ═══
 export const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
-db.pragma('busy_timeout = 5000')  // Ждать до 5с при блокировке вместо немедленной ошибки
-db.pragma('synchronous = NORMAL') // Баланс между скоростью и надёжностью (WAL+NORMAL — безопасно)
+db.pragma('busy_timeout = 5000')
+db.pragma('synchronous = NORMAL')
 
-// ─── Основные таблицы ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,7 +191,6 @@ db.exec(`
   );
 `)
 
-// ─── CMS ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS site_content (
     key TEXT PRIMARY KEY,
@@ -207,7 +202,6 @@ db.exec(`
   )
 `)
 
-// ─── Daily + Puzzles ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS daily_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -231,8 +225,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_puzzle_user_solved ON puzzle_results(user_id, solved);
 `)
 
-// ═══ Версионные миграции ═══
-// Каждая миграция выполняется только один раз. Версия хранится в schema_version.
 db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`)
 
 function getSchemaVersion() {
@@ -247,12 +239,10 @@ function runMigration(version, sql) {
     else db.exec(sql)
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(version)
   } catch (e) {
-    // ALTER TABLE ADD COLUMN может упасть если колонка уже есть (от старых миграций)
     try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(version) } catch {}
   }
 }
 
-// Миграция 1: базовые поля users
 runMigration(1, () => {
   try { db.exec('ALTER TABLE users ADD COLUMN fast_wins INTEGER DEFAULT 0') } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN online_wins INTEGER DEFAULT 0') } catch {}
@@ -261,7 +251,6 @@ runMigration(1, () => {
   try { db.exec('ALTER TABLE games ADD COLUMN is_online INTEGER DEFAULT 0') } catch {}
 })
 
-// Миграция 2: login streak
 runMigration(2, () => {
   try { db.exec('ALTER TABLE users ADD COLUMN login_streak INTEGER DEFAULT 0') } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN best_login_streak INTEGER DEFAULT 0') } catch {}
@@ -269,17 +258,11 @@ runMigration(2, () => {
   try { db.exec('ALTER TABLE users ADD COLUMN streak_freeze INTEGER DEFAULT 1') } catch {}
 })
 
-// Миграция 3: XP / Level
 runMigration(3, () => {
   try { db.exec('ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0') } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1') } catch {}
 })
 
-// Следующие миграции добавлять так:
-// runMigration(N, 'ALTER TABLE ...')
-// runMigration(N, () => { db.exec(...); db.exec(...) })
-
-// Миграция 4: реферальная система
 runMigration(4, () => {
   try { db.exec('ALTER TABLE users ADD COLUMN referral_code TEXT UNIQUE') } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN referred_by INTEGER') } catch {}
@@ -294,7 +277,6 @@ runMigration(4, () => {
     FOREIGN KEY (referred_id) REFERENCES users(id)
   )`)
   db.exec('CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)')
-  // Генерируем реф-коды для существующих юзеров
   const users = db.prepare('SELECT id, username FROM users WHERE referral_code IS NULL').all()
   const update = db.prepare('UPDATE users SET referral_code=? WHERE id=?')
   for (const u of users) {
@@ -303,7 +285,6 @@ runMigration(4, () => {
   }
 })
 
-// Миграция 5: сезонные награды
 runMigration(5, () => {
   db.exec(`CREATE TABLE IF NOT EXISTS season_rewards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -320,25 +301,36 @@ runMigration(5, () => {
   )`)
 })
 
-// Миграция 6: error_reports — приводим к актуальной схеме (message/component/ua вместо error/user_agent)
 runMigration(6, () => {
   const cols = db.prepare("PRAGMA table_info(error_reports)").all().map(c => c.name)
   if (!cols.includes('message')) { try { db.exec('ALTER TABLE error_reports ADD COLUMN message TEXT') } catch {} }
   if (!cols.includes('component')) { try { db.exec('ALTER TABLE error_reports ADD COLUMN component TEXT') } catch {} }
   if (!cols.includes('ua')) { try { db.exec('ALTER TABLE error_reports ADD COLUMN ua TEXT') } catch {} }
-  // Переносим данные из старых колонок если они есть
   if (cols.includes('error')) { try { db.exec('UPDATE error_reports SET message = error WHERE message IS NULL AND error IS NOT NULL') } catch {} }
   if (cols.includes('user_agent')) { try { db.exec('UPDATE error_reports SET ua = user_agent WHERE ua IS NULL AND user_agent IS NOT NULL') } catch {} }
 })
 
-// Миграция 7: token_version для отзыва JWT — инкремент token_version инвалидирует все токены юзера
+// Миграция 7: token_version для отзыва JWT
 runMigration(7, () => {
   try { db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0') } catch {}
 })
 
-console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 7`)
+// Миграция 8: bricks + active_skin колонки в users (ранее try/catch в bricks.js)
+runMigration(8, () => {
+  try { db.exec("ALTER TABLE users ADD COLUMN bricks INTEGER NOT NULL DEFAULT 50") } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN active_skin_blocks TEXT NOT NULL DEFAULT 'blocks_classic'") } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN active_skin_stands TEXT NOT NULL DEFAULT 'stands_classic'") } catch {}
+  // Индекс для быстрой проверки rate limit rewarded_ad (10/день)
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_brick_tx_reason ON brick_transactions(user_id, reason, created_at)") } catch {}
+})
 
-// ─── Индексы (идемпотентны) ───
+// Миграция 9: rush_best для ачивок Puzzle Rush
+runMigration(9, () => {
+  try { db.exec('ALTER TABLE users ADD COLUMN rush_best INTEGER DEFAULT 0') } catch {}
+})
+
+console.log(`📦 Schema version: ${getSchemaVersion()}, миграций: 9`)
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_daily_logins_user ON daily_logins(user_id, date DESC);
   CREATE INDEX IF NOT EXISTS idx_daily_missions_user ON daily_missions(user_id, date);
@@ -349,7 +341,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_arena_matches_tournament ON arena_matches(tournament_id, round);
 `)
 
-// ─── Аналитика (события пользователей) ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS analytics_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -367,8 +358,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id);
 `)
 
-// ─── Таблицы (CREATE IF NOT EXISTS — идемпотентны) ───
-
 db.exec(`
   CREATE TABLE IF NOT EXISTS daily_logins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -378,7 +367,6 @@ db.exec(`
   )
 `)
 
-// Push-токены
 db.exec(`
   CREATE TABLE IF NOT EXISTS push_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -389,7 +377,6 @@ db.exec(`
   )
 `)
 
-// Shared replays
 db.exec(`
   CREATE TABLE IF NOT EXISTS replays (
     id TEXT PRIMARY KEY,
@@ -403,7 +390,6 @@ db.exec(`
   )
 `)
 
-// Daily missions
 db.exec(`
   CREATE TABLE IF NOT EXISTS daily_missions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -418,9 +404,6 @@ db.exec(`
   )
 `)
 
-// XP / Level — handled by schema migration 3
-
-// Puzzle Rush scores
 db.exec(`
   CREATE TABLE IF NOT EXISTS puzzle_rush_scores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -432,7 +415,6 @@ db.exec(`
   )
 `)
 
-// Live Arena
 db.exec(`
   CREATE TABLE IF NOT EXISTS arena_tournaments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -477,8 +459,6 @@ db.exec(`
 const contentCount = db.prepare('SELECT COUNT(*) as c FROM site_content').get().c
 if (contentCount === 0) {
   const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
-
-  // Секция: Сайт
   const siteSeed = [
     ['site.name', 'Перехват высотки', 'Snatch Highrise', 'Название игры'],
     ['site.tagline', 'Стратегическая настолка с AI', 'Strategy board game powered by AI', 'Слоган / подзаголовок'],
@@ -487,8 +467,6 @@ if (contentCount === 0) {
     ['footer.tagline', 'Настольные игры и AI-исследования', 'Board games meet AI research', 'Подпись в футере'],
   ]
   for (const [key, ru, en, label] of siteSeed) ins.run(key, 'Сайт', ru, en, label)
-
-  // Секция: Главная страница
   const landingSeed = [
     ['landing.play_btn', 'Играть', 'Play free', 'Кнопка «Играть»'],
     ['landing.learn_btn', 'Обучение за 2 мин', 'Learn in 2 min', 'Кнопка «Обучение»'],
@@ -511,106 +489,21 @@ if (contentCount === 0) {
     ['landing.online_desc', 'Играйте с друзьями или случайным соперником. Турниры Best-of-3/5.', 'Play with friends or random opponents. Best-of-3/5 tournaments.', 'Фича: Онлайн описание'],
   ]
   for (const [key, ru, en, label] of landingSeed) ins.run(key, 'Главная', ru, en, label)
-
-  // i18n ключи
-  const i18nMap = {
-    'nav': 'Навигация', 'game': 'Игра', 'tournament': 'Турниры', 'online': 'Онлайн',
-    'daily': 'Ежедневный челлендж', 'puzzle': 'Головоломки', 'trainer': 'Тренер',
-    'swap': 'Swap / Баланс', 'replay': 'Повтор партии', 'tutorial': 'Обучение',
-    'header': 'Шапка сайта', 'common': 'Общее',
-  }
-  const i18nLabels = {
-    'nav.play': 'Меню: Играть', 'nav.online': 'Меню: Онлайн', 'nav.profile': 'Меню: Профиль',
-    'nav.rules': 'Меню: Правила', 'nav.puzzles': 'Меню: Головоломки', 'nav.simulator': 'Меню: Симулятор',
-    'nav.analytics': 'Меню: Аналитика', 'nav.replays': 'Меню: Реплеи',
-    'game.newGame': 'Кнопка «Новая игра»', 'game.confirm': 'Кнопка «Подтвердить»',
-    'game.reset': 'Кнопка «Сброс»', 'game.transfer': 'Кнопка «Сделать перенос»',
-    'game.cancelTransfer': 'Кнопка «Отменить перенос»',
-    'game.blue': 'Название: Синие', 'game.red': 'Название: Красные',
-    'game.victory': 'Текст: Победа', 'game.defeat': 'Текст: Поражение',
-    'game.aiWins': 'Текст: AI победил', 'game.gameOver': 'Текст: Игра окончена',
-    'game.place1': 'Подсказка: поставьте 1 блок', 'game.placeChips': 'Подсказка: расставьте блоки',
-    'game.aiThinking': 'Текст: AI думает', 'game.opponentTurn': 'Текст: Ход противника',
-    'game.timeUp': 'Текст: Время вышло',
-    'header.title': 'Логотип: название в шапке',
-    'tutorial.title': 'Заголовок обучения',
-    'common.online': 'Статус: Онлайн', 'common.offline': 'Статус: Оффлайн',
-  }
-  const i18nRu = {
-    'nav.play': 'Играть', 'nav.online': 'Онлайн', 'nav.profile': 'Профиль',
-    'nav.rules': 'Правила', 'nav.puzzles': 'Головоломки', 'nav.simulator': 'Симулятор',
-    'nav.analytics': 'Аналитика', 'nav.replays': 'Реплеи',
-    'game.newGame': 'Новая игра', 'game.confirm': 'Подтвердить', 'game.reset': 'Сброс',
-    'game.transfer': '↗ Сделать перенос', 'game.cancelTransfer': '✕ Отменить перенос',
-    'game.mode': 'Режим', 'game.vsAI': 'Против AI', 'game.pvp': 'Вдвоём', 'game.spectate': 'AI vs AI',
-    'game.side': 'Сторона', 'game.blue': 'Синие', 'game.red': 'Красные',
-    'game.blueFirst': 'Синие (первый ход)', 'game.redSwap': 'Красные (swap)',
-    'game.difficulty': 'Сложность', 'game.easy': 'Лёгкая', 'game.medium': 'Средняя', 'game.hard': 'Сложная',
-    'game.hints': 'Подсказки', 'game.trainer': 'Тренер',
-    'game.victory': 'Победа!', 'game.defeat': 'Поражение', 'game.aiWins': 'AI победил',
-    'game.blueWin': 'Синие победили!', 'game.redWin': 'Красные победили!',
-    'game.gameOver': 'Игра окончена', 'game.place1': 'Поставьте 1 блок',
-    'game.place1first': 'Ваш ход — поставьте 1 блок',
-    'game.placeChips': 'Расставьте блоки', 'game.clickStands': 'Кликайте на стойки',
-    'game.aiFirst': 'AI ходит первым...', 'game.aiThinking': 'AI думает...',
-    'game.opponentTurn': 'Ход противника', 'game.timeUp': 'Время вышло!',
-    'game.oppTimeUp': 'У соперника вышло время!', 'game.max2stands': 'Макс 2 стойки',
-    'game.allPlaced': 'Все блоки расставлены', 'game.undone': 'Ход отменён',
-    'game.yourTurn': 'ваш ход', 'game.pass': 'пас',
-    'game.swapDone': 'Swap выполнен — цвета поменялись', 'game.swapOnlineDone': 'Swap — вы теперь синие',
-    'game.selectTransferFrom': 'Выберите стойку для переноса', 'game.transferSelected': 'Перенос выбран, расставьте блоки',
-    'game.transferCancelled': 'Перенос отменён', 'game.swap': 'Swap — смена цветов',
-    'header.title': 'Перехват высотки', 'header.totalUsers': 'игроков', 'header.totalGames': 'партий', 'header.avgRating': 'ср. рейтинг',
-    'tutorial.title': 'Как играть',
-    'common.online': 'Онлайн', 'common.offline': 'Оффлайн',
-    'tournament.won': 'Турнир выигран!', 'tournament.lost': 'Турнир проигран', 'tournament.draw': 'Ничья в турнире',
-    'trainer.strong': 'Сильная позиция', 'trainer.slight': 'Небольшое преимущество',
-    'trainer.equal': 'Равная позиция', 'trainer.weak': 'Слабая позиция', 'trainer.bad': 'Плохая позиция',
-  }
-  const i18nEn = {
-    'nav.play': 'Play', 'nav.online': 'Online', 'nav.profile': 'Profile',
-    'nav.rules': 'Rules', 'nav.puzzles': 'Puzzles', 'nav.simulator': 'Simulator',
-    'nav.analytics': 'Analytics', 'nav.replays': 'Replays',
-    'game.newGame': 'New game', 'game.confirm': 'Confirm', 'game.reset': 'Reset',
-    'game.transfer': '↗ Transfer', 'game.cancelTransfer': '✕ Cancel transfer',
-    'game.mode': 'Mode', 'game.vsAI': 'vs AI', 'game.pvp': 'PvP', 'game.spectate': 'AI vs AI',
-    'game.side': 'Side', 'game.blue': 'Blue', 'game.red': 'Red',
-    'game.blueFirst': 'Blue (first move)', 'game.redSwap': 'Red (swap)',
-    'game.difficulty': 'Difficulty', 'game.easy': 'Easy', 'game.medium': 'Medium', 'game.hard': 'Hard',
-    'game.hints': 'Hints', 'game.trainer': 'Trainer',
-    'game.victory': 'Victory!', 'game.defeat': 'Defeat', 'game.aiWins': 'AI wins',
-    'game.blueWin': 'Blue wins!', 'game.redWin': 'Red wins!',
-    'game.gameOver': 'Game over', 'game.place1': 'Place 1 block',
-    'game.place1first': 'Your turn — place 1 block', 'game.placeChips': 'Place blocks',
-    'game.clickStands': 'Click stands to place', 'game.aiFirst': 'AI goes first...',
-    'game.aiThinking': 'AI thinking...', 'game.opponentTurn': "Opponent's turn",
-    'game.timeUp': 'Time up!', 'game.oppTimeUp': "Opponent's time is up!",
-    'game.max2stands': 'Max 2 stands', 'game.allPlaced': 'All blocks placed',
-    'game.undone': 'Move undone', 'game.yourTurn': 'your turn', 'game.pass': 'pass',
-    'game.swapDone': 'Swap done — colors changed', 'game.swapOnlineDone': 'Swap — you are now blue',
-    'game.selectTransferFrom': 'Select stand to transfer from', 'game.transferSelected': 'Transfer set, place blocks',
-    'game.transferCancelled': 'Transfer cancelled', 'game.swap': 'Swap colors',
-    'header.title': 'Snatch Highrise', 'header.totalUsers': 'players', 'header.totalGames': 'games', 'header.avgRating': 'avg rating',
-    'tutorial.title': 'How to play',
-    'common.online': 'Online', 'common.offline': 'Offline',
-    'tournament.won': 'Tournament won!', 'tournament.lost': 'Tournament lost', 'tournament.draw': 'Tournament draw',
-    'trainer.strong': 'Strong position', 'trainer.slight': 'Slight advantage',
-    'trainer.equal': 'Equal position', 'trainer.weak': 'Weak position', 'trainer.bad': 'Bad position',
-  }
-
+  const i18nMap = { 'nav': 'Навигация', 'game': 'Игра', 'tournament': 'Турниры', 'online': 'Онлайн', 'daily': 'Ежедневный челлендж', 'puzzle': 'Головоломки', 'trainer': 'Тренер', 'swap': 'Swap / Баланс', 'replay': 'Повтор партии', 'tutorial': 'Обучение', 'header': 'Шапка сайта', 'common': 'Общее' }
+  const i18nLabels = { 'nav.play': 'Меню: Играть', 'nav.online': 'Меню: Онлайн', 'nav.profile': 'Меню: Профиль', 'nav.rules': 'Меню: Правила', 'nav.puzzles': 'Меню: Головоломки', 'nav.simulator': 'Меню: Симулятор', 'nav.analytics': 'Меню: Аналитика', 'nav.replays': 'Меню: Реплеи', 'game.newGame': 'Кнопка «Новая игра»', 'game.confirm': 'Кнопка «Подтвердить»', 'game.reset': 'Кнопка «Сброс»', 'game.transfer': 'Кнопка «Сделать перенос»', 'game.cancelTransfer': 'Кнопка «Отменить перенос»', 'game.blue': 'Название: Синие', 'game.red': 'Название: Красные', 'game.victory': 'Текст: Победа', 'game.defeat': 'Текст: Поражение', 'game.aiWins': 'Текст: AI победил', 'game.gameOver': 'Текст: Игра окончена', 'game.place1': 'Подсказка: поставьте 1 блок', 'game.placeChips': 'Подсказка: расставьте блоки', 'game.aiThinking': 'Текст: AI думает', 'game.opponentTurn': 'Текст: Ход противника', 'game.timeUp': 'Текст: Время вышло', 'header.title': 'Логотип: название в шапке', 'tutorial.title': 'Заголовок обучения', 'common.online': 'Статус: Онлайн', 'common.offline': 'Статус: Оффлайн' }
+  const i18nRu = { 'nav.play': 'Играть', 'nav.online': 'Онлайн', 'nav.profile': 'Профиль', 'nav.rules': 'Правила', 'nav.puzzles': 'Головоломки', 'nav.simulator': 'Симулятор', 'nav.analytics': 'Аналитика', 'nav.replays': 'Реплеи', 'game.newGame': 'Новая игра', 'game.confirm': 'Подтвердить', 'game.reset': 'Сброс', 'game.transfer': '↗ Сделать перенос', 'game.cancelTransfer': '✕ Отменить перенос', 'game.mode': 'Режим', 'game.vsAI': 'Против AI', 'game.pvp': 'Вдвоём', 'game.spectate': 'AI vs AI', 'game.side': 'Сторона', 'game.blue': 'Синие', 'game.red': 'Красные', 'game.blueFirst': 'Синие (первый ход)', 'game.redSwap': 'Красные (swap)', 'game.difficulty': 'Сложность', 'game.easy': 'Лёгкая', 'game.medium': 'Средняя', 'game.hard': 'Сложная', 'game.hints': 'Подсказки', 'game.trainer': 'Тренер', 'game.victory': 'Победа!', 'game.defeat': 'Поражение', 'game.aiWins': 'AI победил', 'game.blueWin': 'Синие победили!', 'game.redWin': 'Красные победили!', 'game.gameOver': 'Игра окончена', 'game.place1': 'Поставьте 1 блок', 'game.place1first': 'Ваш ход — поставьте 1 блок', 'game.placeChips': 'Расставьте блоки', 'game.clickStands': 'Кликайте на стойки', 'game.aiFirst': 'AI ходит первым...', 'game.aiThinking': 'AI думает...', 'game.opponentTurn': 'Ход противника', 'game.timeUp': 'Время вышло!', 'game.oppTimeUp': 'У соперника вышло время!', 'game.max2stands': 'Макс 2 стойки', 'game.allPlaced': 'Все блоки расставлены', 'game.undone': 'Ход отменён', 'game.yourTurn': 'ваш ход', 'game.pass': 'пас', 'game.swapDone': 'Swap выполнен — цвета поменялись', 'game.swapOnlineDone': 'Swap — вы теперь синие', 'game.selectTransferFrom': 'Выберите стойку для переноса', 'game.transferSelected': 'Перенос выбран, расставьте блоки', 'game.transferCancelled': 'Перенос отменён', 'game.swap': 'Swap — смена цветов', 'header.title': 'Перехват высотки', 'header.totalUsers': 'игроков', 'header.totalGames': 'партий', 'header.avgRating': 'ср. рейтинг', 'tutorial.title': 'Как играть', 'common.online': 'Онлайн', 'common.offline': 'Оффлайн', 'tournament.won': 'Турнир выигран!', 'tournament.lost': 'Турнир проигран', 'tournament.draw': 'Ничья в турнире', 'trainer.strong': 'Сильная позиция', 'trainer.slight': 'Небольшое преимущество', 'trainer.equal': 'Равная позиция', 'trainer.weak': 'Слабая позиция', 'trainer.bad': 'Плохая позиция' }
+  const i18nEn = { 'nav.play': 'Play', 'nav.online': 'Online', 'nav.profile': 'Profile', 'nav.rules': 'Rules', 'nav.puzzles': 'Puzzles', 'nav.simulator': 'Simulator', 'nav.analytics': 'Analytics', 'nav.replays': 'Replays', 'game.newGame': 'New game', 'game.confirm': 'Confirm', 'game.reset': 'Reset', 'game.transfer': '↗ Transfer', 'game.cancelTransfer': '✕ Cancel transfer', 'game.mode': 'Mode', 'game.vsAI': 'vs AI', 'game.pvp': 'PvP', 'game.spectate': 'AI vs AI', 'game.side': 'Side', 'game.blue': 'Blue', 'game.red': 'Red', 'game.blueFirst': 'Blue (first move)', 'game.redSwap': 'Red (swap)', 'game.difficulty': 'Difficulty', 'game.easy': 'Easy', 'game.medium': 'Medium', 'game.hard': 'Hard', 'game.hints': 'Hints', 'game.trainer': 'Trainer', 'game.victory': 'Victory!', 'game.defeat': 'Defeat', 'game.aiWins': 'AI wins', 'game.blueWin': 'Blue wins!', 'game.redWin': 'Red wins!', 'game.gameOver': 'Game over', 'game.place1': 'Place 1 block', 'game.place1first': 'Your turn — place 1 block', 'game.placeChips': 'Place blocks', 'game.clickStands': 'Click stands to place', 'game.aiFirst': 'AI goes first...', 'game.aiThinking': 'AI thinking...', 'game.opponentTurn': "Opponent's turn", 'game.timeUp': 'Time up!', 'game.oppTimeUp': "Opponent's time is up!", 'game.max2stands': 'Max 2 stands', 'game.allPlaced': 'All blocks placed', 'game.undone': 'Move undone', 'game.yourTurn': 'your turn', 'game.pass': 'pass', 'game.swapDone': 'Swap done — colors changed', 'game.swapOnlineDone': 'Swap — you are now blue', 'game.selectTransferFrom': 'Select stand to transfer from', 'game.transferSelected': 'Transfer set, place blocks', 'game.transferCancelled': 'Transfer cancelled', 'game.swap': 'Swap colors', 'header.title': 'Snatch Highrise', 'header.totalUsers': 'players', 'header.totalGames': 'games', 'header.avgRating': 'avg rating', 'tutorial.title': 'How to play', 'common.online': 'Online', 'common.offline': 'Offline', 'tournament.won': 'Tournament won!', 'tournament.lost': 'Tournament lost', 'tournament.draw': 'Tournament draw', 'trainer.strong': 'Strong position', 'trainer.slight': 'Slight advantage', 'trainer.equal': 'Equal position', 'trainer.weak': 'Weak position', 'trainer.bad': 'Bad position' }
   for (const key of Object.keys(i18nRu)) {
     const prefix = key.split('.')[0]
     const section = i18nMap[prefix] || 'Другое'
     const label = i18nLabels[key] || key
     ins.run(key, section, i18nRu[key], i18nEn[key] || '', label)
   }
-
   console.log('Контент сайта засеян: сайт + главная + i18n')
 }
 
 console.log('База данных готова:', DB_PATH)
 
-// ─── Миграция: добавляем новые i18n ключи если их нет в CMS ───
 const newKeys = {
   'common.loading': ['Общее', 'Загрузка...', 'Loading...', 'Текст загрузки'],
   'game.you': ['Игра', 'Вы', 'You', 'Имя: Вы'],
@@ -689,319 +582,123 @@ for (const [key, [section, ru, en, label]] of Object.entries(newKeys)) {
 }
 if (migrated > 0) console.log(`CMS миграция: добавлено ${migrated} новых ключей`)
 
-// ─── Миграция: блог-пост v3.4 ───
+// ─── Блог-посты ───
 const blogExists = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v3-4-security-spectator'").get()
 if (!blogExists) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(
-      'v3-4-security-spectator',
-      'v3.4 — Безопасность, спектатор, рематч и публичные профили',
-      'v3.4 — Security, spectator mode, rematch & public profiles',
-      `Большое обновление серверной части и онлайн-функционала!
-
-**Безопасность:** Сервер теперь валидирует каждый ход через игровой движок. Раньше клиент мог отправить «я выиграл» — больше нет. Все ходы проверяются через getLegalActions, очерёдность контролируется, gameOver определяет сервер.
-
-**Рематч:** После онлайн-партии можно предложить рематч — сервер автоматически меняет стороны. Если оппонент принял — новая игра начинается мгновенно.
-
-**Спектатор-режим:** В лобби появился раздел «Живые партии». Можно наблюдать за чужими играми в реальном времени — ходы, звуки, счёт.
-
-**Публичные профили:** Клик по нику в лидерборде открывает карточку игрока: рейтинг, статистика, ачивки.
-
-**Push-уведомления:** Когда таб в фоне — браузер покажет уведомление «Ваш ход!», «Ничья предложена» или «Рематч».
-
-**Под капотом:** server.js разбит на 3 модуля (db.js, ws.js, server.js). Game.jsx декомпозирован. 84 хардкодных текста заменены на CMS-ключи.`,
-      `Major server-side and online functionality update!
-
-**Security:** Server now validates every move through the game engine. Previously a client could send "I won" — not anymore. All moves are checked via getLegalActions, turn order is enforced, gameOver is determined server-side.
-
-**Rematch:** After an online game you can offer a rematch — server automatically swaps sides. If opponent accepts, new game starts instantly.
-
-**Spectator mode:** The lobby now has a "Live games" section. Watch others play in real-time — moves, sounds, score.
-
-**Public profiles:** Click a username in the leaderboard to view their player card: rating, stats, achievements.
-
-**Push notifications:** When the tab is in background, browser shows notifications for "Your turn!", "Draw offered", "Rematch".
-
-**Under the hood:** server.js split into 3 modules (db.js, ws.js, server.js). Game.jsx decomposed. 84 hardcoded texts replaced with CMS keys.`,
-      'update', 1, 1
-    )
+    .run('v3-4-security-spectator', 'v3.4 — Безопасность, спектатор, рематч и публичные профили', 'v3.4 — Security, spectator mode, rematch & public profiles',
+      `Большое обновление серверной части и онлайн-функционала!\n\n**Безопасность:** Сервер теперь валидирует каждый ход через игровой движок.\n\n**Рематч:** После онлайн-партии можно предложить рематч.\n\n**Спектатор-режим:** В лобби появился раздел «Живые партии».\n\n**Публичные профили:** Клик по нику в лидерборде открывает карточку игрока.\n\n**Push-уведомления:** Когда таб в фоне — браузер покажет уведомление «Ваш ход!».\n\n**Под капотом:** server.js разбит на 3 модуля. Game.jsx декомпозирован. 84 хардкодных текста заменены на CMS-ключи.`,
+      `Major server-side and online functionality update!\n\n**Security:** Server now validates every move through the game engine.\n\n**Rematch:** After an online game you can offer a rematch.\n\n**Spectator mode:** The lobby now has a "Live games" section.\n\n**Public profiles:** Click a username in the leaderboard to view their player card.\n\n**Push notifications:** When the tab is in background, browser shows notifications.\n\n**Under the hood:** server.js split into 3 modules. Game.jsx decomposed. 84 hardcoded texts replaced with CMS keys.`,
+      'update', 0, 1)
   console.log('Блог: добавлен пост v3.4')
 }
 
-// ─── Блог-пост v3.5 ───
 const blog35 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v3-5-gpu-neural-extreme'").get()
 if (!blog35) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v3-5-gpu-neural-extreme',
-    'v3.5 — GPU-нейросеть, экстрим, рематч, спектатор',
-    'v3.5 — GPU neural network, extreme, rematch, spectator',
-    `Самое большое обновление Snatch Highrise!
-
-**GPU-нейросеть в браузере:** ResNet с 840K параметрами (93× больше предыдущей) теперь работает прямо в браузере. Обучена через 500 итераций self-play на NVIDIA GPU. AI стал значительно сильнее — каждая оценка позиции точнее.
-
-**Экстрим-сложность:** Новый уровень — 600 GPU-симуляций. Самый сильный AI в игре. Сеть продолжает обучаться на партиях реальных игроков.
-
-**Серверная валидация:** Сервер валидирует каждый ход через движок. Раньше клиент мог подменить результат — теперь gameOver определяет сервер.
-
-**Рематч:** После онлайн-партии — кнопка рематча, сервер автоматически меняет стороны.
-
-**Спектатор-режим:** В лобби «Живые партии» — наблюдайте за чужими играми в реальном времени.
-
-**Публичные профили:** Клик по нику в лидерборде — карточка с рейтингом, статистикой и ачивками.
-
-**Push-уведомления:** Браузер покажет «Ваш ход!» когда таб в фоне.
-
-**Под капотом:** server.js → 3 модуля, Game.jsx декомпозирован, 84 текста на CMS.`,
-    `The biggest Snatch Highrise update yet!
-
-**GPU neural network in browser:** ResNet with 840K parameters (93× larger than previous) now runs directly in the browser. Trained through 500 iterations of self-play on NVIDIA GPU. AI is significantly stronger — each position evaluation is more accurate.
-
-**Extreme difficulty:** New level — 600 GPU simulations. The strongest AI in the game. The network continues learning from real player games.
-
-**Server-side validation:** Server validates every move through the game engine. Previously clients could fake results — now gameOver is determined server-side.
-
-**Rematch:** After an online game — rematch button, server automatically swaps sides.
-
-**Spectator mode:** "Live games" in lobby — watch others play in real-time.
-
-**Public profiles:** Click username in leaderboard — player card with rating, stats, achievements.
-
-**Push notifications:** Browser shows "Your turn!" when tab is in background.
-
-**Under the hood:** server.js split into 3 modules, Game.jsx decomposed, 84 texts moved to CMS.`,
-    'update', 1, 1
-  )
+    'v3-5-gpu-neural-extreme', 'v3.5 — GPU-нейросеть, экстрим, рематч, спектатор', 'v3.5 — GPU neural network, extreme, rematch, spectator',
+    `Самое большое обновление!\n\n**GPU-нейросеть в браузере:** ResNet с 840K параметрами (93× больше предыдущей).\n\n**Экстрим-сложность:** Новый уровень — 600 GPU-симуляций.\n\n**Серверная валидация:** Сервер валидирует каждый ход через движок.\n\n**Рематч, спектатор, публичные профили, push-уведомления.** Под капотом: server.js → 3 модуля, 84 текста на CMS.`,
+    `The biggest update yet!\n\n**GPU neural network in browser:** ResNet with 840K parameters (93× larger).\n\n**Extreme difficulty:** New level — 600 GPU simulations.\n\n**Server-side validation:** Server validates every move.\n\n**Rematch, spectator, public profiles, push notifications.** Under the hood: server.js split into 3 modules, 84 texts to CMS.`,
+    'update', 0, 1)
   console.log('Блог: добавлен пост v3.5')
 }
 
-// ─── Блог-пост v4.5.0 ───
-const blog4469 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-5-0-code-audit'").get()
-if (!blog4469) {
+const blog450 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-5-0-code-audit'").get()
+if (!blog450) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-5-0-code-audit',
-    'v4.5.0 — Аудит кода, очистка, Node 22',
-    'v4.5.0 — Code audit, cleanup, Node 22',
-    `Технический аудит всей кодовой базы: сервер, клиент, CI/CD, инфраструктура.
-
-**Node.js 22:** VPS обновлён с Node 20 на 22.22.2. Capacitor CLI требует 22+, CI уже использовал 22 — теперь всё синхронизировано. better-sqlite3 пересобран под новый ABI.
-
-**–8.1MB из репо:** Удалён мёртвый gpu_weights.json — в коде загружается только бинарный формат gpu_weights.bin (3.3MB). JSON-копия весов не использовалась, но попадала в каждый билд.
-
-**Мёртвый код:** Удалены дублированные 404 и error handlers в server.js (4 handler'а вместо 2), дублирующий setInterval очистки в middleware.js, фейковый aggregateRating из JSON-LD.
-
-**PM2 оптимизация:** Переключён на fork mode — cluster mode с 1 инстансом и SQLite добавлял лишний overhead без пользы.
-
-**Vite chunks:** AI-движок и chart-библиотеки выделены в отдельные чанки. Основной бандл стал легче, тяжёлые модули кешируются отдельно.
-
-**ELO-график:** Добавлены линии рейтинг-тиров (1200/1500/1800) и точка текущего рейтинга. Визуально понятно, до какого ранга осталось расти.`,
-    `Full code audit of the entire codebase: server, client, CI/CD, infrastructure.
-
-**Node.js 22:** VPS upgraded from Node 20 to 22.22.2. Capacitor CLI requires 22+, CI already used 22 — now everything is in sync. better-sqlite3 rebuilt for new ABI.
-
-**–8.1MB from repo:** Removed dead gpu_weights.json — code only loads binary gpu_weights.bin (3.3MB). The JSON copy was unused but included in every build.
-
-**Dead code:** Removed duplicate 404 and error handlers in server.js (4 handlers instead of 2), duplicate setInterval cleanup in middleware.js, fake aggregateRating from JSON-LD.
-
-**PM2 optimization:** Switched to fork mode — cluster mode with 1 instance and SQLite added overhead with no benefit.
-
-**Vite chunks:** AI engine and chart libraries split into separate chunks. Main bundle is lighter, heavy modules cached separately.
-
-**ELO chart:** Added rating tier lines (1200/1500/1800) and current rating dot. Visually clear how far to the next rank.`,
-    'update', 1, 1
-  )
-  // Убираем pinned с предыдущих постов
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-5-0-code-audit'").run()
+    'v4-5-0-code-audit', 'v4.5.0 — Аудит кода, очистка, Node 22', 'v4.5.0 — Code audit, cleanup, Node 22',
+    `Технический аудит всей кодовой базы.\n\n**Node.js 22:** VPS обновлён с Node 20 на 22.22.2.\n\n**–8.1MB из репо:** Удалён мёртвый gpu_weights.json.\n\n**Мёртвый код удалён.** PM2 fork mode. Vite chunks. ELO-график с тирами.`,
+    `Full code audit.\n\n**Node.js 22:** VPS upgraded from Node 20 to 22.22.2.\n\n**–8.1MB from repo:** Removed dead gpu_weights.json.\n\n**Dead code removed.** PM2 fork mode. Vite chunks. ELO chart with tiers.`,
+    'update', 0, 1)
+  db.prepare("UPDATE blog_posts SET pinned=0").run()
   console.log('Блог: добавлен пост v4.5.0')
 }
 
-// ─── Блог-пост v4.5.1 ───
 const blog451 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-5-1-virality'").get()
 if (!blog451) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-5-1-virality',
-    'v4.5.1 — Share-карточки и реферальная система',
-    'v4.5.1 — Share cards and referral system',
-    `Виральные фичи — чтобы игроки приводили игроков.
-
-**Share-карточка:** После каждой партии можно поделиться красивой карточкой с результатом. На ней: имя игрока, рейтинг, изменение ELO, сложность AI, визуальное состояние стоек и брендинг. Работает через Canvas → PNG → Web Share API (или скачивание).
-
-**Реферальная система:** У каждого игрока есть уникальный код и ссылка. Отправляете другу — он регистрируется по вашей ссылке, вы получаете +100 XP. В профиле новая вкладка «Пригласить»: ссылка, код, кнопка «Поделиться», количество приглашённых и заработанный XP.
-
-**Как работает:** Ссылка вида snatch-highrise.com?ref=CODE. При переходе код сохраняется в localStorage. При регистрации — автоматически привязывается к аккаунту.`,
-    `Viral features — so players bring more players.
-
-**Share card:** After each game you can share a beautiful result card. It shows: player name, rating, ELO change, AI difficulty, visual stand state, and branding. Works via Canvas → PNG → Web Share API (or download).
-
-**Referral system:** Every player gets a unique code and link. Send it to a friend — they register via your link, you get +100 XP. New "Invite" tab in profile: link, code, share button, referral count and earned XP.
-
-**How it works:** Link format: snatch-highrise.com?ref=CODE. On visit, the code is saved to localStorage. On registration — automatically linked to the account.`,
-    'update', 1, 1
-  )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug NOT IN ('v4-5-1-virality')").run()
+    'v4-5-1-virality', 'v4.5.1 — Share-карточки и реферальная система', 'v4.5.1 — Share cards and referral system',
+    `Виральные фичи.\n\n**Share-карточка:** Canvas → PNG → Web Share API.\n\n**Реферальная система:** Уникальный код и ссылка. +100 XP за приглашённого друга.`,
+    `Viral features.\n\n**Share card:** Canvas → PNG → Web Share API.\n\n**Referral system:** Unique code and link. +100 XP per invited friend.`,
+    'update', 0, 1)
   console.log('Блог: добавлен пост v4.5.1')
 }
 
-// ─── Блог-пост v4.6.0 ───
 const blog460 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-0-challenge-css'").get()
 if (!blog460) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-6-0-challenge-css',
-    'v4.6.0 — Вызов друзьям, CSS –81%, рефералы',
-    'v4.6.0 — Friend Challenge, CSS –81%, referrals',
-    `Большое обновление: социальные фичи + масштабный рефакторинг.
-
-**Вызов друзьям:** Теперь можно бросить вызов конкретному другу из списка друзей. Кнопка «Вызвать» создаёт комнату, друг видит входящий вызов с таймером 5 минут. Принял — оба попадают в игру.
-
-**Share-карточка:** После партии можно поделиться красивой карточкой (680×400) с именем, рейтингом, ELO-дельтой, сложностью AI и визуальным состоянием стоек. Шрифт Outfit, тёмный градиент, акцент-бар по результату.
-
-**Реферальная система:** Уникальный код и ссылка для каждого игрока. Друг регистрируется по ссылке — вы получаете +100 XP. Новая вкладка «Пригласить» в профиле с копированием, шарингом и статистикой.
-
-**CSS рефакторинг:** app.css разделён с 3093 до 595 строк (–81%). Создано 8 модулей: game.css (доска), landing.css, themes.css (10 тем), native.css (Capacitor) и др.
-
-**Инфраструктура:** Node.js 22, HTTPS с HSTS, UFW firewall, SQLite бэкапы каждые 6 часов, PM2 fork mode, Vite chunk splitting.`,
-    `Major update: social features + massive refactoring.
-
-**Friend Challenge:** Challenge a specific friend from your friends list. The "Challenge" button creates a room, your friend sees an incoming challenge with a 5-minute timer. Accept — both enter the game.
-
-**Share Card:** After a game, share a beautiful card (680×400) with name, rating, ELO delta, AI difficulty, and visual stand state. Outfit font, dark gradient, accent bar by result.
-
-**Referral System:** Unique code and link for every player. Friend registers via your link — you get +100 XP. New "Invite" tab in profile with copy, share, and stats.
-
-**CSS Refactor:** app.css split from 3093 to 595 lines (–81%). Created 8 modules: game.css (board), landing.css, themes.css (10 themes), native.css (Capacitor) etc.
-
-**Infrastructure:** Node.js 22, HTTPS with HSTS, UFW firewall, SQLite backups every 6h, PM2 fork mode, Vite chunk splitting.`,
-    'update', 1, 1
-  )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-0-challenge-css'").run()
+    'v4-6-0-challenge-css', 'v4.6.0 — Вызов друзьям, CSS –81%, рефералы', 'v4.6.0 — Friend Challenge, CSS –81%, referrals',
+    `Большое обновление.\n\n**Вызов друзьям:** Кнопка «Вызвать» создаёт комнату с таймером 5 минут.\n\n**CSS рефакторинг:** app.css разделён с 3093 до 595 строк (–81%).\n\n**Реферальная система, share-карточка (680×400), Node.js 22, HTTPS, UFW, SQLite бэкапы каждые 6 часов.**`,
+    `Major update.\n\n**Friend Challenge:** "Challenge" button creates a room with 5-minute timer.\n\n**CSS Refactor:** app.css split from 3093 to 595 lines (–81%).\n\n**Referral system, share card (680×400), Node.js 22, HTTPS, UFW, SQLite backups every 6h.**`,
+    'update', 0, 1)
   console.log('Блог: добавлен пост v4.6.0')
 }
 
-// ─── Блог-пост v4.6.1 ───
 const blog461 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-1-10m-spectator'").get()
 if (!blog461) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-6-1-10m-spectator',
-    'v4.6.1 — 10M партий, spectator chat, сезонные награды',
-    'v4.6.1 — 10M games, spectator chat, season rewards',
-    `Масштабное обновление с аналитикой и социальными фичами.
-
-**10M self-play партий.** Мы запустили 10 миллионов партий для анализа баланса. Результат: P0 36.35% vs P1 36.33% — идеальный баланс с разницей 0.012%. Ни одного разгрома (10-0) из 10M партий. 54% партий заканчиваются плотно (±2). Золотая стойка не даёт преимущества — 50/50. Вывод: в Snatch Highrise нет доминирующей стратегии, побеждает тактика.
-
-**AI v5 задеплоен.** Checkpoint v1493 — 850 новых итераций обучения на GPU. Нейросеть 840K параметров стала ещё сильнее. Extreme (1500 симуляций) — почти непобедим.
-
-**Spectator chat.** Зрители теперь могут писать в чат во время наблюдения за партией. Сообщения видны игрокам и другим зрителям.
-
-**Сезонные награды.** Top-10 в рейтинговом сезоне получают эксклюзивные достижения: champion, silver, bronze, top10. Автоматическая раздача при завершении сезона.
-
-**+4 сложные головоломки.** Difficulty 4-5: «Тотальный контроль», «Блокада», «Мастер-план» — до 5 ходов. Для настоящих мастеров.`,
-    `Major update with analytics and social features.
-
-**10M self-play games.** We ran 10 million games to analyze balance. Result: P0 36.35% vs P1 36.33% — perfect balance with 0.012% difference. Zero sweeps (10-0) out of 10M games. 54% of games end tight (±2). Golden stand doesn't give advantage — 50/50. Conclusion: there's no dominant strategy in Snatch Highrise, tactics win.
-
-**AI v5 deployed.** Checkpoint v1493 — 850 new GPU training iterations. 840K parameter neural network is even stronger. Extreme (1500 simulations) — nearly unbeatable.
-
-**Spectator chat.** Viewers can now chat while watching a game. Messages visible to players and other spectators.
-
-**Season rewards.** Top-10 in ranked season receive exclusive achievements: champion, silver, bronze, top10. Auto-distributed when season ends.
-
-**+4 hard puzzles.** Difficulty 4-5: "Total control", "Blockade", "Master plan" — up to 5 moves. For true masters.`,
-    'update', 1, 1
-  )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-1-10m-spectator'").run()
+    'v4-6-1-10m-spectator', 'v4.6.1 — 10M партий, spectator chat, сезонные награды', 'v4.6.1 — 10M games, spectator chat, season rewards',
+    `Масштабное обновление.\n\n**10M self-play партий:** P0 36.35% vs P1 36.33% — идеальный баланс.\n\n**AI v5:** Checkpoint v1493, 840K параметров.\n\n**Spectator chat, сезонные награды top-10, +4 сложные головоломки.**`,
+    `Major update.\n\n**10M self-play games:** P0 36.35% vs P1 36.33% — perfect balance.\n\n**AI v5:** Checkpoint v1493, 840K params.\n\n**Spectator chat, season rewards top-10, +4 hard puzzles.**`,
+    'update', 0, 1)
   console.log('Блог: добавлен пост v4.6.1')
 }
 
-// ─── Блог-пост v4.6.2 ───
 const blog462 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-6-2-analytics-gdpr'").get()
 if (!blog462) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-6-2-analytics-gdpr',
-    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
-    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
-    `Большое обновление — AI, интерфейс, юридические документы, сбор данных.
-
-**AI Impossible.** Новый уровень сложности — 5000 MCTS симуляций на ход (~6 сек). 99%+ побед против людей. Теперь 5 уровней: Easy → Medium → Hard → Extreme → Impossible.
-
-**Profile redesign.** Компактный header: аватар + имя + ранг + уровень + streak badge + Snappy + ELO рейтинг. 2-колоночный layout: задания дня слева, статистика справа. Gradient stat cards. Avatar picker inline в header.
-
-**Settings redesign.** 2×2 grid layout: Геймплей, Внешний вид, Звук и AI, Приватность. Все на inline styles — тогглы, сегменты, переключатели работают без CSS конфликтов.
-
-**Training data.** Серверный сбор ходов всех партий (AI + Online). POST /api/training для анонимных игроков. WebSocket автоматически записывает онлайн-партии. Безлимитное хранение.
-
-**Legal.** Privacy Policy (8 секций, Яндекс Метрика раскрыта, GDPR/CCPA). Terms of Service (7 секций). Cookie consent с правдивым текстом.
-
-**Landing redesign.** Реалистичный SVG-телефон с Dynamic Island. Print & Play секция. Финальный CTA с чистым дизайном.
-
-**Аналитика.** 9 событий трекинга. Админка: графики, устройства, активные юзеры.
-
-**Баг-фиксы.** Sound mute работает глобально. Emoji → SVG иконки. 10+ строк i18n. Mission text: 0 не рендерится перед названием. SeasonSection получает en prop. Таблицы challenges и error_reports созданы. /api/stats 500 исправлен.`,
-    `Major update — AI, interface, legal docs, data collection.
-
-**AI Impossible.** New difficulty level — 5000 MCTS simulations per move (~6 sec). 99%+ win rate vs humans. Now 5 levels: Easy → Medium → Hard → Extreme → Impossible.
-
-**Profile redesign.** Compact header: avatar + name + rank + level + streak badge + Snappy + ELO. 2-column layout: daily missions left, stats right. Gradient stat cards. Inline avatar picker.
-
-**Settings redesign.** 2×2 grid layout: Gameplay, Appearance, Sound & AI, Privacy. All inline styles — toggles, segments, switches work without CSS conflicts.
-
-**Training data.** Server-side collection of all game moves (AI + Online). POST /api/training for anonymous players. WebSocket auto-records online games. Unlimited storage.
-
-**Legal.** Privacy Policy (8 sections, Yandex Metrika disclosed, GDPR/CCPA). Terms of Service (7 sections). Cookie consent with honest text.
-
-**Landing redesign.** Realistic SVG phone with Dynamic Island. Print & Play section. Clean final CTA.
-
-**Bug fixes.** Sound mute works globally. Emoji → SVG icons. 10+ i18n strings. Mission text fix. SeasonSection en prop. challenges/error_reports tables. /api/stats 500 fixed.`,
-    'update', 1, 1
-  )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-6-2-analytics-gdpr'").run()
+    'v4-6-2-analytics-gdpr', 'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal', 'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
+    `Большое обновление.\n\n**AI Impossible:** 5000 MCTS симуляций (~6 сек). 99%+ побед против людей. Теперь 5 уровней.\n\n**Profile/Settings redesign.** Training data сбор. Privacy Policy, Terms of Service. Cookie consent. Landing redesign. 9 аналитических событий.`,
+    `Major update.\n\n**AI Impossible:** 5000 MCTS simulations (~6 sec). 99%+ win rate vs humans. Now 5 levels.\n\n**Profile/Settings redesign.** Training data collection. Privacy Policy, Terms of Service. Cookie consent. Landing redesign. 9 analytics events.`,
+    'update', 0, 1)
   console.log('Блог: добавлен пост v4.6.2')
-} else {
-  // Обновляем существующий пост
-  db.prepare("UPDATE blog_posts SET title_ru=?, title_en=?, pinned=1 WHERE slug='v4-6-2-analytics-gdpr'").run(
-    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal',
-    'v4.6.2 — AI Impossible, Profile/Settings redesign, Legal'
-  )
 }
 
-// Убираем pinned с v3.4 (старый пост) + восстанавливаем оригинальное содержание
-db.prepare("UPDATE blog_posts SET pinned=0, title_ru='v3.4 — Безопасность, спектатор, рематч и публичные профили', title_en='v3.4 — Security, spectator mode, rematch & public profiles' WHERE slug='v3-4-security-spectator'").run()
-
-// ─── Блог-пост v4.7.0 ───
 const blog470 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v4-7-0-alphazero-android'").get()
 if (!blog470) {
   db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'v4-7-0-alphazero-android',
-    'v4.7.0 — AlphaZero AI v7, Android, полный редизайн UX',
-    'v4.7.0 — AlphaZero AI v7, Android, full UX redesign',
-    `Крупнейшее обновление: новая нейросеть, Android-приложение и полная переработка интерфейса.
-
-**AlphaZero AI v7:** Переход с value-only сети (v6) на policy+value архитектуру (859K параметров, +2.2%). Policy head предсказывает вероятности ходов, value head — оценку позиции. MCTS использует PUCT формулу вместо UCB1: Q(a) + c_puct × P(a) × √N / (1+N(a)). Результат: AI быстрее находит сильные ходы с меньшим количеством симуляций.
-
-**5 уровней сложности:** Лёгкая (50 симуляций) → Средняя (150) → Сложная (400, по умолчанию) → Экстрим (800) → Невозможный (1500). Новым игрокам ставится Сложная, чтобы было интересно разобраться в стратегии.
-
-**Android-приложение:** Capacitor 8 с 6 плагинами: вибрация при ходах, нативный шаринг, определение сети, splash screen. Доска адаптируется под любой экран, кнопки 44px для удобства нажатия.
-
-**Редизайн игрового интерфейса:** Убрана волновая анимация стоек (мерцание при переходах). Убрана полоса прогресса закрытия (путала игроков). Стабильный разделитель «Ход · Время · Блоки» — кнопки больше не прыгают. Подсказки 💡 всегда доступны. Из настроек убраны Сторона и Тренер.
-
-**Редизайн лендинга:** Новый текст: «Хитрые еноты строят высотки и перехватывают их у других». Убрана секция статистики (10M+, 97%, 50:50). Упрощён FAQ до 3 вопросов. Фиксы читаемости в светлой теме.
-
-**Техническое:** Убрано 52 строки мёртвого кода. Game.jsx стал на 7% легче. Все CSS скобки сбалансированы.`,
-    `The biggest update: new neural network, Android app, and complete UI overhaul.
-
-**AlphaZero AI v7:** Transition from value-only network (v6) to policy+value architecture (859K params, +2.2%). Policy head predicts move probabilities, value head evaluates positions. MCTS uses PUCT formula instead of UCB1: Q(a) + c_puct × P(a) × √N / (1+N(a)). Result: AI finds strong moves faster with fewer simulations.
-
-**5 difficulty levels:** Easy (50 sims) → Medium (150) → Hard (400, default) → Extreme (800) → Impossible (1500). New players start on Hard to make strategy discovery engaging.
-
-**Android app:** Capacitor 8 with 6 plugins: haptic feedback, native sharing, network detection, splash screen. Board adapts to any screen size, 44px touch targets.
-
-**Game UI redesign:** Removed wave animation on stands (jarring flicker). Removed closure progress bar (confused players). Stable separator "Turn · Time · Blocks" — buttons no longer jump. Hints 💡 always available. Removed Side and Trainer from settings.
-
-**Landing redesign:** New copy: "Sneaky raccoons build highrises and snatch them from others." Removed stats section. Simplified FAQ to 3 questions. Light theme readability fixes.
-
-**Technical:** Removed 52 lines of dead code. Game.jsx is 7% lighter. All CSS braces balanced.`,
-    'update', 1, 1
-  )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v4-7-0-alphazero-android'").run()
+    'v4-7-0-alphazero-android', 'v4.7.0 — AlphaZero AI v7, Android, полный редизайн UX', 'v4.7.0 — AlphaZero AI v7, Android, full UX redesign',
+    `Крупнейшее обновление.\n\n**AlphaZero AI v7:** policy+value архитектура (859K параметров). PUCT формула вместо UCB1.\n\n**5 уровней сложности:** Easy (50) → Medium (150) → Hard (400) → Extreme (800) → Impossible (1500).\n\n**Android-приложение:** Capacitor 8, 6 плагинов. Редизайн игры и лендинга. 52 строки мёртвого кода удалены.`,
+    `The biggest update.\n\n**AlphaZero AI v7:** policy+value architecture (859K params). PUCT formula instead of UCB1.\n\n**5 difficulty levels:** Easy (50) → Medium (150) → Hard (400) → Extreme (800) → Impossible (1500).\n\n**Android app:** Capacitor 8, 6 plugins. Game and landing redesign. 52 lines of dead code removed.`,
+    'update', 0, 1)
+  db.prepare("UPDATE blog_posts SET pinned=0").run()
   console.log('Блог: добавлен пост v4.7.0')
+}
+
+// ─── Блог-пост v5.3.0 ───
+const blog530 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v530-bugfixes'").get()
+if (!blog530) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'v530-bugfixes',
+      'v5.3.0: Баг-фиксы CI/CD, /api/training, rewarded field',
+      'v5.3.0: Bug fixes CI/CD, /api/training, rewarded field',
+      `**🐛 Исправлен CI/CD**
+deploy.yml использовал actions/checkout@v5 и setup-node@v5 — эти версии не существуют. Все деплои с момента создания CI падали на первом шаге. Исправлено на @v4.
+
+**🐛 /api/training runtime error**
+Переменная safeDifficulty была объявлена только внутри POST /api/games, в POST /api/training она была undefined. Все записи тренировочных данных содержали difficulty=0. Исправлено.
+
+**🐛 rewarded field в /api/bricks/award-rewarded**
+Ответ содержал amount но не rewarded — тест падал в CI. Теперь оба поля присутствуют.
+
+**🗄 DB migration 8+9**
+Колонки bricks, active_skin_blocks, active_skin_stands и rush_best теперь добавляются через proper versioned migration вместо try/catch в route-файлах. Добавлен индекс по (user_id, reason, created_at) для reward rate limit — ускоряет проверку лимита 10/день.`,
+      `**🐛 Fixed CI/CD**
+deploy.yml was using actions/checkout@v5 and setup-node@v5 — these versions don't exist. All deploys were failing on the first step. Fixed to @v4.
+
+**🐛 /api/training runtime error**
+Variable safeDifficulty was declared only inside POST /api/games, in POST /api/training it was undefined. All training data records had difficulty=0. Fixed.
+
+**🐛 rewarded field in /api/bricks/award-rewarded**
+Response had amount but not rewarded — test was failing in CI. Both fields now present.
+
+**🗄 DB migration 8+9**
+Columns bricks, active_skin_blocks, active_skin_stands and rush_best are now added via proper versioned migration instead of try/catch in route files. Added index on (user_id, reason, created_at) for reward rate limit.`,
+      'release', 1, 1, '2026-04-14 12:00:00'
+    )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v530-bugfixes'").run()
+  console.log('Блог: добавлен пост v5.3.0')
 }
 
 // ═══ Ачивки ═══
@@ -1032,13 +729,11 @@ const ALL_ACHIEVEMENTS = [
   { id: 'online_win', check: u => (u.online_wins || 0) >= 1 },
   { id: 'online_10', check: u => (u.online_wins || 0) >= 10 },
   { id: 'puzzle_10', check: u => (u.puzzles_solved || 0) >= 10 },
-  // v4.0
   { id: 'level_5', check: u => (u.level || 1) >= 5 },
   { id: 'level_10', check: u => (u.level || 1) >= 10 },
   { id: 'level_20', check: u => (u.level || 1) >= 20 },
 ]
 
-// Ачивки требующие данные из других таблиц
 const CROSS_TABLE_ACHIEVEMENTS = [
   { id: 'rush_5', check: userId => { const r = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(userId); return (r?.best || 0) >= 5 } },
   { id: 'rush_15', check: userId => { const r = db.prepare('SELECT MAX(score) as best FROM puzzle_rush_scores WHERE user_id=?').get(userId); return (r?.best || 0) >= 15 } },
@@ -1062,16 +757,10 @@ export function checkAchievements(userId) {
   const newAch = []
   const insert = db.prepare('INSERT OR IGNORE INTO achievements (user_id, achievement_id) VALUES (?, ?)')
   for (const ach of ALL_ACHIEVEMENTS) {
-    if (!existing.includes(ach.id) && ach.check(user)) {
-      insert.run(userId, ach.id)
-      newAch.push(ach.id)
-    }
+    if (!existing.includes(ach.id) && ach.check(user)) { insert.run(userId, ach.id); newAch.push(ach.id) }
   }
   for (const ach of CROSS_TABLE_ACHIEVEMENTS) {
-    if (!existing.includes(ach.id) && ach.check(userId)) {
-      insert.run(userId, ach.id)
-      newAch.push(ach.id)
-    }
+    if (!existing.includes(ach.id) && ach.check(userId)) { insert.run(userId, ach.id); newAch.push(ach.id) }
   }
   return newAch
 }
