@@ -25,6 +25,7 @@ import { useGameLog } from '../engine/useGameLog'
 import { useSessionStats } from '../engine/useSessionStats'
 import { useOnlineGameHandlers } from '../engine/useOnlineGameHandlers'
 import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
+import { maybeShowInterstitial } from '../engine/admob'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -294,6 +295,8 @@ export default function Game() {
                 const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
                 setTournament(prev => ({ ...prev, games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }] }))
               }
+              // AdMob interstitial каждые 3 партии (только в AI режиме, не spectate)
+              if (!isSpectate) maybeShowInterstitial(3)
             }, 800)
             return
           }
@@ -503,6 +506,8 @@ export default function Game() {
           fetch('/api/daily/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` }, body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - timerStartTime) / 1000), won: w }) }).catch(() => {})
           setDailyMode(false)
         }
+        // AdMob interstitial каждые 3 партии (pvp/ai/online, кроме spectate)
+        maybeShowInterstitial(3)
       }, 800)
       return
     }
