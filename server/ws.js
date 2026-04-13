@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken'
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
 import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } from './ws-messages.js'
 import { filterText } from './routes/globalchat.js'
+import { canChatNow } from './chat-limits.js'
 
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
@@ -201,6 +202,20 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
         const rawText = (msg.text || '').slice(0, 300)
         if (!rawText.trim()) return
+
+        // Per-user rate limit + admin mute check
+        const check = canChatNow(wsUser.id)
+        if (!check.allowed) {
+          try {
+            ws.send(JSON.stringify({
+              type: 'chatBlocked',
+              reason: check.reason,
+              until: check.until,
+              retryAfterMs: check.retryAfterMs,
+            }))
+          } catch {}
+          return
+        }
 
         const text = filterText(rawText)
         const ts = Date.now()

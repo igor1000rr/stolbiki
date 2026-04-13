@@ -9,6 +9,7 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
+import { canChatNow } from '../chat-limits.js'
 
 const router = Router()
 
@@ -64,11 +65,22 @@ router.get('/', (req, res) => {
  * POST /api/chat   { channel, text }
  * Сохраняет сообщение в БД (WS-рассылка делается через ws.js)
  * Используется как fallback если WS недоступен.
+ *
+ * Rate limit: 1 сообщение / 3 секунды на юзера.
+ * Mute check: если users.chat_muted_until > now → 403.
  */
 router.post('/', auth, (req, res) => {
   const channel = (req.body.channel || 'global').slice(0, 20)
   const rawText = (req.body.text || '').slice(0, 300)
   if (!rawText.trim()) return res.status(400).json({ error: 'text required' })
+
+  const check = canChatNow(req.user.id)
+  if (!check.allowed) {
+    if (check.reason === 'muted') {
+      return res.status(403).json({ error: 'Вы замучены', muted: true, until: check.until })
+    }
+    return res.status(429).json({ error: 'Слишком часто', retryAfterMs: check.retryAfterMs })
+  }
 
   const text = filterText(rawText)
   const ts = Date.now()

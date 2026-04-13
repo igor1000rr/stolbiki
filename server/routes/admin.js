@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { db, bcrypt } from '../db.js'
 import { auth, adminOnly, rateLimits } from '../middleware.js'
 import { formatUser } from '../helpers.js'
+import { muteUser, unmuteUser, listMuted } from '../chat-limits.js'
 
 export default function createAdminRouter(rooms, matchQueue) {
   const router = Router()
@@ -242,24 +243,20 @@ export default function createAdminRouter(rooms, matchQueue) {
   // ═══ Аналитика поведения ═══
   router.get('/analytics', auth, adminOnly, (req, res) => {
     const days = Math.min(+req.query.days || 7, 90)
-    // Безопаснее: передаём days параметром, не через template literal
     const sinceParam = `-${days} days`
 
-    // Просмотры страниц
     const pageViews = db.prepare(`
       SELECT page, COUNT(*) as views, COUNT(DISTINCT session_id) as sessions
       FROM analytics_events WHERE event='pageview' AND created_at > datetime('now', ?)
       GROUP BY page ORDER BY views DESC
     `).all(sinceParam)
 
-    // Популярные события
     const topEvents = db.prepare(`
       SELECT event, COUNT(*) as count, COUNT(DISTINCT session_id) as sessions
       FROM analytics_events WHERE created_at > datetime('now', ?)
       GROUP BY event ORDER BY count DESC LIMIT 20
     `).all(sinceParam)
 
-    // По дням
     const byDay = db.prepare(`
       SELECT date(created_at) as day, COUNT(*) as events, COUNT(DISTINCT session_id) as sessions,
         COUNT(DISTINCT user_id) as users
@@ -267,7 +264,6 @@ export default function createAdminRouter(rooms, matchQueue) {
       GROUP BY day ORDER BY day
     `).all(sinceParam)
 
-    // Активные юзеры
     const activeUsers = db.prepare(`
       SELECT u.username, u.rating, COUNT(e.id) as events, MAX(e.created_at) as last_seen
       FROM analytics_events e JOIN users u ON u.id = e.user_id
@@ -275,7 +271,6 @@ export default function createAdminRouter(rooms, matchQueue) {
       GROUP BY e.user_id ORDER BY events DESC LIMIT 30
     `).all(sinceParam)
 
-    // User agents (устройства)
     const devices = db.prepare(`
       SELECT
         CASE
@@ -288,7 +283,6 @@ export default function createAdminRouter(rooms, matchQueue) {
       GROUP BY device ORDER BY sessions DESC
     `).all(sinceParam)
 
-    // Среднее время сессии (если есть session_start и session_end)
     const avgSession = db.prepare(`
       SELECT session_id, MIN(created_at) as first_event, MAX(created_at) as last_event,
         COUNT(*) as event_count
@@ -301,6 +295,33 @@ export default function createAdminRouter(rooms, matchQueue) {
     const totalSessions = db.prepare(`SELECT COUNT(DISTINCT session_id) as c FROM analytics_events WHERE created_at > datetime('now', ?) AND session_id != ''`).get(sinceParam)?.c || 0
 
     res.json({ pageViews, topEvents, byDay, activeUsers, devices, avgSession, totalEvents, totalSessions, days })
+  })
+
+  // ═══ Chat moderation ═══
+  /**
+   * POST /api/admin/chat/mute   { user_id, minutes }
+   * minutes <= 0 → permanent (~100 лет)
+   */
+  router.post('/chat/mute', auth, adminOnly, (req, res) => {
+    const userId = +req.body.user_id
+    const minutes = +req.body.minutes || 60
+    if (!userId) return res.status(400).json({ error: 'user_id обязателен' })
+    if (userId === req.user.id) return res.status(400).json({ error: 'Нельзя замутить себя' })
+    const user = db.prepare('SELECT id, username FROM users WHERE id=?').get(userId)
+    if (!user) return res.status(404).json({ error: 'Не найден' })
+    const until = muteUser(userId, minutes)
+    res.json({ ok: true, user_id: userId, username: user.username, until })
+  })
+
+  router.post('/chat/unmute', auth, adminOnly, (req, res) => {
+    const userId = +req.body.user_id
+    if (!userId) return res.status(400).json({ error: 'user_id обязателен' })
+    unmuteUser(userId)
+    res.json({ ok: true })
+  })
+
+  router.get('/chat/muted', auth, adminOnly, (req, res) => {
+    res.json({ muted: listMuted() })
   })
 
   return router
