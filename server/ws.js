@@ -11,6 +11,7 @@ import { GameState, applyAction, getLegalActions } from './game-engine.js'
 import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } from './ws-messages.js'
 import { filterText } from './routes/globalchat.js'
 import { canChatNow } from './chat-limits.js'
+import { sendPushTo, isPushConfigured } from './push-helpers.js'
 
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
@@ -72,6 +73,32 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     const data = typeof msg === 'string' ? msg : JSON.stringify(msg)
     room.spectators = room.spectators.filter(s => s.readyState === 1)
     room.spectators.forEach(s => s.send(data))
+  }
+
+  /**
+   * Push-fallback: если у оппонента нет живого WS соединения, отправляем web-push.
+   * Используется для критичных событий: ход соперника, draw offer, rematch offer.
+   */
+  function pushIfOffline(opponent, fromName, kind, room) {
+    if (!opponent || !opponent.userId) return
+    if (opponent.ws?.readyState === 1) return // онлайн — push не нужен
+    if (!isPushConfigured()) return
+    const titles = {
+      move: 'Ваш ход!',
+      draw: 'Ничья?',
+      rematch: 'Рематч?',
+    }
+    const bodies = {
+      move: `${fromName || 'Соперник'} сделал ход`,
+      draw: `${fromName || 'Соперник'} предлагает ничью`,
+      rematch: `${fromName || 'Соперник'} предлагает рематч`,
+    }
+    sendPushTo(opponent.userId, {
+      title: titles[kind] || 'Snatch Highrise',
+      body: bodies[kind] || '',
+      url: `https://snatch-highrise.com/online?room=${room.id}`,
+      tag: `room-${room.id}-${kind}`,
+    }).catch(() => {})
   }
 
   function handleServerGameOver(room) {
@@ -434,9 +461,15 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
               if (!room.moveHistory) room.moveHistory = []
               room.moveHistory.push({ action: { ...action }, player: gamePlayer })
               const opponent = room.players[1 - playerIdx]
+              const me = room.players[playerIdx]
               const moveMsg = { type: 'move', action, from: playerIdx }
               if (room.playerTime) moveMsg.time = room.playerTime
-              if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify(moveMsg))
+              if (opponent?.ws?.readyState === 1) {
+                opponent.ws.send(JSON.stringify(moveMsg))
+              } else {
+                // Оппонент offline — push fallback "Ваш ход!"
+                pushIfOffline(opponent, me?.name, 'move', room)
+              }
               broadcastToSpectators(room, moveMsg)
               if (room.gameState.gameOver) handleServerGameOver(room)
             }
@@ -488,7 +521,9 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       // ─── DRAW ───
       if (msg.type === 'drawOffer' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
+        const me = playerRoom.players[playerIdx]
         if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'drawOffer', from: playerIdx }))
+        else pushIfOffline(opponent, me?.name, 'draw', playerRoom)
       }
       if (msg.type === 'drawResponse' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
@@ -512,7 +547,9 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       // ─── REMATCH ───
       if (msg.type === 'rematchOffer' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
+        const me = playerRoom.players[playerIdx]
         if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'rematchOffer', from: playerIdx }))
+        else pushIfOffline(opponent, me?.name, 'rematch', playerRoom)
       }
       if (msg.type === 'rematchResponse' && playerRoom) {
         const room = playerRoom
