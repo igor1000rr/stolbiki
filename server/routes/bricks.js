@@ -8,8 +8,8 @@ import { db } from '../db.js'
 import { auth } from '../middleware.js'
 
 try { db.prepare('ALTER TABLE users ADD COLUMN bricks INTEGER NOT NULL DEFAULT 50').run() } catch {}
-try { db.prepare('ALTER TABLE users ADD COLUMN active_skin_blocks TEXT NOT NULL DEFAULT \'blocks_classic\'').run() } catch {}
-try { db.prepare('ALTER TABLE users ADD COLUMN active_skin_stands TEXT NOT NULL DEFAULT \'stands_classic\'').run() } catch {}
+try { db.prepare("ALTER TABLE users ADD COLUMN active_skin_blocks TEXT NOT NULL DEFAULT 'blocks_classic'").run() } catch {}
+try { db.prepare("ALTER TABLE users ADD COLUMN active_skin_stands TEXT NOT NULL DEFAULT 'stands_classic'").run() } catch {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS brick_transactions (
@@ -151,7 +151,8 @@ router.post('/award-rewarded', auth, (req, res) => {
       return res.status(429).json({ error: 'Лимит просмотров рекламы на сегодня исчерпан (10/10)' })
     }
     const newBalance = awardBricks(req.user.id, REWARD_AMOUNT, 'rewarded_ad')
-    res.json({ ok: true, bricks: newBalance, amount: REWARD_AMOUNT, todayCount: todayCount + 1, dailyLimit: DAILY_LIMIT })
+    // БАГ-ФИКС: добавлено поле rewarded (тест ожидал res.body.rewarded)
+    res.json({ ok: true, bricks: newBalance, rewarded: REWARD_AMOUNT, amount: REWARD_AMOUNT, todayCount: todayCount + 1, dailyLimit: DAILY_LIMIT })
   } catch {
     res.status(500).json({ error: 'Ошибка начисления' })
   }
