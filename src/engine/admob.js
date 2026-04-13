@@ -3,41 +3,36 @@
  * Используется только в native (Capacitor) приложении.
  *
  * Установка:
- *   npm install @capacitor-community/admob
+ *   npm install @capacitor-community/admob --legacy-peer-deps
  *   npx cap sync android
  *
  * В AndroidManifest.xml добавить внутри <application>:
  *   <meta-data
  *     android:name="com.google.android.gms.ads.APPLICATION_ID"
- *     android:value="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"/>
- *
- * Для iOS в Info.plist добавить:
- *   <key>GADApplicationIdentifier</key>
- *   <string>ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX</string>
+ *     android:value="YOUR_APP_ID"/>
  *
  * Реальные ID берём из консоли AdMob: admob.google.com
  */
 
-// ─── ID блоков (заменить на реальные из AdMob консоли) ───
 const ADS_CONFIG = {
   android: {
-    appId:          'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
-    interstitial:   'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    rewarded:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    banner:         'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    appId:        'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
+    interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    rewarded:     'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    banner:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
   },
   ios: {
-    appId:          'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
-    interstitial:   'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    rewarded:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    banner:         'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    appId:        'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
+    interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    rewarded:     'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    banner:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
   },
-  // Тестовые ID Google (работают без верификации AdMob)
+  // Тестовые ID Google
   test: {
-    appId:          'ca-app-pub-3940256099942544~3347511713',
-    interstitial:   'ca-app-pub-3940256099942544/1033173712',
-    rewarded:       'ca-app-pub-3940256099942544/5224354917',
-    banner:         'ca-app-pub-3940256099942544/6300978111',
+    appId:        'ca-app-pub-3940256099942544~3347511713',
+    interstitial: 'ca-app-pub-3940256099942544/1033173712',
+    rewarded:     'ca-app-pub-3940256099942544/5224354917',
+    banner:       'ca-app-pub-3940256099942544/6300978111',
   },
 }
 
@@ -65,7 +60,6 @@ export async function initAdMob() {
       initializeForTesting: useTestAds(),
     })
     initialized = true
-    console.log('[AdMob] initialized, test:', useTestAds())
     await loadInterstitial()
   } catch (e) {
     console.warn('[AdMob] init failed:', e?.message)
@@ -82,10 +76,13 @@ export async function loadInterstitial() {
     interstitialReady = true
   } catch (e) {
     interstitialReady = false
-    console.warn('[AdMob] loadInterstitial failed:', e?.message)
   }
 }
 
+/**
+ * Показываем interstitial каждые everyN партий.
+ * Вызывать после окончания партии (mode ai/online, не spectate/pvp).
+ */
 export async function maybeShowInterstitial(everyN = 3) {
   if (!isNative() || !initialized) return false
   gamesAfterAd++
@@ -107,19 +104,14 @@ export async function maybeShowInterstitial(everyN = 3) {
 }
 
 /**
- * Rewarded реклама. Показывается только в native.
- * На вебе кнопка скрыта — кирпичи только через реальную рекламу.
- * В DEV режиме симулируем для тестирования UI.
+ * Rewarded: покажи рекламу → вызови onRewarded(amount).
+ * На вебе (dev) сразу даёт награду для тестирования.
  */
 export async function showRewarded(onRewarded) {
-  // DEV: симулируем просмотр рекламы для тестирования
-  if (import.meta.env.DEV && !isNative()) {
-    await new Promise(r => setTimeout(r, 800)) // имитация задержки
-    onRewarded?.(10)
-    return true
+  if (!isNative() || !initialized || !AdMob) {
+    if (!isNative()) { onRewarded?.(10); return true }
+    return false
   }
-  // В production на вебе — рекламы нет, кнопка не должна быть видна
-  if (!isNative() || !initialized || !AdMob) return false
   try {
     await AdMob.prepareRewardVideoAd({
       adId: getAdUnit('rewarded'),
@@ -146,9 +138,7 @@ export async function showBanner() {
       position: 'BOTTOM_CENTER',
       isTesting: useTestAds(),
     })
-  } catch (e) {
-    console.warn('[AdMob] showBanner failed:', e?.message)
-  }
+  } catch {}
 }
 
 export async function hideBanner() {

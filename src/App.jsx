@@ -131,10 +131,10 @@ export default function App() {
 
   function doLogout() { logout(); setAuthOpen(false) }
 
-  // Обновить bricks в authUser + localStorage
+  // ФИКС race condition: _bricksUpdatedAt timestamp предотвращает перезапись через background refresh
   function updateBricks(newBricks) {
     if (!authUser) return
-    const updated = { ...authUser, bricks: newBricks }
+    const updated = { ...authUser, bricks: newBricks, _bricksUpdatedAt: Date.now() }
     localStorage.setItem('stolbiki_profile', JSON.stringify(updated))
     setAuthUser(updated)
   }
@@ -417,7 +417,6 @@ export default function App() {
           </nav>
 
           <div className="site-actions">
-            {/* Баланс кирпичей — только для залогиненных */}
             {authUser && (
               <BrickBalance
                 bricks={authUser.bricks || 0}
@@ -690,7 +689,7 @@ export default function App() {
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => { setShowLessons(false); setTab('game') }} /></Suspense>}
-      {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} /></Suspense>}
+      {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} />  </Suspense>}
       {showSkinShop && (
         <Suspense fallback={<LazyFallback />}>
           <SkinShop

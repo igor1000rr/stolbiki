@@ -1,15 +1,9 @@
 /**
  * AuthContext — единственный источник правды для auth state.
  *
- * До этого в App.jsx было два практически одинаковых useEffect'а с `storage` + `visibilitychange`
- * listener'ами: один для authUser, второй для isAdmin. Этот контекст объединяет их в один
- * провайдер и предоставляет хук useAuth() для всех потребителей.
- *
- * Источник данных — localStorage['stolbiki_profile']. Синхронизация:
- *   - при монтировании провайдера
- *   - при `storage` event (кросс-табовая синхронизация)
- *   - при visibilitychange (возврат на вкладку)
- *   - через setAuthUser() из обработчиков login/register/logout
+ * ФИКС: background refresh больше не затирает bricks если они обновлялись < 60 сек назад.
+ * Это решает race condition: пользователь купил скин → App.jsx обновил bricks →
+ * через несколько секунд background refresh не откатывает старый баланс.
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import * as API from './api'
@@ -30,7 +24,6 @@ export function AuthProvider({ children }) {
 
   const isAdmin = authUser?.isAdmin === true
 
-  // Единый sync loop: storage event + visibilitychange
   useEffect(() => {
     const check = () => setAuthUser(readProfile())
     const onStorage = (e) => {
@@ -51,7 +44,18 @@ export function AuthProvider({ children }) {
     const refresh = () => {
       if (document.hidden) return
       API.getProfile().then(p => {
-        const merged = { ...p, name: p.username }
+        const current = readProfile()
+        // ФИКС race condition: если bricks обновлялись < 60с назад — сохраняем локальные
+        const bricksAge = current?._bricksUpdatedAt
+          ? Date.now() - current._bricksUpdatedAt
+          : Infinity
+        const bricks = bricksAge < 60000 ? (current?.bricks ?? p.bricks) : p.bricks
+        const merged = {
+          ...p,
+          name: p.username,
+          bricks,
+          _bricksUpdatedAt: current?._bricksUpdatedAt,
+        }
         localStorage.setItem('stolbiki_profile', JSON.stringify(merged))
         setAuthUser(merged)
       }).catch(() => {})
@@ -63,7 +67,6 @@ export function AuthProvider({ children }) {
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVisible) }
   }, [])
 
-  // JWT refresh каждые 12ч если токен истекает в ближайшие 2 дня
   useEffect(() => {
     if (!API.isLoggedIn()) return
     if (API.tokenExpiresWithin(2 * 86400)) {
@@ -120,7 +123,7 @@ export function AuthProvider({ children }) {
     register,
     loginLocal,
     logout,
-    setAuthUser, // escape hatch для direct updates из API колбэков
+    setAuthUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
