@@ -2,23 +2,16 @@
  * Сидинг блог-постов.
  *
  * Блог = single source of truth из репо. Всё что не описано в BLOG_POSTS
- * массиве — удаляется при старте. Это упрощает жизнь: правишь файлы → push →
- * рестарт → блог именно такой как в коде.
- *
- * Новый релиз = один файл в server/blog-posts/v<NNN>.js + одна строка импорта
- * ниже + одна запись в массив BLOG_POSTS + обновить PINNED_SLUG.
+ * массиве — удаляется при старте.
  *
  * При старте сервера:
  *   1. Новые посты добавляются (INSERT).
- *   2. Существующие обновляются (UPDATE title/body/tag) — правки в файлах
- *      долетают до прода после рестарта.
- *   3. Посты со slug ВНЕ BLOG_POSTS удаляются (включая legacy и админские
- *      добавления через PUT /api/admin/blog — они не переживают рестарт,
- *      сознательный trade-off).
+ *   2. Существующие обновляются (UPDATE title/body/tag/created_at) — правки
+ *      в файлах долетают до прода. ВАЖНО: created_at также обновляется,
+ *      иначе хронология ленты разъезжается (старые версии с датами первого
+ *      INSERT окажутся «новыми»).
+ *   3. Посты со slug ВНЕ BLOG_POSTS удаляются.
  *   4. Пин жёстко перестанавливается на PINNED_SLUG.
- *
- * Если нужен админский пост на постоянку — добавлять файлом в
- * server/blog-posts/ и в массив ниже.
  *
  * Статические импорты (не readdirSync) — чтобы IDE подсвечивал опечатки
  * и чтобы seedBlogPosts оставался синхронным (db.js вызывает без await).
@@ -50,27 +43,29 @@ export function seedBlogPosts(db) {
   const insert = db.prepare(
     'INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?)'
   )
+  // Обновляем всё включая created_at — синхронизируем хронологию с файлами.
   const update = db.prepare(
-    'UPDATE blog_posts SET title_ru = ?, title_en = ?, body_ru = ?, body_en = ?, tag = ?, updated_at = datetime(\'now\') WHERE slug = ?'
+    'UPDATE blog_posts SET title_ru = ?, title_en = ?, body_ru = ?, body_en = ?, tag = ?, created_at = ?, updated_at = datetime(\'now\') WHERE slug = ?'
   )
 
   let added = 0, updated = 0
   for (const p of BLOG_POSTS) {
+    const created = p.created_at || new Date().toISOString().slice(0, 19).replace('T', ' ')
     if (exists.get(p.slug)) {
-      update.run(p.title_ru, p.title_en || '', p.body_ru, p.body_en || '', p.tag || 'release', p.slug)
+      update.run(p.title_ru, p.title_en || '', p.body_ru, p.body_en || '', p.tag || 'release', created, p.slug)
       updated++
     } else {
       insert.run(
         p.slug, p.title_ru, p.title_en || '',
         p.body_ru, p.body_en || '',
         p.tag || 'release',
-        p.created_at || new Date().toISOString().slice(0, 19).replace('T', ' ')
+        created,
       )
       added++
     }
   }
 
-  // Удаляем всё что не в BLOG_POSTS массиве — блог остаётся ровно таким как в репо.
+  // Удаляем всё что не в BLOG_POSTS массиве.
   const allowedSlugs = BLOG_POSTS.map(p => p.slug)
   const placeholders = allowedSlugs.map(() => '?').join(',')
   const deleted = db.prepare(`DELETE FROM blog_posts WHERE slug NOT IN (${placeholders})`).run(...allowedSlugs)
