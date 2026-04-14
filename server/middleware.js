@@ -35,7 +35,10 @@ export function rateLimit(windowMs = 60000, max = 60) {
 }
 
 // ═══ JWT Auth ═══
-const lastSeenCache = new Map() // userId → timestamp последнего UPDATE
+// lastSeenCache содержит два типа значений:
+//   - число (timestamp) — для last_seen (ключ: userId, число)
+//   - объект { at, tv } — для token_version (ключ: 'tv:<userId>')
+const lastSeenCache = new Map()
 const LAST_SEEN_INTERVAL = 300000 // 5 минут
 
 // Очистка устаревших записей каждые 5 мин (memory leak prevention)
@@ -43,18 +46,25 @@ setInterval(() => {
   const now = Date.now()
   for (const [k, v] of rateLimits) { if (now - v.start > 120000) rateLimits.delete(k) }
   for (const [k, v] of gameSubmitLimits) { if (now - v > 60000) gameSubmitLimits.delete(k) }
-  // lastSeenCache содержит два типа значений:
-  //   - число (timestamp) — для last_seen (ключ: userId)
-  //   - объект { at, tv } — для token_version (ключ: 'tv:userId')
   for (const [k, v] of lastSeenCache) {
     const t = typeof v === 'number' ? v : v?.at
     if (typeof t === 'number' && now - t > 600000) lastSeenCache.delete(k)
   }
-  // LRU: если всё ещё много — удаляем самые старые, не сбрасываем всё
+  // LRU для rateLimits: если всё ещё много — удаляем самые старые
   if (rateLimits.size > 50000) {
     const entries = [...rateLimits.entries()].sort((a, b) => a[1].start - b[1].start)
     const toDelete = entries.slice(0, entries.length - 40000)
     for (const [k] of toDelete) rateLimits.delete(k)
+  }
+  // LRU для lastSeenCache: на случай всплеска уникальных юзеров
+  if (lastSeenCache.size > 20000) {
+    const entries = [...lastSeenCache.entries()].sort((a, b) => {
+      const ta = typeof a[1] === 'number' ? a[1] : (a[1]?.at || 0)
+      const tb = typeof b[1] === 'number' ? b[1] : (b[1]?.at || 0)
+      return ta - tb
+    })
+    const toDelete = entries.slice(0, entries.length - 15000)
+    for (const [k] of toDelete) lastSeenCache.delete(k)
   }
 }, 300000)
 
