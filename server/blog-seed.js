@@ -1,24 +1,18 @@
 /**
  * Сидинг блог-постов.
  *
- * Блог = single source of truth из репо. Всё что не описано в BLOG_POSTS
- * массиве — удаляется при старте. Это упрощает жизнь: правишь файлы → push →
- * рестарт → блог именно такой как в коде.
- *
  * Новый релиз = один файл в server/blog-posts/v<NNN>.js + одна строка импорта
  * ниже + одна запись в массив BLOG_POSTS + обновить PINNED_SLUG.
  *
  * При старте сервера:
- *   1. Новые посты добавляются (INSERT).
+ *   1. Новые посты добавляются (INSERT по slug).
  *   2. Существующие обновляются (UPDATE title/body/tag) — правки в файлах
  *      долетают до прода после рестарта.
- *   3. Посты со slug ВНЕ BLOG_POSTS удаляются (включая legacy и админские
- *      добавления через PUT /api/admin/blog — они не переживают рестарт,
- *      сознательный trade-off).
+ *   3. Посты со slug ВНЕ BLOG_POSTS НЕ трогаем (legacy и админские посты
+ *      продолжают жить). Если нужно жёстко привести блог к коду — добавить
+ *      DELETE в этой функции, но сначала убедиться что все нужные посты
+ *      перенесены в файлы.
  *   4. Пин жёстко перестанавливается на PINNED_SLUG.
- *
- * Если нужно добавить пост админкой так чтобы он остался — добавь его
- * соответствующим файлом в server/blog-posts/ и в массив ниже.
  *
  * Статические импорты (не readdirSync) — чтобы IDE подсвечивал опечатки
  * и чтобы seedBlogPosts оставался синхронным (db.js вызывает без await).
@@ -70,13 +64,8 @@ export function seedBlogPosts(db) {
     }
   }
 
-  // Удаляем всё что не в BLOG_POSTS массиве — блог остаётся ровно таким как в репо.
-  const allowedSlugs = BLOG_POSTS.map(p => p.slug)
-  const placeholders = allowedSlugs.map(() => '?').join(',')
-  const deleted = db.prepare(`DELETE FROM blog_posts WHERE slug NOT IN (${placeholders})`).run(...allowedSlugs)
-
-  // Пин на текущий релиз.
+  // Пин на текущий релиз (перезаписывается на каждом старте).
   db.prepare('UPDATE blog_posts SET pinned = CASE WHEN slug = ? THEN 1 ELSE 0 END').run(PINNED_SLUG)
 
-  console.log('Блог: добавлено ' + added + ', обновлено ' + updated + ', удалено лишних ' + deleted.changes + ', запинен ' + PINNED_SLUG)
+  console.log('Блог: добавлено ' + added + ', обновлено ' + updated + ', запинен ' + PINNED_SLUG)
 }
