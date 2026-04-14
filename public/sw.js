@@ -9,7 +9,6 @@
  * - Web Push: показ уведомления + фокус окна по клику
  */
 const CACHE_NAME = 'highrise-v__BUILD_HASH__'
-const OLD_CACHE_PREFIX = 'stolbiki-v' // очищаем старые кеши после ребрендинга
 
 self.addEventListener('install', () => self.skipWaiting())
 
@@ -21,9 +20,7 @@ self.addEventListener('message', (e) => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys
-        .filter(k => k !== CACHE_NAME || k.startsWith(OLD_CACHE_PREFIX))
-        .map(k => caches.delete(k))
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
     )).then(() => self.clients.claim())
   )
 })
