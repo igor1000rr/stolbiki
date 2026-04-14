@@ -3,7 +3,7 @@
 Стратегическая настольная игра для двух игроков. AI на базе AlphaZero (MCTS + policy/value нейросеть, 859K параметров).
 
 **Сайт:** https://snatch-highrise.com
-**Версия:** см. `package.json` (единственный источник)
+**Версия:** см. `package.json` (единственный источник, текущая v5.4.0)
 **Автор:** [igor1000rr](https://t.me/igor1000rr)
 
 ## Возможности
@@ -15,6 +15,8 @@
 - **AI Game Review** — анализ партии после завершения
 - **33 ачивки** с прогрессом (бронза / серебро / золото / бриллиант)
 - **Сезоны** — ежемесячные ранкед лидерборды + награды top-10
+- **Глобальный чат** — WS real-time, rate limit 1/3s, admin mute
+- **Web Push** — уведомления "Ваш ход!" при offline оппоненте (VAPID)
 - **PWA** — Smart Service Worker с 4 стратегиями кеширования, offline режим
 - **Capacitor Android** — нативный APK с 7 плагинами
 - **Мультиязычность** — RU / EN, path routing `/en/`, ленивый импорт EN
@@ -25,10 +27,10 @@
 | Часть | Технологии |
 |---|---|
 | Фронтенд | React 19, Vite 8, Capacitor 8, Chart.js |
-| Бэкенд | Node.js 22, Express, SQLite (better-sqlite3, WAL), ws |
+| Бэкенд | Node.js 22, Express, SQLite (better-sqlite3, WAL), ws, web-push |
 | AI (браузер) | Binary float32 веса (3.2 MB), ленивая загрузка для Hard+ уровней |
 | AI (обучение) | PyTorch ResNet 107→256×6 + Value + Policy heads, self-play |
-| CI/CD | GitHub Actions → test → build → backup DB → scp → pm2 restart |
+| CI/CD | GitHub Actions → test → build → backup DB → scp → pm2 restart, auto-regen lockfile |
 | Безопасность | JWT (7d) + refresh с grace period, bcrypt, helmet + CSP (hashed inline), rate limiting, античит |
 
 ## Структура
@@ -45,10 +47,12 @@ server/
   server.js            # Express entry
   db.js                # SQLite schema + versioned migrations
   middleware.js        # JWT auth, rate limit, memory leak cleanup
+  chat-limits.js       # rate limit + admin mute для глобального чата
+  push-helpers.js      # web-push VAPID, sendPushTo, push_subscriptions
   anticheat.js         # верификация партии через проигрывание через движок
   game-engine.js       # единственный источник правил (reexport на клиент через Vite)
-  ws.js                # WebSocket: matchmaking, move validation, timers, spectate
-  routes/              # auth, profile, games, social, missions, arena, puzzles, blog, admin
+  ws.js                # WebSocket: matchmaking, move validation, timers, spectate, push
+  routes/              # auth, profile, games, social, missions, arena, puzzles, blog, admin, push
 public/
   sw.js                # Service Worker
   demo-replays.json    # fetch по клику
@@ -85,15 +89,16 @@ npm run test:full        # установит server deps и прогонит в
 
 Автодеплой через GitHub Actions при push в `main`:
 
-1. `npm ci` + `cd server && npm ci`
-2. `npx vitest run`
-3. `vite build` → `dist/`
-4. SCP `dist/` → `/opt/stolbiki-web`
-5. SCP `server/` → `/opt/stolbiki-api`
-6. Автобэкап SQLite перед рестартом (хранится 7 последних)
-7. `pm2 restart`
+1. Sync server lockfile (auto-regenerate если out-of-sync)
+2. `npm install` (frontend) + `cd server && npm ci`
+3. `npx vitest run`
+4. `vite build` → `dist/`
+5. SCP `dist/` → `/opt/stolbiki-web`
+6. SCP `server/` → `/opt/stolbiki-api`
+7. Автобэкап SQLite перед рестартом (хранится 7 последних)
+8. `pm2 restart`
 
-Secrets: `VPS_HOST`, `VPS_SSH_KEY`.
+Secrets: `VPS_HOST`, `VPS_SSH_KEY`. Для web-push в проде: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` в `/opt/stolbiki-api/.env`.
 
 ## Тесты
 
@@ -107,8 +112,9 @@ Secrets: `VPS_HOST`, `VPS_SSH_KEY`.
 - **CSP без `unsafe-inline` для scripts** — vite plugin считает sha256 каждого inline `<script>` в `dist/index.html`, сервер читает хеши и подставляет в заголовок.
 - **Lazy CSS** — `game.css` / `landing.css` / `confetti.css` / `board-animations.css` импортируются внутри соответствующих компонентов, Vite делает отдельные чанки. Landing загружает ~55KB CSS вместо 86KB.
 - **Lazy data** — демо-реплеи (70KB) и данные админ-дашборда (30KB) в `public/`, fetch только по клику. Replay chunk ~5KB, Dashboard chunk ~14KB.
-- **WS rate limits раздельно** — геймплейные сообщения (move/resign) 20/сек, chat/reaction 5/сек. Спам эмодзи не может задропать ход.
+- **WS rate limits раздельно** — геймплейные сообщения (move/resign) 20/сек, chat/reaction 5/сек, globalChat 1/3s per-user. Спам эмодзи не может задропать ход.
 - **Training data только авторизованные** — `POST /api/training` требует JWT + 10 партий/час на юзера. Защита от data poisoning.
+- **Push fallback** — если оппонент в комнате имеет ws.readyState !== 1, при move/draw/rematch отправляется web-push с deep-link на комнату.
 
 ## Инфраструктура
 
