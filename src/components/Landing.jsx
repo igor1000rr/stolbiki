@@ -1,10 +1,12 @@
 import { useI18n } from '../engine/i18n'
 import '../css/landing.css'
 import { useContent } from '../engine/content'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, lazy, Suspense } from 'react'
 import Icon from './Icon'
 import Mascot from './Mascot'
 import { APP_VERSION } from '../version'
+
+const LandingCity3D = lazy(() => import('./LandingCity3D'))
 
 // Scroll-triggered animation hook
 function useReveal(threshold = 0.15) {
@@ -26,6 +28,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
   const { c } = useContent(lang)
 
   const [heroRef, heroVis] = useReveal(0.1)
+  const [cityRef, cityVis] = useReveal(0.1)
   const [stepRef, stepVis] = useReveal()
   const [featRef, featVis] = useReveal(0.1)
   const [screensRef, screensVis] = useReveal()
@@ -84,6 +87,45 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
         </div>
       </section>
 
+      {/* ═══ 3D VICTORY CITY PREVIEW ═══ */}
+      <section className={`l-section ${cityVis ? 'in' : ''}`} ref={cityRef} style={{ paddingTop: 8 }}>
+        <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          <div style={{
+            display: 'inline-block', fontSize: 10, fontWeight: 700,
+            color: '#ff9800', textTransform: 'uppercase', letterSpacing: 2,
+            marginBottom: 8,
+          }}>
+            {en ? 'In 3D' : 'В 3D'}
+          </div>
+          <h2 className="l-title" style={{ margin: '0 0 8px' }}>
+            {en ? 'Your future Victory City 🏙' : 'Ваш будущий Город побед 🏙'}
+          </h2>
+          <p style={{
+            fontSize: 13, color: 'var(--ink3)',
+            margin: '0 auto', maxWidth: 480, lineHeight: 1.6,
+          }}>
+            {en
+              ? 'Every win becomes a skyscraper. Skin color, AI difficulty and golden victories all shape your city. Drag to rotate.'
+              : 'Каждая победа — небоскрёб. Цвет скина, сложность AI и золотые победы формируют твой город. Тащи чтобы покрутить.'}
+          </p>
+        </div>
+        {cityVis && (
+          <Suspense fallback={
+            <div style={{
+              maxWidth: 780, margin: '0 auto', minHeight: 240, borderRadius: 14,
+              background: 'linear-gradient(180deg, #06060f 0%, #0a0a18 100%)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--ink3)', fontSize: 12,
+            }}>
+              {en ? 'Loading 3D…' : 'Загружаю 3D…'}
+            </div>
+          }>
+            <LandingCity3D />
+          </Suspense>
+        )}
+      </section>
+
       {/* ═══ STEPS ═══ */}
       <section className="l-section">
         <h2 className="l-title">{c('landing.steps_title', en ? 'Learn in 3 steps' : 'Научитесь за 3 шага')}</h2>
@@ -124,7 +166,6 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[12,20,32,24,40,16,28,36].map((h,i)=><rect key={i} className="l-bar-wave" x={8+i*14} y={48-h} width={10} height={h} rx={2} fill={`hsl(${340+i*8},70%,60%)`} style={{animationDelay:`${i*0.12}s`,transformOrigin:`${8+i*14+5}px 48px`}}/>)}</svg> },
             { color: '#ff9800', title: en ? 'Victory City 🏙' : 'Город побед 🏙', desc: en ? 'Every win builds a skyscraper in your profile. Color = skin used in that game.' : 'Каждая победа — здание в профиле. Цвет = скин из той партии.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">
-                {/* Изометрические мини-здания */}
                 {[[20,38,6,2,'#4a9eff'],[38,32,8,3,'#ff6066'],[58,36,5,2,'#9b59b6'],[76,28,10,4,'#00e5ff'],[96,34,7,2,'#ffc145']].map(([bx,by,w,floors,color],bi) =>
                   Array.from({length:floors}).map((_,fi) => (
                     <rect key={`${bi}-${fi}`} x={bx} y={by-fi*4} width={w} height={3} rx={0.5} fill={color} opacity={0.7+fi*0.05} style={{animationDelay:`${(bi*floors+fi)*0.08}s`}} className="l-bar-wave"/>
@@ -286,7 +327,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             [en ? 'What is the golden stand?' : 'Зачем золотая стойка?',
              en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при счёте 5:5. Контроль над ней — ключевая стратегия.'],
             [en ? 'What is Victory City?' : 'Что такое Город побед?',
-             en ? 'Every win adds a building to your profile. Building color reflects the block skin you used in that game. Visit your profile to see your city grow.' : 'Каждая победа добавляет здание в профиль. Цвет здания = скин блоков в той партии. Смотри как растёт твой город в профиле.'],
+             en ? 'Every win adds a building to your profile. Building color reflects the block skin you used in that game. Visit your profile to see your city grow in 3D.' : 'Каждая победа добавляет здание в профиль. Цвет здания = скин блоков в той партии. Смотри как растёт твой город в 3D прямо в профиле.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
               <div className="l-qa-num">{String(i + 1).padStart(2, '0')}</div>
