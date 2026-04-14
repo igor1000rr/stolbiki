@@ -83,7 +83,7 @@ addPost('v510-modifiers',
   'v5.1.0: Геймплейные модификаторы — туман войны, двойной перенос, авто-пас',
   'v5.1.0: Gameplay modifiers — fog of war, double transfer, auto-pass',
   '**🌫 Туман войны** — чужие блоки скрыты.\n\n**↔ ×2 Перенос** — два переноса за ход.\n\n**⚡ Авто-пас** — при истечении таймера ход пропускается.\n\nМодификаторы комбинируются.',
-  '**🌫 Fog of War** — opponent blocks hidden.\n\n**↔ ×2 Transfer** — two transfers per turn.\n\n**⚡ Auto-pass** — timer runs out = auto-pass.\n\nModifiers combine.',
+  '**🌫 Fog of War** — opponent blocks hidden.\n\n**↔ ×2 Transfer** — two transfers per turn.\n\n**⚡ Auto-pass** — timer runs out = auto-pass.\n\n**Modifiers combine.**',
   'feature', '2026-04-12 16:00:00')
 
 addPost('v510-full-release',
@@ -321,14 +321,17 @@ Hit 📸 Snapshot at any combination — the shot goes to your native share shee
 - Scene and skin materials stay unchanged — time-of-day switches don't recreate objects`,
   'release', '2026-04-14 23:30:00')
 
-// Удаляем устаревшее
+// Удаляем устаревшие слаги.
+// БАГ-ФИКС: раньше здесь был DELETE 'v3-5-gpu-neural-extreme', но этот же слаг
+// создаётся в db.js как часть истории релизов — получалась гонка где blog.js
+// удалял пост сразу после сидинга db.js. Убрано.
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
-db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → новейший пост v5.6.0 (Photo Mode + Day/Night)
-db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v560-photo-mode-daynight'").run()
+// Pin логика: источник правды по актуальному релизу — db.js (он создаёт v5.6.1/v5.7.0
+// и пинит последний). Раньше здесь был UPDATE pinned=1 WHERE slug='v560-photo-mode-daynight'
+// который перезаписывал пин с v5.7.0 на v5.6.0 при каждом старте сервера — критический
+// баг, делавший мою работу в релизном коммите невидимой. Удалено: pin управляется из db.js.
 
 
 // ═══ Blog Endpoints ═══
@@ -359,10 +362,20 @@ router.post('/', auth, (req, res) => {
   } catch (e) { res.status(409).json({ error: 'Slug уже существует' }) }
 })
 
+// БАГ-ФИКС: раньше запрос был
+//   UPDATE ... updated_at=datetime(\'now\') WHERE slug=?
+// с экранированными кавычками, что давало SQLite невалидный синтаксис datetime(\'now\')
+// с реальным слешем → SQLITE_ERROR на КАЖДОМ вызове PUT /api/blog/:slug.
+// Админ не мог редактировать посты через API. Использую template literal.
 router.put('/:slug', auth, (req, res) => {
   if (!req.user.isAdmin) return res.status(403).json({ error: 'Только администратор' })
   const { title_ru, title_en, body_ru, body_en, tag, pinned, published } = req.body
-  db.prepare('UPDATE blog_posts SET title_ru=COALESCE(?,title_ru), title_en=COALESCE(?,title_en), body_ru=COALESCE(?,body_ru), body_en=COALESCE(?,body_en), tag=COALESCE(?,tag), pinned=COALESCE(?,pinned), published=COALESCE(?,published), updated_at=datetime(\\'now\\') WHERE slug=?')
+  db.prepare(`UPDATE blog_posts
+      SET title_ru=COALESCE(?,title_ru), title_en=COALESCE(?,title_en),
+          body_ru=COALESCE(?,body_ru), body_en=COALESCE(?,body_en),
+          tag=COALESCE(?,tag), pinned=COALESCE(?,pinned), published=COALESCE(?,published),
+          updated_at=datetime('now')
+      WHERE slug=?`)
     .run(title_ru, title_en, body_ru, body_en, tag, pinned, published, req.params.slug)
   res.json({ ok: true })
 })
