@@ -29,7 +29,7 @@ export default function GameResultPanel({
   const won = isDraw ? false : (mode === 'pvp') ? true : result === humanPlayer
   const s0 = gs.countClosed(0), s1 = gs.countClosed(1)
   const goldenOwned = (0 in gs.closed)
-  const shareText = `Snatch Highrise${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — snatch-highrise.com`
+  const shareText = `Highrise Heist${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — highriseheist.com`
   const accentColor = isDraw ? 'var(--purple)' : won ? 'var(--green)' : 'var(--p2)'
 
   async function doShare() {
@@ -41,7 +41,7 @@ export default function GameResultPanel({
       })
       API.track('share_card', 'game', { won, isDraw })
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
-      const file = new File([blob], 'snatch-result.png', { type: 'image/png' })
+      const file = new File([blob], 'highrise-heist-result.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ text: shareText, files: [file] }).catch(() => {})
       } else if (navigator.share) {
@@ -49,7 +49,7 @@ export default function GameResultPanel({
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
-        a.href = url; a.download = 'snatch-result.png'; a.click()
+        a.href = url; a.download = 'highrise-heist-result.png'; a.click()
         URL.revokeObjectURL(url)
       }
     } catch { navigator.clipboard?.writeText(shareText) }
