@@ -12,13 +12,13 @@ export default function Terms() {
       </h2>
       <div className="dash-card" style={{ padding: '24px 28px', marginBottom: 16 }}>
         <p style={S.p}>{en
-          ? 'By using Snatch Highrise ("the game") you agree to these terms.'
-          : 'Используя Snatch Highrise («игру»), вы соглашаетесь с этими условиями.'}</p>
+          ? 'By using Highrise Heist ("the game") you agree to these terms.'
+          : 'Используя Highrise Heist («игру»), вы соглашаетесь с этими условиями.'}</p>
 
         <h3 style={S.h3}>{en ? '1. The game' : '1. Игра'}</h3>
         <p style={S.p}>{en
-          ? 'Snatch Highrise is a free-to-play strategy board game. We provide the game "as is" without warranties. We may update, modify, or discontinue the game at any time.'
-          : 'Snatch Highrise — бесплатная стратегическая настольная игра. Мы предоставляем игру «как есть» без гарантий. Мы можем обновлять, изменять или прекращать работу игры в любое время.'}</p>
+          ? 'Highrise Heist is a free-to-play strategy board game. We provide the game "as is" without warranties. We may update, modify, or discontinue the game at any time.'
+          : 'Highrise Heist — бесплатная стратегическая настольная игра. Мы предоставляем игру «как есть» без гарантий. Мы можем обновлять, изменять или прекращать работу игры в любое время.'}</p>
 
         <h3 style={S.h3}>{en ? '2. Accounts' : '2. Аккаунты'}</h3>
         <p style={S.p}>{en
@@ -32,8 +32,8 @@ export default function Terms() {
 
         <h3 style={S.h3}>{en ? '4. Content' : '4. Контент'}</h3>
         <p style={S.p}>{en
-          ? 'Snatch Highrise, its AI, game engine, artwork, and mascot (Snappy) are our intellectual property. The Print & Play PDF is provided for personal, non-commercial use. Game replays may be used by us for AI training (anonymized).'
-          : 'Snatch Highrise, AI, движок, графика и маскот (Снуппи) — наша интеллектуальная собственность. Print & Play PDF предоставляется для личного некоммерческого использования. Записи партий могут использоваться для обучения AI (анонимизированно).'}</p>
+          ? 'Highrise Heist, its AI, game engine, artwork, and mascot (Snappy) are our intellectual property. The Print & Play PDF is provided for personal, non-commercial use. Game replays may be used by us for AI training (anonymized).'
+          : 'Highrise Heist, AI, движок, графика и маскот (Снуппи) — наша интеллектуальная собственность. Print & Play PDF предоставляется для личного некоммерческого использования. Записи партий могут использоваться для обучения AI (анонимизированно).'}</p>
 
         <h3 style={S.h3}>{en ? '5. Limitation of liability' : '5. Ограничение ответственности'}</h3>
         <p style={S.p}>{en

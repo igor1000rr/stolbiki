@@ -21,7 +21,7 @@ export default function SplashScreen({ onDone }) {
     }}>
       <img
         src="/logo-full.webp"
-        alt="Snatch Highrise"
+        alt="Highrise Heist"
         style={{
           width: 'min(220px, 55vw)',
           height: 'auto',

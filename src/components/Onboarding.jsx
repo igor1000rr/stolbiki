@@ -4,8 +4,8 @@ const SLIDES = [
   {
     title_ru: 'Добро пожаловать!',
     title_en: 'Welcome!',
-    desc_ru: 'Snatch Highrise — стратегическая настольная игра для двоих с AI на нейросетях',
-    desc_en: 'Snatch Highrise — a strategy board game for two with neural network AI',
+    desc_ru: 'Highrise Heist — стратегическая настольная игра для двоих с AI на нейросетях',
+    desc_en: 'Highrise Heist — a strategy board game for two with neural network AI',
     icon: <img src="/mascot/wave-lg.webp" alt="Снуппи" width={120} height={120} style={{ objectFit: 'contain' }} />,
   },
   {

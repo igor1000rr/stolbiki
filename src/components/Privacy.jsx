@@ -12,8 +12,8 @@ export default function Privacy() {
       </h2>
       <div className="dash-card" style={{ padding: '24px 28px', marginBottom: 16 }}>
         <p style={S.p}>{en
-          ? 'Snatch Highrise ("we", "the game") respects your privacy. This policy explains what data we collect, how we use it, and your rights.'
-          : 'Snatch Highrise («мы», «игра») уважает вашу конфиденциальность. Эта политика объясняет какие данные мы собираем, как используем и какие у вас права.'}</p>
+          ? 'Highrise Heist ("we", "the game") respects your privacy. This policy explains what data we collect, how we use it, and your rights.'
+          : 'Highrise Heist ( «мы», «игра») уважает вашу конфиденциальность. Эта политика объясняет какие данные мы собираем, как используем и какие у вас права.'}</p>
 
         <h3 style={S.h3}>{en ? '1. Data we collect' : '1. Какие данные мы собираем'}</h3>
         <p style={S.p}>{en
