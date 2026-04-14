@@ -253,14 +253,82 @@ IntersectionObserver on the landing 3D preview: animate loop and auto-rotate pau
 - Three.js chunk shared across all 3D components (VictoryCity, Block3DPreview, LandingCity3D) — repeat opens are instant from browser cache`,
   'release', '2026-04-14 22:00:00')
 
+// ═══ v5.6.0 (часть 2) — Photo Mode + Day/Night ═══
+addPost('v560-photo-mode-daynight',
+  'v5.6.0: 📐 Photo Mode + 🌙 Day/Night — кинематографичные снимки',
+  'v5.6.0: 📐 Photo Mode + 🌙 Day/Night — cinematic snapshots',
+  `Завершаем v5.6.0 двумя визуальными фичами для скриншотов.
+
+**📐 Photo Mode — 3 пресета ракурса**
+Под 3D-городом появилась панель с тремя кнопками-ракурсами. Камера плавно переезжает к выбранному пресету за 0.9 секунды (easeOutCubic).
+
+- **📐 Изо** — классический изометрический вид (по умолчанию)
+- **🚁 Сверху** — вертолётный обзор, видна вся раскладка города
+- **🎬 Кино** — низкий героический ракурс, подчёркивает высоту небоскрёбов
+
+**🔄 Автоповорот**
+Тумблер 🔄 Авто включает медленное вращение камеры вокруг города (0.5 speed). Прерывается при клике на здание или переключении пресета, потом возобновляется. Идеально для залипательного просмотра и видео-снимков.
+
+**🌙 Day/Night — 4 пресета времени суток**
+Второй ряд кнопок под Photo Mode. Плавно меняет всю атмосферу сцены за 800ms — фон, туман, солнце, ambient, прозрачность звёзд, tone-mapping.
+
+- **🌙 Ночь** — глубокий тёмно-синий, яркие звёзды, тёплое жёлтое солнце высоко (по умолчанию)
+- **🌅 Утро** — бледно-голубое небо, солнце с востока низко, тёплый ambient, последние звёзды
+- **☀️ День** — яркий sky-blue, белое солнце в зените, без звёзд, повышенная экспозиция
+- **🌇 Закат** — розово-фиолетовое небо, оранжевое солнце у горизонта, звёзды начинают прорезаться
+
+**Комбо для соцсетей**
+- 🌇 Закат + 🎬 Кино — кинематографичный warm gradient с героическим ракурсом
+- ☀️ День + 🚁 Сверху — городская планировка в ясный полдень
+- 🌙 Ночь + 🔄 Авто — залипательная ночная крутилка
+
+Жми 📸 Снимок при любом сочетании — снимок попадает в твой нативный share sheet или скачивается PNG.
+
+**🔧 Технически**
+- animRef.timeAnim лерпит 9 параметров одновременно через Color.lerpColors / Vector3.lerpVectors
+- snapshotSceneTimeState() фиксирует текущие значения как точку старта — прерывание анимации не даёт скачков
+- Сцена и материалы скинов остаются неизменными — переключения времени суток не пересоздают объекты`,
+  `Wrapping up v5.6.0 with two visual features for screenshots.
+
+**📐 Photo Mode — 3 camera angle presets**
+A new panel appeared under the 3D city with three angle buttons. The camera smoothly transitions to the selected preset in 0.9 seconds (easeOutCubic).
+
+- **📐 Iso** — classic isometric view (default)
+- **🚁 Top** — helicopter overview, the whole city layout visible
+- **🎬 Cine** — low heroic angle, emphasizes skyscraper height
+
+**🔄 Auto-rotate**
+The 🔄 Rotate toggle enables slow camera rotation around the city (0.5 speed). Interrupted on building click or preset switch, then resumes. Perfect for mesmerizing viewing and video snapshots.
+
+**🌙 Day/Night — 4 time-of-day presets**
+A second row under Photo Mode. Smoothly changes the entire scene atmosphere in 800ms — background, fog, sun, ambient, star opacity, tone-mapping.
+
+- **🌙 Night** — deep dark blue, bright stars, warm yellow sun high up (default)
+- **🌅 Morning** — pale blue sky, sun low from the east, warm ambient, last stars fading
+- **☀️ Day** — bright sky-blue, white sun at zenith, no stars, increased exposure
+- **🌇 Sunset** — pink-purple sky, orange sun near the horizon, stars starting to appear
+
+**Combos for social media**
+- 🌇 Sunset + 🎬 Cine — cinematic warm gradient with heroic angle
+- ☀️ Day + 🚁 Top — city layout on a clear noon
+- 🌙 Night + 🔄 Rotate — mesmerizing nocturnal spinner
+
+Hit 📸 Snapshot at any combination — the shot goes to your native share sheet or downloads as PNG.
+
+**🔧 Technically**
+- animRef.timeAnim interpolates 9 parameters simultaneously via Color.lerpColors / Vector3.lerpVectors
+- snapshotSceneTimeState() captures current values as start point — interrupting animation produces no jumps
+- Scene and skin materials stay unchanged — time-of-day switches don't recreate objects`,
+  'release', '2026-04-14 23:30:00')
+
 // Удаляем устаревшее
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → v5.6.0
+// Pin → новейший пост v5.6.0 (Photo Mode + Day/Night)
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v560-grow-snapshot-landing3d'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v560-photo-mode-daynight'").run()
 
 
 // ═══ Blog Endpoints ═══
