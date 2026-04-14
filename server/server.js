@@ -1,5 +1,5 @@
 /**
- * Snatch Highrise — серверный API
+ * Highrise Heist — серверный API
  */
 
 import express from 'express'
@@ -47,7 +47,7 @@ const app = express()
 app.set('trust proxy', 1)
 app.set('etag', 'weak')
 
-const DEFAULT_ORIGINS = ['https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'capacitor://localhost', 'http://localhost']
+const DEFAULT_ORIGINS = ['https://highriseheist.com', 'https://www.highriseheist.com', 'https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'capacitor://localhost', 'http://localhost']
 const DEV_ORIGINS = process.env.NODE_ENV !== 'production' ? ['http://localhost:5173', 'http://localhost:4173'] : []
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
@@ -219,7 +219,7 @@ if (!isTest) {
   process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n✅ Snatch Highrise API + WS: http://0.0.0.0:${PORT}`)
+    console.log(`\n✅ Highrise Heist API + WS: http://0.0.0.0:${PORT}`)
   })
 
   const dbMaintenance = () => {
