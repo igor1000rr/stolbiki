@@ -95,7 +95,7 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
   ctx.fillStyle = 'rgba(255,255,255,0.12)'
   ctx.font = 'bold 32px sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('SNATCH HIGHRISE', W / 2, 86)
+  ctx.fillText('HIGHRISE HEIST', W / 2, 86)
 
   // ─── Результат ───
   ctx.fillStyle = accentColor
@@ -249,7 +249,7 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
 
   ctx.fillStyle = 'rgba(255,255,255,0.5)'
   ctx.font = 'bold 36px sans-serif'
-  ctx.fillText('snatch-highrise.com', W / 2, brandY + 65)
+  ctx.fillText('highriseheist.com', W / 2, brandY + 65)
 
   ctx.fillStyle = 'rgba(255,255,255,0.2)'
   ctx.font = '26px sans-serif'
@@ -272,7 +272,7 @@ export function showNotification(title, body, onClick) {
   if (!document.hidden) return
   if (!('Notification' in window) || Notification.permission !== 'granted') return
   try {
-    const n = new Notification(title, { body, icon: '/favicon.png', tag: 'snatch-' + Date.now(), requireInteraction: false })
+    const n = new Notification(title, { body, icon: '/favicon.png', tag: 'highrise-' + Date.now(), requireInteraction: false })
     n.onclick = () => { window.focus(); n.close(); if (onClick) onClick() }
     setTimeout(() => n.close(), 8000)
   } catch {}
