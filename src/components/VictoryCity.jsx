@@ -9,6 +9,8 @@
  * Intro-анимация: при первом рендере камера плавно "приземляется" сверху
  * на изометрический ракурс за 1.8 сек (easeOutCubic).
  *
+ * Screenshot: кнопка "Скачать снимок" → PNG / Web Share API с файлом.
+ *
  * Fallback: при отсутствии WebGL / ошибке инициализации подгружается
  * VictoryCity2D (SVG 2.5D) через lazy import.
  */
@@ -102,6 +104,7 @@ export default function VictoryCity({ userId }) {
   const [selId, setSelId] = useState(null)
   const [webglOk] = useState(() => hasWebGL())
   const [forceSvg, setForceSvg] = useState(false)
+  const [snapshotMsg, setSnapshotMsg] = useState(null)
 
   const containerRef = useRef(null)
   const threeRef = useRef(null)
@@ -165,8 +168,11 @@ export default function VictoryCity({ userId }) {
         const introStartPos = camera.position.clone()
         const introStartTarget = new THREE.Vector3(centerX, 0, centerZ)
 
-        // Renderer
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'default' })
+        // Renderer — preserveDrawingBuffer=true нужен для screenshot toBlob/toDataURL
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true, alpha: false, powerPreference: 'default',
+          preserveDrawingBuffer: true,
+        })
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
         renderer.setSize(w, h)
         renderer.shadowMap.enabled = true
@@ -429,7 +435,7 @@ export default function VictoryCity({ userId }) {
         }
         animate()
 
-        threeRef.current = { scene, renderer, controls, onResize, rafId, floorGeo, spireGeo }
+        threeRef.current = { scene, camera, renderer, controls, onResize, rafId, floorGeo, spireGeo }
       } catch (e) {
         console.error('[VictoryCity] WebGL init error:', e)
         if (!disposed) setForceSvg(true)
@@ -460,6 +466,43 @@ export default function VictoryCity({ userId }) {
       }
     }
   }, [buildings, webglOk, forceSvg])
+
+  // ─── Скачать/поделиться скриншотом текущей 3D-сцены ───
+  function downloadScreenshot() {
+    const t = threeRef.current
+    if (!t?.renderer || !t?.scene || !t?.camera) return
+    // Форсируем свежий рендер-кадр перед снимком
+    t.renderer.render(t.scene, t.camera)
+    t.renderer.domElement.toBlob((blob) => {
+      if (!blob) return
+      const filename = `highrise-heist-city-${Date.now()}.png`
+      const file = new File([blob], filename, { type: 'image/png' })
+      const shareText = en
+        ? `My Victory City in Highrise Heist — ${stats?.total || 0} wins!`
+        : `Мой Город побед в Highrise Heist — ${stats?.total || 0} побед!`
+      // Web Share API с файлом — мобилка
+      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+        navigator.share({ text: shareText, files: [file] })
+          .then(() => {
+            setSnapshotMsg(en ? 'Shared!' : 'Отправлено!')
+            setTimeout(() => setSnapshotMsg(null), 2000)
+          })
+          .catch(() => {
+            // Пользователь отменил — не показываем ошибку
+          })
+      } else {
+        // Desktop fallback — скачивание PNG
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+        setSnapshotMsg(en ? 'Downloaded!' : 'Скачано!')
+        setTimeout(() => setSnapshotMsg(null), 2000)
+      }
+    }, 'image/png')
+  }
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 32, color: 'var(--ink3)', fontSize: 13 }}>
@@ -537,6 +580,28 @@ export default function VictoryCity({ userId }) {
             position: 'relative',
           }}
         />
+      )}
+
+      {/* Кнопка "Скачать снимок" — только для 3D-режима */}
+      {!useFallback && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10, gap: 10, alignItems: 'center' }}>
+          <button
+            className="btn"
+            onClick={downloadScreenshot}
+            style={{
+              fontSize: 12, padding: '8px 16px',
+              borderColor: 'var(--accent)', color: 'var(--accent)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            📸 {en ? 'Download snapshot' : 'Скачать снимок'}
+          </button>
+          {snapshotMsg && (
+            <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600, animation: 'fadeIn 0.3s ease' }}>
+              {snapshotMsg}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Модалка с информацией о выбранном здании */}
