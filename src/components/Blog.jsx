@@ -109,14 +109,14 @@ export default function Blog() {
     setActivePost(post)
     const base = location.pathname.startsWith('/en') ? '/en/' : '/'
     history.replaceState(null, '', `${base}blog/${post.slug}`)
-    document.title = `${lang === 'en' && post.title_en ? post.title_en : post.title_ru} — Snatch Highrise`
+    document.title = `${lang === 'en' && post.title_en ? post.title_en : post.title_ru} — Highrise Heist`
   }
 
   function goBack() {
     setActivePost(null)
     const base = location.pathname.startsWith('/en') ? '/en/' : '/'
     history.replaceState(null, '', `${base}blog`)
-    document.title = 'Snatch Highrise — Strategy board game with AI'
+    document.title = 'Highrise Heist — Strategy board game with AI'
   }
 
   if (activePost) {

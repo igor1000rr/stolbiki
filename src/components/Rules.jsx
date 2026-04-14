@@ -88,7 +88,7 @@ export default function Rules() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
-      <Section title={en ? 'Game Rules "Snatch Highrise"' : 'Правила игры «Перехват высотки»'}>
+      <Section title={en ? 'Game Rules "Highrise Heist"' : 'Правила игры «Перехват высотки»'}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
           <Mascot pose="point" size={64} animate={false} />
           <div>
