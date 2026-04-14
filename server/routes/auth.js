@@ -82,8 +82,12 @@ router.post('/refresh', (req, res) => {
   } catch {
     return res.status(401).json({ error: 'Неверная подпись' })
   }
+  // Defensive: если payload.exp отсутствует — токен самодельный/некорректный, отклоняем
+  if (typeof payload.exp !== 'number') {
+    return res.status(401).json({ error: 'Токен без exp, войдите заново' })
+  }
   const now = Math.floor(Date.now() / 1000)
-  if (payload.exp && now - payload.exp > 30 * 86400) {
+  if (now - payload.exp > 30 * 86400) {
     return res.status(401).json({ error: 'Токен слишком старый, войдите заново' })
   }
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id)
