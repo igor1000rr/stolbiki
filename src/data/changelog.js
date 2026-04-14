@@ -1,5 +1,33 @@
 export default [
   {
+    version: '5.7.0',
+    date: '2026-04-14',
+    title_ru: '🏆 Achievement Rarity — живой % держателей + тир на каждой ачивке',
+    title_en: '🏆 Achievement Rarity — live % of holders + tier on each achievement',
+    changes_ru: [
+      { type: 'new', text: '🏆 GET /api/achievements/rarity — публичный endpoint с процентом держателей и tier (legendary <1%, epic <5%, rare <20%, common ≥20%)' },
+      { type: 'new', text: '🔐 GET /api/achievements/me — список ачивок юзера с rarity merged (auth)' },
+      { type: 'new', text: '📊 Во вкладке «Ачивки» Profile → каждая карточка показывает живой % держателей' },
+      { type: 'new', text: '♻️ React hook useAchievementRarity — sessionStorage-кэш 5 мин + дедупликация parallel-фетчей (10 бейджей = 1 запрос)' },
+      { type: 'new', text: '🎨 Компонент AchievementRarityBadge — готовый переиспользуемый бейдж с tier-градиентами и tooltip' },
+      { type: 'fix', text: '🧹 chat-limits: LRU для lastSent Map — защита от memory leak при всплеске уникальных userId (лимит 20k, LRU-обрезка до 15k)' },
+      { type: 'fix', text: '🔔 Локальные Notification API теперь под брендом «Highrise Heist» — было 4 места со старым именем после ребрендинга' },
+      { type: 'fix', text: '🏷 Notification tag префикс snatch- → highrise- — финал ребрендинг-долга' },
+      { type: 'perf', text: '📦 Один SQL group-by + JOIN для rarity — миллисекунды даже на 100k юзеров благодаря idx_achievements_user' },
+    ],
+    changes_en: [
+      { type: 'new', text: '🏆 GET /api/achievements/rarity — public endpoint with holder percentage and tier (legendary <1%, epic <5%, rare <20%, common ≥20%)' },
+      { type: 'new', text: '🔐 GET /api/achievements/me — user achievements with rarity merged (auth)' },
+      { type: 'new', text: '📊 In Profile → Achievements tab: each card shows live % of holders' },
+      { type: 'new', text: '♻️ React hook useAchievementRarity — sessionStorage cache 5 min + parallel-fetch deduplication (10 badges = 1 request)' },
+      { type: 'new', text: '🎨 AchievementRarityBadge component — reusable badge with tier gradients and tooltip' },
+      { type: 'fix', text: '🧹 chat-limits: LRU for lastSent Map — memory leak protection on unique userId spike (cap 20k, trim to 15k)' },
+      { type: 'fix', text: '🔔 Local Notification API now uses «Highrise Heist» brand — 4 places had old name after rebrand' },
+      { type: 'fix', text: '🏷 Notification tag prefix snatch- → highrise- — final rebrand cleanup' },
+      { type: 'perf', text: '📦 Single SQL group-by + JOIN for rarity — milliseconds even at 100k users thanks to idx_achievements_user' },
+    ],
+  },
+  {
     version: '5.6.1',
     date: '2026-04-14',
     title_ru: '🛡 Багфиксы по аудиту: push-домен, /auth/refresh, SW, TDZ, утечки памяти',

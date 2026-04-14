@@ -5,19 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    '🔧 Push-уведомления: фикс домена — клик по уведомлению ведёт на highriseheist.com',
-    '🛡 Backend: защита от мусорных JWT в /api/auth/refresh',
-    '📊 Push: не-404/410 ошибки теперь видны в error_reports',
-    '⚙️ Service Worker: упрощён activate, корректная очистка старых кешей',
-    '🏗 Victory City: фикс TDZ при раннем клике до окончания intro-анимации',
-    '🧹 Серверная очистка памяти: LRU для lastSeenCache в middleware',
+    '🏆 Рарность ачивок: живой % держателей + тир (legendary/epic/rare/common) из /api/achievements/rarity',
+    '📊 Бейдж рядом с каждой ачивкой показывает сколько игроков её получили',
+    '🔔 Уведомления: title и tag теперь под актуальным брендом (финал ребрендинга snatch→highrise)',
+    '🧹 Chat rate-limit: LRU-защита от memory leak при всплеске уникальных userId',
+    '⚙️ Кэш rarity 5 мин на сервере и клиенте — не бьёт по API из каждого бейджа',
   ],
   en: [
-    '🔧 Push notifications: domain fix — clicking now opens highriseheist.com',
-    '🛡 Backend: protection against malformed JWTs in /api/auth/refresh',
-    '📊 Push: non-404/410 errors now visible in error_reports',
-    '⚙️ Service Worker: simplified activate, correct old cache cleanup',
-    '🏗 Victory City: TDZ fix for early clicks during intro animation',
-    '🧹 Server memory cleanup: LRU for lastSeenCache in middleware',
+    '🏆 Achievement rarity: live % of holders + tier (legendary/epic/rare/common) via /api/achievements/rarity',
+    '📊 Badge next to each achievement shows how many players unlocked it',
+    '🔔 Notifications: title and tag now use current brand (final rebrand cleanup)',
+    '🧹 Chat rate-limit: LRU protection against memory leak on unique userId spike',
+    '⚙️ Rarity cache 5 min on server + client — one request per tab, not per badge',
   ],
 }
