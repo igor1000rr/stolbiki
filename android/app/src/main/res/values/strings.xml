@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Snatch Highrise</string>
-    <string name="title_activity_main">Snatch Highrise</string>
-    <string name="package_name">com.snatchhighrise.app</string>
-    <string name="custom_url_scheme">com.snatchhighrise.app</string>
+    <string name="app_name">Highrise Heist</string>
+    <string name="title_activity_main">Highrise Heist</string>
+    <string name="package_name">com.highriseheist.app</string>
+    <string name="custom_url_scheme">com.highriseheist.app</string>
 </resources>

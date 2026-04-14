@@ -1,7 +1,7 @@
 /**
  * CMS контент — загрузка из API с кешем и fallback
  * Использование: const { c } = useContent()
- * c('site.name') → 'Перехват высотки' (RU) или 'Snatch Highrise' (EN) в зависимости от языка
+ * c('site.name') → 'Перехват высотки' (RU) или 'Highrise Heist' (EN) в зависимости от языка
  */
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'

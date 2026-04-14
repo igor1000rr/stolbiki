@@ -18,20 +18,20 @@ export function markRatingAsked() {
 // Share приложение
 export async function shareApp(lang = 'ru') {
   const text = lang === 'en'
-    ? 'Play Snatch Highrise — a strategy board game with AI! 🎲'
-    : 'Играй в Snatch Highrise — стратегическая настольная игра с AI! 🎲'
-  const url = 'https://snatch-highrise.com'
+    ? 'Play Highrise Heist — a strategy board game with AI! 🎲'
+    : 'Играй в Highrise Heist — стратегическая настольная игра с AI! 🎲'
+  const url = 'https://highriseheist.com'
 
   if (window.Capacitor?.isNativePlatform?.()) {
     try {
       const { Share } = await import('@capacitor/share')
-      await Share.share({ title: 'Snatch Highrise', text, url, dialogTitle: 'Share Snatch Highrise' })
+      await Share.share({ title: 'Highrise Heist', text, url, dialogTitle: 'Share Highrise Heist' })
       return
     } catch {}
   }
 
   if (navigator.share) {
-    navigator.share({ title: 'Snatch Highrise', text, url }).catch(() => {})
+    navigator.share({ title: 'Highrise Heist', text, url }).catch(() => {})
   } else {
     navigator.clipboard?.writeText(`${text} ${url}`)
   }

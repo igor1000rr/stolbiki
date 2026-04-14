@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.snatchhighrise.app',
-  appName: 'Snatch Highrise',
+  appId: 'com.highriseheist.app',
+  appName: 'Highrise Heist',
   webDir: 'dist',
   plugins: {
     SplashScreen: {
@@ -22,7 +22,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
     preferredContentMode: 'mobile',
-    scheme: 'Snatch Highrise',
+    scheme: 'Highrise Heist',
   },
   android: {
     backgroundColor: '#0d0d14',
