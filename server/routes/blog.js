@@ -8,8 +8,8 @@ const blogCount = db.prepare('SELECT COUNT(*) as c FROM blog_posts').get().c
 if (blogCount === 0) {
   const seed = db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
   seed.run('launch', 'Запуск открытой беты', 'Open beta launch',
-    'Snatch Highrise выходит в открытую бету!\n\n- Игра против AI\n- Онлайн мультиплеер\n- Головоломки\n- 4 темы\n- Print & Play PDF',
-    'Snatch Highrise enters open beta!\n\n- Play vs AI\n- Online multiplayer\n- Puzzles\n- 4 themes\n- Print & Play PDF',
+    'Highrise Heist выходит в открытую бету!\n\n- Игра против AI\n- Онлайн мультиплеер\n- Головоломки\n- 4 темы\n- Print & Play PDF',
+    'Highrise Heist enters open beta!\n\n- Play vs AI\n- Online multiplayer\n- Puzzles\n- 4 themes\n- Print & Play PDF',
     'release', 0, '2026-02-15 10:00:00')
 }
 
@@ -39,8 +39,8 @@ addPost('v35-gpu', 'v3.5: GPU-нейросеть в браузере', 'v3.5: GP
   'release', '2026-03-30 10:00:00')
 
 addPost('v37-mobile-app', 'v3.7: Мобильное приложение!', 'v3.7: Mobile app is here!',
-  'Snatch Highrise теперь на Android!\n\n- Полная адаптация UI под мобильный экран\n- Haptic feedback\n- Offline mode\n- Onboarding',
-  'Snatch Highrise is now on Android!\n\n- Full mobile UI\n- Haptic feedback\n- Offline mode\n- Onboarding',
+  'Highrise Heist теперь на Android!\n\n- Полная адаптация UI под мобильный экран\n- Haptic feedback\n- Offline mode\n- Onboarding',
+  'Highrise Heist is now on Android!\n\n- Full mobile UI\n- Haptic feedback\n- Offline mode\n- Onboarding',
   'release', '2026-03-31 10:00:00')
 
 addPost('v40-platform', 'v4.0: Competitive Platform', 'v4.0: Competitive Platform',
