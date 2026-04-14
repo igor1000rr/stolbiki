@@ -673,28 +673,8 @@ if (!blog530) {
       'v530-bugfixes',
       'v5.3.0: Баг-фиксы CI/CD, /api/training, rewarded field',
       'v5.3.0: Bug fixes CI/CD, /api/training, rewarded field',
-      `**🐛 Исправлен CI/CD**
-deploy.yml использовал actions/checkout@v5 и setup-node@v5 — эти версии не существуют. Все деплои с момента создания CI падали на первом шаге. Исправлено на @v4.
-
-**🐛 /api/training runtime error**
-Переменная safeDifficulty была объявлена только внутри POST /api/games, в POST /api/training она была undefined. Все записи тренировочных данных содержали difficulty=0. Исправлено.
-
-**🐛 rewarded field в /api/bricks/award-rewarded**
-Ответ содержал amount но не rewarded — тест падал в CI. Теперь оба поля присутствуют.
-
-**🗄 DB migration 8+9**
-Колонки bricks, active_skin_blocks, active_skin_stands и rush_best теперь добавляются через proper versioned migration вместо try/catch в route-файлах. Добавлен индекс по (user_id, reason, created_at) для reward rate limit — ускоряет проверку лимита 10/день.`,
-      `**🐛 Fixed CI/CD**
-deploy.yml was using actions/checkout@v5 and setup-node@v5 — these versions don't exist. All deploys were failing on the first step. Fixed to @v4.
-
-**🐛 /api/training runtime error**
-Variable safeDifficulty was declared only inside POST /api/games, in POST /api/training it was undefined. All training data records had difficulty=0. Fixed.
-
-**🐛 rewarded field in /api/bricks/award-rewarded**
-Response had amount but not rewarded — test was failing in CI. Both fields now present.
-
-**🗄 DB migration 8+9**
-Columns bricks, active_skin_blocks, active_skin_stands and rush_best are now added via proper versioned migration instead of try/catch in route files. Added index on (user_id, reason, created_at) for reward rate limit.`,
+      `**🐛 Исправлен CI/CD**\ndeploy.yml использовал actions/checkout@v5 и setup-node@v5. Исправлено на @v4.\n\n**🐛 /api/training runtime error** — safeDifficulty был undefined в POST /api/training.\n\n**🐛 rewarded field** — ответ /api/bricks/award-rewarded теперь содержит rewarded.\n\n**🗄 DB migration 8+9** — bricks/skins колонки через proper versioned migration.`,
+      `**🐛 Fixed CI/CD**\ndeploy.yml was using actions/checkout@v5 and setup-node@v5. Fixed to @v4.\n\n**🐛 /api/training runtime error** — safeDifficulty was undefined.\n\n**🐛 rewarded field** — /api/bricks/award-rewarded response now includes rewarded.\n\n**🗄 DB migration 8+9** — bricks/skins columns via proper versioned migration.`,
       'release', 0, 1, '2026-04-14 12:00:00'
     )
   console.log('Блог: добавлен пост v5.3.0')
@@ -708,64 +688,8 @@ if (!blog561) {
       'v561-audit-fixes',
       'v5.6.1: Багфиксы по архитектурному аудиту',
       'v5.6.1: Audit bug fixes',
-      `Провели полный аудит кодовой базы — фронт, бэк, WS, PWA, 3D. Нашли 7 багов разного калибра, все закрыты.
-
-**🔔 Push-уведомления вели на старый домен**
-После ребрендинга в \`server/ws.js\` в \`pushIfOffline\` остался hardcoded \`https://snatch-highrise.com/online?room=…\` и title \`'Snatch Highrise'\`. Клик по уведомлению открывал старый домен. Теперь \`highriseheist.com\` + title \`Highrise Heist\`.
-
-**🛡 /api/auth/refresh принимал JWT без поля \`exp\`**
-Если прислать самодельный токен без \`exp\`, условие \`now - payload.exp > 30d\` давало \`NaN > …\` = false, и токен шёл дальше в процесс. Добавили явную проверку \`typeof payload.exp === 'number'\`.
-
-**📊 sendPushTo молча глушил все не-404/410 ошибки**
-Ошибки VAPID, 429, сетевые — писались только при 404/410 (истёкшая подписка). Остальное терялось. Теперь логируем в \`error_reports\` с кодом и хостом endpoint — на проде видно, что пуши не доходят.
-
-**🏗 Victory City 3D: TDZ при раннем клике**
-\`const introStart = performance.now()\` объявлялся внутри \`animate()\` — pointerup-handler читал его через замыкание, но при клике ДО первого RAF получал \`ReferenceError\`. Подняли объявление до навешивания listeners.
-
-**🏠 Matchmaking: зависшие комнаты**
-Комнаты из \`findMatch\` не имели \`room.created\`, а GC каждые 2 минуты сравнивал \`now - (room.created || 0) > 30min\` — \`0 - 0 > 30min\` = false, комнаты копились при разрыве обоих WS. Теперь \`room.created = Date.now()\`.
-
-**🧹 middleware.lastSeenCache — утечка памяти при росте userId**
-Чистилась только rateLimits-мапа по LRU, а lastSeenCache мог расти без верха. Добавили LRU-лимит на 20k записей.
-
-**⚙️ Service Worker: упрощён activate**
-Условие \`k !== CACHE_NAME || k.startsWith(OLD_CACHE_PREFIX)\` было всегда true и путало. Упростили до \`k !== CACHE_NAME\` — поведение то же, читаемость выше.
-
-**🗄 bricks.js: дубль ALTER TABLE**
-Три \`try { ALTER TABLE users ADD COLUMN … } catch {}\` на старте модуля дублировали миграцию 8 из \`db.js\`. Убрано — теперь только через versioned migration.
-
----
-
-Тесты \`vitest\` (\`tests/routes.test.js\`, \`anticheat\`, \`game-engine\` и ещё 7 файлов) остаются зелёными. Все 8 коммитов — атомарные, с описательными сообщениями.`,
-      `Full codebase audit — frontend, backend, WS, PWA, 3D. Found 7 bugs of various severity, all fixed.
-
-**🔔 Push notifications pointed to old domain**
-After the rebrand, \`server/ws.js\` \`pushIfOffline\` still had hardcoded \`https://snatch-highrise.com/online?room=…\` and title \`'Snatch Highrise'\`. Clicking a notification opened the old domain. Now \`highriseheist.com\` + title \`Highrise Heist\`.
-
-**🛡 /api/auth/refresh accepted JWTs without \`exp\`**
-A handcrafted token without \`exp\` made \`now - payload.exp > 30d\` evaluate \`NaN > …\` = false, letting it through. Added explicit \`typeof payload.exp === 'number'\` check.
-
-**📊 sendPushTo silenced all non-404/410 errors**
-VAPID errors, 429, network issues — only 404/410 (expired subscription) were tracked. Everything else vanished. Now logged to \`error_reports\` with status code and endpoint host — production visibility restored.
-
-**🏗 Victory City 3D: TDZ on early click**
-\`const introStart = performance.now()\` was declared inside \`animate()\`. pointerup-handler read it via closure, but a click BEFORE the first RAF threw \`ReferenceError\`. Moved declaration before attaching listeners.
-
-**🏠 Matchmaking: stale rooms**
-Rooms created via \`findMatch\` had no \`room.created\`, and the GC loop ran \`now - (room.created || 0) > 30min\` — with undefined this was false, rooms accumulated on double-WS disconnect. Now \`room.created = Date.now()\`.
-
-**🧹 middleware.lastSeenCache — memory leak on userId growth**
-Only rateLimits had LRU cleanup. lastSeenCache could grow unbounded. Added the same LRU (cap 20k).
-
-**⚙️ Service Worker: simplified activate**
-The condition \`k !== CACHE_NAME || k.startsWith(OLD_CACHE_PREFIX)\` was always true and confusing. Simplified to \`k !== CACHE_NAME\` — same behavior, cleaner.
-
-**🗄 bricks.js: duplicate ALTER TABLE**
-Three \`try { ALTER TABLE users ADD COLUMN … } catch {}\` on module load duplicated migration 8 from \`db.js\`. Removed — only versioned migration now.
-
----
-
-\`vitest\` (\`tests/routes.test.js\`, \`anticheat\`, \`game-engine\` + 7 more) remains green. All 8 commits atomic, with descriptive messages.`,
+      `Провели полный аудит кодовой базы — фронт, бэк, WS, PWA, 3D. Нашли 7 багов разного калибра, все закрыты.\n\n**🔔 Push-уведомления** вели на старый домен — теперь highriseheist.com + title 'Highrise Heist'.\n\n**🛡 /api/auth/refresh** принимал JWT без поля exp — добавили явную проверку.\n\n**📊 sendPushTo** молча глушил не-404/410 ошибки — теперь логируем в error_reports.\n\n**🏗 Victory City 3D** — TDZ при раннем клике до intro-анимации.\n\n**🏠 Matchmaking** — зависшие комнаты, GC не чистил их без room.created.\n\n**🧹 middleware.lastSeenCache** — memory leak при росте userId.\n\n**⚙️ Service Worker** — упрощена activate логика.\n\n**🗄 bricks.js** — дубль ALTER TABLE убран (миграция 8 в db.js уже применяет).`,
+      `Full codebase audit. Found 7 bugs of various severity, all fixed.\n\n**🔔 Push notifications** pointed to old domain — now highriseheist.com + title 'Highrise Heist'.\n\n**🛡 /api/auth/refresh** accepted JWTs without exp — added explicit check.\n\n**📊 sendPushTo** silenced non-404/410 errors — now logged to error_reports.\n\n**🏗 Victory City 3D** — TDZ on early click before intro animation.\n\n**🏠 Matchmaking** — stale rooms, GC couldn't reap them without room.created.\n\n**🧹 middleware.lastSeenCache** — memory leak on userId growth.\n\n**⚙️ Service Worker** — simplified activate logic.\n\n**🗄 bricks.js** — removed duplicate ALTER TABLE (migration 8 in db.js already applies).`,
       'release', 0, 1, '2026-04-14 18:00:00'
     )
   console.log('Блог: добавлен пост v5.6.1')
@@ -779,110 +703,218 @@ if (!blog570) {
       'v570-achievement-rarity',
       'v5.7.0: 🏆 Achievement Rarity — живой % держателей на каждой ачивке',
       'v5.7.0: 🏆 Achievement Rarity — live % of holders on each achievement',
-      `Закрыли Issue #6 — полноценная серверная + клиентская реализация рарности ачивок с живыми данными из базы.
-
-**🏆 Как работает**
-Каждая ачивка теперь показывает реальный процент игроков, которые её получили, и **tier** по порогам:
-- 🥇 \`legendary\` — < 1% держателей
-- 💜 \`epic\` — < 5%
-- 💎 \`rare\` — < 20%
-- ⚪ \`common\` — ≥ 20%
-
-База для процента — только активные игроки с \`games_played ≥ 1\`, чтобы мёртвые регистрации не размывали статистику.
-
-**🔌 Endpoints**
-- \`GET /api/achievements/rarity\` — публичный, возвращает \`{ total, rarity: { [id]: { holders, percentage, tier } }, computedAt }\`
-- \`GET /api/achievements/me\` (auth) — список ачивок юзера с \`rarity\` merged
-
-Один SQL с \`GROUP BY\` и \`JOIN\` по users через индекс \`idx_achievements_user\` — миллисекунды даже на 100k юзеров. Кэш 5 минут in-memory + \`Cache-Control: max-age=300\` на клиенте.
-
-**⚛️ Фронт**
-Добавили hook \`useAchievementRarity\` — фетчит один раз на вкладку, кэширует в \`sessionStorage\` на 5 минут. Дедупликация parallel-фетчей через in-flight промис: 10 бейджей на экране = 1 запрос к серверу.
-
-В \`ProfileAchievements\` каждая карточка теперь обогащается живым \`holders\` перед рендером. Существующий render \`{ach.holders}% of players\` уже был в \`AchievementCard\` — просто начал показывать реальные числа.
-
-Компонент \`AchievementRarityBadge\` готов как переиспользуемый виджет для будущих мест (публичный профиль, лидерборд и т.д.).
-
-**🧪 Тесты**
-Отдельный файл \`tests/achievements.test.js\`: структура \`{ total, rarity, computedAt }\`, \`Cache-Control\` заголовок, tier всегда из whitelist, \`/me\` без токена → 401, \`/me\` с токеном → массив с \`rarity\`.
-
----
-
-## 🛡 Вторая волна аудита — 3 фикса
-
-**🧹 chat-limits: LRU для \`lastSent\` Map**
-Раньше чистились только записи старше 10 минут. При всплеске уникальных userId (ботнет, DDoS) Map мог расти безгранично. Добавили тот же LRU что и в middleware: при size > 20k → оставляем 15k самых свежих.
-
-**🔔 Локальные Notification API → \`'Highrise Heist'\`**
-В \`useOnlineGameHandlers.js\` было 4 места с \`showNotification('Snatch Highrise', ...)\` — старое имя после ребрендинга (ход противника, сдача, ничья, рематч). Вынес в константу \`NOTIF_TITLE\` чтобы больше не расходилось.
-
-**🏷 Notification tag префикс**
-В \`gameUtils.showNotification\` tag был \`'snatch-' + Date.now()\`. Заменил на \`'highrise-'\` — финал ребрендинг-долга.
-
----
-
-## 📊 Итог
-
-Серия ребрендинг-фиксов **snatch → highrise** полностью закрыта в 3 волны:
-1. \`server/ws.js\` — URL push-уведомлений и title (server-side)
-2. \`src/engine/useOnlineGameHandlers.js\` — 4× title в Notification API (client-side)
-3. \`src/components/gameUtils.js\` — tag префикс
-
-Android APK получит \`versionCode=58\`, \`versionName=5.7.0\` — Игорю остаётся \`npm run cap:sync\` для сборки.`,
-      `Closed Issue #6 — full server + client implementation of achievement rarity with live data from DB.
-
-**🏆 How it works**
-Each achievement now shows real % of players who unlocked it, and **tier** by thresholds:
-- 🥇 \`legendary\` — < 1% holders
-- 💜 \`epic\` — < 5%
-- 💎 \`rare\` — < 20%
-- ⚪ \`common\` — ≥ 20%
-
-Percentage base is only active players with \`games_played ≥ 1\` — dead signups don't skew stats.
-
-**🔌 Endpoints**
-- \`GET /api/achievements/rarity\` — public, returns \`{ total, rarity: { [id]: { holders, percentage, tier } }, computedAt }\`
-- \`GET /api/achievements/me\` (auth) — user's achievements with \`rarity\` merged
-
-One SQL with \`GROUP BY\` and \`JOIN\` on users via \`idx_achievements_user\` — milliseconds even at 100k users. 5-minute in-memory cache + \`Cache-Control: max-age=300\` on client.
-
-**⚛️ Frontend**
-Added hook \`useAchievementRarity\` — fetches once per tab, caches in \`sessionStorage\` for 5 minutes. Parallel-fetch deduplication via in-flight promise: 10 badges on screen = 1 server request.
-
-In \`ProfileAchievements\` each card now gets enriched with live \`holders\` before rendering. The existing render \`{ach.holders}% of players\` was already in \`AchievementCard\` — now just shows real numbers.
-
-\`AchievementRarityBadge\` component is ready as a reusable widget for future places (public profile, leaderboard, etc.).
-
-**🧪 Tests**
-Separate file \`tests/achievements.test.js\`: structure \`{ total, rarity, computedAt }\`, \`Cache-Control\` header, tier always from whitelist, \`/me\` without token → 401, \`/me\` with token → array with \`rarity\`.
-
----
-
-## 🛡 Second audit wave — 3 fixes
-
-**🧹 chat-limits: LRU for \`lastSent\` Map**
-Previously only entries older than 10 minutes were cleaned. On a spike of unique userIds (botnet, DDoS) the Map could grow unbounded. Added same LRU as in middleware: when size > 20k → keep 15k freshest.
-
-**🔔 Local Notification API → \`'Highrise Heist'\`**
-In \`useOnlineGameHandlers.js\` there were 4 places with \`showNotification('Snatch Highrise', ...)\` — old name after rebrand (opponent move, resign, draw, rematch). Moved to \`NOTIF_TITLE\` constant so it doesn't drift again.
-
-**🏷 Notification tag prefix**
-In \`gameUtils.showNotification\` tag was \`'snatch-' + Date.now()\`. Replaced with \`'highrise-'\` — final rebrand cleanup.
-
----
-
-## 📊 Summary
-
-The **snatch → highrise** rebrand fix series is now fully closed in 3 waves:
-1. \`server/ws.js\` — push notification URL and title (server-side)
-2. \`src/engine/useOnlineGameHandlers.js\` — 4× title in Notification API (client-side)
-3. \`src/components/gameUtils.js\` — tag prefix
-
-Android APK gets \`versionCode=58\`, \`versionName=5.7.0\` — Igor runs \`npm run cap:sync\` for the build.`,
-      'release', 1, 1, '2026-04-14 22:00:00'
+      `Закрыли Issue #6 — полноценная серверная + клиентская реализация рарности ачивок.\n\n**🏆 Tier пороги:** 🥇 legendary <1%, 💜 epic <5%, 💎 rare <20%, ⚪ common ≥20%.\n\n**🔌 Endpoints:** GET /api/achievements/rarity (публичный) + GET /api/achievements/me (auth).\n\n**⚛️ Hook useAchievementRarity** — sessionStorage кэш 5 мин, дедупликация parallel-фетчей (10 бейджей = 1 запрос).\n\n**🛡 Вторая волна аудита:**\n- chat-limits LRU для lastSent Map\n- Notification API → 'Highrise Heist' (4 места)\n- Notification tag snatch- → highrise- (финал ребрендинг-долга)`,
+      `Closed Issue #6 — full implementation of achievement rarity.\n\n**🏆 Tier thresholds:** 🥇 legendary <1%, 💜 epic <5%, 💎 rare <20%, ⚪ common ≥20%.\n\n**🔌 Endpoints:** GET /api/achievements/rarity (public) + GET /api/achievements/me (auth).\n\n**⚛️ Hook useAchievementRarity** — sessionStorage cache 5 min, parallel-fetch deduplication.\n\n**🛡 Second audit wave:**\n- chat-limits LRU for lastSent Map\n- Notification API → 'Highrise Heist' (4 places)\n- Notification tag snatch- → highrise- (final rebrand)`,
+      'release', 0, 1, '2026-04-14 22:00:00'
     )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v570-achievement-rarity'").run()
   console.log('Блог: добавлен пост v5.7.0')
+}
+
+// ─── Блог-пост v5.7.2 (Arena race conditions hotfix) ───
+// v5.7.1 (red-side winner fix) был выпущен другой сессией — отдельный пост ему не делаем,
+// тк там точечный фикс без детального описания. v5.7.2 — критический hotfix
+// по 4 race condition в арене, заслуживает развёрнутого объяснения.
+const blog572 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v572-arena-races'").get()
+if (!blog572) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'v572-arena-races',
+      'v5.7.2: 🏆 Hotfix — 4 race condition в турнирной логике Арены',
+      'v5.7.2: 🏆 Hotfix — 4 race conditions in Arena tournament logic',
+      `Критический hotfix. Нашли и исправили **четыре race condition'а** в \`server/routes/arena.js\`, которые портили рейтинг и XP при одновременных запросах от обоих игроков матча.
+
+## 🚨 1. Dual-report — двойной подсчёт рейтинга
+
+**Проблема.** В \`POST /api/arena/result\` было check-then-act:
+
+\`\`\`js
+const match = db.prepare('SELECT ...').get(mid)
+if (match.winner_id || match.result) return 409
+// ...
+db.prepare('UPDATE arena_matches SET winner_id=?, result=? WHERE id=?').run(...)
+db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE ...').run(...)
+\`\`\`
+
+Если **player1 и player2 одновременно** жали «Я выиграл» (типичный сценарий — оба доиграли партию и сразу репортят), оба SELECT'а возвращали \`winner_id = null\`, оба проходили проверку, оба делали UPDATE. Итог:
+- \`arena_matches\` перезаписывался два раза (победил последний писатель)
+- \`score\`, \`wins\`, \`losses\` в \`arena_participants\` инкрементировались **дважды** — сетка турнира ехала, рейтинг фейкался
+
+**Фикс.** Атомарный UPDATE с guard'ом:
+
+\`\`\`js
+const upd = db.prepare(\`
+  UPDATE arena_matches SET winner_id=?, result=?
+  WHERE id=? AND winner_id IS NULL AND (result IS NULL OR result='')
+\`).run(normalizedWinnerId, normalizedResult, mid)
+
+if (upd.changes === 0) return res.status(409).json({ error: 'already recorded' })
+// только тут инкрементируем participants
+\`\`\`
+
+Теперь **только один запрос** фактически применяется. Второй получает 409 **без побочных эффектов** на participants. Классический SQL optimistic concurrency control.
+
+## 🔄 2. Double round advance — дублирующие матчи
+
+Аналогичная проблема на следующем уровне. Когда параллельные \`/result\` закрывали **разные** последние матчи раунда, оба видели \`allDone === true\` и оба начинали генерировать следующий раунд → в одном раунде появлялось по 2 матча на каждую пару игроков.
+
+**Фикс.** Guard на \`arena_tournaments.current_round\`:
+
+\`\`\`js
+const advance = db.prepare(
+  'UPDATE arena_tournaments SET current_round=? WHERE id=? AND current_round=?'
+).run(nextRound, t.id, t.current_round)
+
+if (advance.changes > 0) {
+  // только тот запрос, который реально продвинул раунд, генерирует матчи
+}
+\`\`\`
+
+## ⚖ 3. Double XP для top-3
+
+То же самое в финальном раунде — XP (+200/+100/+50) для top-3 мог начислиться **дважды** при параллельных closing matches. Guard через \`status='playing'\`:
+
+\`\`\`js
+const finish = db.prepare(
+  "UPDATE arena_tournaments SET status='finished', finished_at=datetime('now') WHERE id=? AND status='playing'"
+).run(t.id)
+
+if (finish.changes > 0) {
+  // XP только один раз
+}
+\`\`\`
+
+## 🎲 4. Смещённый shuffle первого раунда
+
+**Проблема.** Первоначальная разбивка на пары через:
+
+\`\`\`js
+const shuffled = parts.sort(() => Math.random() - 0.5)
+\`\`\`
+
+Это **анти-паттерн JavaScript'а**. \`Array.prototype.sort\` ожидает consistent comparator (a<b, a=b, a>b). Рандомный comparator — nondeterministic — в V8 даёт смещённое распределение: первые элементы массива заметно чаще оказываются в начале и в конце. На турнире из 16 человек это было незаметно, но распределение пар не было честным.
+
+**Фикс.** Классический Fisher-Yates:
+
+\`\`\`js
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+\`\`\`
+
+Равномерное распределение, O(n), без побочных эффектов.
+
+---
+
+## 📦 Итоги
+
+- Один коммит \`c073bd0\` — 4 точечных фикса в одном файле
+- API не изменилось, все клиенты совместимы
+- Фиксы backward-compatible — старые турниры в \`arena_tournaments\` не ломаются
+
+**Android:** \`versionCode=59\`, \`versionName=5.7.2\` — \`npm run cap:sync\` для APK.`,
+      `Critical hotfix. Found and fixed **four race conditions** in \`server/routes/arena.js\` that were corrupting ratings and XP on simultaneous requests from both match players.
+
+## 🚨 1. Dual-report — double rating credit
+
+**Problem.** \`POST /api/arena/result\` had check-then-act:
+
+\`\`\`js
+const match = db.prepare('SELECT ...').get(mid)
+if (match.winner_id || match.result) return 409
+// ...
+db.prepare('UPDATE arena_matches SET winner_id=?, result=? WHERE id=?').run(...)
+db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE ...').run(...)
+\`\`\`
+
+If **player1 and player2 simultaneously** pressed "I won" (typical scenario — both finish the game and report immediately), both SELECTs returned \`winner_id = null\`, both passed the check, both performed UPDATE. Result:
+- \`arena_matches\` was overwritten twice (last-writer wins)
+- \`score\`, \`wins\`, \`losses\` in \`arena_participants\` were incremented **twice** — tournament bracket got skewed, ratings faked
+
+**Fix.** Atomic UPDATE with guard:
+
+\`\`\`js
+const upd = db.prepare(\`
+  UPDATE arena_matches SET winner_id=?, result=?
+  WHERE id=? AND winner_id IS NULL AND (result IS NULL OR result='')
+\`).run(normalizedWinnerId, normalizedResult, mid)
+
+if (upd.changes === 0) return res.status(409).json({ error: 'already recorded' })
+// only then increment participants
+\`\`\`
+
+Now **only one request** actually applies. The second gets 409 **without side effects** on participants. Classic SQL optimistic concurrency control.
+
+## 🔄 2. Double round advance — duplicate matches
+
+Same problem at the next level. When parallel \`/result\` closed **different** last matches of the round, both saw \`allDone === true\` and both started generating the next round → each pair of players had two matches in the same round.
+
+**Fix.** Guard on \`arena_tournaments.current_round\`:
+
+\`\`\`js
+const advance = db.prepare(
+  'UPDATE arena_tournaments SET current_round=? WHERE id=? AND current_round=?'
+).run(nextRound, t.id, t.current_round)
+
+if (advance.changes > 0) {
+  // only the request that actually advanced the round generates matches
+}
+\`\`\`
+
+## ⚖ 3. Double XP for top-3
+
+Same thing in the final round — top-3 XP (+200/+100/+50) could be credited **twice** on parallel closing matches. Guard via \`status='playing'\`:
+
+\`\`\`js
+const finish = db.prepare(
+  "UPDATE arena_tournaments SET status='finished', finished_at=datetime('now') WHERE id=? AND status='playing'"
+).run(t.id)
+
+if (finish.changes > 0) {
+  // XP only once
+}
+\`\`\`
+
+## 🎲 4. Biased first-round shuffle
+
+**Problem.** Initial pairing via:
+
+\`\`\`js
+const shuffled = parts.sort(() => Math.random() - 0.5)
+\`\`\`
+
+This is a **JavaScript anti-pattern**. \`Array.prototype.sort\` expects a consistent comparator (a<b, a=b, a>b). Random comparator — nondeterministic — gives biased distribution in V8: first array elements end up at the start and end noticeably more often. On a 16-player tournament this was invisible, but pair distribution wasn't fair.
+
+**Fix.** Classic Fisher-Yates:
+
+\`\`\`js
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+\`\`\`
+
+Uniform distribution, O(n), no side effects.
+
+---
+
+## 📦 Summary
+
+- Single commit \`c073bd0\` — 4 targeted fixes in one file
+- API unchanged, all clients compatible
+- Fixes are backward-compatible — existing \`arena_tournaments\` don't break
+
+**Android:** \`versionCode=59\`, \`versionName=5.7.2\` — \`npm run cap:sync\` for APK.`,
+      'release', 1, 1, '2026-04-15 10:00:00'
+    )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v572-arena-races'").run()
+  console.log('Блог: добавлен пост v5.7.2')
 }
 
 // ═══ Ачивки ═══
