@@ -58,28 +58,20 @@ router.get('/friends', auth, (req, res) => {
 })
 
 // ═══ Friend Challenge ═══
+// Таблица challenges создаётся в db.js (CREATE TABLE IF NOT EXISTS) при старте —
+// раньше здесь был CREATE TABLE на каждый POST-запрос, это лишний overhead.
 router.post('/friends/challenge', auth, (req, res) => {
-  const { friendId } = req.body
-  if (!friendId) return res.status(400).json({ error: 'friendId обязателен' })
+  const friendId = Number(req.body.friendId)
+  if (!Number.isInteger(friendId) || friendId <= 0) return res.status(400).json({ error: 'friendId обязателен' })
+  if (friendId === req.user.id) return res.status(400).json({ error: 'Нельзя вызвать самого себя' })
   // Проверяем дружбу
-  const friendship = db.prepare("SELECT * FROM friends WHERE user_id=? AND friend_id=? AND status='accepted'").get(req.user.id, friendId)
+  const friendship = db.prepare("SELECT 1 FROM friends WHERE user_id=? AND friend_id=? AND status='accepted'").get(req.user.id, friendId)
   if (!friendship) return res.status(403).json({ error: 'Не в друзьях' })
-  // Генерируем комнату
+  // Генерируем комнату (без похожих символов 0/O/1/I)
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let roomId = ''
   for (let i = 0; i < 6; i++) roomId += chars[Math.floor(Math.random() * chars.length)]
-  // Сохраняем вызов
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS challenges (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      from_id INTEGER NOT NULL, to_id INTEGER NOT NULL,
-      room_id TEXT NOT NULL, status TEXT DEFAULT 'pending',
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (from_id) REFERENCES users(id),
-      FOREIGN KEY (to_id) REFERENCES users(id)
-    )`)
-  } catch {}
-  // Отменяем старые вызовы от этого юзера
+  // Отменяем старые pending-вызовы от этого юзера
   db.prepare("UPDATE challenges SET status='expired' WHERE from_id=? AND status='pending'").run(req.user.id)
   db.prepare('INSERT INTO challenges (from_id, to_id, room_id) VALUES (?, ?, ?)').run(req.user.id, friendId, roomId)
   const fromUser = db.prepare('SELECT username FROM users WHERE id=?').get(req.user.id)
@@ -97,7 +89,9 @@ router.get('/friends/challenges', auth, (req, res) => {
 })
 
 router.post('/friends/challenge/respond', auth, (req, res) => {
-  const { challengeId, accept } = req.body
+  const challengeId = Number(req.body.challengeId)
+  const accept = !!req.body.accept
+  if (!Number.isInteger(challengeId) || challengeId <= 0) return res.status(400).json({ error: 'challengeId обязателен' })
   const challenge = db.prepare('SELECT * FROM challenges WHERE id=? AND to_id=? AND status=?').get(challengeId, req.user.id, 'pending')
   if (!challenge) return res.status(404).json({ error: 'Вызов не найден или истёк' })
   db.prepare('UPDATE challenges SET status=? WHERE id=?').run(accept ? 'accepted' : 'declined', challengeId)
