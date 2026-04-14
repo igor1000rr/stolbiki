@@ -5,6 +5,17 @@ import { addXP } from '../helpers.js'
 
 const router = Router()
 
+// Fisher-Yates shuffle — в отличие от `arr.sort(() => Math.random() - 0.5)`
+// даёт равномерное распределение (comparator с random'ом в Array.sort смещает
+// порядок в V8: первые элементы чаще оказываются в начале).
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
 router.get('/current', (req, res) => {
   try {
     let t = db.prepare("SELECT * FROM arena_tournaments WHERE status IN ('waiting','playing') ORDER BY created_at DESC LIMIT 1").get()
@@ -44,7 +55,8 @@ router.post('/start', auth, rateLimit(60000, 5), (req, res) => {
 
   db.prepare("UPDATE arena_tournaments SET status='playing', started_at=datetime('now'), current_round=1 WHERE id=?").run(t.id)
 
-  const shuffled = parts.sort(() => Math.random() - 0.5)
+  // БАГ-ФИКС: Fisher-Yates вместо некорректного comparator sort
+  const shuffled = shuffleInPlace([...parts])
   const ins = db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id) VALUES (?, 1, ?, ?)')
   for (let i = 0; i < shuffled.length - 1; i += 2) {
     ins.run(t.id, shuffled[i].user_id, shuffled[i + 1].user_id)
@@ -59,13 +71,22 @@ router.post('/start', auth, rateLimit(60000, 5), (req, res) => {
   res.json({ ok: true, round: 1, matches: shuffled.length >> 1 })
 })
 
-// БАГ-ФИКС (SECURITY): раньше любой авторизованный юзер мог POST'ить результат любого
-// матча и назначить победителем себя (XP за top-3). Теперь проверяем:
+// SECURITY-фиксы (предыдущий аудит):
 //   1. req.user.id должен быть одним из участников матча (player1 или player2).
 //   2. winner_id должен быть один из этих двух игроков (или null = ничья).
 //   3. result нормализуется: допустимо только 'win', 'draw', пустое ('').
 //      'bye' оставляем только для автоматической пары (set-via-code в /start и ниже).
-// Админы могут переопределять любые матчи через отдельный /result/admin (будет добавлено).
+//
+// БАГ-ФИКС (race, эта итерация):
+//   4. Раньше: SELECT match → check winner_id=null → UPDATE. При одновременных запросах
+//      от player1 и player2 оба проходили check и инкрементировали score/wins/losses
+//      → рейтинг считался дважды. Теперь атомарный UPDATE ... WHERE winner_id IS NULL
+//      и проверка .changes — только один запрос фактически применяется, второй получает 409.
+//   5. Раньше: проверка allDone + SELECT next participants + INSERT next round шли без
+//      защиты. Если 2 параллельных /result закрывали последние матчи, оба могли начать
+//      генерацию next round → дубли. Теперь advance-guard через
+//      UPDATE arena_tournaments SET current_round=? WHERE id=? AND current_round=?
+//      — только один запрос продвинет турнир.
 router.post('/result', auth, rateLimit(60000, 30), (req, res) => {
   const { match_id, winner_id, result } = req.body
   const mid = parseInt(match_id, 10)
@@ -95,9 +116,18 @@ router.post('/result', auth, rateLimit(60000, 30), (req, res) => {
   const resultWhitelist = ['win', 'draw', '']
   const normalizedResult = resultWhitelist.includes(result) ? result : (normalizedWinnerId ? 'win' : 'draw')
 
-  db.prepare('UPDATE arena_matches SET winner_id=?, result=? WHERE id=?')
-    .run(normalizedWinnerId, normalizedResult, mid)
+  // АТОМАРНЫЙ UPDATE: только если матч ещё не был зафиксирован. Защита от параллельных
+  // /result от обоих игроков — второй получит changes=0 и 409 без побочных эффектов
+  // на arena_participants (иначе score/wins/losses инкрементируются дважды).
+  const upd = db.prepare(
+    "UPDATE arena_matches SET winner_id=?, result=? WHERE id=? AND winner_id IS NULL AND (result IS NULL OR result='')"
+  ).run(normalizedWinnerId, normalizedResult, mid)
 
+  if (upd.changes === 0) {
+    return res.status(409).json({ error: 'already recorded' })
+  }
+
+  // Только тот, кто фактически зафиксировал результат, инкрементирует score/wins/losses.
   if (normalizedWinnerId === match.player1_id) {
     db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player1_id)
     db.prepare('UPDATE arena_participants SET losses=losses+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player2_id)
@@ -115,35 +145,50 @@ router.post('/result', auth, rateLimit(60000, 30), (req, res) => {
 
   if (allDone && t.current_round < t.rounds) {
     const nextRound = t.current_round + 1
-    db.prepare('UPDATE arena_tournaments SET current_round=? WHERE id=?').run(nextRound, t.id)
-    const parts2 = db.prepare('SELECT * FROM arena_participants WHERE tournament_id=? ORDER BY score DESC, buchholz DESC').all(t.id)
-    const paired = new Set()
-    const ins2 = db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id) VALUES (?, ?, ?, ?)')
-    for (let i = 0; i < parts2.length; i++) {
-      if (paired.has(parts2[i].user_id)) continue
-      for (let j = i + 1; j < parts2.length; j++) {
-        if (paired.has(parts2[j].user_id)) continue
-        const played = db.prepare('SELECT id FROM arena_matches WHERE tournament_id=? AND ((player1_id=? AND player2_id=?) OR (player1_id=? AND player2_id=?))').get(t.id, parts2[i].user_id, parts2[j].user_id, parts2[j].user_id, parts2[i].user_id)
-        if (!played) {
-          ins2.run(t.id, nextRound, parts2[i].user_id, parts2[j].user_id)
-          paired.add(parts2[i].user_id); paired.add(parts2[j].user_id)
-          break
+
+    // АТОМАРНЫЙ ADVANCE: только один запрос продвинет раунд. Если другой параллельный
+    // /result успел раньше — changes=0, просто вернём ok без генерации дублей.
+    const advance = db.prepare(
+      'UPDATE arena_tournaments SET current_round=? WHERE id=? AND current_round=?'
+    ).run(nextRound, t.id, t.current_round)
+
+    if (advance.changes > 0) {
+      const parts2 = db.prepare('SELECT * FROM arena_participants WHERE tournament_id=? ORDER BY score DESC, buchholz DESC').all(t.id)
+      const paired = new Set()
+      const ins2 = db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id) VALUES (?, ?, ?, ?)')
+      for (let i = 0; i < parts2.length; i++) {
+        if (paired.has(parts2[i].user_id)) continue
+        for (let j = i + 1; j < parts2.length; j++) {
+          if (paired.has(parts2[j].user_id)) continue
+          const played = db.prepare('SELECT id FROM arena_matches WHERE tournament_id=? AND ((player1_id=? AND player2_id=?) OR (player1_id=? AND player2_id=?))').get(t.id, parts2[i].user_id, parts2[j].user_id, parts2[j].user_id, parts2[i].user_id)
+          if (!played) {
+            ins2.run(t.id, nextRound, parts2[i].user_id, parts2[j].user_id)
+            paired.add(parts2[i].user_id); paired.add(parts2[j].user_id)
+            break
+          }
+        }
+      }
+      for (const p of parts2) {
+        if (!paired.has(p.user_id)) {
+          db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id, winner_id, result) VALUES (?, ?, ?, NULL, ?, ?)')
+            .run(t.id, nextRound, p.user_id, p.user_id, 'bye')
+          db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(t.id, p.user_id)
         }
       }
     }
-    for (const p of parts2) {
-      if (!paired.has(p.user_id)) {
-        db.prepare('INSERT INTO arena_matches (tournament_id, round, player1_id, player2_id, winner_id, result) VALUES (?, ?, ?, NULL, ?, ?)')
-          .run(t.id, nextRound, p.user_id, p.user_id, 'bye')
-        db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(t.id, p.user_id)
-      }
-    }
   } else if (allDone && t.current_round >= t.rounds) {
-    db.prepare("UPDATE arena_tournaments SET status='finished', finished_at=datetime('now') WHERE id=?").run(t.id)
-    const final = db.prepare('SELECT user_id FROM arena_participants WHERE tournament_id=? ORDER BY score DESC LIMIT 3').all(t.id)
-    if (final[0]) addXP(final[0].user_id, 200)
-    if (final[1]) addXP(final[1].user_id, 100)
-    if (final[2]) addXP(final[2].user_id, 50)
+    // АТОМАРНЫЙ FINISH: guard через status='playing' — только один запрос закроет турнир
+    // и начислит XP top-3 (иначе XP начислялся бы дважды).
+    const finish = db.prepare(
+      "UPDATE arena_tournaments SET status='finished', finished_at=datetime('now') WHERE id=? AND status='playing'"
+    ).run(t.id)
+
+    if (finish.changes > 0) {
+      const final = db.prepare('SELECT user_id FROM arena_participants WHERE tournament_id=? ORDER BY score DESC LIMIT 3').all(t.id)
+      if (final[0]) addXP(final[0].user_id, 200)
+      if (final[1]) addXP(final[1].user_id, 100)
+      if (final[2]) addXP(final[2].user_id, 50)
+    }
   }
 
   res.json({ ok: true, allRoundDone: allDone })
