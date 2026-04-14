@@ -4,7 +4,10 @@
  * Высота здания = реальные блоки + бонусные шпили за сложность AI.
  *
  * Управление: OrbitControls — drag/pinch/mouse для вращения, зум колёсиком.
- * Клик по зданию → модалка с деталями.
+ * Клик по зданию → плавный zoom к нему + модалка с деталями.
+ *
+ * Intro-анимация: при первом рендере камера плавно "приземляется" сверху
+ * на изометрический ракурс за 1.8 сек (easeOutCubic).
  *
  * Fallback: при отсутствии WebGL / ошибке инициализации подгружается
  * VictoryCity2D (SVG 2.5D) через lazy import.
@@ -77,11 +80,18 @@ function hasWebGL() {
   } catch { return false }
 }
 
+// easeOutCubic — красивый замедляющийся приезд
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3)
+}
+
 const COLS = 5
 const SPACING = 6        // расстояние между зданиями в 3D-мире
 const FLOOR_H = 1.2      // высота одного этажа
 const BLOCK_W = 3        // ширина блока
 const SPIRE_W = 2.5      // ширина шпиля
+const INTRO_MS = 1800    // длительность intro-анимации
+const FOCUS_MS = 700     // длительность zoom к зданию при клике
 
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
@@ -90,13 +100,11 @@ export default function VictoryCity({ userId }) {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [selId, setSelId] = useState(null)
-  const [webglOk, setWebglOk] = useState(() => hasWebGL())
+  const [webglOk] = useState(() => hasWebGL())
   const [forceSvg, setForceSvg] = useState(false)
 
   const containerRef = useRef(null)
   const threeRef = useRef(null)
-  const buildingsRef = useRef([])  // актуальный список для onClick в three
-  buildingsRef.current = buildings
 
   // Fetch data
   useEffect(() => {
@@ -116,7 +124,6 @@ export default function VictoryCity({ userId }) {
     if (!containerRef.current || !buildings.length) return
 
     let disposed = false
-    let THREE_MOD = null
 
     ;(async () => {
       try {
@@ -125,7 +132,6 @@ export default function VictoryCity({ userId }) {
           import('three/addons/controls/OrbitControls.js'),
         ])
         if (disposed) return
-        THREE_MOD = THREE
 
         const container = containerRef.current
         if (!container) return
@@ -146,8 +152,18 @@ export default function VictoryCity({ userId }) {
         const centerX = ((COLS - 1) / 2) * SPACING
         const centerZ = ((rows - 1) / 2) * SPACING
         const dist = Math.max(25, Math.max(COLS, rows) * SPACING * 1.4)
-        camera.position.set(centerX + dist * 0.7, dist * 0.6, centerZ + dist * 0.7)
-        camera.lookAt(centerX, 2, centerZ)
+
+        // Финальная "цель" камеры и таргета
+        const finalCamPos = new THREE.Vector3(
+          centerX + dist * 0.7, dist * 0.6, centerZ + dist * 0.7,
+        )
+        const finalTarget = new THREE.Vector3(centerX, 3, centerZ)
+
+        // Intro: стартуем высоко над центром города (вид "с вертолёта")
+        camera.position.set(centerX, dist * 1.8, centerZ + 2)
+        camera.lookAt(centerX, 0, centerZ)
+        const introStartPos = camera.position.clone()
+        const introStartTarget = new THREE.Vector3(centerX, 0, centerZ)
 
         // Renderer
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'default' })
@@ -227,6 +243,9 @@ export default function VictoryCity({ userId }) {
         const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
         const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
 
+        // Маппинг id здания → позиция (для focus при клике)
+        const buildingPositions = new Map()
+
         // Для каждого здания — группа
         buildings.forEach((b, idx) => {
           const chips = getChips(b)
@@ -240,8 +259,11 @@ export default function VictoryCity({ userId }) {
           const emissiveIntensity = SKIN_EMISSIVE[skinId] || 0
 
           const bGroup = new THREE.Group()
-          bGroup.position.set(col * SPACING, 0, row * SPACING)
+          const bx = col * SPACING
+          const bz = row * SPACING
+          bGroup.position.set(bx, 0, bz)
           bGroup.userData.buildingId = b.id
+          buildingPositions.set(b.id, { x: bx, z: bz, height: (chips.length + extraFloors) * FLOOR_H })
 
           // Обычные этажи
           chips.forEach((c, i) => {
@@ -287,12 +309,32 @@ export default function VictoryCity({ userId }) {
         controls.minDistance = 10
         controls.maxDistance = 150
         controls.maxPolarAngle = Math.PI / 2.1  // не даём камере под землю
-        controls.target.set(centerX, 3, centerZ)
+        controls.target.copy(introStartTarget)
         controls.enablePan = true
         controls.panSpeed = 0.6
         controls.rotateSpeed = 0.7
         controls.zoomSpeed = 0.8
+        controls.enabled = false  // выключены на время intro-анимации
         controls.update()
+
+        // Анимация: intro (при загрузке) + focus (при клике на здание)
+        const introStart = performance.now()
+        let focusAnim = null  // { fromPos, toPos, fromTarget, toTarget, start }
+
+        function startFocusAnim(buildingId) {
+          const p = buildingPositions.get(buildingId)
+          if (!p) return
+          // Позиция камеры: слегка сбоку-сверху от здания, с отступом
+          const offset = Math.max(8, p.height + 6)
+          focusAnim = {
+            fromPos: camera.position.clone(),
+            toPos: new THREE.Vector3(p.x + offset * 0.8, p.height + offset * 0.5, p.z + offset * 0.8),
+            fromTarget: controls.target.clone(),
+            toTarget: new THREE.Vector3(p.x, p.height / 2, p.z),
+            start: performance.now(),
+          }
+          controls.enabled = false
+        }
 
         // Raycaster для кликов
         const raycaster = new THREE.Raycaster()
@@ -307,6 +349,8 @@ export default function VictoryCity({ userId }) {
           const dy = Math.abs(e.clientY - clickStart.y)
           clickStart = null
           if (dx > 5 || dy > 5) return  // это был drag, не клик
+          // Не ловим клики пока идёт intro
+          if (performance.now() - introStart < INTRO_MS) return
           const rect = renderer.domElement.getBoundingClientRect()
           mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
           mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
@@ -315,7 +359,11 @@ export default function VictoryCity({ userId }) {
           if (hits.length) {
             const id = hits[0].object.userData.buildingId
             if (id != null) {
-              setSelId(prev => prev === id ? null : id)
+              setSelId(prev => {
+                const next = prev === id ? null : id
+                if (next != null) startFocusAnim(next)
+                return next
+              })
             }
           }
         })
@@ -341,21 +389,47 @@ export default function VictoryCity({ userId }) {
         const animate = () => {
           rafId = requestAnimationFrame(animate)
           const t = clock.getElapsedTime()
-          // Лёгкая анимация шпилей: покачивание emissive
+          const now = performance.now()
+
+          // Intro-анимация — плавный полёт сверху вниз к изометрии
+          const introElapsed = now - introStart
+          if (introElapsed < INTRO_MS) {
+            const p = introElapsed / INTRO_MS
+            const e = easeOutCubic(p)
+            camera.position.lerpVectors(introStartPos, finalCamPos, e)
+            controls.target.lerpVectors(introStartTarget, finalTarget, e)
+            camera.lookAt(controls.target)
+          } else if (controls.enabled === false && !focusAnim) {
+            // Intro закончилась, даём управление юзеру
+            controls.enabled = true
+          }
+
+          // Focus-анимация (клик на здание)
+          if (focusAnim) {
+            const p = Math.min(1, (now - focusAnim.start) / FOCUS_MS)
+            const e = easeOutCubic(p)
+            camera.position.lerpVectors(focusAnim.fromPos, focusAnim.toPos, e)
+            controls.target.lerpVectors(focusAnim.fromTarget, focusAnim.toTarget, e)
+            camera.lookAt(controls.target)
+            if (p >= 1) {
+              focusAnim = null
+              controls.enabled = true
+            }
+          }
+
+          // Пульсация emissive у шпилей
           cityGroup.traverse(o => {
-            if (o.isMesh && o.material?.emissiveIntensity != null) {
-              const base = SKIN_EMISSIVE[buildings[0]?.player_skin_id] || 0
-              if (o.geometry === spireGeo) {
-                o.material.emissiveIntensity = 0.3 + Math.sin(t * 2 + o.position.y) * 0.1
-              }
+            if (o.isMesh && o.geometry === spireGeo) {
+              o.material.emissiveIntensity = 0.3 + Math.sin(t * 2 + o.position.y) * 0.1
             }
           })
+
           controls.update()
           renderer.render(scene, camera)
         }
         animate()
 
-        threeRef.current = { scene, camera, renderer, controls, onResize, rafId, cityGroup, floorGeo, spireGeo }
+        threeRef.current = { scene, renderer, controls, onResize, rafId, floorGeo, spireGeo }
       } catch (e) {
         console.error('[VictoryCity] WebGL init error:', e)
         if (!disposed) setForceSvg(true)
@@ -435,7 +509,7 @@ export default function VictoryCity({ userId }) {
           [en ? 'Impossible' : 'Невозможно', '#ffe080', 4],
         ].map(([label, color, bonus]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)' }}>
-            <span style={{ color, fontWeight: 700 }}>{'▲'.repeat(1)}</span>
+            <span style={{ color, fontWeight: 700 }}>▲</span>
             <span style={{ color }}>{label}</span>
             {bonus > 0 && <span style={{ color: 'var(--ink3)', opacity: 0.5 }}>+{bonus}</span>}
           </div>
@@ -539,8 +613,8 @@ export default function VictoryCity({ userId }) {
       <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, opacity: 0.6 }}>
         {useFallback
           ? (en ? 'Scroll to zoom · Drag to pan · Tap a building for details' : 'Колёсико — зум · Тащи — пан · Тап — детали')
-          : (en ? 'Drag to rotate · Pinch/scroll to zoom · Right-click drag to pan · Tap a building for details'
-                : 'Тащи — вращай · Щипок/колёсико — зум · ПКМ+тащи — пан · Тап — детали')}
+          : (en ? 'Drag to rotate · Pinch/scroll to zoom · Right-click drag to pan · Tap a building to focus'
+                : 'Тащи — вращай · Щипок/колёсико — зум · ПКМ+тащи — пан · Тап — фокус на здании')}
       </div>
     </div>
   )
