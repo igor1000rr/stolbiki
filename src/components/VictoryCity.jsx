@@ -1,45 +1,41 @@
 /**
- * VictoryCity — изометрический «Город побед»
+ * VictoryCity — Three.js 3D «Город побед»
  * Каждая победа = здание. Цвет этажей = цвет скина игрока на момент победы.
- * Высота здания = реальные блоки + бонусные шпили за сложность AI:
- *   Easy=0, Medium=+1, Hard=+2, Extreme=+3, Impossible=+4
+ * Высота здания = реальные блоки + бонусные шпили за сложность AI.
+ *
+ * Управление: OrbitControls — drag/pinch/mouse для вращения, зум колёсиком.
+ * Клик по зданию → модалка с деталями.
+ *
+ * Fallback: при отсутствии WebGL / ошибке инициализации подгружается
+ * VictoryCity2D (SVG 2.5D) через lazy import.
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useI18n } from '../engine/i18n'
 
-const HW = 26
-const HH = 13
-const FH = 9
-const COLS = 5
+const VictoryCity2D = lazy(() => import('./VictoryCity2D'))
 
-// Цветовые палитры для скинов блоков [верх, лево, право]
-const SKIN_PALETTE = {
-  blocks_classic:  { p1: ['#6db4ff','#3a85d0','#1a5fa0'], p2: ['#ff8888','#cc3333','#991111'] },
-  blocks_flat:     { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
-  blocks_round:    { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
-  blocks_glass:    { p1: ['rgba(74,158,255,0.85)','rgba(74,158,255,0.55)','rgba(74,158,255,0.3)'], p2: ['rgba(255,96,102,0.85)','rgba(255,96,102,0.55)','rgba(255,96,102,0.3)'] },
-  blocks_metal:    { p1: ['#b8d4f0','#6a9cc8','#4a7ca8'], p2: ['#f0b8b8','#c86a6a','#a84a4a'] },
-  blocks_candy:    { p1: ['#a0e0ff','#60c0ff','#40a0e0'], p2: ['#ffa0c0','#ff6090','#e04070'] },
-  blocks_pixel:    { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
-  blocks_neon:     { p1: ['#00e5ff','#0099bb','#006688'], p2: ['#ff3090','#bb0060','#880040'] },
-  blocks_glow:     { p1: ['#7ec8ff','#4a9eff','#2a7edf'], p2: ['#ff9090','#ff6066','#cc3333'] },
+// Палитры скинов → hex для three.js (верхняя грань основная, three делает освещение)
+const SKIN_HEX = {
+  blocks_classic: { 0: 0x6db4ff, 1: 0xff8888 },
+  blocks_flat:    { 0: 0x4a9eff, 1: 0xff6066 },
+  blocks_round:   { 0: 0x4a9eff, 1: 0xff6066 },
+  blocks_glass:   { 0: 0x6ab4ff, 1: 0xff7c80 },
+  blocks_metal:   { 0: 0xb8d4f0, 1: 0xf0b8b8 },
+  blocks_candy:   { 0: 0x80d0ff, 1: 0xff80b0 },
+  blocks_pixel:   { 0: 0x4a9eff, 1: 0xff6066 },
+  blocks_neon:    { 0: 0x00e5ff, 1: 0xff3090 },
+  blocks_glow:    { 0: 0x7ec8ff, 1: 0xff9090 },
 }
 
-const CHIP_DEFAULT = {
-  0: ['#6db4ff','#3a85d0','#1a5fa0'],
-  1: ['#ff8888','#cc3333','#991111'],
-  g: ['#ffd86e','#bf8800','#8a5f00'],
+const SKIN_EMISSIVE = {
+  blocks_neon:  0.35,
+  blocks_glow:  0.25,
+  blocks_glass: 0.10,
 }
 
-// Шпили за сложность AI: тёмно-золотые этажи поверх здания
-const SPIRE_COLORS = {
-  1: ['#d4a017','#9a7010','#6a4c08'],  // Medium — тёмное золото
-  2: ['#e8b830','#b08820','#806012'],  // Hard — золото
-  3: ['#ffc845','#c09020','#906814'],  // Extreme — яркое золото
-  4: ['#ffe080','#e0a030','#a07020'],  // Impossible — белое золото
-}
+const SPIRE_HEX = { 1: 0xd4a017, 2: 0xe8b830, 3: 0xffc845, 4: 0xffe080 }
+const GOLDEN_HEX = 0xffd86e
 
-// Бонус этажей по сложности AI
 function getDiffBonus(aiDifficulty) {
   if (!aiDifficulty) return 0
   const d = typeof aiDifficulty === 'number' ? aiDifficulty : parseInt(aiDifficulty, 10) || 0
@@ -60,102 +56,32 @@ function getDiffLabel(aiDifficulty, en) {
   return en ? 'Easy' : 'Лёгкая'
 }
 
-function getSkinColors(skinId, colorIdx) {
-  if (skinId && SKIN_PALETTE[skinId]) {
-    return colorIdx === 0 ? SKIN_PALETTE[skinId].p1 : SKIN_PALETTE[skinId].p2
-  }
-  return CHIP_DEFAULT[colorIdx] || CHIP_DEFAULT[0]
-}
-
-function pts(arr) {
-  return arr.map(([a, b]) => `${a},${b}`).join(' ')
-}
-
-function IsoFloor({ bx, by, i, color, golden, skinId, spireLevel = 0 }) {
-  let c
-  if (spireLevel > 0) {
-    c = SPIRE_COLORS[spireLevel] || SPIRE_COLORS[1]
-  } else if (golden) {
-    c = CHIP_DEFAULT.g
-  } else {
-    c = getSkinColors(skinId, color)
-  }
-  const y0 = by - i * FH
-  const y1 = by - (i + 1) * FH
-  const left  = pts([[bx-HW,y1],[bx,y1+HH],[bx,y0+HH],[bx-HW,y0]])
-  const right = pts([[bx,y1+HH],[bx+HW,y1],[bx+HW,y0],[bx,y0+HH]])
-  const top   = pts([[bx-HW,y1],[bx,y1-HH],[bx+HW,y1],[bx,y1+HH]])
-  return (
-    <g>
-      <polygon points={left}  fill={c[1]} />
-      <polygon points={right} fill={c[2]} />
-      <polygon points={top}   fill={c[0]} />
-    </g>
-  )
-}
-
-function Building({ bx, by, chips, golden, skinId, extraFloors = 0, selected, onSelect }) {
-  if (!chips.length) return null
-  const n = chips.length
-  const totalFloors = n + extraFloors
-  const outline = pts([
-    [bx, by - totalFloors * FH - HH],
-    [bx + HW, by - totalFloors * FH],
-    [bx + HW, by],
-    [bx, by + HH],
-    [bx - HW, by],
-    [bx - HW, by - totalFloors * FH],
-  ])
-  return (
-    <g onClick={onSelect} style={{ cursor: 'pointer' }}>
-      {/* Основные этажи */}
-      {chips.map((c, i) => {
-        const isTop = i === n - 1 && extraFloors === 0
-        return (
-          <IsoFloor
-            key={i}
-            bx={bx} by={by}
-            i={i}
-            color={c}
-            golden={isTop && golden}
-            skinId={skinId}
-          />
-        )
-      })}
-      {/* Бонусные шпили (золотые этажи за сложность) */}
-      {extraFloors > 0 && Array.from({ length: extraFloors }).map((_, j) => {
-        const spireLevel = extraFloors - j // убывает: нижние темнее, верхние ярче
-        const clamped = Math.max(1, Math.min(4, spireLevel))
-        return (
-          <IsoFloor
-            key={`spire-${j}`}
-            bx={bx} by={by}
-            i={n + j}
-            color={0}
-            golden={false}
-            skinId={skinId}
-            spireLevel={clamped}
-          />
-        )
-      })}
-      {selected && (
-        <polygon
-          points={outline}
-          fill="none"
-          stroke="rgba(255,193,69,0.9)"
-          strokeWidth="1.5"
-        />
-      )}
-    </g>
-  )
-}
-
 function getChips(building) {
   const snap = building.stands_snapshot || []
   const closed = snap.filter(s => s.owner !== null && Array.isArray(s.chips) && s.chips.length)
   if (!closed.length) return []
   return closed.reduce((a, b) => b.chips.length > a.chips.length ? b : a).chips
 }
+
+function getFloorColor(skinId, chipColor) {
+  const pal = SKIN_HEX[skinId] || SKIN_HEX.blocks_classic
+  return pal[chipColor] ?? pal[0]
+}
+
+// Проверяем поддержку WebGL
+function hasWebGL() {
+  if (typeof window === 'undefined') return false
+  try {
+    const canvas = document.createElement('canvas')
+    return !!(window.WebGLRenderingContext && (canvas.getContext('webgl2') || canvas.getContext('webgl')))
+  } catch { return false }
+}
+
+const COLS = 5
+const SPACING = 6        // расстояние между зданиями в 3D-мире
+const FLOOR_H = 1.2      // высота одного этажа
+const BLOCK_W = 3        // ширина блока
+const SPIRE_W = 2.5      // ширина шпиля
 
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
@@ -164,10 +90,15 @@ export default function VictoryCity({ userId }) {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [selId, setSelId] = useState(null)
-  const [view, setView] = useState(null)
-  const containerRef = useRef(null)
-  const dragRef = useRef(null)
+  const [webglOk, setWebglOk] = useState(() => hasWebGL())
+  const [forceSvg, setForceSvg] = useState(false)
 
+  const containerRef = useRef(null)
+  const threeRef = useRef(null)
+  const buildingsRef = useRef([])  // актуальный список для onClick в three
+  buildingsRef.current = buildings
+
+  // Fetch data
   useEffect(() => {
     if (!userId) { setLoading(false); return }
     Promise.all([
@@ -179,69 +110,282 @@ export default function VictoryCity({ userId }) {
       .finally(() => setLoading(false))
   }, [userId])
 
-  const positioned = buildings
-    .map((b, i) => ({
-      b,
-      col: i % COLS,
-      row: Math.floor(i / COLS),
-      chips: getChips(b),
-      extraFloors: b.is_ai ? getDiffBonus(b.ai_difficulty) : 0,
-    }))
-    .filter(p => p.chips.length)
-    .sort((a, b_) => (a.col + a.row) - (b_.col + b_.row))
-
-  const rows = Math.max(1, Math.ceil(buildings.length / COLS))
-  // Учитываем максимальную высоту с учётом шпилей
-  const maxExtra = positioned.reduce((m, p) => Math.max(m, p.extraFloors), 0)
-  const maxChips = positioned.reduce((m, p) => Math.max(m, p.chips.length), 11)
-  const pad = 14
-  const totalMaxH = maxChips + maxExtra
-  const vx0 = -(rows - 1) * HW - HW - pad
-  const vx1 = (COLS - 1) * HW + HW + pad
-  const vy0 = -totalMaxH * FH - HH - pad
-  const vy1 = (COLS - 1 + rows - 1) * HH + HH * 2 + pad
-  const vw0 = vx1 - vx0, vh0 = vy1 - vy0
-
+  // Init three.js — один раз при появлении buildings и наличии WebGL
   useEffect(() => {
-    setView({ x: vx0, y: vy0, w: vw0, h: vh0 })
-  }, [buildings.length]) // eslint-disable-line
+    if (!webglOk || forceSvg) return
+    if (!containerRef.current || !buildings.length) return
 
-  const cv = view || { x: vx0, y: vy0, w: vw0, h: vh0 }
+    let disposed = false
+    let THREE_MOD = null
 
-  const onWheel = (e) => {
-    e.preventDefault()
-    const factor = e.deltaY > 0 ? 1.15 : 0.87
-    setView(v => {
-      const nw = Math.max(vw0 * 0.3, Math.min(vw0 * 2.5, v.w * factor))
-      const nh = nw * (vh0 / vw0)
-      return { x: v.x + (v.w - nw) / 2, y: v.y + (v.h - nh) / 2, w: nw, h: nh }
-    })
-  }
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  })
+    ;(async () => {
+      try {
+        const [THREE, { OrbitControls }] = await Promise.all([
+          import('three'),
+          import('three/addons/controls/OrbitControls.js'),
+        ])
+        if (disposed) return
+        THREE_MOD = THREE
 
-  const onPointerDown = (e) => {
-    if (e.target.tagName === 'polygon') return
-    dragRef.current = {
-      sx: e.clientX, sy: e.clientY,
-      vx: cv.x, vy: cv.y,
-      cw: containerRef.current?.clientWidth || 320,
-      ch: containerRef.current?.clientHeight || 220,
+        const container = containerRef.current
+        if (!container) return
+
+        const w = container.clientWidth
+        const h = Math.min(480, Math.max(320, w * 0.7))
+
+        // Scene с градиентным фоном
+        const scene = new THREE.Scene()
+        scene.background = new THREE.Color(0x0a0a18)
+        scene.fog = new THREE.Fog(0x0a0a18, 50, 200)
+
+        // Камера — изометрический обзор сверху-сбоку
+        const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 500)
+
+        // Определяем центр города чтобы направить туда камеру
+        const rows = Math.max(1, Math.ceil(buildings.length / COLS))
+        const centerX = ((COLS - 1) / 2) * SPACING
+        const centerZ = ((rows - 1) / 2) * SPACING
+        const dist = Math.max(25, Math.max(COLS, rows) * SPACING * 1.4)
+        camera.position.set(centerX + dist * 0.7, dist * 0.6, centerZ + dist * 0.7)
+        camera.lookAt(centerX, 2, centerZ)
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'default' })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+        renderer.setSize(w, h)
+        renderer.shadowMap.enabled = true
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap
+        renderer.toneMapping = THREE.ACESFilmicToneMapping
+        renderer.toneMappingExposure = 1.1
+        container.appendChild(renderer.domElement)
+        renderer.domElement.style.display = 'block'
+        renderer.domElement.style.borderRadius = '12px'
+        renderer.domElement.style.touchAction = 'none'
+
+        // Освещение
+        const ambient = new THREE.AmbientLight(0x8080c0, 0.45)
+        scene.add(ambient)
+
+        const sun = new THREE.DirectionalLight(0xfff0c8, 1.1)
+        sun.position.set(centerX + 25, 40, centerZ + 15)
+        sun.target.position.set(centerX, 0, centerZ)
+        sun.castShadow = true
+        sun.shadow.mapSize.set(1024, 1024)
+        sun.shadow.camera.left = -50
+        sun.shadow.camera.right = 50
+        sun.shadow.camera.top = 50
+        sun.shadow.camera.bottom = -50
+        sun.shadow.camera.near = 1
+        sun.shadow.camera.far = 100
+        sun.shadow.bias = -0.0003
+        scene.add(sun)
+        scene.add(sun.target)
+
+        // Легкий фиолетовый back-light для атмосферы
+        const rim = new THREE.DirectionalLight(0x6050a0, 0.4)
+        rim.position.set(centerX - 20, 15, centerZ - 20)
+        scene.add(rim)
+
+        // Земля
+        const groundMat = new THREE.MeshStandardMaterial({
+          color: 0x0d0d22,
+          roughness: 0.85,
+          metalness: 0.1,
+        })
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat)
+        ground.rotation.x = -Math.PI / 2
+        ground.position.y = -0.01
+        ground.receiveShadow = true
+        scene.add(ground)
+
+        // Сетка-гайды
+        const grid = new THREE.GridHelper(120, 40, 0x2a2a4a, 0x15152a)
+        grid.position.y = 0
+        scene.add(grid)
+
+        // Звёздный купол (простые точки в небе)
+        const starGeo = new THREE.BufferGeometry()
+        const starPositions = new Float32Array(400 * 3)
+        for (let i = 0; i < 400; i++) {
+          const r = 150
+          const theta = Math.random() * Math.PI * 2
+          const phi = Math.acos(Math.random() * 0.6)
+          starPositions[i * 3]     = centerX + r * Math.sin(phi) * Math.cos(theta)
+          starPositions[i * 3 + 1] = r * Math.cos(phi) + 20
+          starPositions[i * 3 + 2] = centerZ + r * Math.sin(phi) * Math.sin(theta)
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.6, sizeAttenuation: true, transparent: true, opacity: 0.7 })
+        const stars = new THREE.Points(starGeo, starMat)
+        scene.add(stars)
+
+        // Группа всех зданий
+        const cityGroup = new THREE.Group()
+        scene.add(cityGroup)
+
+        // Общая geometry для этажей и шпилей (экономия памяти)
+        const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
+        const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
+
+        // Для каждого здания — группа
+        buildings.forEach((b, idx) => {
+          const chips = getChips(b)
+          if (!chips.length) return
+
+          const col = idx % COLS
+          const row = Math.floor(idx / COLS)
+          const extraFloors = b.is_ai ? getDiffBonus(b.ai_difficulty) : 0
+          const skinId = b.player_skin_id || 'blocks_classic'
+          const golden = b.result === 'draw_won'
+          const emissiveIntensity = SKIN_EMISSIVE[skinId] || 0
+
+          const bGroup = new THREE.Group()
+          bGroup.position.set(col * SPACING, 0, row * SPACING)
+          bGroup.userData.buildingId = b.id
+
+          // Обычные этажи
+          chips.forEach((c, i) => {
+            const isTop = i === chips.length - 1 && extraFloors === 0
+            const colorHex = (isTop && golden) ? GOLDEN_HEX : getFloorColor(skinId, c)
+            const mat = new THREE.MeshStandardMaterial({
+              color: colorHex,
+              roughness: skinId === 'blocks_metal' ? 0.3 : 0.55,
+              metalness: skinId === 'blocks_metal' ? 0.7 : 0.15,
+              emissive: colorHex,
+              emissiveIntensity,
+            })
+            const mesh = new THREE.Mesh(floorGeo, mat)
+            mesh.position.y = FLOOR_H / 2 + i * FLOOR_H
+            mesh.castShadow = true
+            mesh.receiveShadow = true
+            mesh.userData.buildingId = b.id
+            bGroup.add(mesh)
+          })
+
+          // Шпили за сложность AI (сужаются, светятся сильнее)
+          for (let k = 0; k < extraFloors; k++) {
+            const spireLvl = Math.max(1, Math.min(4, extraFloors - k))
+            const color = SPIRE_HEX[spireLvl]
+            const mat = new THREE.MeshStandardMaterial({
+              color, roughness: 0.25, metalness: 0.8,
+              emissive: color, emissiveIntensity: 0.35,
+            })
+            const mesh = new THREE.Mesh(spireGeo, mat)
+            mesh.position.y = FLOOR_H / 2 + (chips.length + k) * FLOOR_H
+            mesh.castShadow = true
+            mesh.userData.buildingId = b.id
+            bGroup.add(mesh)
+          }
+
+          cityGroup.add(bGroup)
+        })
+
+        // OrbitControls
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enableDamping = true
+        controls.dampingFactor = 0.08
+        controls.minDistance = 10
+        controls.maxDistance = 150
+        controls.maxPolarAngle = Math.PI / 2.1  // не даём камере под землю
+        controls.target.set(centerX, 3, centerZ)
+        controls.enablePan = true
+        controls.panSpeed = 0.6
+        controls.rotateSpeed = 0.7
+        controls.zoomSpeed = 0.8
+        controls.update()
+
+        // Raycaster для кликов
+        const raycaster = new THREE.Raycaster()
+        const mouse = new THREE.Vector2()
+        let clickStart = null
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+          clickStart = { x: e.clientX, y: e.clientY }
+        })
+        renderer.domElement.addEventListener('pointerup', (e) => {
+          if (!clickStart) return
+          const dx = Math.abs(e.clientX - clickStart.x)
+          const dy = Math.abs(e.clientY - clickStart.y)
+          clickStart = null
+          if (dx > 5 || dy > 5) return  // это был drag, не клик
+          const rect = renderer.domElement.getBoundingClientRect()
+          mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+          mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+          raycaster.setFromCamera(mouse, camera)
+          const hits = raycaster.intersectObjects(cityGroup.children, true)
+          if (hits.length) {
+            const id = hits[0].object.userData.buildingId
+            if (id != null) {
+              setSelId(prev => prev === id ? null : id)
+            }
+          }
+        })
+
+        // Resize
+        let resizeRaf = 0
+        const onResize = () => {
+          cancelAnimationFrame(resizeRaf)
+          resizeRaf = requestAnimationFrame(() => {
+            if (!container) return
+            const w2 = container.clientWidth
+            const h2 = Math.min(480, Math.max(320, w2 * 0.7))
+            camera.aspect = w2 / h2
+            camera.updateProjectionMatrix()
+            renderer.setSize(w2, h2)
+          })
+        }
+        window.addEventListener('resize', onResize)
+
+        // Animate loop
+        let rafId = 0
+        const clock = new THREE.Clock()
+        const animate = () => {
+          rafId = requestAnimationFrame(animate)
+          const t = clock.getElapsedTime()
+          // Лёгкая анимация шпилей: покачивание emissive
+          cityGroup.traverse(o => {
+            if (o.isMesh && o.material?.emissiveIntensity != null) {
+              const base = SKIN_EMISSIVE[buildings[0]?.player_skin_id] || 0
+              if (o.geometry === spireGeo) {
+                o.material.emissiveIntensity = 0.3 + Math.sin(t * 2 + o.position.y) * 0.1
+              }
+            }
+          })
+          controls.update()
+          renderer.render(scene, camera)
+        }
+        animate()
+
+        threeRef.current = { scene, camera, renderer, controls, onResize, rafId, cityGroup, floorGeo, spireGeo }
+      } catch (e) {
+        console.error('[VictoryCity] WebGL init error:', e)
+        if (!disposed) setForceSvg(true)
+      }
+    })()
+
+    return () => {
+      disposed = true
+      if (threeRef.current) {
+        const { scene, renderer, controls, onResize, rafId, floorGeo, spireGeo } = threeRef.current
+        cancelAnimationFrame(rafId)
+        window.removeEventListener('resize', onResize)
+        controls?.dispose()
+        // dispose materials (geo переиспользуются — диспоузим один раз)
+        scene?.traverse(o => {
+          if (o.material) {
+            if (Array.isArray(o.material)) o.material.forEach(m => m.dispose())
+            else o.material.dispose()
+          }
+        })
+        floorGeo?.dispose()
+        spireGeo?.dispose()
+        renderer?.dispose()
+        if (renderer?.domElement?.parentNode) {
+          renderer.domElement.parentNode.removeChild(renderer.domElement)
+        }
+        threeRef.current = null
+      }
     }
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-  const onPointerMove = (e) => {
-    if (!dragRef.current) return
-    const d = dragRef.current
-    const dx = (e.clientX - d.sx) / d.cw * cv.w
-    const dy = (e.clientY - d.sy) / d.ch * cv.h
-    setView(v => ({ ...v, x: d.vx - dx, y: d.vy - dy }))
-  }
-  const onPointerUp = () => { dragRef.current = null }
+  }, [buildings, webglOk, forceSvg])
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 32, color: 'var(--ink3)', fontSize: 13 }}>
@@ -249,7 +393,7 @@ export default function VictoryCity({ userId }) {
     </div>
   )
 
-  if (!positioned.length) return (
+  if (!buildings.length) return (
     <div style={{ textAlign: 'center', padding: 40 }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🏙️</div>
       <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 280, margin: '0 auto', lineHeight: 1.6 }}>
@@ -261,15 +405,16 @@ export default function VictoryCity({ userId }) {
   )
 
   const selB = selId ? buildings.find(b => b.id === selId) : null
+  const useFallback = !webglOk || forceSvg
 
   return (
     <div>
       {stats && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           {[
-            [stats.total,       en ? 'Buildings' : 'Зданий',      'var(--ink)'],
-            [stats.vs_ai,       'vs AI',                           'var(--p1)'],
-            [stats.vs_human,    en ? 'vs Human' : 'vs Живой',      'var(--green)'],
+            [stats.total,       en ? 'Buildings' : 'Зданий',       'var(--ink)'],
+            [stats.vs_ai,       'vs AI',                            'var(--p1)'],
+            [stats.vs_human,    en ? 'vs Human' : 'vs Живой',       'var(--green)'],
             [stats.golden_wins, '★ ' + (en ? 'Golden' : 'Золотых'), 'var(--gold)'],
           ].map(([v, l, c]) => (
             <div key={l} style={{ textAlign: 'center', padding: '8px 14px', background: 'var(--surface2)', borderRadius: 8, minWidth: 54 }}>
@@ -282,74 +427,45 @@ export default function VictoryCity({ userId }) {
 
       {/* Легенда шпилей */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {([
+        {[
           [en ? 'Easy' : 'Лёгкая', 'var(--ink3)', 0],
           [en ? 'Medium' : 'Средняя', '#d4a017', 1],
           [en ? 'Hard' : 'Сложная', '#e8b830', 2],
           [en ? 'Extreme' : 'Экстрим', '#ffc845', 3],
           [en ? 'Impossible' : 'Невозможно', '#ffe080', 4],
-        ]).map(([label, color, bonus]) => (
+        ].map(([label, color, bonus]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)' }}>
-            <span style={{ color, fontWeight: 700 }}>{'▲'.repeat(bonus || 1).slice(0, 1)}</span>
+            <span style={{ color, fontWeight: 700 }}>{'▲'.repeat(1)}</span>
             <span style={{ color }}>{label}</span>
             {bonus > 0 && <span style={{ color: 'var(--ink3)', opacity: 0.5 }}>+{bonus}</span>}
           </div>
         ))}
       </div>
 
-      <div
-        ref={containerRef}
-        style={{
-          background: 'linear-gradient(175deg, #06060f 0%, #0c0c22 55%, #13132c 100%)',
-          borderRadius: 12,
-          border: '1px solid rgba(255,255,255,0.07)',
-          overflow: 'hidden',
-          touchAction: 'none',
-          userSelect: 'none',
-          cursor: dragRef.current ? 'grabbing' : 'grab',
-        }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
-      >
-        <svg
-          viewBox={`${cv.x} ${cv.y} ${cv.w} ${cv.h}`}
-          width="100%"
-          style={{ display: 'block', aspectRatio: `${vw0} / ${vh0}`, maxHeight: 440 }}
-        >
-          {Array.from({ length: 40 }).map((_, i) => (
-            <circle
-              key={i}
-              cx={vx0 + (i * 137.508 % vw0)}
-              cy={vy0 + ((i * 93.71 + 7) % (vh0 * 0.5))}
-              r={(i % 5 === 0) ? 1.4 : 0.6}
-              fill="white"
-              opacity={0.12 + (i % 8) * 0.06}
-            />
-          ))}
-          <circle cx={vx1 - 22} cy={vy0 + 22} r={11}  fill="#f5e6b0" opacity="0.18" />
-          <circle cx={vx1 - 17} cy={vy0 + 18} r={9}   fill="#06060f" opacity="0.95" />
+      {/* 3D рендер или fallback на SVG */}
+      {useFallback ? (
+        <Suspense fallback={
+          <div style={{ textAlign: 'center', padding: 32, color: 'var(--ink3)', fontSize: 12 }}>
+            {en ? 'Loading 2D view…' : 'Загрузка 2D-вида…'}
+          </div>
+        }>
+          <VictoryCity2D buildings={buildings} stats={stats} en={en} />
+        </Suspense>
+      ) : (
+        <div
+          ref={containerRef}
+          style={{
+            background: 'linear-gradient(180deg, #06060f 0%, #0a0a18 100%)',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.07)',
+            overflow: 'hidden',
+            minHeight: 320,
+            position: 'relative',
+          }}
+        />
+      )}
 
-          {positioned.map(({ b, col, row, chips, extraFloors }) => (
-            <Building
-              key={b.id}
-              bx={(col - row) * HW}
-              by={(col + row) * HH}
-              chips={chips}
-              golden={b.result === 'draw_won'}
-              skinId={b.player_skin_id || 'blocks_classic'}
-              extraFloors={extraFloors}
-              selected={selId === b.id}
-              onSelect={(e) => {
-                e.stopPropagation()
-                setSelId(selId === b.id ? null : b.id)
-              }}
-            />
-          ))}
-        </svg>
-      </div>
-
+      {/* Модалка с информацией о выбранном здании */}
       {selB && (() => {
         const diffBonus = selB.is_ai ? getDiffBonus(selB.ai_difficulty) : 0
         const diffLabel = getDiffLabel(selB.ai_difficulty, en)
@@ -421,9 +537,10 @@ export default function VictoryCity({ userId }) {
       })()}
 
       <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, opacity: 0.6 }}>
-        {en
-          ? 'Scroll to zoom · Drag to pan · Tap a building for details · Gold spires = AI difficulty'
-          : 'Колёсико — зум · Тащи — пан · Тап — детали · Золотые шпили = сложность AI'}
+        {useFallback
+          ? (en ? 'Scroll to zoom · Drag to pan · Tap a building for details' : 'Колёсико — зум · Тащи — пан · Тап — детали')
+          : (en ? 'Drag to rotate · Pinch/scroll to zoom · Right-click drag to pan · Tap a building for details'
+                : 'Тащи — вращай · Щипок/колёсико — зум · ПКМ+тащи — пан · Тап — детали')}
       </div>
     </div>
   )
