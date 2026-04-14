@@ -44,7 +44,7 @@ const TabFallback = () => (
   <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>...</div>
 )
 
-export default function Profile({ viewUsername, onClose }) {
+export default function Profile({ viewUsername, onClose, initialTab }) {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -52,7 +52,9 @@ export default function Profile({ viewUsername, onClose }) {
   const [profile, setProfile] = useState(loadLocal)
   const [publicProfile, setPublicProfile] = useState(null)
   const [publicLoading, setPublicLoading] = useState(false)
-  const [tab, setTab] = useState('profile')
+  // initialTab позволяет вызывающему открыть Profile сразу на нужной вкладке
+  // (например, после онбординга — сразу 'city').
+  const [tab, setTab] = useState(initialTab || 'profile')
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
   const [loginMode, setLoginMode] = useState(false)
@@ -68,6 +70,12 @@ export default function Profile({ viewUsername, onClose }) {
   const [missionsData, setMissionsData] = useState(null)
   const [analyticsData, setAnalyticsData] = useState(null)
   const [referralData, setReferralData] = useState(null)
+
+  // Если родитель меняет initialTab после mount (например, второй заход
+  // в профиль с другой вкладкой) — переключаемся.
+  useEffect(() => {
+    if (initialTab) setTab(initialTab)
+  }, [initialTab])
 
   useEffect(() => { API.checkServer().then(setServerOnline).catch(() => {}) }, [])
 
