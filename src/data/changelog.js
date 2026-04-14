@@ -1,5 +1,31 @@
 export default [
   {
+    version: '5.6.1',
+    date: '2026-04-14',
+    title_ru: '🛡 Багфиксы по аудиту: push-домен, /auth/refresh, SW, TDZ, утечки памяти',
+    title_en: '🛡 Audit bug fixes: push domain, /auth/refresh, SW, TDZ, memory leaks',
+    changes_ru: [
+      { type: 'fix', text: '🔔 Push-уведомления: клик по уведомлению вёл на старый snatch-highrise.com — теперь highriseheist.com' },
+      { type: 'fix', text: '🛡 /api/auth/refresh: защита от самодельных JWT без exp — отклоняем до дальнейших проверок' },
+      { type: 'fix', text: '📊 Push-helpers: не-404/410 ошибки (429, сетевые) теперь логируются в error_reports, раньше молча глушились' },
+      { type: 'fix', text: '⚙️ Service Worker: убрали избыточный OLD_CACHE_PREFIX, упростили activate (поведение то же)' },
+      { type: 'fix', text: '🏗 Victory City 3D: TDZ-баг — клик по городу до окончания intro-анимации мог бросить ReferenceError' },
+      { type: 'fix', text: '🧹 Middleware: добавлена LRU-чистка lastSeenCache (раньше он мог расти бесконтрольно)' },
+      { type: 'fix', text: '🏠 Matchmaking: комнаты из findMatch теперь имеют room.created — GC зачищает зависшие' },
+      { type: 'perf', text: '🗄 Bricks: удалены дублирующие ALTER TABLE (миграция 8 в db.js уже применяет)' },
+    ],
+    changes_en: [
+      { type: 'fix', text: '🔔 Push notifications: click used to open old snatch-highrise.com — now highriseheist.com' },
+      { type: 'fix', text: '🛡 /api/auth/refresh: defensive check against malformed JWTs without exp' },
+      { type: 'fix', text: '📊 Push-helpers: non-404/410 errors (429, network) are now logged to error_reports, previously silenced' },
+      { type: 'fix', text: '⚙️ Service Worker: removed redundant OLD_CACHE_PREFIX, simplified activate (same behavior)' },
+      { type: 'fix', text: '🏗 Victory City 3D: TDZ bug — clicking the city before intro animation finished could throw ReferenceError' },
+      { type: 'fix', text: '🧹 Middleware: added LRU cleanup for lastSeenCache (could grow unbounded)' },
+      { type: 'fix', text: '🏠 Matchmaking: rooms created via findMatch now have room.created — GC reaps stale rooms' },
+      { type: 'perf', text: '🗄 Bricks: removed duplicate ALTER TABLE (migration 8 in db.js already applies)' },
+    ],
+  },
+  {
     version: '5.6.0',
     date: '2026-04-14',
     title_ru: '📐 Photo Mode + 🌙 Day/Night, 🏗 grow-анимация, 📸 снимок, 🏙 3D на лендинге',
