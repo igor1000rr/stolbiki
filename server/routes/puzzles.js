@@ -291,6 +291,11 @@ router.get('/rush/leaderboard', (req, res) => {
 // Раньше клиент мог прислать score=99999 и забить лидерборд, а double-submit
 // удваивал XP. Теперь score ограничен разумными пределами (0..100), solved (0..30),
 // time (5s..600s). daily_missions обновляется WHERE completed=0.
+//
+// БАГ-ФИКС #2 (сессия аудита): раньше XP начислялся за КАЖДЫЙ сабмит, даже если
+// score хуже предыдущего — фарм-бaг. Теперь XP только за прирост над личным бестом.
+// Обновляем users.rush_best для ачивок rush_5/rush_15 и вызываем checkAchievements —
+// раньше ачивки разблокировались только при следующем решении обычной головоломки.
 router.post('/rush/submit', auth, (req, res) => {
   const score = clampInt(req.body.score, 0, 100, 0)
   const solved = clampInt(req.body.solved, 0, 30, 0)
@@ -298,8 +303,16 @@ router.post('/rush/submit', auth, (req, res) => {
 
   db.prepare('INSERT INTO puzzle_rush_scores (user_id, score, solved, time_ms) VALUES (?, ?, ?, ?)')
     .run(req.user.id, score, solved, time)
-  const xp = Math.min(score * 5, 200)
-  if (xp > 0) addXP(req.user.id, xp)
+
+  // Начисляем XP только за прирост над личным бестом (защита от фарма reattempt'ами)
+  const prevBest = db.prepare('SELECT rush_best FROM users WHERE id=?').get(req.user.id)?.rush_best || 0
+  let xp = 0
+  if (score > prevBest) {
+    xp = Math.min((score - prevBest) * 5, 200)
+    if (xp > 0) addXP(req.user.id, xp)
+    db.prepare('UPDATE users SET rush_best = ? WHERE id = ?').run(score, req.user.id)
+  }
+
   if (solved > 0) {
     const today = new Date().toISOString().split('T')[0]
     getTodayMissions(req.user.id)
@@ -314,7 +327,10 @@ router.post('/rush/submit', auth, (req, res) => {
       if (upd.changes > 0 && willComplete) addXP(req.user.id, m.xp_reward)
     }
   }
-  res.json({ ok: true, xp })
+
+  // Разблокируем rush_5/rush_15 ачивки (и остальные, если пороги сдвинулись)
+  const newAch = checkAchievements(req.user.id)
+  res.json({ ok: true, xp, newBest: score > prevBest, newAchievements: newAch })
 })
 
 router.get('/bank', (req, res) => {
