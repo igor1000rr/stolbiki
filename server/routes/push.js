@@ -53,9 +53,9 @@ router.post('/test', auth, async (req, res) => {
   if (!req.user.isAdmin) return res.status(403).json({ error: 'admin only' })
   if (!isPushConfigured()) return res.status(503).json({ error: 'Push не настроен' })
   const result = await sendPushTo(req.user.id, {
-    title: 'Snatch Highrise',
+    title: 'Highrise Heist',
     body: 'Тестовое уведомление',
-    url: 'https://snatch-highrise.com/',
+    url: 'https://highriseheist.com/',
   })
   res.json({ ok: true, ...result })
 })

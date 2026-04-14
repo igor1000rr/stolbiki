@@ -5,7 +5,7 @@
  *   - production: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY в .env (обязательно)
  *   - dev: автогенерация в server/.vapid (как .jwt-secret)
  *
- * Subject: VAPID_SUBJECT (mailto: или https://) — default https://snatch-highrise.com
+ * Subject: VAPID_SUBJECT (mailto: или https://) — default https://highriseheist.com
  *
  * Если web-push не установлен (npm install не прогнан) — модуль работает в no-op режиме:
  * endpoints возвращают {configured: false}, sendPushTo молча возвращает 0.
@@ -45,7 +45,7 @@ try {
 // ─── VAPID keys ───
 let VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || ''
 let VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || ''
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'https://snatch-highrise.com'
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'https://highriseheist.com'
 
 if (webpush && (!VAPID_PUBLIC || !VAPID_PRIVATE)) {
   if (process.env.NODE_ENV === 'production') {
