@@ -12,6 +12,10 @@ import { GameState, applyAction } from './game.js'
 import { cancelRecording, startRecording, setGameMeta, finishRecording } from './collector.js'
 import * as API from './api.js'
 
+// Title для локальных браузерных уведомлений (Notification API).
+// Синхронизируется с именем бренда — после ребрендинга snatch-highrise → highriseheist.
+const NOTIF_TITLE = 'Highrise Heist'
+
 /**
  * @param {object} opts
  * @param {object} opts.gameCtx — GameContext instance
@@ -159,7 +163,7 @@ export function useOnlineGameHandlers(opts) {
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.placeChips'))
             if (document.hidden) {
               startTitleBlink(t('game.yourTurnBlink'))
-              showNotification('Snatch Highrise', t('game.yourTurnBlink'))
+              showNotification(NOTIF_TITLE, t('game.yourTurnBlink'))
             }
           }, 300)
         } else {
@@ -220,12 +224,12 @@ export function useOnlineGameHandlers(opts) {
       const myColor = onlineRef.current?.myColor ?? 0
       setResult(myColor); setPhase('done'); setLocked(false)
       setInfo(t('game.opponentResigned')); sw()
-      showNotification('Snatch Highrise', t('game.opponentResigned'))
+      showNotification(NOTIF_TITLE, t('game.opponentResigned'))
     }
 
     function handleDrawOffer() {
       setDrawOffered(true)
-      showNotification('Snatch Highrise', t('game.drawOfferReceived'))
+      showNotification(NOTIF_TITLE, t('game.drawOfferReceived'))
     }
 
     function handleDrawResponse(detail) {
@@ -281,7 +285,7 @@ export function useOnlineGameHandlers(opts) {
       gameCtx.register('onServerGameOver', handleServerGameOver),
       gameCtx.register('onRematchOffer', () => {
         setRematchOffered(true)
-        showNotification('Snatch Highrise', t('game.rematchOffer'))
+        showNotification(NOTIF_TITLE, t('game.rematchOffer'))
       }),
       gameCtx.register('onRematchDeclined', () => {
         setRematchPending(false); setInfo(t('game.rematchDeclined'))
