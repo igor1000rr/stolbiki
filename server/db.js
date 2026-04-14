@@ -766,10 +766,123 @@ Three \`try { ALTER TABLE users ADD COLUMN … } catch {}\` on module load dupli
 ---
 
 \`vitest\` (\`tests/routes.test.js\`, \`anticheat\`, \`game-engine\` + 7 more) remains green. All 8 commits atomic, with descriptive messages.`,
-      'release', 1, 1, '2026-04-14 18:00:00'
+      'release', 0, 1, '2026-04-14 18:00:00'
     )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v561-audit-fixes'").run()
   console.log('Блог: добавлен пост v5.6.1')
+}
+
+// ─── Блог-пост v5.7.0 (Achievement Rarity + 2-я волна аудита) ───
+const blog570 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v570-achievement-rarity'").get()
+if (!blog570) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'v570-achievement-rarity',
+      'v5.7.0: 🏆 Achievement Rarity — живой % держателей на каждой ачивке',
+      'v5.7.0: 🏆 Achievement Rarity — live % of holders on each achievement',
+      `Закрыли Issue #6 — полноценная серверная + клиентская реализация рарности ачивок с живыми данными из базы.
+
+**🏆 Как работает**
+Каждая ачивка теперь показывает реальный процент игроков, которые её получили, и **tier** по порогам:
+- 🥇 \`legendary\` — < 1% держателей
+- 💜 \`epic\` — < 5%
+- 💎 \`rare\` — < 20%
+- ⚪ \`common\` — ≥ 20%
+
+База для процента — только активные игроки с \`games_played ≥ 1\`, чтобы мёртвые регистрации не размывали статистику.
+
+**🔌 Endpoints**
+- \`GET /api/achievements/rarity\` — публичный, возвращает \`{ total, rarity: { [id]: { holders, percentage, tier } }, computedAt }\`
+- \`GET /api/achievements/me\` (auth) — список ачивок юзера с \`rarity\` merged
+
+Один SQL с \`GROUP BY\` и \`JOIN\` по users через индекс \`idx_achievements_user\` — миллисекунды даже на 100k юзеров. Кэш 5 минут in-memory + \`Cache-Control: max-age=300\` на клиенте.
+
+**⚛️ Фронт**
+Добавили hook \`useAchievementRarity\` — фетчит один раз на вкладку, кэширует в \`sessionStorage\` на 5 минут. Дедупликация parallel-фетчей через in-flight промис: 10 бейджей на экране = 1 запрос к серверу.
+
+В \`ProfileAchievements\` каждая карточка теперь обогащается живым \`holders\` перед рендером. Существующий render \`{ach.holders}% of players\` уже был в \`AchievementCard\` — просто начал показывать реальные числа.
+
+Компонент \`AchievementRarityBadge\` готов как переиспользуемый виджет для будущих мест (публичный профиль, лидерборд и т.д.).
+
+**🧪 Тесты**
+Отдельный файл \`tests/achievements.test.js\`: структура \`{ total, rarity, computedAt }\`, \`Cache-Control\` заголовок, tier всегда из whitelist, \`/me\` без токена → 401, \`/me\` с токеном → массив с \`rarity\`.
+
+---
+
+## 🛡 Вторая волна аудита — 3 фикса
+
+**🧹 chat-limits: LRU для \`lastSent\` Map**
+Раньше чистились только записи старше 10 минут. При всплеске уникальных userId (ботнет, DDoS) Map мог расти безгранично. Добавили тот же LRU что и в middleware: при size > 20k → оставляем 15k самых свежих.
+
+**🔔 Локальные Notification API → \`'Highrise Heist'\`**
+В \`useOnlineGameHandlers.js\` было 4 места с \`showNotification('Snatch Highrise', ...)\` — старое имя после ребрендинга (ход противника, сдача, ничья, рематч). Вынес в константу \`NOTIF_TITLE\` чтобы больше не расходилось.
+
+**🏷 Notification tag префикс**
+В \`gameUtils.showNotification\` tag был \`'snatch-' + Date.now()\`. Заменил на \`'highrise-'\` — финал ребрендинг-долга.
+
+---
+
+## 📊 Итог
+
+Серия ребрендинг-фиксов **snatch → highrise** полностью закрыта в 3 волны:
+1. \`server/ws.js\` — URL push-уведомлений и title (server-side)
+2. \`src/engine/useOnlineGameHandlers.js\` — 4× title в Notification API (client-side)
+3. \`src/components/gameUtils.js\` — tag префикс
+
+Android APK получит \`versionCode=58\`, \`versionName=5.7.0\` — Игорю остаётся \`npm run cap:sync\` для сборки.`,
+      `Closed Issue #6 — full server + client implementation of achievement rarity with live data from DB.
+
+**🏆 How it works**
+Each achievement now shows real % of players who unlocked it, and **tier** by thresholds:
+- 🥇 \`legendary\` — < 1% holders
+- 💜 \`epic\` — < 5%
+- 💎 \`rare\` — < 20%
+- ⚪ \`common\` — ≥ 20%
+
+Percentage base is only active players with \`games_played ≥ 1\` — dead signups don't skew stats.
+
+**🔌 Endpoints**
+- \`GET /api/achievements/rarity\` — public, returns \`{ total, rarity: { [id]: { holders, percentage, tier } }, computedAt }\`
+- \`GET /api/achievements/me\` (auth) — user's achievements with \`rarity\` merged
+
+One SQL with \`GROUP BY\` and \`JOIN\` on users via \`idx_achievements_user\` — milliseconds even at 100k users. 5-minute in-memory cache + \`Cache-Control: max-age=300\` on client.
+
+**⚛️ Frontend**
+Added hook \`useAchievementRarity\` — fetches once per tab, caches in \`sessionStorage\` for 5 minutes. Parallel-fetch deduplication via in-flight promise: 10 badges on screen = 1 server request.
+
+In \`ProfileAchievements\` each card now gets enriched with live \`holders\` before rendering. The existing render \`{ach.holders}% of players\` was already in \`AchievementCard\` — now just shows real numbers.
+
+\`AchievementRarityBadge\` component is ready as a reusable widget for future places (public profile, leaderboard, etc.).
+
+**🧪 Tests**
+Separate file \`tests/achievements.test.js\`: structure \`{ total, rarity, computedAt }\`, \`Cache-Control\` header, tier always from whitelist, \`/me\` without token → 401, \`/me\` with token → array with \`rarity\`.
+
+---
+
+## 🛡 Second audit wave — 3 fixes
+
+**🧹 chat-limits: LRU for \`lastSent\` Map**
+Previously only entries older than 10 minutes were cleaned. On a spike of unique userIds (botnet, DDoS) the Map could grow unbounded. Added same LRU as in middleware: when size > 20k → keep 15k freshest.
+
+**🔔 Local Notification API → \`'Highrise Heist'\`**
+In \`useOnlineGameHandlers.js\` there were 4 places with \`showNotification('Snatch Highrise', ...)\` — old name after rebrand (opponent move, resign, draw, rematch). Moved to \`NOTIF_TITLE\` constant so it doesn't drift again.
+
+**🏷 Notification tag prefix**
+In \`gameUtils.showNotification\` tag was \`'snatch-' + Date.now()\`. Replaced with \`'highrise-'\` — final rebrand cleanup.
+
+---
+
+## 📊 Summary
+
+The **snatch → highrise** rebrand fix series is now fully closed in 3 waves:
+1. \`server/ws.js\` — push notification URL and title (server-side)
+2. \`src/engine/useOnlineGameHandlers.js\` — 4× title in Notification API (client-side)
+3. \`src/components/gameUtils.js\` — tag prefix
+
+Android APK gets \`versionCode=58\`, \`versionName=5.7.0\` — Igor runs \`npm run cap:sync\` for the build.`,
+      'release', 1, 1, '2026-04-14 22:00:00'
+    )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v570-achievement-rarity'").run()
+  console.log('Блог: добавлен пост v5.7.0')
 }
 
 // ═══ Ачивки ═══
