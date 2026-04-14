@@ -227,6 +227,15 @@ function generatePuzzle(seed, difficultyFilter) {
   }
 }
 
+// Валидация числовых входов от клиента — всё что попадает в лидерборды/БД,
+// должно быть в разумных пределах, иначе клиент может прислать movesUsed=-1
+// и занять первое место навсегда.
+function clampInt(val, min, max, fallback = min) {
+  const n = parseInt(val, 10)
+  if (!Number.isFinite(n)) return fallback
+  return Math.max(min, Math.min(max, n))
+}
+
 // ═══ Puzzle Endpoints ═══
 
 router.get('/daily', (req, res) => {
@@ -278,11 +287,17 @@ router.get('/rush/leaderboard', (req, res) => {
   res.json(rows)
 })
 
+// БАГ-ФИКС: валидация входов + атомарный UPDATE daily_missions.
+// Раньше клиент мог прислать score=99999 и забить лидерборд, а double-submit
+// удваивал XP. Теперь score ограничен разумными пределами (0..100), solved (0..30),
+// time (5s..600s). daily_missions обновляется WHERE completed=0.
 router.post('/rush/submit', auth, (req, res) => {
-  const { score, solved, time } = req.body
-  if (!score && score !== 0) return res.status(400).json({ error: 'score required' })
+  const score = clampInt(req.body.score, 0, 100, 0)
+  const solved = clampInt(req.body.solved, 0, 30, 0)
+  const time = clampInt(req.body.time, 5000, 600000, 180000)
+
   db.prepare('INSERT INTO puzzle_rush_scores (user_id, score, solved, time_ms) VALUES (?, ?, ?, ?)')
-    .run(req.user.id, score, solved || 0, time || 180000)
+    .run(req.user.id, score, solved, time)
   const xp = Math.min(score * 5, 200)
   if (xp > 0) addXP(req.user.id, xp)
   if (solved > 0) {
@@ -292,8 +307,11 @@ router.post('/rush/submit', auth, (req, res) => {
       .get(req.user.id, today, 'solve_puzzle')
     if (m) {
       const np = Math.min(m.progress + solved, m.target)
-      db.prepare('UPDATE daily_missions SET progress=?, completed=? WHERE id=?').run(np, np >= m.target ? 1 : 0, m.id)
-      if (np >= m.target) addXP(req.user.id, m.xp_reward)
+      const willComplete = np >= m.target ? 1 : 0
+      const upd = db.prepare(
+        'UPDATE daily_missions SET progress=?, completed=? WHERE id=? AND completed=0'
+      ).run(np, willComplete, m.id)
+      if (upd.changes > 0 && willComplete) addXP(req.user.id, m.xp_reward)
     }
   }
   res.json({ ok: true, xp })
@@ -332,19 +350,27 @@ router.get('/:type/:id', (req, res) => {
   res.json(puzzle)
 })
 
+// БАГ-ФИКС: валидация movesUsed/duration — раньше клиент мог прислать отрицательное
+// значение и занять первое место в лидерборде навсегда. Теперь movesUsed (0..100)
+// и duration (0..1h) ограничены разумными пределами.
 router.post('/submit', auth, (req, res) => {
-  const { type, puzzleId, solved, movesUsed, duration } = req.body
+  const { type, puzzleId, solved } = req.body
   if (!type || !puzzleId) return res.status(400).json({ error: 'Missing fields' })
-  const existing = db.prepare('SELECT id, solved FROM puzzle_results WHERE user_id=? AND puzzle_type=? AND puzzle_id=?').get(req.user.id, type, puzzleId)
+  if (!['daily', 'weekly', 'bank'].includes(type)) return res.status(400).json({ error: 'Invalid type' })
+  const movesUsed = clampInt(req.body.movesUsed, 0, 100, 0)
+  const duration = clampInt(req.body.duration, 0, 3600000, 0)
+  const solvedFlag = solved ? 1 : 0
+
+  const existing = db.prepare('SELECT id, solved, moves_used FROM puzzle_results WHERE user_id=? AND puzzle_type=? AND puzzle_id=?').get(req.user.id, type, String(puzzleId))
   let newSolve = false
   if (existing) {
-    if (solved && (!existing.solved || movesUsed < existing.moves_used)) {
+    if (solvedFlag && (!existing.solved || movesUsed < existing.moves_used)) {
       db.prepare('UPDATE puzzle_results SET solved=1, moves_used=?, duration=? WHERE id=?').run(movesUsed, duration, existing.id)
       if (!existing.solved) newSolve = true
     }
   } else {
-    db.prepare('INSERT INTO puzzle_results (user_id, username, puzzle_type, puzzle_id, solved, moves_used, duration) VALUES (?, ?, ?, ?, ?, ?, ?)').run(req.user.id, req.user.username, type, puzzleId, solved ? 1 : 0, movesUsed, duration)
-    if (solved) newSolve = true
+    db.prepare('INSERT INTO puzzle_results (user_id, username, puzzle_type, puzzle_id, solved, moves_used, duration) VALUES (?, ?, ?, ?, ?, ?, ?)').run(req.user.id, req.user.username, type, String(puzzleId), solvedFlag, movesUsed, duration)
+    if (solvedFlag) newSolve = true
   }
   if (newSolve) {
     db.prepare('UPDATE users SET puzzles_solved = puzzles_solved + 1 WHERE id = ?').run(req.user.id)
