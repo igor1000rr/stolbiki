@@ -8,7 +8,8 @@
  * - NN weights (.json, .bin): cache-first (большие, редко меняются)
  * - Web Push: показ уведомления + фокус окна по клику
  */
-const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
+const CACHE_NAME = 'highrise-v__BUILD_HASH__'
+const OLD_CACHE_PREFIX = 'stolbiki-v' // очищаем старые кеши после ребрендинга
 
 self.addEventListener('install', () => self.skipWaiting())
 
@@ -19,8 +20,11 @@ self.addEventListener('message', (e) => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(keys => Promise.all(
+      keys
+        .filter(k => k !== CACHE_NAME || k.startsWith(OLD_CACHE_PREFIX))
+        .map(k => caches.delete(k))
+    )).then(() => self.clients.claim())
   )
 })
 
@@ -96,12 +100,12 @@ self.addEventListener('push', (event) => {
   try { data = event.data ? event.data.json() : {} } catch {
     try { data = { body: event.data ? event.data.text() : '' } } catch {}
   }
-  const title = data.title || 'Snatch Highrise'
+  const title = data.title || 'Highrise Heist'
   const options = {
     body: data.body || '',
-    icon: '/logo.webp',
-    badge: '/logo.webp',
-    tag: data.tag || 'snatch-push',
+    icon: '/icon-192.png',
+    badge: '/favicon.png',
+    tag: data.tag || 'highrise-push',
     renotify: true,
     data: { url: data.url || '/' },
   }
