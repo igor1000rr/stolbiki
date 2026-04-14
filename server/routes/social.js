@@ -107,17 +107,15 @@ router.get('/users/search', auth, (req, res) => {
   res.json(users)
 })
 
-// ═══ Training Data ═══
-router.post('/training', auth, (req, res) => {
-  const { gameData, winner, totalMoves, mode, difficulty } = req.body
-  // Ограничение размера game_data (макс 100KB)
-  const json = JSON.stringify(gameData)
-  if (json.length > 102400) return res.status(400).json({ error: 'Данные слишком большие (макс 100KB)' })
-  db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, json, winner, totalMoves || 0, mode || 'ai', difficulty || 150)
-  res.json({ ok: true })
-})
-
+// БАГ-ФИКС: удалён дубль POST /training (был здесь без rateLimit и без walkMoves).
+// В games.js есть правильная версия с rateLimit(3600000, 10) и anti-cheat через walkMoves —
+// она mount'ится первой (см. server.js), поэтому этот дубль был dead code, но представлял
+// риск регрессии: если кто-то поменяет порядок mount — клиент сможет спамить training_data
+// и обходить проверку легальности ходов. Убран.
+//
+// Admin-роуты GET /training/stats и GET /training/export дублируются в admin.js
+// (/api/admin/training, /api/admin/training/export-gpu) — оставлены как есть для обратной
+// совместимости, но стоит перевести на /api/admin/* и убрать отсюда в будущем.
 router.get('/training/stats', auth, adminOnly, (req, res) => {
   const stats = db.prepare('SELECT COUNT(*) as games, SUM(total_moves) as moves FROM training_data').get()
   const byMode = db.prepare('SELECT mode, COUNT(*) as count FROM training_data GROUP BY mode').all()
