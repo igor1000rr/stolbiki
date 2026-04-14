@@ -461,6 +461,9 @@ export default function VictoryCity({ userId }) {
           }
         }
 
+        // introStart объявляем ДО pointerup-handler — иначе TDZ при раннем клике
+        const introStart = performance.now()
+
         // Raycaster для кликов
         const raycaster = new THREE.Raycaster()
         const mouse = new THREE.Vector2()
@@ -508,7 +511,6 @@ export default function VictoryCity({ userId }) {
 
         // Animate loop
         let rafId = 0
-        const introStart = performance.now()
         let growComplete = false
         const clock = new THREE.Clock()
         const animate = () => {
