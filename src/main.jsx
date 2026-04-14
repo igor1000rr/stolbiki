@@ -34,7 +34,7 @@ class ErrorBoundary extends Component {
 const isNative = !!window.Capacitor?.isNativePlatform?.()
 
 if (isNative) {
-  const SERVER = import.meta.env.VITE_SERVER_URL || 'https://snatch-highrise.com'
+  const SERVER = import.meta.env.VITE_SERVER_URL || 'https://highriseheist.com'
 
   // Класс на body для CSS оптимизаций
   document.body.classList.add('native-body')
@@ -80,7 +80,7 @@ if (isNative) {
       if (canGoBack) window.history.back()
       else CapApp.exitApp()
     })
-    // Deep links: snatch-highrise.com?room=XXX
+    // Deep links: highriseheist.com?room=XXX
     CapApp.addListener('appUrlOpen', ({ url }) => {
       try {
         const u = new URL(url)
