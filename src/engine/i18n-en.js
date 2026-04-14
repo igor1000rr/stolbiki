@@ -131,7 +131,7 @@ export default {
   'tutorial.title': 'How to play',
   'tutorial.got': 'Got it, let\'s play!',
   'tutorial.rules': 'Detailed rules — see "Rules" tab',
-  'header.title': 'Snatch Highrise',
+  'header.title': 'Highrise Heist',
   'header.subtitle': 'Board game — play, analyze, compete',
   'header.players': 'players',
   'header.games': 'games',
