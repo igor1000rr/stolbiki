@@ -9,6 +9,8 @@ const KNOWN_TYPES = new Set([
   'move', 'resign', 'chat', 'reaction',
   'drawOffer', 'drawResponse', 'gameOver',
   'rematchOffer', 'rematchResponse',
+  // Глобальный чат (обрабатываются в ws.js)
+  'globalChat', 'joinGlobalChat', 'leaveGlobalChat',
 ])
 
 const ALLOWED_EMOJI = ['👍', '🔥', '😮', '😂', '💪', '🎉']
