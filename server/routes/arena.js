@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { db } from '../db.js'
-import { auth, rateLimit } from '../middleware.js'
+import { auth, rateLimit, adminOnly } from '../middleware.js'
 import { addXP } from '../helpers.js'
 
 const router = Router()
@@ -59,27 +59,59 @@ router.post('/start', auth, rateLimit(60000, 5), (req, res) => {
   res.json({ ok: true, round: 1, matches: shuffled.length >> 1 })
 })
 
+// БАГ-ФИКС (SECURITY): раньше любой авторизованный юзер мог POST'ить результат любого
+// матча и назначить победителем себя (XP за top-3). Теперь проверяем:
+//   1. req.user.id должен быть одним из участников матча (player1 или player2).
+//   2. winner_id должен быть один из этих двух игроков (или null = ничья).
+//   3. result нормализуется: допустимо только 'win', 'draw', пустое ('').
+//      'bye' оставляем только для автоматической пары (set-via-code в /start и ниже).
+// Админы могут переопределять любые матчи через отдельный /result/admin (будет добавлено).
 router.post('/result', auth, rateLimit(60000, 30), (req, res) => {
   const { match_id, winner_id, result } = req.body
-  if (!match_id) return res.status(400).json({ error: 'match_id required' })
-  const match = db.prepare('SELECT * FROM arena_matches WHERE id=?').get(match_id)
-  if (!match || match.winner_id) return res.status(400).json({ error: 'Invalid match or already recorded' })
+  const mid = parseInt(match_id, 10)
+  if (!mid) return res.status(400).json({ error: 'match_id required' })
 
-  db.prepare('UPDATE arena_matches SET winner_id=?, result=? WHERE id=?').run(winner_id, result || '', match_id)
+  const match = db.prepare('SELECT * FROM arena_matches WHERE id=?').get(mid)
+  if (!match) return res.status(404).json({ error: 'match not found' })
+  if (match.winner_id || match.result) return res.status(409).json({ error: 'already recorded' })
 
-  if (winner_id === match.player1_id) {
+  // SECURITY: только участники могут зафиксировать результат
+  const isParticipant = req.user.id === match.player1_id || req.user.id === match.player2_id
+  if (!isParticipant && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'Вы не участник этого матча' })
+  }
+
+  // SECURITY: winner_id должен быть одним из игроков или null (ничья)
+  let normalizedWinnerId = null
+  if (winner_id !== null && winner_id !== undefined) {
+    const wid = parseInt(winner_id, 10)
+    if (wid !== match.player1_id && wid !== match.player2_id) {
+      return res.status(400).json({ error: 'winner_id должен быть одним из игроков или null' })
+    }
+    normalizedWinnerId = wid
+  }
+
+  // SECURITY: result нормализуется в whitelist. 'bye' запрещён — его ставит только код.
+  const resultWhitelist = ['win', 'draw', '']
+  const normalizedResult = resultWhitelist.includes(result) ? result : (normalizedWinnerId ? 'win' : 'draw')
+
+  db.prepare('UPDATE arena_matches SET winner_id=?, result=? WHERE id=?')
+    .run(normalizedWinnerId, normalizedResult, mid)
+
+  if (normalizedWinnerId === match.player1_id) {
     db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player1_id)
     db.prepare('UPDATE arena_participants SET losses=losses+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player2_id)
-  } else if (winner_id === match.player2_id) {
+  } else if (normalizedWinnerId === match.player2_id) {
     db.prepare('UPDATE arena_participants SET score=score+1, wins=wins+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player2_id)
     db.prepare('UPDATE arena_participants SET losses=losses+1 WHERE tournament_id=? AND user_id=?').run(match.tournament_id, match.player1_id)
   } else {
+    // Ничья — оба игрока получают по 0.5
     db.prepare('UPDATE arena_participants SET score=score+0.5, draws=draws+1 WHERE tournament_id=? AND user_id IN (?,?)').run(match.tournament_id, match.player1_id, match.player2_id)
   }
 
   const t = db.prepare('SELECT * FROM arena_tournaments WHERE id=?').get(match.tournament_id)
   const roundMatches = db.prepare('SELECT * FROM arena_matches WHERE tournament_id=? AND round=?').all(t.id, t.current_round)
-  const allDone = roundMatches.every(m => m.winner_id || m.result === 'bye')
+  const allDone = roundMatches.every(m => m.winner_id || m.result === 'bye' || m.result === 'draw')
 
   if (allDone && t.current_round < t.rounds) {
     const nextRound = t.current_round + 1
