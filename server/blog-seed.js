@@ -1,19 +1,24 @@
 /**
  * Сидинг блог-постов.
  *
+ * Блог = single source of truth из репо. Всё что не описано в BLOG_POSTS
+ * массиве — удаляется при старте. Это упрощает жизнь: правишь файлы → push →
+ * рестарт → блог именно такой как в коде.
+ *
  * Новый релиз = один файл в server/blog-posts/v<NNN>.js + одна строка импорта
  * ниже + одна запись в массив BLOG_POSTS + обновить PINNED_SLUG.
  *
  * При старте сервера:
- *   1. Новые посты добавляются по slug.
- *   2. УЖЕ существующие посты обновляются: title/body/tag перезаписываются
- *      из файлов. Это нужно чтобы редакторские правки в файлах долетали
- *      на прод (раньше existing постов скипались — правки терялись).
- *      pinned/created_at не трогаем — пин управляется PINNED_SLUG ниже,
- *      created_at должна остаться оригинальной.
- *   3. Пин жёстко перестанавливается на PINNED_SLUG — админ-пины через
- *      PUT /api/admin/blog не переживут рестарт — сознательный trade-off
- *      ради того чтобы пин всегда совпадал с текущим релизом.
+ *   1. Новые посты добавляются (INSERT).
+ *   2. Существующие обновляются (UPDATE title/body/tag) — правки в файлах
+ *      долетают до прода после рестарта.
+ *   3. Посты со slug ВНЕ BLOG_POSTS удаляются (включая legacy и админские
+ *      добавления через PUT /api/admin/blog — они не переживают рестарт,
+ *      сознательный trade-off).
+ *   4. Пин жёстко перестанавливается на PINNED_SLUG.
+ *
+ * Если нужно добавить пост админкой так чтобы он остался — добавь его
+ * соответствующим файлом в server/blog-posts/ и в массив ниже.
  *
  * Статические импорты (не readdirSync) — чтобы IDE подсвечивал опечатки
  * и чтобы seedBlogPosts оставался синхронным (db.js вызывает без await).
@@ -48,6 +53,7 @@ export function seedBlogPosts(db) {
   const update = db.prepare(
     'UPDATE blog_posts SET title_ru = ?, title_en = ?, body_ru = ?, body_en = ?, tag = ?, updated_at = datetime(\'now\') WHERE slug = ?'
   )
+
   let added = 0, updated = 0
   for (const p of BLOG_POSTS) {
     if (exists.get(p.slug)) {
@@ -63,6 +69,14 @@ export function seedBlogPosts(db) {
       added++
     }
   }
+
+  // Удаляем всё что не в BLOG_POSTS массиве — блог остаётся ровно таким как в репо.
+  const allowedSlugs = BLOG_POSTS.map(p => p.slug)
+  const placeholders = allowedSlugs.map(() => '?').join(',')
+  const deleted = db.prepare(`DELETE FROM blog_posts WHERE slug NOT IN (${placeholders})`).run(...allowedSlugs)
+
+  // Пин на текущий релиз.
   db.prepare('UPDATE blog_posts SET pinned = CASE WHEN slug = ? THEN 1 ELSE 0 END').run(PINNED_SLUG)
-  console.log('Блог: добавлено ' + added + ', обновлено ' + updated + ', запинен ' + PINNED_SLUG)
+
+  console.log('Блог: добавлено ' + added + ', обновлено ' + updated + ', удалено лишних ' + deleted.changes + ', запинен ' + PINNED_SLUG)
 }
