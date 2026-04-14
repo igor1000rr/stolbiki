@@ -220,14 +220,14 @@ router.get('/referrals', auth, (req, res) => {
     const totalXP = referrals.reduce((s, r) => s + (r.xp_rewarded || 0), 0)
     res.json({
       code: user.referral_code,
-      link: `https://snatch-highrise.com?ref=${user.referral_code}`,
+      link: `https://highriseheist.com?ref=${user.referral_code}`,
       count: referrals.length,
       totalXP,
       referrals: referrals.map(r => ({ username: r.username, xp: r.xp_rewarded, date: r.created_at })),
     })
   } catch (e) {
     const code = Math.random().toString(36).slice(2, 8).toUpperCase()
-    res.json({ code, link: `https://snatch-highrise.com?ref=${code}`, count: 0, totalXP: 0, referrals: [] })
+    res.json({ code, link: `https://highriseheist.com?ref=${code}`, count: 0, totalXP: 0, referrals: [] })
   }
 })
 
