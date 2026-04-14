@@ -1,5 +1,31 @@
 export default [
   {
+    version: '5.5.0',
+    date: '2026-04-14',
+    title_ru: '🏙 3D Город побед + 3D превью скинов',
+    title_en: '🏙 3D Victory City + 3D skin preview',
+    changes_ru: [
+      { type: 'new', text: '🏙 Город побед теперь 3D на Three.js: вращение мышкой/пальцами, зум, пан, тени, освещение, звёздное небо' },
+      { type: 'new', text: '🎥 Intro-анимация (1.8с): камера плавно «приземляется» сверху на изометрию (easeOutCubic)' },
+      { type: 'new', text: '🎯 Click-to-focus: тап по зданию — камера плавно перелетает к нему (0.7с) + модалка с деталями' },
+      { type: 'new', text: '✨ Материалы скинов: metal блестит (metalness 0.7), neon/glow пульсирует emissive, glass полупрозрачный' },
+      { type: 'new', text: '🔺 Золотые шпили за сложность AI теперь излучают свет, крутятся тени от солнца' },
+      { type: 'new', text: '🎪 3D-превью скинов: во вкладке «Блоки» магазина крутится 3D-башенка активного скина с правильным материалом' },
+      { type: 'new', text: '💾 WebGL fallback: на устройствах без WebGL автоматически подгружается старый SVG 2.5D' },
+      { type: 'fix', text: 'Vite: three.js вынесен в отдельный chunk (~600KB, lazy), main bundle не раздувается' },
+    ],
+    changes_en: [
+      { type: 'new', text: '🏙 Victory City now fully 3D on Three.js: rotate with mouse/touch, zoom, pan, shadows, lighting, starry sky' },
+      { type: 'new', text: '🎥 Intro animation (1.8s): camera smoothly “lands” from above onto isometric view (easeOutCubic)' },
+      { type: 'new', text: '🎯 Click-to-focus: tap a building — camera smoothly flies to it (0.7s) + detail modal' },
+      { type: 'new', text: '✨ Skin materials: metal glistens (metalness 0.7), neon/glow pulse emissive, glass translucent' },
+      { type: 'new', text: '🔺 AI-difficulty gold spires now emit light; sun casts real shadows on the city' },
+      { type: 'new', text: '🎪 3D skin preview: rotating 3D tower of active skin in the Blocks tab of the shop' },
+      { type: 'new', text: '💾 WebGL fallback: devices without WebGL automatically load the old SVG 2.5D view' },
+      { type: 'fix', text: 'Vite: three.js split into its own chunk (~600KB, lazy) — main bundle stays small' },
+    ],
+  },
+  {
     version: '5.4.0',
     date: '2026-04-14',
     title_ru: 'Модерация чата + Web Push уведомления',

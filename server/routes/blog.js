@@ -161,14 +161,64 @@ The harder the opponent, the taller the tower. Legend shown below the city.
 Now visible in the site header next to your name. Click to open the shop. Balance loads from server every time you open the shop.`,
   'release', '2026-04-13 10:00:00')
 
+// ═══ v5.5.0 ═══
+addPost('v550-3d-city-skins',
+  'v5.5.0: 3D Город побед + вращающиеся скины в магазине',
+  'v5.5.0: 3D Victory City + rotating skins in the shop',
+  `**🏙 Город побед теперь полностью 3D**
+Изометрия SVG ушла в прошлое. Сейчас ваш город рендерится через Three.js с настоящими тенями, солнцем, звёздным небом и глубиной.
+
+Тащите мышью или пальцем — камера вращается вокруг города. Щипок или колёсико — зум. ПКМ + тащите — перемещение. Клик по зданию — камера плавно перелетает к нему.
+
+**🎥 Intro-анимация**
+При первом открытии вкладки «Город» камера плавно «приземляется» с высоты на изометрический ракурс за 1.8 секунды.
+
+**✨ Материалы скинов**
+Metal-скин блестит как настоящая сталь. Neon и Glow самосвечением пульсируют. Glass полупрозрачный. Pixel — гранёный ретро-стиль.
+
+**🔺 Пульсирующие шпили**
+Золотые шпили за сложность AI теперь излучают свет с пульсацией — видно каждое победное здание издалека.
+
+**🎪 3D-превью скинов**
+Во вкладке «Блоки» магазина — вращающаяся 3D-башенка вашего активного скина. Теперь видно как скин выглядит в объёме, а не только на плоской карточке.
+
+**💾 Fallback для старых устройств**
+Если WebGL недоступен — автоматически подгружается старый SVG 2.5D рендер. Никто не потерял доступ к городу.
+
+**⚡ Производительность**
+Библиотека Three.js (~600KB) вынесена в отдельный chunk и подгружается только при открытии Города или магазина. Первоначальный bundle время не вырос.`,
+  `**🏙 Victory City is fully 3D now**
+SVG isometry is history. Your city renders through Three.js with real shadows, sun, starry sky and depth.
+
+Drag with your mouse or finger — the camera rotates around the city. Pinch or scroll — zoom. Right-click drag — pan. Tap a building — the camera smoothly flies to it.
+
+**🎥 Intro animation**
+When you first open the “City” tab, the camera smoothly “lands” from above onto the isometric view in 1.8 seconds.
+
+**✨ Skin materials**
+Metal skin glistens like real steel. Neon and Glow pulse with self-emission. Glass is translucent. Pixel is faceted retro style.
+
+**🔺 Pulsing spires**
+Gold spires for AI difficulty now emit light with pulsing — every victory building visible from afar.
+
+**🎪 3D skin preview**
+In the “Blocks” tab of the shop — a rotating 3D tower of your currently equipped skin. Finally see how a skin looks in 3D, not just on a flat card.
+
+**💾 Fallback for old devices**
+If WebGL is unavailable — the old SVG 2.5D renderer auto-loads. Nobody loses access to the city.
+
+**⚡ Performance**
+Three.js library (~600KB) is split into a separate chunk and loaded only when you open the City or the shop. Initial bundle did not grow.`,
+  'release', '2026-04-14 18:00:00')
+
 // Удаляем устаревшее
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → v5.2.0
+// Pin → v5.5.0
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v520-blocks-spires-admob'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v550-3d-city-skins'").run()
 
 
 // ═══ Blog Endpoints ═══
@@ -202,7 +252,7 @@ router.post('/', auth, (req, res) => {
 router.put('/:slug', auth, (req, res) => {
   if (!req.user.isAdmin) return res.status(403).json({ error: 'Только администратор' })
   const { title_ru, title_en, body_ru, body_en, tag, pinned, published } = req.body
-  db.prepare('UPDATE blog_posts SET title_ru=COALESCE(?,title_ru), title_en=COALESCE(?,title_en), body_ru=COALESCE(?,body_ru), body_en=COALESCE(?,body_en), tag=COALESCE(?,tag), pinned=COALESCE(?,pinned), published=COALESCE(?,published), updated_at=datetime(\'now\') WHERE slug=?')
+  db.prepare('UPDATE blog_posts SET title_ru=COALESCE(?,title_ru), title_en=COALESCE(?,title_en), body_ru=COALESCE(?,body_ru), body_en=COALESCE(?,body_en), tag=COALESCE(?,tag), pinned=COALESCE(?,pinned), published=COALESCE(?,published), updated_at=datetime(\\'now\\') WHERE slug=?')
     .run(title_ru, title_en, body_ru, body_en, tag, pinned, published, req.params.slug)
   res.json({ ok: true })
 })
