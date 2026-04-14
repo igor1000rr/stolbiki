@@ -193,7 +193,7 @@ SVG isometry is history. Your city renders through Three.js with real shadows, s
 Drag with your mouse or finger — the camera rotates around the city. Pinch or scroll — zoom. Right-click drag — pan. Tap a building — the camera smoothly flies to it.
 
 **🎥 Intro animation**
-When you first open the “City” tab, the camera smoothly “lands” from above onto the isometric view in 1.8 seconds.
+When you first open the "City" tab, the camera smoothly "lands" from above onto the isometric view in 1.8 seconds.
 
 **✨ Skin materials**
 Metal skin glistens like real steel. Neon and Glow pulse with self-emission. Glass is translucent. Pixel is faceted retro style.
@@ -202,7 +202,7 @@ Metal skin glistens like real steel. Neon and Glow pulse with self-emission. Gla
 Gold spires for AI difficulty now emit light with pulsing — every victory building visible from afar.
 
 **🎪 3D skin preview**
-In the “Blocks” tab of the shop — a rotating 3D tower of your currently equipped skin. Finally see how a skin looks in 3D, not just on a flat card.
+In the "Blocks" tab of the shop — a rotating 3D tower of your currently equipped skin. Finally see how a skin looks in 3D, not just on a flat card.
 
 **💾 Fallback for old devices**
 If WebGL is unavailable — the old SVG 2.5D renderer auto-loads. Nobody loses access to the city.
@@ -211,14 +211,56 @@ If WebGL is unavailable — the old SVG 2.5D renderer auto-loads. Nobody loses a
 Three.js library (~600KB) is split into a separate chunk and loaded only when you open the City or the shop. Initial bundle did not grow.`,
   'release', '2026-04-14 18:00:00')
 
+// ═══ v5.6.0 ═══
+addPost('v560-grow-snapshot-landing3d',
+  'v5.6.0: Здания вырастают из земли, снимок города, 3D на главной',
+  'v5.6.0: Buildings rise from the ground, city snapshot, 3D on landing',
+  `Продолжаем полировку 3D «Города побед».
+
+**🏗 Каскадная grow-анимация зданий**
+При открытии вкладки «Город» небоскрёбы волной вырастают из земли — от ближних к дальним. Длительность одного — 500ms с easeOutCubic, задержка между соседними — 60ms. Визуально это ~2.5 секунды живого «строительства», синхронизированного с финалом intro-анимации камеры.
+
+**📸 Скачать снимок города**
+Новая кнопка «📸 Скачать снимок» под 3D-городом. На мобиле — открывает нативный share sheet с PNG-файлом и подписью «Мой Город побед в Highrise Heist — N побед!». На десктопе — скачивает highrise-heist-city-<timestamp>.png. Идеально для TikTok, сторис и Reddit.
+
+**🏙 3D-превью на главной странице**
+Новая секция на лендинге: вращающийся мини-город из 20 демо-зданий с автоповоротом камеры. Новые посетители сразу видят что их ждёт после первых побед — виральный hook, повышающий конверсию в регистрацию. Seeded-рандом гарантирует одинаковый красивый город для всех.
+
+**⚡ Экономия батареи**
+IntersectionObserver на 3D-превью лендинга: animate loop и автоповорот паузятся когда секция вне viewport. Смысла гонять GPU когда элемент не виден — нет.
+
+**🔧 Технические улучшения**
+- preserveDrawingBuffer=true в WebGLRenderer — необходим для корректного toBlob при снимке
+- threeRef теперь хранит camera (не только scene/renderer) — нужно для force-рендера перед скриншотом
+- Three.js chunk общий для всех 3D-компонентов (VictoryCity, Block3DPreview, LandingCity3D) — повторные открытия мгновенные из кеша браузера`,
+  `Continuing the 3D "Victory City" polish.
+
+**🏗 Cascading grow animation**
+When you open the "City" tab, skyscrapers rise from the ground in a wave — from closest to farthest. Each takes 500ms with easeOutCubic, 60ms stagger between neighbors. ~2.5 seconds of live "construction" synced with the camera intro.
+
+**📸 Download city snapshot**
+New "📸 Download snapshot" button under the 3D city. On mobile — opens native share sheet with a PNG file and caption "My Victory City in Highrise Heist — N wins!". On desktop — downloads highrise-heist-city-<timestamp>.png. Perfect for TikTok, stories and Reddit.
+
+**🏙 3D preview on the landing page**
+New landing section: a rotating mini-city of 20 demo buildings with auto-rotating camera. New visitors immediately see what awaits them after first wins — a viral hook that boosts registration conversion. Seeded randomness ensures the same beautiful city for everyone.
+
+**⚡ Battery savings**
+IntersectionObserver on the landing 3D preview: animate loop and auto-rotate pause when the section is outside viewport. No point spinning GPU cycles when nothing is visible.
+
+**🔧 Technical improvements**
+- preserveDrawingBuffer=true in WebGLRenderer — required for correct toBlob during snapshot
+- threeRef now holds camera (not just scene/renderer) — needed for force-render before screenshot
+- Three.js chunk shared across all 3D components (VictoryCity, Block3DPreview, LandingCity3D) — repeat opens are instant from browser cache`,
+  'release', '2026-04-14 22:00:00')
+
 // Удаляем устаревшее
 db.prepare("DELETE FROM blog_posts WHERE slug='roadmap'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v3-5-gpu-neural-extreme'").run()
 db.prepare("DELETE FROM blog_posts WHERE slug='v43-confetti'").run()
 
-// Pin → v5.5.0
+// Pin → v5.6.0
 db.prepare("UPDATE blog_posts SET pinned=0").run()
-db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v550-3d-city-skins'").run()
+db.prepare("UPDATE blog_posts SET pinned=1 WHERE slug='v560-grow-snapshot-landing3d'").run()
 
 
 // ═══ Blog Endpoints ═══
