@@ -4,22 +4,51 @@ on:
   push:
     branches: [main]
 
-# Отменяем предыдущие билды — собирается только последний
 concurrency:
   group: deploy
   cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
+
+      # Если в server/package.json появилась новая dependency без обновления lockfile —
+      # регенерируем lock и коммитим обратно. [skip ci] предотвращает infinite loop
+      # (GITHUB_TOKEN не триггерит другие workflows, но дополнительная защита).
+      - name: Sync server lockfile (auto-regenerate if out of sync)
+        run: |
+          cd server
+          if npm ci --dry-run >/dev/null 2>&1; then
+            echo "✅ server/package-lock.json в sync"
+          else
+            echo "⚠️ server/package-lock.json устарел — регенерирую..."
+            npm install --package-lock-only --ignore-scripts
+            cd ..
+            if ! git diff --quiet server/package-lock.json; then
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add server/package-lock.json
+              git commit -m "chore(ci): auto-regenerate server/package-lock.json [skip ci]"
+              git push
+              echo "✅ Lockfile регенерирован и запушен"
+            else
+              echo "ℹ️ npm install --package-lock-only не изменил lock — продолжаем"
+            fi
+          fi
 
       - name: Install (frontend)
         run: npm install --legacy-peer-deps
@@ -33,14 +62,11 @@ jobs:
       - name: Build Frontend
         run: |
           VITE_API_URL=/api npm run build
-          # Инъекция build hash в Service Worker
           BUILD_HASH=$(git rev-parse --short HEAD)-$(date +%s)
           sed -i "s/__BUILD_HASH__/$BUILD_HASH/g" dist/sw.js
 
       - name: Sync version to server
         run: |
-          # /api/health читает server/package.json в проде (корневой package.json не деплоится).
-          # Синхронизируем версию из корня чтобы /api/health показывал актуальную.
           ROOT_VERSION=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('server/package.json','utf8')); p.version='$ROOT_VERSION'; fs.writeFileSync('server/package.json', JSON.stringify(p, null, 2) + '\n')"
 
@@ -76,7 +102,6 @@ jobs:
             set -e
             cd /opt/stolbiki-api
             mkdir -p logs backups
-            # Бэкап БД перед деплоем
             if [ -f data/stolbiki.db ]; then
               sqlite3 data/stolbiki.db ".backup backups/pre-deploy-$(date +%Y%m%d_%H%M%S).db" 2>/dev/null || cp data/stolbiki.db "backups/pre-deploy-$(date +%Y%m%d_%H%M%S).db"
               ls -t backups/pre-deploy-*.db 2>/dev/null | tail -n +8 | xargs rm -f 2>/dev/null || true
@@ -84,10 +109,8 @@ jobs:
             npm install --omit=dev
             pm2 restart ecosystem.config.cjs 2>/dev/null || pm2 start ecosystem.config.cjs
             pm2 save
-            # pm2-logrotate (один раз)
             pm2 install pm2-logrotate 2>/dev/null || true
             pm2 set pm2-logrotate:max_size 10M 2>/dev/null || true
             pm2 set pm2-logrotate:retain 7 2>/dev/null || true
-            # Nginx: только reload (конфиг управляется upgrade-vps.sh)
             nginx -t && systemctl reload nginx
             echo "✅ $(date): deploy done, v$(node -e "console.log(require('./package.json').version || '?')" 2>/dev/null || echo '?')"
