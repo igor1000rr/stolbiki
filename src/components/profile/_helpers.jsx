@@ -30,25 +30,53 @@ export function AchievementCard({ ach, unlocked, profile, en }) {
   const pct = Math.min(cur / target, 1)
   const name = en && ach.nameEn ? ach.nameEn : ach.name
   const desc = en && ach.descEn ? ach.descEn : ach.desc
-  const rarityColor = RARITY_COLORS[ach.rarity || 'common']
-  const rarityLabel = en ? RARITY_LABELS_EN[ach.rarity || 'common'] : RARITY_LABELS_RU[ach.rarity || 'common']
+  const rarity = ach.rarity || 'common'
+  const rarityColor = RARITY_COLORS[rarity]
+  const rarityLabel = en ? RARITY_LABELS_EN[rarity] : RARITY_LABELS_RU[rarity]
+
+  // Rarity-зависимые стили: чем выше rarity — тем ярче визуал
+  const rarityStyle = {
+    common:    { border: 1, shadow: '', bgBoost: '08' },
+    rare:      { border: 1, shadow: unlocked ? `0 0 12px ${rarityColor}30` : '', bgBoost: '10' },
+    epic:      { border: 2, shadow: unlocked ? `0 0 18px ${rarityColor}50, inset 0 0 10px ${rarityColor}15` : '', bgBoost: '14' },
+    legendary: { border: 2, shadow: unlocked ? `0 0 22px ${rarityColor}70, inset 0 0 14px ${rarityColor}20` : '', bgBoost: '1a', animate: true },
+  }[rarity]
+
+  const cardBg = unlocked
+    ? `linear-gradient(135deg, ${ach.color}${rarityStyle.bgBoost}, ${ach.color}04)`
+    : 'rgba(255,255,255,0.02)'
+  const cardBorder = unlocked ? `${rarityStyle.border}px solid ${ach.color}${rarity === 'common' ? '35' : '55'}` : '1px solid var(--surface2)'
+
   return (
-    <div style={{ padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
-      background: unlocked ? `linear-gradient(135deg, ${ach.color}08, ${ach.color}04)` : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${unlocked ? ach.color + '35' : 'var(--surface2)'}`,
-      opacity: unlocked ? 1 : 0.5, transition: 'all 0.2s', cursor: 'default', position: 'relative' }}>
-      <div style={{ width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    <div
+      className={unlocked && rarityStyle.animate ? 'ach-card-legendary' : undefined}
+      style={{
+        padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
+        background: cardBg, border: cardBorder, boxShadow: rarityStyle.shadow || 'none',
+        opacity: unlocked ? 1 : 0.5, transition: 'all 0.2s', cursor: 'default', position: 'relative',
+      }}
+    >
+      <div style={{
+        width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: unlocked ? `linear-gradient(135deg, ${ach.color}30, ${ach.color}15)` : 'var(--surface)',
         border: `2px solid ${unlocked ? ach.color : 'var(--surface3)'}`,
-        boxShadow: unlocked ? `0 0 10px ${ach.color}20` : 'none',
-        fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : 'var(--ink3)' }}>
+        boxShadow: unlocked ? `0 0 10px ${ach.color}${rarity === 'legendary' ? '60' : rarity === 'epic' ? '40' : '20'}` : 'none',
+        fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : 'var(--ink3)',
+      }}>
         {name[0]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? 'var(--ink)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
           {name}
-          {ach.rarity && ach.rarity !== 'common' && (
-            <span style={{ fontSize: 8, fontWeight: 700, color: rarityColor, letterSpacing: 0.3, opacity: 0.85 }}>
+          {rarity !== 'common' && (
+            <span style={{
+              fontSize: 8, fontWeight: 700, color: rarityColor, letterSpacing: 0.3,
+              opacity: unlocked ? 1 : 0.75,
+              padding: rarity === 'legendary' ? '1px 4px' : 0,
+              borderRadius: 3,
+              background: rarity === 'legendary' && unlocked ? `${rarityColor}20` : 'transparent',
+              textTransform: 'uppercase',
+            }}>
               {rarityLabel}
             </span>
           )}
@@ -62,15 +90,21 @@ export function AchievementCard({ ach, unlocked, profile, en }) {
         {!unlocked && (
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--surface2)', overflow: 'hidden' }}>
-              <div style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 2,
+              <div style={{
+                width: `${pct * 100}%`, height: '100%', borderRadius: 2,
                 background: pct > 0.7 ? 'linear-gradient(90deg, #3dd68c, #2ecc71)' : 'linear-gradient(90deg, #6db4ff, #4a9eff)',
-                transition: 'width 0.3s' }} />
+                transition: 'width 0.3s',
+              }} />
             </div>
             <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 30 }}>{Math.min(cur, target)}/{target}</span>
           </div>
         )}
       </div>
-      {unlocked && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ach.color} strokeWidth="2.5" style={{ marginLeft: 'auto', flexShrink: 0 }}><path d="M20 6L9 17l-5-5"/></svg>}
+      {unlocked && (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ach.color} strokeWidth="2.5" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      )}
     </div>
   )
 }
