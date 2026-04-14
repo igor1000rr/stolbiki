@@ -86,6 +86,9 @@ export default defineConfig({
           if (id.includes('engine/ai') || id.includes('engine/neuralnet') || id.includes('engine/network') || id.includes('engine/simulator') || id.includes('engine/analysis') || id.includes('engine/hints')) return 'engine'
           // Графики — chart.js (тяжёлый, нужен только в Dashboard/Profile)
           if (id.includes('chart.js') || id.includes('react-chartjs')) return 'charts'
+          // Three.js — отдельный чанк (~600KB, нужен только в Victory City и Block3DPreview)
+          // Подгружается lazy через dynamic import, поэтому в main bundle не попадёт
+          if (id.includes('node_modules/three/')) return 'three'
         },
       },
     },
