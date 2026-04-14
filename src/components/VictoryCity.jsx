@@ -13,6 +13,9 @@
  * Photo Mode: 3 пресета ракурса (📐 Изо, 🚁 Сверху, 🎬 Кинематограф)
  * + тумблер автоповорота камеры
  *
+ * Day/Night: 4 пресета времени суток (🌙 Ночь, 🌅 Утро, ☀️ День, 🌇 Закат)
+ * с плавным 800ms переходом bg/fog/sun/ambient/stars.
+ *
  * Screenshot: кнопка "Скачать снимок" → PNG / Web Share API с файлом.
  *
  * Fallback: при отсутствии WebGL / ошибке инициализации подгружается
@@ -102,6 +105,69 @@ const PRESET_MS = 900    // длительность переезда камер
 const GROW_MS = 500      // длительность grow одного здания
 const GROW_STAGGER = 60  // задержка между соседними зданиями, ms
 const GROW_START_AT = 0.5 // доля intro (0..1), когда начинается grow
+const TIME_MS = 800      // длительность перехода между пресетами времени суток
+
+// Пресеты времени суток — цвета/интенсивности/позиции для bg/fog/sun/ambient/stars
+// У каждого: bg, fog.color, sunColor, sunIntensity, sunPosOffset (относительно center),
+// ambientColor, ambientIntensity, starsOpacity, fogNear, fogFar, exposure
+const TIME_PRESETS = {
+  night: {
+    bg: 0x0a0a18, fogColor: 0x0a0a18, fogNear: 50, fogFar: 200,
+    sunColor: 0xfff0c8, sunIntensity: 1.1, sunPosOffset: [25, 40, 15],
+    ambientColor: 0x8080c0, ambientIntensity: 0.45,
+    starsOpacity: 0.7, exposure: 1.1,
+  },
+  morning: {
+    bg: 0x7fa8cc, fogColor: 0x9ec0dc, fogNear: 70, fogFar: 260,
+    sunColor: 0xfff0d0, sunIntensity: 1.0, sunPosOffset: [-30, 18, 10],
+    ambientColor: 0xb0c8e0, ambientIntensity: 0.55,
+    starsOpacity: 0.05, exposure: 1.15,
+  },
+  day: {
+    bg: 0x5ba7d9, fogColor: 0x8ec6ea, fogNear: 90, fogFar: 320,
+    sunColor: 0xffffff, sunIntensity: 1.4, sunPosOffset: [20, 60, 15],
+    ambientColor: 0xc0d8e8, ambientIntensity: 0.65,
+    starsOpacity: 0, exposure: 1.25,
+  },
+  sunset: {
+    bg: 0x3a1a2e, fogColor: 0x6a3a4a, fogNear: 55, fogFar: 220,
+    sunColor: 0xff8040, sunIntensity: 0.95, sunPosOffset: [40, 8, 15],
+    ambientColor: 0xc06080, ambientIntensity: 0.4,
+    starsOpacity: 0.25, exposure: 1.15,
+  },
+}
+
+// Snapshot параметров для текущего состояния сцены — используется для лерпа
+function snapshotSceneTimeState(scene, sun, ambient, stars, renderer, centerX, centerZ) {
+  return {
+    bg: scene.background.clone(),
+    fogColor: scene.fog.color.clone(),
+    fogNear: scene.fog.near,
+    fogFar: scene.fog.far,
+    sunColor: sun.color.clone(),
+    sunIntensity: sun.intensity,
+    sunPos: sun.position.clone(),
+    ambientColor: ambient.color.clone(),
+    ambientIntensity: ambient.intensity,
+    starsOpacity: stars.material.opacity,
+    exposure: renderer.toneMappingExposure,
+  }
+}
+
+// Применить пресет к сцене мгновенно (без анимации)
+function applyTimePresetInstant(THREE, preset, scene, sun, ambient, stars, renderer, centerX, centerZ) {
+  scene.background.set(preset.bg)
+  scene.fog.color.set(preset.fogColor)
+  scene.fog.near = preset.fogNear
+  scene.fog.far = preset.fogFar
+  sun.color.set(preset.sunColor)
+  sun.intensity = preset.sunIntensity
+  sun.position.set(centerX + preset.sunPosOffset[0], preset.sunPosOffset[1], centerZ + preset.sunPosOffset[2])
+  ambient.color.set(preset.ambientColor)
+  ambient.intensity = preset.ambientIntensity
+  stars.material.opacity = preset.starsOpacity
+  renderer.toneMappingExposure = preset.exposure
+}
 
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
@@ -115,6 +181,7 @@ export default function VictoryCity({ userId }) {
   const [snapshotMsg, setSnapshotMsg] = useState(null)
   const [currentPreset, setCurrentPreset] = useState('iso')
   const [autoRotate, setAutoRotate] = useState(false)
+  const [timeOfDay, setTimeOfDay] = useState('night')
 
   const containerRef = useRef(null)
   const threeRef = useRef(null)
@@ -152,33 +219,27 @@ export default function VictoryCity({ userId }) {
         const w = container.clientWidth
         const h = Math.min(480, Math.max(320, w * 0.7))
 
-        // Scene с градиентным фоном
         const scene = new THREE.Scene()
         scene.background = new THREE.Color(0x0a0a18)
         scene.fog = new THREE.Fog(0x0a0a18, 50, 200)
 
-        // Камера — изометрический обзор сверху-сбоку
         const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 500)
 
-        // Определяем центр города чтобы направить туда камеру
         const rows = Math.max(1, Math.ceil(buildings.length / COLS))
         const centerX = ((COLS - 1) / 2) * SPACING
         const centerZ = ((rows - 1) / 2) * SPACING
         const dist = Math.max(25, Math.max(COLS, rows) * SPACING * 1.4)
 
-        // Финальная "цель" камеры и таргета — для preset 'iso'
         const finalCamPos = new THREE.Vector3(
           centerX + dist * 0.7, dist * 0.6, centerZ + dist * 0.7,
         )
         const finalTarget = new THREE.Vector3(centerX, 3, centerZ)
 
-        // Intro: стартуем высоко над центром города (вид "с вертолёта")
         camera.position.set(centerX, dist * 1.8, centerZ + 2)
         camera.lookAt(centerX, 0, centerZ)
         const introStartPos = camera.position.clone()
         const introStartTarget = new THREE.Vector3(centerX, 0, centerZ)
 
-        // Renderer — preserveDrawingBuffer=true нужен для screenshot toBlob/toDataURL
         const renderer = new THREE.WebGLRenderer({
           antialias: true, alpha: false, powerPreference: 'default',
           preserveDrawingBuffer: true,
@@ -213,7 +274,7 @@ export default function VictoryCity({ userId }) {
         scene.add(sun)
         scene.add(sun.target)
 
-        // Легкий фиолетовый back-light для атмосферы
+        // Rim-light — подстраивается в зависимости от времени суток (см. updateRim)
         const rim = new THREE.DirectionalLight(0x6050a0, 0.4)
         rim.position.set(centerX - 20, 15, centerZ - 20)
         scene.add(rim)
@@ -235,7 +296,7 @@ export default function VictoryCity({ userId }) {
         grid.position.y = 0
         scene.add(grid)
 
-        // Звёздный купол (простые точки в небе)
+        // Звёздный купол (opacity управляется time-of-day)
         const starGeo = new THREE.BufferGeometry()
         const starPositions = new Float32Array(400 * 3)
         for (let i = 0; i < 400; i++) {
@@ -255,14 +316,11 @@ export default function VictoryCity({ userId }) {
         const cityGroup = new THREE.Group()
         scene.add(cityGroup)
 
-        // Общая geometry для этажей и шпилей (экономия памяти)
         const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
         const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
 
-        // Маппинг id здания → позиция (для focus при клике)
         const buildingPositions = new Map()
 
-        // Для каждого здания — группа
         buildings.forEach((b, idx) => {
           const chips = getChips(b)
           if (!chips.length) return
@@ -279,12 +337,10 @@ export default function VictoryCity({ userId }) {
           const bz = row * SPACING
           bGroup.position.set(bx, 0, bz)
           bGroup.userData.buildingId = b.id
-          // Grow-анимация: стартуем "сжатыми" по Y, вырастаем каскадно
           bGroup.scale.y = 0
           bGroup.userData.growDelay = idx * GROW_STAGGER
           buildingPositions.set(b.id, { x: bx, z: bz, height: (chips.length + extraFloors) * FLOOR_H })
 
-          // Обычные этажи
           chips.forEach((c, i) => {
             const isTop = i === chips.length - 1 && extraFloors === 0
             const colorHex = (isTop && golden) ? GOLDEN_HEX : getFloorColor(skinId, c)
@@ -303,7 +359,6 @@ export default function VictoryCity({ userId }) {
             bGroup.add(mesh)
           })
 
-          // Шпили за сложность AI (сужаются, светятся сильнее)
           for (let k = 0; k < extraFloors; k++) {
             const spireLvl = Math.max(1, Math.min(4, extraFloors - k))
             const color = SPIRE_HEX[spireLvl]
@@ -321,33 +376,31 @@ export default function VictoryCity({ userId }) {
           cityGroup.add(bGroup)
         })
 
-        // OrbitControls
         const controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true
         controls.dampingFactor = 0.08
         controls.minDistance = 10
         controls.maxDistance = 150
-        controls.maxPolarAngle = Math.PI / 2.1  // не даём камере под землю
+        controls.maxPolarAngle = Math.PI / 2.1
         controls.target.copy(introStartTarget)
         controls.enablePan = true
         controls.panSpeed = 0.6
         controls.rotateSpeed = 0.7
         controls.zoomSpeed = 0.8
         controls.autoRotateSpeed = 0.5
-        controls.enabled = false  // выключены на время intro-анимации
+        controls.enabled = false
         controls.update()
 
-        // Пресеты ракурса (позиция камеры + таргет)
         const CAMERA_PRESETS = {
-          iso: {  // Классический изометрический вид
+          iso: {
             pos: finalCamPos.clone(),
             target: finalTarget.clone(),
           },
-          top: {  // Вид сверху (helicopter)
+          top: {
             pos: new THREE.Vector3(centerX, dist * 1.3, centerZ + 4),
             target: new THREE.Vector3(centerX, 0, centerZ),
           },
-          cinematic: {  // Кинематографичный низкий ракурс
+          cinematic: {
             pos: new THREE.Vector3(centerX + dist * 1.1, dist * 0.18, centerZ + dist * 0.55),
             target: new THREE.Vector3(centerX, 4, centerZ),
           },
@@ -358,9 +411,9 @@ export default function VictoryCity({ userId }) {
           focusAnim: null,
           focusDuration: FOCUS_MS,
           autoRotate: false,
+          timeAnim: null,  // { from, to, start } для перехода времени суток
         }
 
-        // Запустить переезд камеры к позиции/таргету (используется для пресетов и клик-by-здание)
         function startCamAnim(toPos, toTarget, duration) {
           animRef.focusAnim = {
             fromPos: camera.position.clone(),
@@ -371,7 +424,7 @@ export default function VictoryCity({ userId }) {
           }
           animRef.focusDuration = duration || FOCUS_MS
           controls.enabled = false
-          controls.autoRotate = false  // прерываем автоповорот на время переезда
+          controls.autoRotate = false
         }
 
         function startFocusAnim(buildingId) {
@@ -383,6 +436,29 @@ export default function VictoryCity({ userId }) {
             new THREE.Vector3(p.x, p.height / 2, p.z),
             FOCUS_MS,
           )
+        }
+
+        // Запустить переход к пресету времени суток
+        function startTimeAnim(presetName) {
+          const target = TIME_PRESETS[presetName]
+          if (!target) return
+          animRef.timeAnim = {
+            from: snapshotSceneTimeState(scene, sun, ambient, stars, renderer, centerX, centerZ),
+            to: {
+              bg: new THREE.Color(target.bg),
+              fogColor: new THREE.Color(target.fogColor),
+              fogNear: target.fogNear,
+              fogFar: target.fogFar,
+              sunColor: new THREE.Color(target.sunColor),
+              sunIntensity: target.sunIntensity,
+              sunPos: new THREE.Vector3(centerX + target.sunPosOffset[0], target.sunPosOffset[1], centerZ + target.sunPosOffset[2]),
+              ambientColor: new THREE.Color(target.ambientColor),
+              ambientIntensity: target.ambientIntensity,
+              starsOpacity: target.starsOpacity,
+              exposure: target.exposure,
+            },
+            start: performance.now(),
+          }
         }
 
         // Raycaster для кликов
@@ -397,8 +473,7 @@ export default function VictoryCity({ userId }) {
           const dx = Math.abs(e.clientX - clickStart.x)
           const dy = Math.abs(e.clientY - clickStart.y)
           clickStart = null
-          if (dx > 5 || dy > 5) return  // это был drag, не клик
-          // Не ловим клики пока идёт intro
+          if (dx > 5 || dy > 5) return
           if (performance.now() - introStart < INTRO_MS) return
           const rect = renderer.domElement.getBoundingClientRect()
           mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -417,7 +492,6 @@ export default function VictoryCity({ userId }) {
           }
         })
 
-        // Resize
         let resizeRaf = 0
         const onResize = () => {
           cancelAnimationFrame(resizeRaf)
@@ -442,7 +516,7 @@ export default function VictoryCity({ userId }) {
           const t = clock.getElapsedTime()
           const now = performance.now()
 
-          // Intro-анимация — плавный полёт сверху вниз к изометрии
+          // Intro-анимация
           const introElapsed = now - introStart
           if (introElapsed < INTRO_MS) {
             const p = introElapsed / INTRO_MS
@@ -451,13 +525,11 @@ export default function VictoryCity({ userId }) {
             controls.target.lerpVectors(introStartTarget, finalTarget, e)
             camera.lookAt(controls.target)
           } else if (controls.enabled === false && !animRef.focusAnim) {
-            // Intro закончилась, даём управление юзеру
             controls.enabled = true
-            // Возможно автоповорот был включён до конца intro — применяем сейчас
             controls.autoRotate = animRef.autoRotate
           }
 
-          // Focus/Preset анимация (клик на здание или preset кнопка)
+          // Focus/Preset анимация
           if (animRef.focusAnim) {
             const p = Math.min(1, (now - animRef.focusAnim.start) / animRef.focusDuration)
             const e = easeOutCubic(p)
@@ -467,12 +539,30 @@ export default function VictoryCity({ userId }) {
             if (p >= 1) {
               animRef.focusAnim = null
               controls.enabled = true
-              // Возобновляем автоповорот если он был включён
               controls.autoRotate = animRef.autoRotate
             }
           }
 
-          // Grow-анимация зданий — каскадно "вырастают" из земли в конце intro
+          // Time-of-day переход — плавная интерполяция всех параметров освещения
+          if (animRef.timeAnim) {
+            const ta = animRef.timeAnim
+            const p = Math.min(1, (now - ta.start) / TIME_MS)
+            const e = easeOutCubic(p)
+            scene.background.lerpColors(ta.from.bg, ta.to.bg, e)
+            scene.fog.color.lerpColors(ta.from.fogColor, ta.to.fogColor, e)
+            scene.fog.near = ta.from.fogNear + (ta.to.fogNear - ta.from.fogNear) * e
+            scene.fog.far = ta.from.fogFar + (ta.to.fogFar - ta.from.fogFar) * e
+            sun.color.lerpColors(ta.from.sunColor, ta.to.sunColor, e)
+            sun.intensity = ta.from.sunIntensity + (ta.to.sunIntensity - ta.from.sunIntensity) * e
+            sun.position.lerpVectors(ta.from.sunPos, ta.to.sunPos, e)
+            ambient.color.lerpColors(ta.from.ambientColor, ta.to.ambientColor, e)
+            ambient.intensity = ta.from.ambientIntensity + (ta.to.ambientIntensity - ta.from.ambientIntensity) * e
+            stars.material.opacity = ta.from.starsOpacity + (ta.to.starsOpacity - ta.from.starsOpacity) * e
+            renderer.toneMappingExposure = ta.from.exposure + (ta.to.exposure - ta.from.exposure) * e
+            if (p >= 1) animRef.timeAnim = null
+          }
+
+          // Grow-анимация
           if (!growComplete) {
             const growStartMs = introStart + INTRO_MS * GROW_START_AT
             if (now >= growStartMs) {
@@ -503,10 +593,12 @@ export default function VictoryCity({ userId }) {
 
         threeRef.current = {
           scene, camera, renderer, controls, onResize, rafId, floorGeo, spireGeo,
-          // Публичное API для React-компонента
           cameraPresets: CAMERA_PRESETS,
           animRef,
-          startCamAnim,
+          startCamAnim, startTimeAnim,
+          // Для instant-применения при первом рендере
+          _sceneObjects: { sun, ambient, stars, centerX, centerZ },
+          THREE_MOD: THREE,
         }
       } catch (e) {
         console.error('[VictoryCity] WebGL init error:', e)
@@ -521,7 +613,6 @@ export default function VictoryCity({ userId }) {
         cancelAnimationFrame(rafId)
         window.removeEventListener('resize', onResize)
         controls?.dispose()
-        // dispose materials (geo переиспользуются — диспоузим один раз)
         scene?.traverse(o => {
           if (o.material) {
             if (Array.isArray(o.material)) o.material.forEach(m => m.dispose())
@@ -556,7 +647,6 @@ export default function VictoryCity({ userId }) {
       const t = threeRef.current
       if (t?.animRef && t?.controls) {
         t.animRef.autoRotate = next
-        // Применяем сразу только если не идёт intro/focus-анимация
         if (t.controls.enabled) {
           t.controls.autoRotate = next
         }
@@ -565,11 +655,17 @@ export default function VictoryCity({ userId }) {
     })
   }
 
+  // ─── Переключение времени суток ───
+  function applyTimeOfDay(name) {
+    setTimeOfDay(name)
+    const t = threeRef.current
+    if (t?.startTimeAnim) t.startTimeAnim(name)
+  }
+
   // ─── Скачать/поделиться скриншотом текущей 3D-сцены ───
   function downloadScreenshot() {
     const t = threeRef.current
     if (!t?.renderer || !t?.scene || !t?.camera) return
-    // Форсируем свежий рендер-кадр перед снимком
     t.renderer.render(t.scene, t.camera)
     t.renderer.domElement.toBlob((blob) => {
       if (!blob) return
@@ -578,18 +674,14 @@ export default function VictoryCity({ userId }) {
       const shareText = en
         ? `My Victory City in Highrise Heist — ${stats?.total || 0} wins!`
         : `Мой Город побед в Highrise Heist — ${stats?.total || 0} побед!`
-      // Web Share API с файлом — мобилка
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
         navigator.share({ text: shareText, files: [file] })
           .then(() => {
             setSnapshotMsg(en ? 'Shared!' : 'Отправлено!')
             setTimeout(() => setSnapshotMsg(null), 2000)
           })
-          .catch(() => {
-            // Пользователь отменил — не показываем ошибку
-          })
+          .catch(() => {})
       } else {
-        // Desktop fallback — скачивание PNG
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
@@ -622,10 +714,17 @@ export default function VictoryCity({ userId }) {
   const selB = selId ? buildings.find(b => b.id === selId) : null
   const useFallback = !webglOk || forceSvg
 
-  const PRESETS = [
+  const CAMERA_PRESETS_UI = [
     { id: 'iso', emoji: '📐', label_ru: 'Изо', label_en: 'Iso' },
     { id: 'top', emoji: '🚁', label_ru: 'Сверху', label_en: 'Top' },
     { id: 'cinematic', emoji: '🎬', label_ru: 'Кино', label_en: 'Cine' },
+  ]
+
+  const TIME_PRESETS_UI = [
+    { id: 'night',   emoji: '🌙', label_ru: 'Ночь',  label_en: 'Night' },
+    { id: 'morning', emoji: '🌅', label_ru: 'Утро',  label_en: 'Morn' },
+    { id: 'day',     emoji: '☀️', label_ru: 'День',  label_en: 'Day' },
+    { id: 'sunset',  emoji: '🌇', label_ru: 'Закат', label_en: 'Dusk' },
   ]
 
   return (
@@ -697,7 +796,7 @@ export default function VictoryCity({ userId }) {
             display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)',
             borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)',
           }}>
-            {PRESETS.map(p => {
+            {CAMERA_PRESETS_UI.map(p => {
               const active = currentPreset === p.id
               return (
                 <button
@@ -760,6 +859,40 @@ export default function VictoryCity({ userId }) {
               {snapshotMsg}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Day/Night: пресеты времени суток */}
+      {!useFallback && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+          <div style={{
+            display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)',
+            borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            {TIME_PRESETS_UI.map(p => {
+              const active = timeOfDay === p.id
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => applyTimeOfDay(p.id)}
+                  style={{
+                    fontSize: 11, padding: '6px 10px', borderRadius: 6,
+                    background: active ? 'var(--accent)' : 'transparent',
+                    color: active ? '#0a0a12' : 'var(--ink2)',
+                    border: 'none', cursor: 'pointer', fontWeight: active ? 700 : 500,
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s ease',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                  aria-label={en ? p.label_en : p.label_ru}
+                  aria-pressed={active}
+                >
+                  <span>{p.emoji}</span>
+                  <span>{en ? p.label_en : p.label_ru}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
