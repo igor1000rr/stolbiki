@@ -1,7 +1,7 @@
 {
   "name": "highrise-heist",
   "private": true,
-  "version": "5.4.0",
+  "version": "5.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -30,7 +30,8 @@
     "@capacitor/status-bar": "^8.0.2",
     "chart.js": "^4.5.1",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
