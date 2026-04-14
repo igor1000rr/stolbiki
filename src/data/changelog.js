@@ -1,5 +1,25 @@
 export default [
   {
+    version: '5.6.0',
+    date: '2026-04-14',
+    title_ru: '🏗 Grow-анимация зданий, 📸 снимок города, 🏙 3D на лендинге',
+    title_en: '🏗 Building grow animation, 📸 city snapshot, 🏙 3D on landing',
+    changes_ru: [
+      { type: 'new', text: '🏗 Каскадное появление зданий: при открытии «Города» небоскрёбы волной вырастают из земли (500ms, stagger 60ms, easeOutCubic)' },
+      { type: 'new', text: '📸 Кнопка «Скачать снимок» под 3D-городом: PNG + Web Share API с подписью «Мой Город побед — N побед!»' },
+      { type: 'new', text: '🏙 3D-превью «Города побед» на главной странице: автоповорачивающийся демо-город из 20 зданий — виральный hook для новых игроков' },
+      { type: 'perf', text: 'IntersectionObserver на лендинг-городе: animate loop паузится когда секция вне viewport (экономия батареи)' },
+      { type: 'fix', text: 'Renderer: preserveDrawingBuffer=true для корректного toBlob/toDataURL при снимке' },
+    ],
+    changes_en: [
+      { type: 'new', text: '🏗 Cascading building grow: opening “City” — skyscrapers rise from the ground in a wave (500ms, stagger 60ms, easeOutCubic)' },
+      { type: 'new', text: '📸 “Download snapshot” button under 3D city: PNG + Web Share API with caption “My Victory City — N wins!”' },
+      { type: 'new', text: '🏙 3D Victory City preview on the landing page: auto-rotating demo city of 20 buildings — viral hook for new players' },
+      { type: 'perf', text: 'IntersectionObserver on landing city: animate loop pauses when the section is outside viewport (saves battery)' },
+      { type: 'fix', text: 'Renderer: preserveDrawingBuffer=true for correct toBlob/toDataURL when taking a snapshot' },
+    ],
+  },
+  {
     version: '5.5.0',
     date: '2026-04-14',
     title_ru: '🏙 3D Город побед + 3D превью скинов',
