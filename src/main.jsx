@@ -8,25 +8,58 @@ import App from './App'
 // Ловим ?ref=XXX из URL до рендера
 captureReferralCode()
 
-// Error Boundary
+// Error Boundary — ловит ошибки React-рендера, репортит на сервер,
+// показывает локализованный fallback с кнопками Reload / Home
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
   static getDerivedStateFromError(error) { return { error } }
+
+  componentDidCatch(error, errorInfo) {
+    // Репорт на сервер через глобальный reportError (определён ниже, но уже в scope)
+    try {
+      reportError(error?.message || 'React render error', (error?.stack || '') + '\n\nComponent stack:' + (errorInfo?.componentStack || ''))
+    } catch {}
+    // Yandex.Metrika goal
+    try { window.ym && window.ym(108329078, 'reachGoal', 'error_boundary', { msg: String(error?.message || '').slice(0, 100) }) } catch {}
+  }
+
   render() {
-    if (this.state.error) {
-      return (
-        <div style={{ padding: 40, textAlign: 'center', color: '#e8e6f2', background: '#0c0c12', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>!</div>
-          <h1 style={{ fontSize: 20, marginBottom: 8 }}>Something went wrong</h1>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20, maxWidth: 400 }}>{this.state.error?.message || 'Unknown error'}</p>
+    if (!this.state.error) return this.props.children
+
+    const en = (document.documentElement.lang || 'ru') === 'en'
+    const msg = this.state.error?.message || (en ? 'Unknown error' : 'Неизвестная ошибка')
+
+    return (
+      <div style={{
+        padding: 40, textAlign: 'center', color: '#e8e6f2', background: '#0c0c12',
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif',
+      }}>
+        <div style={{ fontSize: 56, marginBottom: 16, opacity: 0.8 }}>💥</div>
+        <h1 style={{ fontSize: 22, marginBottom: 8, fontWeight: 600 }}>
+          {en ? 'Something went wrong' : 'Что-то пошло не так'}
+        </h1>
+        <p style={{ fontSize: 13, color: '#888', marginBottom: 8, maxWidth: 460, lineHeight: 1.4 }}>
+          {en
+            ? 'We\'ve reported the issue automatically. Try reloading the page or go back home.'
+            : 'Мы автоматически отправили отчёт. Попробуйте перезагрузить страницу или вернуться на главную.'}
+        </p>
+        <details style={{ fontSize: 11, color: '#555', marginBottom: 24, maxWidth: 460 }}>
+          <summary style={{ cursor: 'pointer', color: '#888' }}>{en ? 'Technical details' : 'Технические детали'}</summary>
+          <pre style={{ marginTop: 8, textAlign: 'left', overflow: 'auto', padding: 10, background: '#1a1a2a', borderRadius: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg}</pre>
+        </details>
+        <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => { this.setState({ error: null }); location.reload() }}
+            style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid #ffc145', background: '#ffc145', color: '#0c0c12', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+            {en ? '↻ Reload' : '↻ Перезагрузить'}
+          </button>
+          <button onClick={() => { this.setState({ error: null }); location.href = '/' }}
             style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid #333', background: '#1a1a2a', color: '#fff', cursor: 'pointer', fontSize: 14 }}>
-            Reload
+            {en ? '🏠 Home' : '🏠 Домой'}
           </button>
         </div>
-      )
-    }
-    return this.props.children
+      </div>
+    )
   }
 }
 
