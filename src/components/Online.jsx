@@ -7,6 +7,7 @@ import { getSettings } from '../engine/settings'
 import Icon from './Icon'
 import DailyChallenge from './DailyChallenge'
 import GlobalChat from './GlobalChat'
+import PushPromptBanner from './PushPromptBanner'
 
 function QRCode({ text, size = 160 }) {
   const ref = useRef(null)
@@ -236,6 +237,7 @@ export default function Online() {
   if (screen === 'lobby') {
     return (
       <div>
+        <PushPromptBanner en={en} />
         <div className="dash-card" style={{ maxWidth: 560, margin: isNative ? '8px auto' : '20px auto', textAlign: 'center' }}>
           <h3 style={{ fontSize: 18, marginBottom: 4, color: 'var(--ink)', textTransform: 'none', letterSpacing: 0 }}>{en ? 'Online' : 'Онлайн'}</h3>
           <p style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 12 }}>{en ? 'Play with a friend via link — no registration' : 'Играй с другом по ссылке — без регистрации'}</p>
@@ -364,7 +366,7 @@ export default function Online() {
         <QRCode text={roomUrl} size={160} />
         <p style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 10, marginBottom: 8 }}>{en ? 'Send link or code to a friend' : 'Отправь ссылку или код другу'}</p>
         <button className="btn" onClick={() => {
-          if (navigator.share) navigator.share({ text: en ? `Play Snatch Highrise! Room: ${roomId}` : `Играем в Snatch Highrise! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
+          if (navigator.share) navigator.share({ text: en ? `Play Highrise Heist! Room: ${roomId}` : `Играем в Highrise Heist! Комната: ${roomId}`, url: roomUrl }).catch(() => {})
           else navigator.clipboard?.writeText(roomUrl)
         }} style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }}>
           {en ? 'Share link' : 'Поделиться ссылкой'}
