@@ -35,9 +35,11 @@ export default function GameResultPanel({
   async function doShare() {
     try {
       const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
-      const canvas = generateShareImage(gs, won, isDraw, s0, s1, {
+      const refCode = profile?.referralCode || profile?.refCode
+      const refLink = refCode ? `https://highriseheist.com/?ref=${refCode}` : null
+      const canvas = await generateShareImage(gs, won, isDraw, s0, s1, {
         playerName: profile?.name, rating: profile?.rating, ratingDelta,
-        difficulty, moves: gs.turn, elapsed, mode, lang,
+        difficulty, moves: gs.turn, elapsed, mode, lang, refLink,
       })
       API.track('share_card', 'game', { won, isDraw })
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
@@ -55,12 +57,14 @@ export default function GameResultPanel({
     } catch { navigator.clipboard?.writeText(shareText) }
   }
 
-  function showPreview() {
+  async function showPreview() {
     try {
       const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
-      const canvas = generateShareImage(gs, won, isDraw, s0, s1, {
+      const refCode = profile?.referralCode || profile?.refCode
+      const refLink = refCode ? `https://highriseheist.com/?ref=${refCode}` : null
+      const canvas = await generateShareImage(gs, won, isDraw, s0, s1, {
         playerName: profile?.name, rating: profile?.rating, ratingDelta,
-        difficulty, moves: gs.turn, elapsed, mode, lang,
+        difficulty, moves: gs.turn, elapsed, mode, lang, refLink,
       })
       setSharePreview(canvas.toDataURL('image/png'))
     } catch {}
