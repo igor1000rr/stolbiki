@@ -1,11 +1,12 @@
 /**
- * Service Worker — Smart caching strategy
+ * Service Worker — Smart caching strategy + Web Push
  *
  * - Hashed assets (Vite *.js, *.css): cache-first (immutable, fastest)
  * - Navigation: network-first → fallback to cached /index.html (offline PWA)
  * - Images/fonts: stale-while-revalidate (быстро из кеша, обновляем в фоне)
  * - API/WS: сквозной пропуск (не кешируем)
  * - NN weights (.json, .bin): cache-first (большие, редко меняются)
+ * - Web Push: показ уведомления + фокус окна по клику
  */
 const CACHE_NAME = 'stolbiki-v__BUILD_HASH__'
 
@@ -86,4 +87,47 @@ self.addEventListener('fetch', e => {
     )
     return
   }
+})
+
+// ═══ Web Push ═══
+// Сервер отправляет payload { title, body, url, tag } через sendPushTo
+self.addEventListener('push', (event) => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch {
+    try { data = { body: event.data ? event.data.text() : '' } } catch {}
+  }
+  const title = data.title || 'Snatch Highrise'
+  const options = {
+    body: data.body || '',
+    icon: '/logo.webp',
+    badge: '/logo.webp',
+    tag: data.tag || 'snatch-push',
+    renotify: true,
+    data: { url: data.url || '/' },
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const targetUrl = event.notification.data?.url || '/'
+  event.waitUntil((async () => {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // Если уже открыто окно игры — фокусируем его и навигируем
+    for (const client of allClients) {
+      if ('focus' in client) {
+        try {
+          await client.focus()
+          if ('navigate' in client && targetUrl) {
+            try { await client.navigate(targetUrl) } catch {}
+          }
+          return
+        } catch {}
+      }
+    }
+    // Иначе — открываем новое
+    if (self.clients.openWindow) {
+      await self.clients.openWindow(targetUrl)
+    }
+  })())
 })

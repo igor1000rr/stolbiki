@@ -4,6 +4,13 @@ import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import Icon from './Icon'
 import { DEFAULTS, getSettings, saveSettings, applySettings } from '../engine/settings'
+import {
+  isSupported as webpushSupported,
+  getPermission as webpushPermission,
+  subscribeToPush,
+  unsubscribeFromPush,
+  getCurrentSubscription,
+} from '../engine/webpush'
 
 function load() { return getSettings() }
 function save(s) { saveSettings(s) }
@@ -39,13 +46,14 @@ function SegmentControl({ options, value, onChange }) {
   )
 }
 
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, disabled }) {
   return (
-    <button onClick={() => onChange(!checked)} style={{
+    <button onClick={() => !disabled && onChange(!checked)} disabled={disabled} style={{
       width: 44, height: 24, borderRadius: 12, border: 'none',
       background: checked ? 'var(--accent)' : 'var(--surface3)',
-      cursor: 'pointer', padding: 2, transition: 'background 0.2s',
+      cursor: disabled ? 'not-allowed' : 'pointer', padding: 2, transition: 'background 0.2s',
       display: 'flex', alignItems: 'center', flexShrink: 0,
+      opacity: disabled ? 0.4 : 1,
     }}>
       <div style={{
         width: 20, height: 20, borderRadius: '50%', background: '#fff',
@@ -53,6 +61,90 @@ function Toggle({ checked, onChange }) {
         transform: checked ? 'translateX(20px)' : 'translateX(0)',
       }} />
     </button>
+  )
+}
+
+// Блок управления Web Push подпиской
+function PushSubscriptionRow({ en }) {
+  const [supported] = useState(() => webpushSupported())
+  const [permission, setPermission] = useState(() => webpushPermission())
+  const [subscribed, setSubscribed] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  useEffect(() => {
+    if (!supported) return
+    getCurrentSubscription().then(sub => setSubscribed(!!sub))
+  }, [supported])
+
+  async function toggle(enable) {
+    if (busy) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      if (enable) {
+        const r = await subscribeToPush()
+        if (r.ok) {
+          setSubscribed(true)
+          setPermission(Notification.permission)
+          setMsg({ type: 'ok', text: en ? 'Notifications enabled' : 'Уведомления включены' })
+          API.track('push_subscribed', 'settings')
+        } else {
+          const reasons = {
+            not_authenticated: en ? 'Please sign in first' : 'Сначала войдите',
+            permission_denied: en ? 'Permission denied in browser settings' : 'Разрешение заблокировано в настройках браузера',
+            push_not_configured: en ? 'Push not configured on server' : 'Push не настроен на сервере',
+            unsupported: en ? 'Not supported in this browser' : 'Браузер не поддерживает',
+          }
+          setMsg({ type: 'err', text: reasons[r.reason] || (en ? 'Failed' : 'Не удалось') })
+          setPermission(Notification.permission)
+        }
+      } else {
+        await unsubscribeFromPush()
+        setSubscribed(false)
+        setMsg({ type: 'ok', text: en ? 'Notifications disabled' : 'Уведомления отключены' })
+        API.track('push_unsubscribed', 'settings')
+      }
+    } finally {
+      setBusy(false)
+      setTimeout(() => setMsg(null), 4000)
+    }
+  }
+
+  if (!supported) {
+    return (
+      <SettingRow
+        label={en ? 'Browser notifications' : 'Пуш-уведомления'}
+        desc={en ? 'Not supported on this platform' : 'Не поддерживается на этой платформе'}
+      >
+        <Toggle checked={false} onChange={() => {}} disabled />
+      </SettingRow>
+    )
+  }
+
+  const desc = permission === 'denied'
+    ? (en ? 'Blocked in browser settings — enable there first' : 'Заблокировано — разрешите в настройках браузера')
+    : (en ? 'Get \u201cYour turn!\u201d when opponent moves while you\'re away' : '«Ваш ход!» когда соперник ходит без вас')
+
+  return (
+    <>
+      <SettingRow label={en ? 'Browser notifications' : 'Пуш-уведомления'} desc={desc}>
+        <Toggle
+          checked={subscribed}
+          onChange={toggle}
+          disabled={busy || permission === 'denied'}
+        />
+      </SettingRow>
+      {msg && (
+        <div style={{
+          fontSize: 11, padding: '6px 10px', borderRadius: 6, marginTop: -8, marginBottom: 6,
+          color: msg.type === 'ok' ? 'var(--green)' : 'var(--p2)',
+          background: msg.type === 'ok' ? 'rgba(61,214,140,0.08)' : 'rgba(255,96,102,0.08)',
+        }}>
+          {msg.text}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -71,10 +163,8 @@ export default function Settings() {
     gameCtx?.emit('settingsChanged')
   }
 
-  // Применяем при загрузке
   useEffect(() => { applySettings(s) }, [])
 
-  // Обновляем при изменении из SkinShop
   useEffect(() => {
     const refresh = () => setS(load())
     window.addEventListener('stolbiki-settings-changed', refresh)
@@ -194,6 +284,7 @@ export default function Settings() {
             <Icon name="online" size={16} color="var(--accent)" />
             {en ? 'Privacy & Access.' : 'Приватность и доступн.'}
           </h3>
+          <PushSubscriptionRow en={en} />
           <SettingRow label={en ? 'Profile' : 'Профиль'}>
             <SegmentControl value={s.profileVisibility} onChange={v => update('profileVisibility', v)} options={[
               { value: 'public', label: en ? 'Public' : 'Все' },
