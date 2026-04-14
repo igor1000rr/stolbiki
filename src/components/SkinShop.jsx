@@ -1,6 +1,7 @@
 /**
  * SkinShop — popup для кастомизации: темы, скины блоков, скины стоек
  * v5.2: bricks с сервера, кнопка Rewarded только в native / DEV
+ * v5.5: 3D превью активного скина в вкладке Блоки (Block3DPreview)
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -8,6 +9,7 @@ import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
 import { showRewarded } from '../engine/admob'
+import Block3DPreview from './Block3DPreview'
 
 const isNative = () => !!window.Capacitor?.isNativePlatform?.()
 const showRewardedBtn = () => isNative() || import.meta.env.DEV
@@ -424,8 +426,20 @@ export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'defau
         )}
 
         {tab === 'chips' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-            {CHIP_SKINS.map(skin => renderSkinCard(skin, true))}
+          <div>
+            {/* 3D превью текущего экипированного скина */}
+            <div style={{ marginBottom: 16 }}>
+              <Block3DPreview
+                skinId={serverActive.blocks || settings.chipStyle || 'blocks_classic'}
+                height={160}
+              />
+              <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 4, opacity: 0.6 }}>
+                {en ? 'Currently equipped · Rotating preview' : 'Активный скин · Крутящееся превью'}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+              {CHIP_SKINS.map(skin => renderSkinCard(skin, true))}
+            </div>
           </div>
         )}
 
