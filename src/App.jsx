@@ -35,7 +35,9 @@ const Blog = lazy(() => import('./components/Blog'))
 const Settings = lazy(() => import('./components/Settings'))
 const Admin = lazy(() => import('./components/Admin'))
 const Changelog = lazy(() => import('./components/Changelog'))
-const Onboarding = lazy(() => import('./components/Onboarding'))
+// Сценарная обучающая партия (заменила старый 4-слайдовый Onboarding).
+// Показывается при первом заходе на 'game' для всех платформ.
+const OnboardingGame = lazy(() => import('./components/OnboardingGame'))
 const Privacy = lazy(() => import('./components/Privacy'))
 const Terms = lazy(() => import('./components/Terms'))
 import SplashScreen from './components/SplashScreen'
@@ -90,10 +92,15 @@ export default function App() {
   })
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null)
+  // Открыть Profile сразу на нужной вкладке (используется онбордингом → 'city')
+  const [profileInitialTab, setProfileInitialTab] = useState(null)
   const [installPrompt, setInstallPrompt] = useState(null)
   const [cookieOk, setCookieOk] = useState(() => !!localStorage.getItem('stolbiki_cookies'))
 
-  const [showOnboarding, setShowOnboarding] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
+  // Сценарная обучающая партия. Показывается всем (не только native) при
+  // первом заходе на 'game'. На native — сразу после splash, чтобы новый
+  // пользователь начал не с пустой доски, а с управляемой победы.
+  const [showOnboardingGame, setShowOnboardingGame] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
   const [showSplash, setShowSplash] = useState(() => isNative && !!localStorage.getItem('stolbiki_onboarding_done'))
   const [showRatePopup, setShowRatePopup] = useState(false)
   const online = useNetworkStatus()
@@ -137,6 +144,33 @@ export default function App() {
     const updated = { ...authUser, bricks: newBricks, _bricksUpdatedAt: Date.now() }
     localStorage.setItem('stolbiki_profile', JSON.stringify(updated))
     setAuthUser(updated)
+  }
+
+  // Завершение онбординга: localStorage флаг + награды через API + переход.
+  async function handleOnboardingComplete({ goToCity }) {
+    localStorage.setItem('stolbiki_onboarding_done', '1')
+    if (authUser) {
+      try {
+        const r = await API.completeOnboarding()
+        if (r?.bricks != null) updateBricks(r.bricks)
+      } catch {
+        /* 409 alreadyDone — игнорим, флаг уже стоит */
+      }
+    }
+    setShowOnboardingGame(false)
+    if (goToCity) {
+      setProfileInitialTab('city')
+      setViewProfile(null)
+      setTab('profile')
+    } else {
+      setTab('game')
+    }
+  }
+
+  function handleOnboardingSkip() {
+    localStorage.setItem('stolbiki_onboarding_done', '1')
+    setShowOnboardingGame(false)
+    setTab('game')
   }
 
   useEffect(() => {
@@ -228,9 +262,11 @@ export default function App() {
 
   function go(id) {
     if (isNative && id === 'landing') id = 'game'
-    if (id === 'game' && !isNative && !localStorage.getItem('stolbiki_played')) {
-      localStorage.setItem('stolbiki_played', '1')
-      setShowLessons(true)
+    // При первом заходе на игру для всех платформ — показываем сценарную
+    // обучающую партию вместо пустой доски. На native триггер уже
+    // отработал через initial state showOnboardingGame.
+    if (id === 'game' && !isNative && !localStorage.getItem('stolbiki_onboarding_done')) {
+      setShowOnboardingGame(true)
       return
     }
     setTab(id); setMobileMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -284,7 +320,7 @@ export default function App() {
 
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
-      {showWhatsNew && !showSplash && tab !== 'landing' && (
+      {showWhatsNew && !showSplash && tab !== 'landing' && !showOnboardingGame && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION) }}>
           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '24px 28px', maxWidth: 340, width: '90%',
@@ -317,9 +353,14 @@ export default function App() {
         </div>
       )}
 
-      {showOnboarding && isNative && (
+      {showOnboardingGame && (
         <Suspense fallback={null}>
-          <Onboarding lang={lang} onDone={() => setShowOnboarding(false)} />
+          <OnboardingGame
+            lang={lang}
+            isLoggedIn={!!authUser}
+            onComplete={handleOnboardingComplete}
+            onSkip={handleOnboardingSkip}
+          />
         </Suspense>
       )}
 
@@ -590,7 +631,7 @@ export default function App() {
           {tab === 'openings'  && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
           {tab === 'blog'      && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
           {tab === 'settings'  && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
-          {tab === 'profile'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
+          {tab === 'profile'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} initialTab={profileInitialTab} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
           {tab === 'sim'       && isAdmin && <Simulator />}
           {tab === 'dash'      && isAdmin && <Dashboard />}
           {tab === 'replay'    && isAdmin && <Replay />}
