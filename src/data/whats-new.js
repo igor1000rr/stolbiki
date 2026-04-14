@@ -5,11 +5,15 @@
  */
 export const WHATS_NEW = {
   ru: [
-    '🚨 КРИТИЧНО: исправлена верификация для игроков за красный цвет — все ваши победы теперь засчитываются',
-    '🛡 Сервер: удалён dead-code дубль POST /api/training без anti-cheat и rate limit',
+    '🏆 Арена: исправлены 4 race condition — дубль-начисление рейтинга, XP, генерация раундов',
+    '🤝 Dual-report лечится атомарным UPDATE — второй игрок получает 409 без изменений',
+    '🎲 Первый раунд Arena — Fisher-Yates shuffle вместо arr.sort(random) для честного распределения',
+    '⚖ XP top-3 больше не может начислиться дважды в финальном раунде',
   ],
   en: [
-    '🚨 CRITICAL: fixed winner verification for red-side players — all your wins now count',
-    '🛡 Server: removed dead-code POST /api/training duplicate without anti-cheat and rate limit',
+    '🏆 Arena: 4 race conditions fixed — double rating/XP credit, duplicate round generation',
+    '🤝 Dual-report healed by atomic UPDATE — second player gets 409 with no side effects',
+    '🎲 First round of Arena — Fisher-Yates shuffle instead of arr.sort(random) for fair pairings',
+    '⚖ Top-3 XP can no longer be credited twice in the final round',
   ],
 }
