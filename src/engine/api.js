@@ -1,5 +1,5 @@
 /**
- * API клиент для Snatch Highrise
+ * API клиент для Highrise Heist
  * Автоматически переключается между сервером и localStorage fallback
  */
 
@@ -231,6 +231,12 @@ export async function getChallenges() {
 
 export async function respondChallenge(challengeId, accept) {
   return await api('/friends/challenge/respond', { method: 'POST', body: JSON.stringify({ challengeId, accept }) })
+}
+
+// ═══ Onboarding ═══
+/** Завершает обучающую партию: даёт +20 кирпичей и ачивку first_win. Идемпотентно. */
+export async function completeOnboarding() {
+  return await api('/onboarding/complete', { method: 'POST' })
 }
 
 /** Сохраняет реферальный код из URL (?ref=XXX) в localStorage */
