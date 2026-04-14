@@ -94,9 +94,9 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       rematch: `${fromName || 'Соперник'} предлагает рематч`,
     }
     sendPushTo(opponent.userId, {
-      title: titles[kind] || 'Snatch Highrise',
+      title: titles[kind] || 'Highrise Heist',
       body: bodies[kind] || '',
-      url: `https://snatch-highrise.com/online?room=${room.id}`,
+      url: `https://highriseheist.com/online?room=${room.id}`,
       tag: `room-${room.id}-${kind}`,
     }).catch(() => {})
   }
@@ -311,6 +311,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           const p2 = first === 0 ? matched : entry
           const room = {
             id: roomId,
+            created: Date.now(),
             players: [
               { ws: p1.ws, name: p1.name, userId: p1.userId, skins: p1.skins, rating: p1.rating },
               { ws: p2.ws, name: p2.name, userId: p2.userId, skins: p2.skins, rating: p2.rating },
