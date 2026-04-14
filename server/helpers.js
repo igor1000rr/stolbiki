@@ -39,12 +39,17 @@ export function formatPublicUser(u) {
 }
 
 // ═══ XP и Level Up ═══
+// БАГ-ФИКС: раньше if → делал только один level-up за вызов. При +500 XP на level=1
+// игрок должен стать level=3+ (100+200 → 2, потом +200 на level=2 → 3, и т.д.),
+// но код поднимал только до level=2 и оставлял лишний XP. Теперь в цикле.
 export function addXP(userId, amount) {
   db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(amount, userId)
-  const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(userId)
-  if (!user) return
-  const xpForNext = user.level * 100
-  if (user.xp >= xpForNext) {
+  // Safety: max 20 уровней за один вызов — защита от infinite loop если данные битые
+  for (let i = 0; i < 20; i++) {
+    const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(userId)
+    if (!user) return
+    const xpForNext = user.level * 100
+    if (user.xp < xpForNext) return
     db.prepare('UPDATE users SET level = level + 1, xp = xp - ? WHERE id = ?').run(xpForNext, userId)
   }
 }

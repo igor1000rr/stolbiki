@@ -234,6 +234,8 @@ router.get('/current', auth, (req, res) => {
 })
 
 // ─── POST /api/bp/quests/:id/claim ───
+// БАГ-ФИКС: раньше check-then-update без атомарности — двойной клик мог начислить
+// награду дважды. Теперь UPDATE ... WHERE reward_claimed=0, проверяем changes>0.
 router.post('/quests/:id/claim', auth, (req, res) => {
   const questId = parseInt(req.params.id, 10)
   if (!questId) return res.status(400).json({ error: 'invalid questId' })
@@ -250,12 +252,18 @@ router.post('/quests/:id/claim', auth, (req, res) => {
   if (!progress?.completed_at) return res.status(400).json({ error: 'Квест не выполнен' })
   if (progress.reward_claimed) return res.status(409).json({ error: 'Награда уже получена' })
 
-  // Отмечаем как полученную
-  db.prepare(
-    'UPDATE user_bp_progress SET reward_claimed=1 WHERE user_id=? AND quest_id=?'
+  // Атомарный claim: записываем только если ещё не заклеймлено.
+  // Если другой одновременный запрос успел — changes=0 и кирпичи не начисляем.
+  const claim = db.prepare(
+    'UPDATE user_bp_progress SET reward_claimed=1 WHERE user_id=? AND quest_id=? AND reward_claimed=0'
   ).run(req.user.id, questId)
 
-  // Начисляем кирпичи
+  if (claim.changes === 0) {
+    // Гонка: кто-то уже заклеймил первым
+    return res.status(409).json({ error: 'Награда уже получена' })
+  }
+
+  // Начисляем кирпичи только после успешного claim
   const newBalance = awardBricks(req.user.id, quest.reward_bricks, `bp_quest:${questId}`)
 
   res.json({ ok: true, bricksEarned: quest.reward_bricks, bricks: newBalance })

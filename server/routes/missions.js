@@ -45,6 +45,13 @@ router.get('/missions', auth, (req, res) => {
   res.json({ missions: enriched, allDone, xp: user?.xp || 0, level: user?.level || 1, xpForNext: (user?.level || 1) * 100 })
 })
 
+// БАГ-ФИКС: атомарный UPDATE — раньше race при двойном клике мог начислить XP дважды.
+// Используем UPDATE ... WHERE completed=0 и проверяем changes — только тот запрос,
+// который реально перевёл миссию в completed=1, получает XP.
+// Замечание (design-debt, не фиксится здесь): endpoint принимает mission_id и increment
+// от клиента — доверяет клиенту инкрементировать прогресс. Это потенциальная дыра для
+// читов (любой юзер может POST'ить progress без реальной игры). Правильнее инкрементить
+// из games.js/puzzles.js после подтверждённого действия. TODO отдельным крупным рефактором.
 router.post('/missions/progress', auth, (req, res) => {
   const { mission_id, increment } = req.body
   if (!mission_id) return res.status(400).json({ error: 'mission_id required' })
@@ -54,18 +61,28 @@ router.post('/missions/progress', auth, (req, res) => {
   const m = db.prepare('SELECT * FROM daily_missions WHERE user_id=? AND date=? AND mission_id=?').get(req.user.id, today, mission_id)
   if (!m || m.completed) return res.json({ ok: true, alreadyDone: true })
 
-  const newProgress = Math.min(m.progress + (increment || 1), m.target)
-  const completed = newProgress >= m.target ? 1 : 0
-  db.prepare('UPDATE daily_missions SET progress=?, completed=? WHERE id=?').run(newProgress, completed, m.id)
+  const inc = Math.max(1, Math.min(Number(increment) || 1, m.target))
+  const newProgress = Math.min(m.progress + inc, m.target)
+  const willComplete = newProgress >= m.target ? 1 : 0
 
-  if (completed) {
+  // Атомарный UPDATE — только если миссия ещё не была завершена.
+  const upd = db.prepare(
+    'UPDATE daily_missions SET progress=?, completed=? WHERE id=? AND completed=0'
+  ).run(newProgress, willComplete, m.id)
+
+  if (upd.changes === 0) {
+    // Гонка: кто-то другой успел завершить миссию между нашим SELECT и UPDATE
+    return res.json({ ok: true, alreadyDone: true })
+  }
+
+  if (willComplete) {
     addXP(req.user.id, m.xp_reward)
     const allDone = db.prepare('SELECT COUNT(*) as c FROM daily_missions WHERE user_id=? AND date=? AND completed=1').get(req.user.id, today).c
     if (allDone >= 3) addXP(req.user.id, 100)
   }
 
   const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(req.user.id)
-  res.json({ ok: true, completed: !!completed, progress: newProgress, target: m.target, xp: user?.xp, level: user?.level })
+  res.json({ ok: true, completed: !!willComplete, progress: newProgress, target: m.target, xp: user?.xp, level: user?.level })
 })
 
 // ═══ Login Streak ═══
