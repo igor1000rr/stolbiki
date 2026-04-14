@@ -8,6 +8,7 @@
  *
  * Intro-анимация: при первом рендере камера плавно "приземляется" сверху
  * на изометрический ракурс за 1.8 сек (easeOutCubic).
+ * + Каскадное появление зданий из земли (grow scale.y 0→1 с задержкой idx*60ms)
  *
  * Screenshot: кнопка "Скачать снимок" → PNG / Web Share API с файлом.
  *
@@ -94,6 +95,9 @@ const BLOCK_W = 3        // ширина блока
 const SPIRE_W = 2.5      // ширина шпиля
 const INTRO_MS = 1800    // длительность intro-анимации
 const FOCUS_MS = 700     // длительность zoom к зданию при клике
+const GROW_MS = 500      // длительность grow одного здания
+const GROW_STAGGER = 60  // задержка между соседними зданиями, ms
+const GROW_START_AT = 0.5 // доля intro (0..1), когда начинается grow
 
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
@@ -269,6 +273,9 @@ export default function VictoryCity({ userId }) {
           const bz = row * SPACING
           bGroup.position.set(bx, 0, bz)
           bGroup.userData.buildingId = b.id
+          // Grow-анимация: стартуем "сжатыми" по Y, вырастаем каскадно
+          bGroup.scale.y = 0
+          bGroup.userData.growDelay = idx * GROW_STAGGER
           buildingPositions.set(b.id, { x: bx, z: bz, height: (chips.length + extraFloors) * FLOOR_H })
 
           // Обычные этажи
@@ -323,9 +330,10 @@ export default function VictoryCity({ userId }) {
         controls.enabled = false  // выключены на время intro-анимации
         controls.update()
 
-        // Анимация: intro (при загрузке) + focus (при клике на здание)
+        // Анимация: intro (при загрузке) + focus (при клике на здание) + grow (здания)
         const introStart = performance.now()
         let focusAnim = null  // { fromPos, toPos, fromTarget, toTarget, start }
+        let growComplete = false
 
         function startFocusAnim(buildingId) {
           const p = buildingPositions.get(buildingId)
@@ -420,6 +428,23 @@ export default function VictoryCity({ userId }) {
             if (p >= 1) {
               focusAnim = null
               controls.enabled = true
+            }
+          }
+
+          // Grow-анимация зданий — каскадно "вырастают" из земли в конце intro
+          if (!growComplete) {
+            const growStartMs = introStart + INTRO_MS * GROW_START_AT
+            if (now >= growStartMs) {
+              let allDone = true
+              for (const g of cityGroup.children) {
+                if (g.scale.y >= 1) continue
+                const e2 = now - growStartMs - (g.userData.growDelay || 0)
+                if (e2 < 0) { allDone = false; continue }
+                const p2 = Math.min(1, e2 / GROW_MS)
+                g.scale.y = easeOutCubic(p2)
+                if (p2 < 1) allDone = false
+              }
+              if (allDone) growComplete = true
             }
           }
 
