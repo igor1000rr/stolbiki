@@ -10,6 +10,9 @@
  * на изометрический ракурс за 1.8 сек (easeOutCubic).
  * + Каскадное появление зданий из земли (grow scale.y 0→1 с задержкой idx*60ms)
  *
+ * Photo Mode: 3 пресета ракурса (📐 Изо, 🚁 Сверху, 🎬 Кинематограф)
+ * + тумблер автоповорота камеры
+ *
  * Screenshot: кнопка "Скачать снимок" → PNG / Web Share API с файлом.
  *
  * Fallback: при отсутствии WebGL / ошибке инициализации подгружается
@@ -95,6 +98,7 @@ const BLOCK_W = 3        // ширина блока
 const SPIRE_W = 2.5      // ширина шпиля
 const INTRO_MS = 1800    // длительность intro-анимации
 const FOCUS_MS = 700     // длительность zoom к зданию при клике
+const PRESET_MS = 900    // длительность переезда камеры к пресету
 const GROW_MS = 500      // длительность grow одного здания
 const GROW_STAGGER = 60  // задержка между соседними зданиями, ms
 const GROW_START_AT = 0.5 // доля intro (0..1), когда начинается grow
@@ -109,6 +113,8 @@ export default function VictoryCity({ userId }) {
   const [webglOk] = useState(() => hasWebGL())
   const [forceSvg, setForceSvg] = useState(false)
   const [snapshotMsg, setSnapshotMsg] = useState(null)
+  const [currentPreset, setCurrentPreset] = useState('iso')
+  const [autoRotate, setAutoRotate] = useState(false)
 
   const containerRef = useRef(null)
   const threeRef = useRef(null)
@@ -160,7 +166,7 @@ export default function VictoryCity({ userId }) {
         const centerZ = ((rows - 1) / 2) * SPACING
         const dist = Math.max(25, Math.max(COLS, rows) * SPACING * 1.4)
 
-        // Финальная "цель" камеры и таргета
+        // Финальная "цель" камеры и таргета — для preset 'iso'
         const finalCamPos = new THREE.Vector3(
           centerX + dist * 0.7, dist * 0.6, centerZ + dist * 0.7,
         )
@@ -327,27 +333,56 @@ export default function VictoryCity({ userId }) {
         controls.panSpeed = 0.6
         controls.rotateSpeed = 0.7
         controls.zoomSpeed = 0.8
+        controls.autoRotateSpeed = 0.5
         controls.enabled = false  // выключены на время intro-анимации
         controls.update()
 
-        // Анимация: intro (при загрузке) + focus (при клике на здание) + grow (здания)
-        const introStart = performance.now()
-        let focusAnim = null  // { fromPos, toPos, fromTarget, toTarget, start }
-        let growComplete = false
+        // Пресеты ракурса (позиция камеры + таргет)
+        const CAMERA_PRESETS = {
+          iso: {  // Классический изометрический вид
+            pos: finalCamPos.clone(),
+            target: finalTarget.clone(),
+          },
+          top: {  // Вид сверху (helicopter)
+            pos: new THREE.Vector3(centerX, dist * 1.3, centerZ + 4),
+            target: new THREE.Vector3(centerX, 0, centerZ),
+          },
+          cinematic: {  // Кинематографичный низкий ракурс
+            pos: new THREE.Vector3(centerX + dist * 1.1, dist * 0.18, centerZ + dist * 0.55),
+            target: new THREE.Vector3(centerX, 4, centerZ),
+          },
+        }
+
+        // animRef — изменяемое состояние между React колбеками и animate loop
+        const animRef = {
+          focusAnim: null,
+          focusDuration: FOCUS_MS,
+          autoRotate: false,
+        }
+
+        // Запустить переезд камеры к позиции/таргету (используется для пресетов и клик-by-здание)
+        function startCamAnim(toPos, toTarget, duration) {
+          animRef.focusAnim = {
+            fromPos: camera.position.clone(),
+            toPos: toPos.clone(),
+            fromTarget: controls.target.clone(),
+            toTarget: toTarget.clone(),
+            start: performance.now(),
+          }
+          animRef.focusDuration = duration || FOCUS_MS
+          controls.enabled = false
+          controls.autoRotate = false  // прерываем автоповорот на время переезда
+        }
 
         function startFocusAnim(buildingId) {
           const p = buildingPositions.get(buildingId)
           if (!p) return
-          // Позиция камеры: слегка сбоку-сверху от здания, с отступом
           const offset = Math.max(8, p.height + 6)
-          focusAnim = {
-            fromPos: camera.position.clone(),
-            toPos: new THREE.Vector3(p.x + offset * 0.8, p.height + offset * 0.5, p.z + offset * 0.8),
-            fromTarget: controls.target.clone(),
-            toTarget: new THREE.Vector3(p.x, p.height / 2, p.z),
-            start: performance.now(),
-          }
-          controls.enabled = false
+          startCamAnim(
+            new THREE.Vector3(p.x + offset * 0.8, p.height + offset * 0.5, p.z + offset * 0.8),
+            new THREE.Vector3(p.x, p.height / 2, p.z),
+            FOCUS_MS,
+          )
         }
 
         // Raycaster для кликов
@@ -399,6 +434,8 @@ export default function VictoryCity({ userId }) {
 
         // Animate loop
         let rafId = 0
+        const introStart = performance.now()
+        let growComplete = false
         const clock = new THREE.Clock()
         const animate = () => {
           rafId = requestAnimationFrame(animate)
@@ -413,21 +450,25 @@ export default function VictoryCity({ userId }) {
             camera.position.lerpVectors(introStartPos, finalCamPos, e)
             controls.target.lerpVectors(introStartTarget, finalTarget, e)
             camera.lookAt(controls.target)
-          } else if (controls.enabled === false && !focusAnim) {
+          } else if (controls.enabled === false && !animRef.focusAnim) {
             // Intro закончилась, даём управление юзеру
             controls.enabled = true
+            // Возможно автоповорот был включён до конца intro — применяем сейчас
+            controls.autoRotate = animRef.autoRotate
           }
 
-          // Focus-анимация (клик на здание)
-          if (focusAnim) {
-            const p = Math.min(1, (now - focusAnim.start) / FOCUS_MS)
+          // Focus/Preset анимация (клик на здание или preset кнопка)
+          if (animRef.focusAnim) {
+            const p = Math.min(1, (now - animRef.focusAnim.start) / animRef.focusDuration)
             const e = easeOutCubic(p)
-            camera.position.lerpVectors(focusAnim.fromPos, focusAnim.toPos, e)
-            controls.target.lerpVectors(focusAnim.fromTarget, focusAnim.toTarget, e)
+            camera.position.lerpVectors(animRef.focusAnim.fromPos, animRef.focusAnim.toPos, e)
+            controls.target.lerpVectors(animRef.focusAnim.fromTarget, animRef.focusAnim.toTarget, e)
             camera.lookAt(controls.target)
             if (p >= 1) {
-              focusAnim = null
+              animRef.focusAnim = null
               controls.enabled = true
+              // Возобновляем автоповорот если он был включён
+              controls.autoRotate = animRef.autoRotate
             }
           }
 
@@ -460,7 +501,13 @@ export default function VictoryCity({ userId }) {
         }
         animate()
 
-        threeRef.current = { scene, camera, renderer, controls, onResize, rafId, floorGeo, spireGeo }
+        threeRef.current = {
+          scene, camera, renderer, controls, onResize, rafId, floorGeo, spireGeo,
+          // Публичное API для React-компонента
+          cameraPresets: CAMERA_PRESETS,
+          animRef,
+          startCamAnim,
+        }
       } catch (e) {
         console.error('[VictoryCity] WebGL init error:', e)
         if (!disposed) setForceSvg(true)
@@ -491,6 +538,32 @@ export default function VictoryCity({ userId }) {
       }
     }
   }, [buildings, webglOk, forceSvg])
+
+  // ─── Переключение пресетов ракурса ───
+  function applyCameraPreset(name) {
+    const t = threeRef.current
+    if (!t?.cameraPresets || !t?.startCamAnim) return
+    const preset = t.cameraPresets[name]
+    if (!preset) return
+    setCurrentPreset(name)
+    t.startCamAnim(preset.pos, preset.target, PRESET_MS)
+  }
+
+  // ─── Тумблер автоповорота ───
+  function toggleAutoRotate() {
+    setAutoRotate(prev => {
+      const next = !prev
+      const t = threeRef.current
+      if (t?.animRef && t?.controls) {
+        t.animRef.autoRotate = next
+        // Применяем сразу только если не идёт intro/focus-анимация
+        if (t.controls.enabled) {
+          t.controls.autoRotate = next
+        }
+      }
+      return next
+    })
+  }
 
   // ─── Скачать/поделиться скриншотом текущей 3D-сцены ───
   function downloadScreenshot() {
@@ -548,6 +621,12 @@ export default function VictoryCity({ userId }) {
 
   const selB = selId ? buildings.find(b => b.id === selId) : null
   const useFallback = !webglOk || forceSvg
+
+  const PRESETS = [
+    { id: 'iso', emoji: '📐', label_ru: 'Изо', label_en: 'Iso' },
+    { id: 'top', emoji: '🚁', label_ru: 'Сверху', label_en: 'Top' },
+    { id: 'cinematic', emoji: '🎬', label_ru: 'Кино', label_en: 'Cine' },
+  ]
 
   return (
     <div>
@@ -607,19 +686,74 @@ export default function VictoryCity({ userId }) {
         />
       )}
 
-      {/* Кнопка "Скачать снимок" — только для 3D-режима */}
+      {/* Photo Mode: пресеты ракурса + автоповорот + снимок */}
       {!useFallback && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10, gap: 10, alignItems: 'center' }}>
+        <div style={{
+          display: 'flex', justifyContent: 'center', marginTop: 10, gap: 6,
+          flexWrap: 'wrap', alignItems: 'center',
+        }}>
+          {/* Пресеты ракурса */}
+          <div style={{
+            display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)',
+            borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            {PRESETS.map(p => {
+              const active = currentPreset === p.id
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => applyCameraPreset(p.id)}
+                  style={{
+                    fontSize: 11, padding: '6px 10px', borderRadius: 6,
+                    background: active ? 'var(--accent)' : 'transparent',
+                    color: active ? '#0a0a12' : 'var(--ink2)',
+                    border: 'none', cursor: 'pointer', fontWeight: active ? 700 : 500,
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s ease',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                  aria-label={en ? p.label_en : p.label_ru}
+                  aria-pressed={active}
+                >
+                  <span>{p.emoji}</span>
+                  <span>{en ? p.label_en : p.label_ru}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Автоповорот */}
           <button
-            className="btn"
+            onClick={toggleAutoRotate}
+            style={{
+              fontSize: 11, padding: '6px 10px', borderRadius: 8,
+              background: autoRotate ? 'rgba(61,214,140,0.15)' : 'var(--surface2)',
+              color: autoRotate ? 'var(--green)' : 'var(--ink3)',
+              border: `1px solid ${autoRotate ? 'var(--green)' : 'rgba(255,255,255,0.05)'}`,
+              cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+              transition: 'all 0.15s ease',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}
+            aria-pressed={autoRotate}
+          >
+            <span>🔄</span>
+            <span>{en ? 'Rotate' : 'Авто'}</span>
+          </button>
+
+          {/* Снимок */}
+          <button
             onClick={downloadScreenshot}
             style={{
-              fontSize: 12, padding: '8px 16px',
-              borderColor: 'var(--accent)', color: 'var(--accent)',
-              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 11, padding: '6px 12px', borderRadius: 8,
+              border: '1px solid var(--accent)',
+              background: 'transparent', color: 'var(--accent)',
+              cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 4,
+              transition: 'all 0.15s ease',
             }}
           >
-            📸 {en ? 'Download snapshot' : 'Скачать снимок'}
+            <span>📸</span>
+            <span>{en ? 'Snapshot' : 'Снимок'}</span>
           </button>
           {snapshotMsg && (
             <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600, animation: 'fadeIn 0.3s ease' }}>
