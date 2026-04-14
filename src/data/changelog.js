@@ -1,120 +1,22 @@
-export default [
-  {
-    version: '5.7.2',
-    date: '2026-04-15',
-    title_ru: '🏆 Arena: 4 race condition фикс — дубль-начисление рейтинга и XP',
-    title_en: '🏆 Arena: 4 race condition fixes — double rating and XP credit',
-    changes_ru: [
-      { type: 'fix', text: '🚨 КРИТИЧНО: dual-report в /api/arena/result — оба игрока одновременно жали «я выиграл» → рейтинг считался дважды. Атомарный UPDATE WHERE winner_id IS NULL + changes проверка' },
-      { type: 'fix', text: '🔄 Double round advance — два параллельных /result могли дублировать генерацию next round. Guard через UPDATE current_round=? WHERE current_round=?' },
-      { type: 'fix', text: '⚖ Double XP for top-3 — в финальном раунде XP мог начислиться дважды. Guard через status=\'playing\' в finish UPDATE' },
-      { type: 'fix', text: '🎲 Arena shuffle: Fisher-Yates вместо arr.sort(() => Math.random() - 0.5) — смещённые comparator’ы в V8 давали неравномерное распределение' },
-    ],
-    changes_en: [
-      { type: 'fix', text: '🚨 CRITICAL: dual-report in /api/arena/result — both players simultaneously POST’ing “I won” double-counted rating. Atomic UPDATE WHERE winner_id IS NULL + .changes check' },
-      { type: 'fix', text: '🔄 Double round advance — two parallel /result could duplicate next round generation. Guard via UPDATE current_round=? WHERE current_round=?' },
-      { type: 'fix', text: '⚖ Double XP for top-3 — in the final round XP could be credited twice. Guard via status=\'playing\' in finish UPDATE' },
-      { type: 'fix', text: '🎲 Arena shuffle: Fisher-Yates instead of arr.sort(() => Math.random() - 0.5) — biased V8 comparators gave uneven distributions' },
-    ],
-  },
-  {
-    version: '5.7.1',
-    date: '2026-04-15',
-    title_ru: '🚨 Hotfix: победы за красный цвет + убран dead-code с security-риском',
-    title_en: '🚨 Hotfix: red-side wins + removed dead-code with security risk',
-    changes_ru: [
-      { type: 'fix', text: '🚨 КРИТИЧНО: POST /api/games верифицировал winner как v.winner===0 — все партии игроков за красный (цвет 1) отвергались с 400. Теперь принимаем humanColor в payload' },
-      { type: 'fix', text: '🛡 SECURITY: удалён dead-code дубль POST /api/training в social.js — не имел rateLimit и walkMoves, риск при смене порядка mount' },
-      { type: 'perf', text: '⚖ games.js: legacy fallback без humanColor сохраняет обратную совместимость, старые клиенты работают' },
-    ],
-    changes_en: [
-      { type: 'fix', text: '🚨 CRITICAL: POST /api/games verified winner as v.winner===0 — all red-side (color 1) player games were rejected with 400. Now accepting humanColor in payload' },
-      { type: 'fix', text: '🛡 SECURITY: removed dead-code POST /api/training duplicate in social.js — had no rateLimit or walkMoves, risk on mount order change' },
-      { type: 'perf', text: '⚖ games.js: legacy fallback without humanColor keeps backward compatibility, old clients work' },
-    ],
-  },
-  {
-    version: '5.7.0',
-    date: '2026-04-14',
-    title_ru: '🏆 Achievement Rarity — живой % держателей + тир на каждой ачивке',
-    title_en: '🏆 Achievement Rarity — live % of holders + tier on each achievement',
-    changes_ru: [
-      { type: 'new', text: '🏆 GET /api/achievements/rarity — публичный endpoint с процентом держателей и tier (legendary <1%, epic <5%, rare <20%, common ≥20%)' },
-      { type: 'new', text: '🔐 GET /api/achievements/me — список ачивок юзера с rarity merged (auth)' },
-      { type: 'new', text: '📊 Во вкладке «Ачивки» Profile → каждая карточка показывает живой % держателей' },
-      { type: 'fix', text: '🧹 chat-limits: LRU для lastSent Map — защита от memory leak' },
-      { type: 'fix', text: '🔔 Локальные Notification API теперь под брендом «Highrise Heist»' },
-    ],
-    changes_en: [
-      { type: 'new', text: '🏆 GET /api/achievements/rarity — public endpoint with holder percentage and tier' },
-      { type: 'new', text: '🔐 GET /api/achievements/me — user achievements with rarity merged (auth)' },
-      { type: 'new', text: '📊 In Profile → Achievements tab: each card shows live % of holders' },
-      { type: 'fix', text: '🧹 chat-limits: LRU for lastSent Map — memory leak protection' },
-      { type: 'fix', text: '🔔 Local Notification API now uses «Highrise Heist» brand' },
-    ],
-  },
-  {
-    version: '5.6.1',
-    date: '2026-04-14',
-    title_ru: '🛡 Багфиксы по аудиту',
-    title_en: '🛡 Audit bug fixes',
-    changes_ru: [{ type: 'fix', text: '7 багов: push-домен, /auth/refresh, TDZ, memory leaks' }],
-    changes_en: [{ type: 'fix', text: '7 bugs: push domain, /auth/refresh, TDZ, memory leaks' }],
-  },
-  {
-    version: '5.6.0',
-    date: '2026-04-14',
-    title_ru: '📐 Photo Mode + 🌙 Day/Night, 3D-город',
-    title_en: '📐 Photo Mode + 🌙 Day/Night, 3D city',
-    changes_ru: [{ type: 'new', text: 'Photo Mode, Day/Night, grow-анимация, снимок' }],
-    changes_en: [{ type: 'new', text: 'Photo Mode, Day/Night, grow animation, snapshot' }],
-  },
-  {
-    version: '5.5.0',
-    date: '2026-04-14',
-    title_ru: '🏙 3D Город побед',
-    title_en: '🏙 3D Victory City',
-    changes_ru: [{ type: 'new', text: 'Three.js вместо SVG' }],
-    changes_en: [{ type: 'new', text: 'Three.js instead of SVG' }],
-  },
-  {
-    version: '5.0.0',
-    date: '2026-04-12',
-    title_ru: 'Клубы, глобальный чат',
-    title_en: 'Clubs, global chat',
-    changes_ru: [{ type: 'new', text: 'Клубы 🦝 + глобальный чат' }],
-    changes_en: [{ type: 'new', text: 'Clubs 🦝 + global chat' }],
-  },
-  {
-    version: '4.7.0',
-    date: '2026-04-05',
-    title_ru: 'AlphaZero AI v7, Android',
-    title_en: 'AlphaZero AI v7, Android',
-    changes_ru: [{ type: 'new', text: 'AI v7: 859K параметров' }],
-    changes_en: [{ type: 'new', text: 'AI v7: 859K params' }],
-  },
-  {
-    version: '3.0',
-    date: '2026-03-15',
-    title_ru: '26 ачивок, сезоны',
-    title_en: '26 achievements, seasons',
-    changes_ru: [{ type: 'new', text: '26 ачивок, сезоны' }],
-    changes_en: [{ type: 'new', text: '26 achievements, seasons' }],
-  },
-  {
-    version: '2.0',
-    date: '2026-02-20',
-    title_ru: 'Онлайн мультиплеер',
-    title_en: 'Online multiplayer',
-    changes_ru: [{ type: 'new', text: 'Онлайн, 50 головоломок' }],
-    changes_en: [{ type: 'new', text: 'Online, 50 puzzles' }],
-  },
-  {
-    version: '1.0',
-    date: '2026-01-15',
-    title_ru: 'Первый релиз',
-    title_en: 'First release',
-    changes_ru: [{ type: 'new', text: 'AlphaZero AI, ELO' }],
-    changes_en: [{ type: 'new', text: 'AlphaZero AI, ELO' }],
-  },
-]
+/**
+ * Список версий из папки src/data/changelog/.
+ *
+ * Новый релиз = один файл src/data/changelog/v<NNN>.js с default export'ом.
+ * Vite подхватыт все файлы через import.meta.glob, другие не трогаем.
+ * Сортируем по версии (свежее сверху).
+ */
+
+const modules = import.meta.glob('./changelog/*.js', { eager: true })
+const entries = Object.values(modules).map(m => m.default).filter(Boolean)
+
+entries.sort((a, b) => {
+  const av = String(a.version).split('.').map(Number)
+  const bv = String(b.version).split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    const diff = (bv[i] || 0) - (av[i] || 0)
+    if (diff) return diff
+  }
+  return 0
+})
+
+export default entries
