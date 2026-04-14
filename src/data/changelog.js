@@ -2,9 +2,10 @@ export default [
   {
     version: '5.6.0',
     date: '2026-04-14',
-    title_ru: '📐 Photo Mode, 🏗 grow-анимация, 📸 снимок, 🏙 3D на лендинге',
-    title_en: '📐 Photo Mode, 🏗 grow animation, 📸 snapshot, 🏙 3D on landing',
+    title_ru: '📐 Photo Mode + 🌙 Day/Night, 🏗 grow-анимация, 📸 снимок, 🏙 3D на лендинге',
+    title_en: '📐 Photo Mode + 🌙 Day/Night, 🏗 grow animation, 📸 snapshot, 🏙 3D on landing',
     changes_ru: [
+      { type: 'new', text: '🌙 Day/Night: 4 пресета времени суток (Ночь, Утро, День, Закат) с плавным 800ms переходом bg/fog/солнца/звёзд' },
       { type: 'new', text: '📐 Photo Mode в 3D-городе: 3 пресета ракурса (Изо, Сверху, Кино) — плавный переезд камеры за 0.9с' },
       { type: 'new', text: '🔄 Тумблер автоповорота камеры (0.5 speed) — для залипательного просмотра и кинематографичных скриншотов' },
       { type: 'new', text: '🏗 Каскадное появление зданий: при открытии «Города» небоскрёбы волной вырастают из земли (500ms, stagger 60ms, easeOutCubic)' },
@@ -14,6 +15,7 @@ export default [
       { type: 'fix', text: 'Renderer: preserveDrawingBuffer=true для корректного toBlob/toDataURL при снимке' },
     ],
     changes_en: [
+      { type: 'new', text: '🌙 Day/Night: 4 time-of-day presets (Night, Morning, Day, Sunset) with smooth 800ms transition of bg/fog/sun/stars' },
       { type: 'new', text: '📐 Photo Mode in the 3D city: 3 camera presets (Iso, Top, Cine) — smooth transition in 0.9s' },
       { type: 'new', text: '🔄 Auto-rotate toggle (0.5 speed) — for mesmerizing viewing and cinematic screenshots' },
       { type: 'new', text: '🏗 Cascading building grow: opening “City” — skyscrapers rise from the ground in a wave (500ms, stagger 60ms, easeOutCubic)' },
