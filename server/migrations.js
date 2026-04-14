@@ -99,5 +99,10 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN rush_best INTEGER DEFAULT 0') } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 9')
+  // Флаг прохождения обучающей партии. Идемпотентность награды построена на нём.
+  migrate(10, () => {
+    try { db.exec('ALTER TABLE users ADD COLUMN onboarding_done INTEGER DEFAULT 0') } catch {}
+  })
+
+  console.log('Schema version: ' + getVersion() + ', миграций: 10')
 }

@@ -43,6 +43,7 @@ import globalChatRouter from './routes/globalchat.js'
 import clubsRouter from './routes/clubs.js'
 import pushRouter from './routes/push.js'
 import achievementsRouter from './routes/achievements.js'
+import onboardingRouter from './routes/onboarding.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -197,6 +198,7 @@ app.use('/api/chat', globalChatRouter)
 app.use('/api/clubs', clubsRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/achievements', achievementsRouter)
+app.use('/api/onboarding', onboardingRouter)
 
 app.use('/api/', (req, res) => { res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` }) })
 
