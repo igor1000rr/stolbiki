@@ -11,7 +11,7 @@ import { awardBricksToReferrer, REFERRAL_BRICKS_GAMES } from './auth.js'
 const router = Router()
 
 router.post('/games', auth, (req, res) => {
-  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves } = req.body
+  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves, humanColor } = req.body
 
   if (!score || typeof score !== 'string') return res.status(400).json({ error: 'Некорректный счёт' })
   const scoreParts = score.split(':')
@@ -32,10 +32,26 @@ router.post('/games', auth, (req, res) => {
   if (moves && Array.isArray(moves) && moves.length >= 5) {
     const v = verifyGameFromMoves(moves)
     if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
-    verifiedWon = v.winner === 0
     verifiedScore = v.scoreStr
     verifiedTurns = v.turns
-    if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
+
+    // БАГ-ФИКС: раньше было verifiedWon = v.winner === 0, что ломало игроков за цвет 1
+    // (красные). Все их партии получали "Результат не совпадает с ходами" → 400.
+    //
+    // Теперь если клиент передал humanColor (0|1) — сверяем v.winner с ним.
+    // Ничья (v.winner === -1) → всегда не-победа.
+    // Если humanColor не передан (старые клиенты) — доверяем !!won как было,
+    // чтобы не ломать обратную совместимость. После обновления клиента anti-cheat
+    // восстановится (см. этап 2 в клиентском коммите).
+    const hc = (humanColor === 0 || humanColor === 1) ? humanColor : null
+    if (hc !== null) {
+      verifiedWon = v.winner === hc
+      if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
+    } else {
+      // Legacy fallback: без humanColor можем только проверить согласованность победы vs ничьей
+      if (!!won && v.winner < 0) return res.status(400).json({ error: 'Ничья, а не победа' })
+      verifiedWon = !!won
+    }
   } else {
     if (!isOnline) return res.status(400).json({ error: 'Требуется история ходов для AI-игры' })
   }
