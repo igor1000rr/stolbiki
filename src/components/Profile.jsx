@@ -9,6 +9,7 @@
  *   profile/ProfileHistory.jsx       — вкладка истории
  *   profile/ProfileLeaderboard.jsx   — вкладка рейтинга
  *   profile/ProfileReferrals.jsx     — вкладка рефералов
+ *   profile/PublicAchievementsList.jsx — ачивки в публичном профиле (с rarity)
  *
  * Остальные вкладки импортируются как были (SeasonPass, Clubs, VictoryCity, и т.д.)
  */
@@ -31,6 +32,7 @@ import {
   loadLocal, saveLocal, defaultProfile,
 } from './profile/_constants'
 import { AvatarCircle, RatingBadge, RatingChart, SeasonSection } from './profile/_helpers'
+import PublicAchievementsList from './profile/PublicAchievementsList'
 
 // Lazy-loaded tabs
 const ProfileAchievements = lazy(() => import('./profile/ProfileAchievements'))
@@ -227,16 +229,7 @@ export default function Profile({ viewUsername, onClose }) {
               </div>
             ))}
           </div>
-          {ppAchievements.length > 0 && (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>
-                {en ? 'Achievements' : 'Ачивки'} ({ppAchievements.length})
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {ppAchievements.map(a => <span key={a.id} title={a.nameEn || a.id} style={{ fontSize: 20 }}>{a.icon}</span>)}
-              </div>
-            </div>
-          )}
+          <PublicAchievementsList achievements={ppAchievements} en={en} />
         </div>
       </div>
     )
