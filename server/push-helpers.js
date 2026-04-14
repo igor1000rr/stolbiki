@@ -119,6 +119,11 @@ const deleteSubByUserStmt = db.prepare('DELETE FROM push_subscriptions WHERE use
 const getSubsByUserStmt = db.prepare('SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?')
 const updateLastUsedStmt = db.prepare('UPDATE push_subscriptions SET last_used = ? WHERE id = ?')
 
+// Prepared statement для логирования ошибок push
+const insertErrorStmt = db.prepare(
+  'INSERT INTO error_reports (user_id, message, component, url, ua) VALUES (?, ?, ?, ?, ?)'
+)
+
 export function deleteSubscription(userId, endpoint) {
   if (!endpoint) return
   if (userId) deleteSubByUserStmt.run(userId, endpoint)
@@ -127,17 +132,18 @@ export function deleteSubscription(userId, endpoint) {
 
 /**
  * Отправить push всем подпискам юзера.
- * @returns {Promise<{sent: number, removed: number}>}
+ * @returns {Promise<{sent: number, removed: number, failed: number}>}
  */
 export async function sendPushTo(userId, payload) {
-  if (!isPushConfigured() || !userId) return { sent: 0, removed: 0 }
+  if (!isPushConfigured() || !userId) return { sent: 0, removed: 0, failed: 0 }
   const subs = getSubsByUserStmt.all(userId)
-  if (subs.length === 0) return { sent: 0, removed: 0 }
+  if (subs.length === 0) return { sent: 0, removed: 0, failed: 0 }
 
   const body = typeof payload === 'string' ? payload : JSON.stringify(payload)
   const now = Date.now()
   let sent = 0
   let removed = 0
+  let failed = 0
 
   await Promise.all(subs.map(async (s) => {
     try {
@@ -153,10 +159,22 @@ export async function sendPushTo(userId, payload) {
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         try { deleteSubByEndpointStmt.run(s.endpoint) } catch {}
         removed++
+      } else {
+        // Прочие ошибки (network/429/500) — логируем в error_reports, чтобы не молчать
+        failed++
+        try {
+          const endpointHost = (() => { try { return new URL(s.endpoint).host } catch { return 'unknown' } })()
+          insertErrorStmt.run(
+            userId,
+            `[push] ${err?.statusCode || 'err'}: ${String(err?.message || err).slice(0, 200)}`,
+            'push-helpers',
+            endpointHost,
+            null
+          )
+        } catch {}
       }
-      // другие ошибки игнорируем (network etc)
     }
   }))
 
-  return { sent, removed }
+  return { sent, removed, failed }
 }
