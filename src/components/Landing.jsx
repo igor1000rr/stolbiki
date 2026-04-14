@@ -42,7 +42,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       <section className={`l-hero ${heroVis ? 'in' : ''}`} ref={heroRef}>
         <div className="l-hero-glow" />
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <img src="/logo-full.webp" alt="Snatch Highrise" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
+          <img src="/logo-full.webp" alt="Highrise Heist" style={{ width: 'min(280px, 70vw)', height: 'auto' }} />
         </div>
         <h1 className="l-hero-title">
           {c('site.tagline', en ? 'Strategy board game with AI' : 'Стратегическая настольная игра с AI')}
@@ -269,7 +269,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               <rect x="66" y="22" width="48" height="16" rx="8" fill="#1a1a2e"/>
               <circle cx="82" cy="30" r="3" fill="#0a0a12" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
               <text x="38" y="34" fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="600">9:41</text>
-              <text x="90" y="62" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="700" opacity="0.7">SNATCH HIGHRISE</text>
+              <text x="90" y="62" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="700" opacity="0.7">HIGHRISE HEIST</text>
               <text x="90" y="75" textAnchor="middle" fill="var(--accent)" fontSize="6" opacity="0.5">vs Snappy · Easy</text>
               <text x="65" y="96" textAnchor="middle" fill="#4a9eff" fontSize="18" fontWeight="800">4</text>
               <text x="90" y="94" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="12">:</text>
@@ -361,7 +361,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
               {[
                 { name: 'Telegram', url: 'https://t.me/igor1000rr', color: '#4a9eff' },
-                { name: 'TikTok', url: 'https://tiktok.com/@snatchhighrise', color: '#e040fb' },
+                { name: 'TikTok', url: 'https://tiktok.com/@highriseheist', color: '#e040fb' },
                 { name: 'Reddit', url: 'https://reddit.com/r/boardgames', color: '#ff6066' },
               ].map(s => (
                 <a key={s.name} href={s.url} target="_blank" rel="noopener" style={{
