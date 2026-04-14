@@ -5,17 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    '🏆 Рарность ачивок: живой % держателей + тир (legendary/epic/rare/common) из /api/achievements/rarity',
-    '📊 Бейдж рядом с каждой ачивкой показывает сколько игроков её получили',
-    '🔔 Уведомления: title и tag теперь под актуальным брендом (финал ребрендинга snatch→highrise)',
-    '🧹 Chat rate-limit: LRU-защита от memory leak при всплеске уникальных userId',
-    '⚙️ Кэш rarity 5 мин на сервере и клиенте — не бьёт по API из каждого бейджа',
+    '🏆 Achievement Rarity доведен до 100%: rarity-бейджи с tier-рамкой теперь и в публичных профилях',
+    '📝 Фикс критичного бага в блоге: pin на последний релиз больше не перезаписывается на старый при рестарте',
+    '🔒 Admin: при удалении юзера но чистятся все таблицы (GDPR) — раньше оставались orphan-записи',
+    '🛡 Puzzle Rush: ачивки rush_5/rush_15 разблокируются сразу, без задержки + защита от XP-фарма',
+    '✏️ Admin API: редактирование блог-постов по PUT /api/blog/:slug теперь работает (был SQLite syntax error)',
   ],
   en: [
-    '🏆 Achievement rarity: live % of holders + tier (legendary/epic/rare/common) via /api/achievements/rarity',
-    '📊 Badge next to each achievement shows how many players unlocked it',
-    '🔔 Notifications: title and tag now use current brand (final rebrand cleanup)',
-    '🧹 Chat rate-limit: LRU protection against memory leak on unique userId spike',
-    '⚙️ Rarity cache 5 min on server + client — one request per tab, not per badge',
+    '🏆 Achievement Rarity 100% done: rarity badges with tier border now also on public profiles',
+    '📝 Blog critical fix: pin on latest release no longer gets overwritten to old post on restart',
+    '🔒 Admin: user deletion now cleans ALL tables (GDPR) — previously left orphan records',
+    '🛡 Puzzle Rush: rush_5/rush_15 achievements unlock instantly, no delay + XP-farm protection',
+    '✏️ Admin API: editing blog posts via PUT /api/blog/:slug now works (was SQLite syntax error)',
   ],
 }
