@@ -5,17 +5,11 @@
  */
 export const WHATS_NEW = {
   ru: [
-    '🏆 Achievement Rarity доведен до 100%: rarity-бейджи с tier-рамкой теперь и в публичных профилях',
-    '📝 Фикс критичного бага в блоге: pin на последний релиз больше не перезаписывается на старый при рестарте',
-    '🔒 Admin: при удалении юзера но чистятся все таблицы (GDPR) — раньше оставались orphan-записи',
-    '🛡 Puzzle Rush: ачивки rush_5/rush_15 разблокируются сразу, без задержки + защита от XP-фарма',
-    '✏️ Admin API: редактирование блог-постов по PUT /api/blog/:slug теперь работает (был SQLite syntax error)',
+    '🚨 КРИТИЧНО: исправлена верификация для игроков за красный цвет — все ваши победы теперь засчитываются',
+    '🛡 Сервер: удалён dead-code дубль POST /api/training без anti-cheat и rate limit',
   ],
   en: [
-    '🏆 Achievement Rarity 100% done: rarity badges with tier border now also on public profiles',
-    '📝 Blog critical fix: pin on latest release no longer gets overwritten to old post on restart',
-    '🔒 Admin: user deletion now cleans ALL tables (GDPR) — previously left orphan records',
-    '🛡 Puzzle Rush: rush_5/rush_15 achievements unlock instantly, no delay + XP-farm protection',
-    '✏️ Admin API: editing blog posts via PUT /api/blog/:slug now works (was SQLite syntax error)',
+    '🚨 CRITICAL: fixed winner verification for red-side players — all your wins now count',
+    '🛡 Server: removed dead-code POST /api/training duplicate without anti-cheat and rate limit',
   ],
 }
