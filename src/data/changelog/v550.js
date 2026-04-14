@@ -1,14 +1,14 @@
 export default {
   version: '5.5.0',
   date: '2026-04-14',
-  title_ru: '3D Город побед и 3D-превью скинов',
-  title_en: '3D Victory City and 3D skin preview',
+  title_ru: 'Город побед в 3D и живые превью скинов',
+  title_en: '3D Victory City and live skin previews',
   changes_ru: [
-    { type: 'new', text: 'Three.js рендер вместо SVG, вращение, зум, тени' },
-    { type: 'new', text: '3D-превью активного скина в магазине' },
+    { type: 'new', text: 'Город побед теперь в 3D: вращается, приближается, с тенями' },
+    { type: 'new', text: 'Skin Shop: выбранный скин видно в 3D прямо в магазине' },
   ],
   changes_en: [
-    { type: 'new', text: 'Three.js renderer instead of SVG, rotate, zoom, shadows' },
-    { type: 'new', text: '3D preview of active skin in shop' },
+    { type: 'new', text: 'Victory City is now in 3D: rotate, zoom, with shadows' },
+    { type: 'new', text: 'Skin Shop: selected skin shown in 3D right in the store' },
   ],
 }
