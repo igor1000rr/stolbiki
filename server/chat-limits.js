@@ -17,10 +17,18 @@ try { db.exec('ALTER TABLE users ADD COLUMN chat_muted_until INTEGER NOT NULL DE
 const RATE_WINDOW_MS = 3000
 const lastSent = new Map() // userId → ts
 
-// Очистка старых записей раз в 5 минут (memory leak prevention)
+// Очистка старых записей раз в 5 минут (memory leak prevention):
+//   1) Удаляем записи старше 10 минут (они уже бесполезны для rate-limit).
+//   2) LRU-лимит на 20k записей — защита от всплеска уникальных userId
+//      (аналогично middleware.lastSeenCache). Оставляем 15k самых свежих.
 setInterval(() => {
   const cutoff = Date.now() - 600000
   for (const [k, v] of lastSent) if (v < cutoff) lastSent.delete(k)
+  if (lastSent.size > 20000) {
+    const entries = [...lastSent.entries()].sort((a, b) => a[1] - b[1])
+    const toDelete = entries.slice(0, entries.length - 15000)
+    for (const [k] of toDelete) lastSent.delete(k)
+  }
 }, 300000).unref?.()
 
 const getMutedUntilStmt = db.prepare('SELECT chat_muted_until FROM users WHERE id = ?')
