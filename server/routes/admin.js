@@ -79,14 +79,50 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ ok: true })
   })
 
+  // БАГ-ФИКС: раньше цикл удалял только 8 таблиц из ~20, оставляя orphan-записи
+  // (daily_missions, replays, push_tokens, puzzle_rush_scores, arena_participants,
+  // chat_messages, analytics_events, referrals, brick_transactions, ...).
+  //
+  // Сейчас удаляем из всех таблиц, где есть user_id. Часть таблиц (victory_buildings,
+  // club_members, user_bp_progress, clubs.owner_id, user_skins) имеют ON DELETE
+  // CASCADE и чистятся автоматически при DELETE FROM users.
+  //
+  // Обёрнуто в транзакцию — либо всё удалится, либо ничего, иначе при ошибке
+  // юзер мог остаться с orphan-ачивками.
   router.delete('/users/:id', auth, adminOnly, (req, res) => {
     const id = +req.params.id
     if (id === req.user.id) return res.status(400).json({ error: 'Нельзя удалить себя' })
-    for (const t of ['achievements','games','friends','training_data','rating_history','season_ratings','daily_results','puzzle_results']) {
-      db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(id)
+    if (!db.prepare('SELECT id FROM users WHERE id=?').get(id)) {
+      return res.status(404).json({ error: 'Не найден' })
     }
-    db.prepare('DELETE FROM friends WHERE friend_id=?').run(id)
-    db.prepare('DELETE FROM users WHERE id=?').run(id)
+
+    // Таблицы с user_id колонкой без FK CASCADE — чистим явно.
+    const tablesWithUserId = [
+      'achievements', 'games', 'friends', 'training_data', 'rating_history',
+      'season_ratings', 'daily_results', 'puzzle_results',
+      'daily_missions', 'daily_logins', 'replays', 'push_tokens',
+      'puzzle_rush_scores', 'arena_participants', 'chat_messages', 'analytics_events',
+      'season_rewards',
+    ]
+
+    const tx = db.transaction(() => {
+      for (const t of tablesWithUserId) {
+        try { db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(id) } catch {}
+      }
+      // Обратные ссылки — таблицы, где юзер может быть упомянут не как user_id
+      try { db.prepare('DELETE FROM friends WHERE friend_id=?').run(id) } catch {}
+      try { db.prepare('DELETE FROM referrals WHERE referrer_id=? OR referred_id=?').run(id, id) } catch {}
+      try { db.prepare('DELETE FROM challenges WHERE from_id=? OR to_id=?').run(id, id) } catch {}
+      try { db.prepare('DELETE FROM brick_transactions WHERE user_id=?').run(id) } catch {}
+      try { db.prepare('DELETE FROM user_skins WHERE user_id=?').run(id) } catch {}
+      try { db.prepare('UPDATE arena_matches SET winner_id=NULL WHERE winner_id=?').run(id) } catch {}
+      try { db.prepare('UPDATE error_reports SET user_id=NULL WHERE user_id=?').run(id) } catch {}
+
+      // users DELETE в конце — триггерит ON DELETE CASCADE для victory_buildings,
+      // club_members, user_bp_progress, clubs (owner_id).
+      db.prepare('DELETE FROM users WHERE id=?').run(id)
+    })
+    tx()
     res.json({ ok: true })
   })
 
