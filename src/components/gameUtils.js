@@ -1,5 +1,5 @@
 /**
- * Утилиты Game.jsx — звуки, haptic, title blink, share-картинка
+ * Утилиты Game.jsx — звуки, haptic, title blink, share-картинка, notifications
  * Issue #5: generateShareImage — story-формат 1080×1920
  */
 
@@ -341,7 +341,9 @@ export function showNotification(title, body, onClick) {
   if (!document.hidden) return
   if (!('Notification' in window) || Notification.permission !== 'granted') return
   try {
-    const n = new Notification(title, { body, icon: '/favicon.png', tag: 'snatch-' + Date.now(), requireInteraction: false })
+    // Tag: префикс бренда + timestamp. Без timestamp'а все нотификации сливались
+    // бы в одну (tag = id). После ребрендинга префикс: snatch- → highrise-.
+    const n = new Notification(title, { body, icon: '/favicon.png', tag: 'highrise-' + Date.now(), requireInteraction: false })
     n.onclick = () => { window.focus(); n.close(); if (onClick) onClick() }
     setTimeout(() => n.close(), 8000)
   } catch {}
