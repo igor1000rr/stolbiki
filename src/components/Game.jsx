@@ -623,7 +623,7 @@ export default function Game() {
           <div style={{ maxWidth: 420, width: '100%', background: 'var(--surface)', borderRadius: 16, padding: isNative ? '20px 16px' : '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', margin: 'auto' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: isNative ? 10 : 16 }}>
-              <img src="/logo-text.webp" alt="Snatch Highrise" style={{ width: 180, height: 'auto', marginBottom: 8 }} />
+              <img src="/logo-text.webp" alt="Highrise Heist" style={{ width: 180, height: 'auto', marginBottom: 8 }} />
               <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{lang === 'en' ? 'How to play' : 'Как играть'}</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
