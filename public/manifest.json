@@ -3,43 +3,58 @@
   "short_name": "Highrise Heist",
   "description": "Strategy board game with AlphaZero AI. AI game review, Puzzle Rush, Arena tournaments, daily missions. Free.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "background_color": "#0c0c12",
   "theme_color": "#0c0c12",
   "orientation": "any",
-  "categories": [
-    "games",
-    "entertainment"
-  ],
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["games", "entertainment"],
   "icons": [
+    { "src": "/favicon.png", "type": "image/png", "sizes": "64x64" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
+    { "src": "/icon-512.webp", "type": "image/webp", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon-512.webp", "type": "image/webp", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "/favicon.png",
-      "type": "image/png",
-      "sizes": "64x64"
+      "name": "Play vs AI",
+      "short_name": "AI",
+      "description": "Start a new game against AlphaZero AI",
+      "url": "/game?mode=ai",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any"
+      "name": "Online match",
+      "short_name": "Online",
+      "description": "Find a random opponent online",
+      "url": "/online?quickmatch=1",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
+      "name": "Puzzles",
+      "short_name": "Puzzles",
+      "description": "Daily puzzles and Puzzle Rush",
+      "url": "/puzzles",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "src": "/icon-512.webp",
-      "type": "image/webp",
-      "sizes": "512x512",
-      "purpose": "any"
-    },
+      "name": "Profile",
+      "short_name": "Profile",
+      "description": "Your stats and achievements",
+      "url": "/profile",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
     {
-      "src": "/icon-512.webp",
-      "type": "image/webp",
-      "sizes": "512x512",
-      "purpose": "maskable"
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.highriseheist.app",
+      "id": "com.highriseheist.app"
     }
   ]
 }
