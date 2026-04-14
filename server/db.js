@@ -695,10 +695,81 @@ Response had amount but not rewarded — test was failing in CI. Both fields now
 
 **🗄 DB migration 8+9**
 Columns bricks, active_skin_blocks, active_skin_stands and rush_best are now added via proper versioned migration instead of try/catch in route files. Added index on (user_id, reason, created_at) for reward rate limit.`,
-      'release', 1, 1, '2026-04-14 12:00:00'
+      'release', 0, 1, '2026-04-14 12:00:00'
     )
-  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v530-bugfixes'").run()
   console.log('Блог: добавлен пост v5.3.0')
+}
+
+// ─── Блог-пост v5.6.1 (аудит-багфиксы) ───
+const blog561 = db.prepare("SELECT id FROM blog_posts WHERE slug = 'v561-audit-fixes'").get()
+if (!blog561) {
+  db.prepare(`INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned, published, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      'v561-audit-fixes',
+      'v5.6.1: Багфиксы по архитектурному аудиту',
+      'v5.6.1: Audit bug fixes',
+      `Провели полный аудит кодовой базы — фронт, бэк, WS, PWA, 3D. Нашли 7 багов разного калибра, все закрыты.
+
+**🔔 Push-уведомления вели на старый домен**
+После ребрендинга в \`server/ws.js\` в \`pushIfOffline\` остался hardcoded \`https://snatch-highrise.com/online?room=…\` и title \`'Snatch Highrise'\`. Клик по уведомлению открывал старый домен. Теперь \`highriseheist.com\` + title \`Highrise Heist\`.
+
+**🛡 /api/auth/refresh принимал JWT без поля \`exp\`**
+Если прислать самодельный токен без \`exp\`, условие \`now - payload.exp > 30d\` давало \`NaN > …\` = false, и токен шёл дальше в процесс. Добавили явную проверку \`typeof payload.exp === 'number'\`.
+
+**📊 sendPushTo молча глушил все не-404/410 ошибки**
+Ошибки VAPID, 429, сетевые — писались только при 404/410 (истёкшая подписка). Остальное терялось. Теперь логируем в \`error_reports\` с кодом и хостом endpoint — на проде видно, что пуши не доходят.
+
+**🏗 Victory City 3D: TDZ при раннем клике**
+\`const introStart = performance.now()\` объявлялся внутри \`animate()\` — pointerup-handler читал его через замыкание, но при клике ДО первого RAF получал \`ReferenceError\`. Подняли объявление до навешивания listeners.
+
+**🏠 Matchmaking: зависшие комнаты**
+Комнаты из \`findMatch\` не имели \`room.created\`, а GC каждые 2 минуты сравнивал \`now - (room.created || 0) > 30min\` — \`0 - 0 > 30min\` = false, комнаты копились при разрыве обоих WS. Теперь \`room.created = Date.now()\`.
+
+**🧹 middleware.lastSeenCache — утечка памяти при росте userId**
+Чистилась только rateLimits-мапа по LRU, а lastSeenCache мог расти без верха. Добавили LRU-лимит на 20k записей.
+
+**⚙️ Service Worker: упрощён activate**
+Условие \`k !== CACHE_NAME || k.startsWith(OLD_CACHE_PREFIX)\` было всегда true и путало. Упростили до \`k !== CACHE_NAME\` — поведение то же, читаемость выше.
+
+**🗄 bricks.js: дубль ALTER TABLE**
+Три \`try { ALTER TABLE users ADD COLUMN … } catch {}\` на старте модуля дублировали миграцию 8 из \`db.js\`. Убрано — теперь только через versioned migration.
+
+---
+
+Тесты \`vitest\` (\`tests/routes.test.js\`, \`anticheat\`, \`game-engine\` и ещё 7 файлов) остаются зелёными. Все 8 коммитов — атомарные, с описательными сообщениями.`,
+      `Full codebase audit — frontend, backend, WS, PWA, 3D. Found 7 bugs of various severity, all fixed.
+
+**🔔 Push notifications pointed to old domain**
+After the rebrand, \`server/ws.js\` \`pushIfOffline\` still had hardcoded \`https://snatch-highrise.com/online?room=…\` and title \`'Snatch Highrise'\`. Clicking a notification opened the old domain. Now \`highriseheist.com\` + title \`Highrise Heist\`.
+
+**🛡 /api/auth/refresh accepted JWTs without \`exp\`**
+A handcrafted token without \`exp\` made \`now - payload.exp > 30d\` evaluate \`NaN > …\` = false, letting it through. Added explicit \`typeof payload.exp === 'number'\` check.
+
+**📊 sendPushTo silenced all non-404/410 errors**
+VAPID errors, 429, network issues — only 404/410 (expired subscription) were tracked. Everything else vanished. Now logged to \`error_reports\` with status code and endpoint host — production visibility restored.
+
+**🏗 Victory City 3D: TDZ on early click**
+\`const introStart = performance.now()\` was declared inside \`animate()\`. pointerup-handler read it via closure, but a click BEFORE the first RAF threw \`ReferenceError\`. Moved declaration before attaching listeners.
+
+**🏠 Matchmaking: stale rooms**
+Rooms created via \`findMatch\` had no \`room.created\`, and the GC loop ran \`now - (room.created || 0) > 30min\` — with undefined this was false, rooms accumulated on double-WS disconnect. Now \`room.created = Date.now()\`.
+
+**🧹 middleware.lastSeenCache — memory leak on userId growth**
+Only rateLimits had LRU cleanup. lastSeenCache could grow unbounded. Added the same LRU (cap 20k).
+
+**⚙️ Service Worker: simplified activate**
+The condition \`k !== CACHE_NAME || k.startsWith(OLD_CACHE_PREFIX)\` was always true and confusing. Simplified to \`k !== CACHE_NAME\` — same behavior, cleaner.
+
+**🗄 bricks.js: duplicate ALTER TABLE**
+Three \`try { ALTER TABLE users ADD COLUMN … } catch {}\` on module load duplicated migration 8 from \`db.js\`. Removed — only versioned migration now.
+
+---
+
+\`vitest\` (\`tests/routes.test.js\`, \`anticheat\`, \`game-engine\` + 7 more) remains green. All 8 commits atomic, with descriptive messages.`,
+      'release', 1, 1, '2026-04-14 18:00:00'
+    )
+  db.prepare("UPDATE blog_posts SET pinned=0 WHERE slug != 'v561-audit-fixes'").run()
+  console.log('Блог: добавлен пост v5.6.1')
 }
 
 // ═══ Ачивки ═══
