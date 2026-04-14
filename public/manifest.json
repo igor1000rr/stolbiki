@@ -1,6 +1,6 @@
 {
-  "name": "Snatch Highrise — Strategy Board Game",
-  "short_name": "Snatch Highrise",
+  "name": "Highrise Heist — Strategy Board Game",
+  "short_name": "Highrise Heist",
   "description": "Strategy board game with AlphaZero AI. AI game review, Puzzle Rush, Arena tournaments, daily missions. Free.",
   "start_url": "/",
   "display": "standalone",
