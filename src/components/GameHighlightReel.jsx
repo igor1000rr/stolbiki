@@ -48,7 +48,7 @@ function renderState(ctx, gs, meta, skinId) {
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 28px system-ui, sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('SNATCH HIGHRISE', W / 2, 48)
+  ctx.fillText('HIGHRISE HEIST', W / 2, 48)
 
   // Метка момента
   if (meta?.label) {
@@ -162,10 +162,10 @@ function renderState(ctx, gs, meta, skinId) {
   ctx.fillRect(0, H - 140, W, 140)
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
   ctx.font = '16px system-ui, sans-serif'
-  ctx.fillText('snatch-highrise.com', W / 2, H - 60)
+  ctx.fillText('highriseheist.com', W / 2, H - 60)
   ctx.fillStyle = '#3bb8a8'
   ctx.font = 'bold 14px system-ui, sans-serif'
-  ctx.fillText('🎮 Play free at snatch-highrise.com', W / 2, H - 30)
+  ctx.fillText('🎮 Play free at highriseheist.com', W / 2, H - 30)
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -335,7 +335,7 @@ export default function GameHighlightReel({ moveHistory, result, humanPlayer, sk
     if (!videoUrl) return
     const a = document.createElement('a')
     a.href = videoUrl
-    a.download = `snatch-highrise-${Date.now()}.webm`
+    a.download = `highrise-heist-${Date.now()}.webm`
     a.click()
   }
 
