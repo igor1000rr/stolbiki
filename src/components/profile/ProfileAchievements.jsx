@@ -1,10 +1,12 @@
 /**
  * Вкладка Ачивки — прогресс, unlocked/locked с сортировкой по rarity.
- * Issue #6: rarity UI (glow, breakdown, сортировка).
+ * Issue #6: rarity UI (glow, breakdown, сортировка) + живой % держателей
+ * через useAchievementRarity hook (enrich ach.holders из /api/achievements/rarity).
  */
 
 import { ALL_ACHIEVEMENTS, RARITY_COLORS, RARITY_LABELS_RU, RARITY_LABELS_EN } from './_constants'
 import { AchievementCard } from './_helpers'
+import { useAchievementRarity } from '../../engine/useAchievementRarity'
 
 // Порядок rarity для сортировки: легендарные первыми
 const RARITY_ORDER = { legendary: 0, epic: 1, rare: 2, common: 3 }
@@ -19,8 +21,26 @@ function sortByRarity(arr) {
 }
 
 export default function ProfileAchievements({ profile, en }) {
-  const unlockedAch = sortByRarity(ALL_ACHIEVEMENTS.filter(a => profile.achievements.includes(a.id)))
-  const lockedAch = sortByRarity(ALL_ACHIEVEMENTS.filter(a => !profile.achievements.includes(a.id)))
+  const { getRarity } = useAchievementRarity()
+
+  // Обогащаем каждую ачивку живым % держателей с сервера.
+  // Если сервер ещё не ответил / ачивку никто не получил — fallback на статическое
+  // значение из _constants.js (ach.holders, если там есть), иначе поле undefined
+  // и AchievementCard его просто не рендерит.
+  const enrich = (a) => {
+    const live = getRarity(a.id)
+    if (live && typeof live.percentage === 'number') {
+      return { ...a, holders: live.percentage }
+    }
+    return a
+  }
+
+  const unlockedAch = sortByRarity(
+    ALL_ACHIEVEMENTS.filter(a => profile.achievements.includes(a.id)).map(enrich)
+  )
+  const lockedAch = sortByRarity(
+    ALL_ACHIEVEMENTS.filter(a => !profile.achievements.includes(a.id)).map(enrich)
+  )
 
   // Breakdown: сколько из каждого rarity открыто / всего
   const breakdown = Object.keys(RARITY_COLORS).map(rarity => {
