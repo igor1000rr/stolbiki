@@ -52,10 +52,24 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
+// ─── Загрузка QR через api.qrserver.com с fallback ───
+function loadQRCode(url, size = 240) {
+  return new Promise(resolve => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=000000&margin=8&format=png`
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = qrUrl
+    // Safety timeout: если не загрузилось за 3 сек — резолвим null
+    setTimeout(() => resolve(null), 3000)
+  })
+}
+
 // ─── Генерация share-картинки результата — Story 1080×1920 ───
-// Issue #5: Виральные share-картинки
-export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
-  const { playerName, rating, ratingDelta, difficulty, moves, elapsed, mode, lang = 'ru' } = extra
+// Issue #5: Виральные share-картинки (async для загрузки QR)
+export async function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
+  const { playerName, rating, ratingDelta, difficulty, moves, elapsed, mode, lang = 'ru', refLink } = extra
   const en = lang === 'en'
   const W = 1080, H = 1920
   const c = document.createElement('canvas')
@@ -66,12 +80,17 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
   const accentRgb   = isDraw ? '155,89,182' : won ? '61,214,140' : '255,96,102'
   const P1 = '#4a9eff', P2 = '#ff6066'
 
-  // ─── Фон ───
+  // ─── Фон с accent-тинтом ───
   const bg = ctx.createLinearGradient(0, 0, 0, H)
-  bg.addColorStop(0, '#0a0a14')
-  bg.addColorStop(0.45, '#11111e')
-  bg.addColorStop(1, '#0d0d1a')
+  bg.addColorStop(0, `rgba(${accentRgb},0.04)`)
+  bg.addColorStop(0.3, '#11111e')
+  bg.addColorStop(0.7, '#0d0d1a')
+  bg.addColorStop(1, `rgba(${accentRgb},0.05)`)
   ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+
+  // Тёмная база поверх (чтобы тинт не доминировал)
+  ctx.fillStyle = 'rgba(10,10,20,0.7)'
   ctx.fillRect(0, 0, W, H)
 
   // Тонкая сетка (decorative)
@@ -133,6 +152,15 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
   const standW = (W - boardPad * 2) / 10 // ~96px
   const standH = 280
   const chipH = standH / 11
+
+  // Рамка доски с accent-glow
+  ctx.strokeStyle = `rgba(${accentRgb}, 0.35)`
+  ctx.lineWidth = 2
+  ctx.shadowColor = accentColor
+  ctx.shadowBlur = 20
+  roundRect(ctx, boardPad - 12, boardY - 12, W - boardPad * 2 + 24, standH + 24, 12)
+  ctx.stroke()
+  ctx.shadowBlur = 0
 
   for (let si = 0; si < 10; si++) {
     const x = boardPad + si * standW
@@ -242,19 +270,60 @@ export function generateShareImage(gs, won, isDraw, s0, s1, extra = {}) {
     ctx.fillText(`${ratingDelta > 0 ? '+' : ''}${ratingDelta} ELO`, W / 2, playerY + 60)
   }
 
-  // ─── Нижний блок: брендинг ───
-  const brandY = H - 160
+  // ─── Нижний блок: брендинг + QR ───
+  const brandY = H - 260
   ctx.fillStyle = `rgba(${accentRgb}, 0.2)`
   ctx.fillRect(boardPad, brandY, W - boardPad * 2, 1)
 
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'
-  ctx.font = 'bold 36px sans-serif'
-  ctx.fillText('highriseheist.com', W / 2, brandY + 65)
+  // URL для QR — реферальная ссылка если есть, иначе просто сайт
+  const shareUrl = refLink || 'https://highriseheist.com'
+  const qrImg = await loadQRCode(shareUrl, 240)
 
-  ctx.fillStyle = 'rgba(255,255,255,0.2)'
-  ctx.font = '26px sans-serif'
-  ctx.fillText(en ? 'Strategy board game with AlphaZero AI' : 'Стратегическая настолка с AI AlphaZero', W / 2, brandY + 110)
+  if (qrImg) {
+    // QR слева, бренд справа
+    const qrSize = 180
+    const qrX = boardPad + 20
+    const qrY = brandY + 30
 
+    // Белая подложка под QR (для контраста)
+    ctx.fillStyle = '#ffffff'
+    roundRect(ctx, qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12)
+    ctx.fill()
+
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+    // Подпись под QR
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'
+    ctx.font = 'bold 20px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(refLink
+      ? (en ? 'Play with me' : 'Сыграй со мной')
+      : (en ? 'Scan to play' : 'Сканируй — играй'),
+      qrX + qrSize / 2, qrY + qrSize + 32)
+
+    // Бренд справа
+    ctx.textAlign = 'left'
+    const brandTextX = qrX + qrSize + 50
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 52px sans-serif'
+    ctx.fillText('HIGHRISE', brandTextX, qrY + 60)
+    ctx.fillStyle = accentColor
+    ctx.fillText('HEIST', brandTextX, qrY + 120)
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+    ctx.font = '26px sans-serif'
+    ctx.fillText('highriseheist.com', brandTextX, qrY + 160)
+  } else {
+    // Fallback без QR
+    ctx.textAlign = 'center'
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+    ctx.font = 'bold 36px sans-serif'
+    ctx.fillText('highriseheist.com', W / 2, brandY + 95)
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'
+    ctx.font = '26px sans-serif'
+    ctx.fillText(en ? 'Strategy board game with AlphaZero AI' : 'Стратегическая настолка с AI AlphaZero', W / 2, brandY + 140)
+  }
+
+  ctx.textAlign = 'center' // reset для потенциальных последующих вызовов
   return c
 }
 
@@ -272,7 +341,7 @@ export function showNotification(title, body, onClick) {
   if (!document.hidden) return
   if (!('Notification' in window) || Notification.permission !== 'granted') return
   try {
-    const n = new Notification(title, { body, icon: '/favicon.png', tag: 'highrise-' + Date.now(), requireInteraction: false })
+    const n = new Notification(title, { body, icon: '/favicon.png', tag: 'snatch-' + Date.now(), requireInteraction: false })
     n.onclick = () => { window.focus(); n.close(); if (onClick) onClick() }
     setTimeout(() => n.close(), 8000)
   } catch {}
