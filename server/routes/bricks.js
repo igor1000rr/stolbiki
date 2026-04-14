@@ -1,15 +1,14 @@
 /**
  * Монетизация — кирпичи + каталог скинов + покупка + экипировка
  * Issue #3, #8
+ *
+ * Колонки users.bricks, active_skin_blocks, active_skin_stands создаются в миграции 8 (db.js).
+ * Таблицы brick_transactions / skins / user_skins создаём здесь (CREATE TABLE IF NOT EXISTS).
  */
 
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
-
-try { db.prepare('ALTER TABLE users ADD COLUMN bricks INTEGER NOT NULL DEFAULT 50').run() } catch {}
-try { db.prepare("ALTER TABLE users ADD COLUMN active_skin_blocks TEXT NOT NULL DEFAULT 'blocks_classic'").run() } catch {}
-try { db.prepare("ALTER TABLE users ADD COLUMN active_skin_stands TEXT NOT NULL DEFAULT 'stands_classic'").run() } catch {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS brick_transactions (
