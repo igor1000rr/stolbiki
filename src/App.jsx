@@ -153,7 +153,7 @@ export default function App() {
     const target = tab === 'landing' ? base : base + tab
     if (location.pathname !== target) history.pushState(null, '', target)
     const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика' }
-    document.title = titles[tab] ? `${titles[tab]} — Snatch Highrise` : 'Snatch Highrise — Strategy Board Game'
+    document.title = titles[tab] ? `${titles[tab]} — Highrise Heist` : 'Highrise Heist — Strategy Board Game'
   }, [tab, lang])
 
   useEffect(() => {
@@ -343,7 +343,7 @@ export default function App() {
               <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--gold)"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
             </div>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
-              {en ? 'Enjoying Snatch Highrise?' : 'Нравится Snatch Highrise?'}
+              {en ? 'Enjoying Highrise Heist?' : 'Нравится Highrise Heist?'}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.5 }}>
               {en ? 'Rate us on Google Play! It helps a lot.' : 'Оцените нас в Google Play! Это очень помогает.'}
@@ -380,7 +380,7 @@ export default function App() {
       {!isNative && <header className="site-header" role="banner">
         <div className="site-header-inner">
           <div className="site-logo" onClick={() => go('landing')}>
-            <img src="/logo-text.webp" alt="Snatch Highrise" style={{ height: 28, width: 'auto' }} />
+            <img src="/logo-text.webp" alt="Highrise Heist" style={{ height: 28, width: 'auto' }} />
             <span className="beta-badge">beta</span>
           </div>
 
@@ -706,7 +706,7 @@ export default function App() {
       {!isNative && <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
           <div className="site-footer-brand">
-            <span style={{ opacity: 0.6 }}>Snatch Highrise</span>
+            <span style={{ opacity: 0.6 }}>Highrise Heist</span>
             <span className="beta-badge">beta</span>
             <span className="site-footer-divider" />
             <span style={{ opacity: 0.4, fontSize: 10 }}>
