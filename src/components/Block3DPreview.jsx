@@ -7,6 +7,13 @@
  *
  * При ошибке WebGL просто ничего не рендерит (container пустой, grid-сетка
  * с 2D-превью скинов внизу всё ещё работает).
+ *
+ * Performance:
+ *  - rafId хранится в stateRef.rafRef и обновляется каждый кадр — cleanup
+ *    реально завершает цикл. Раньше был баг: rafId сохранялся раз со значением 0,
+ *    cancelты в cleanup ничего не делали, animate продолжал крутиться.
+ *  - IntersectionObserver приостанавливает анимацию когда превью вне viewport —
+ *    экономит батарею на мобильных при скролле длинных списков скинов.
  */
 import { useEffect, useRef } from 'react'
 
@@ -61,6 +68,11 @@ function normalizeSkin(id) {
   return 'blocks_' + id
 }
 
+function prefersReducedMotion() {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export default function Block3DPreview({ skinId = 'blocks_classic', height = 160 }) {
   const containerRef = useRef(null)
   const stateRef = useRef(null)
@@ -70,8 +82,12 @@ export default function Block3DPreview({ skinId = 'blocks_classic', height = 160
     const skin = normalizeSkin(skinId)
     const pal = SKIN_HEX[skin] || SKIN_HEX.blocks_classic
     const matProps = SKIN_MAT[skin] || SKIN_MAT.blocks_classic
+    const reducedMotion = prefersReducedMotion()
 
     let disposed = false
+    // Мутабельные ref'ы — обновляются из animate(), читаются в cleanup
+    const rafRef = { current: 0 }
+    const animatingRef = { current: true }  // false когда вне viewport
 
     ;(async () => {
       try {
@@ -84,7 +100,6 @@ export default function Block3DPreview({ skinId = 'blocks_classic', height = 160
         const h = height
 
         const scene = new THREE.Scene()
-        // Тёмный фон в тон surface
         scene.background = null // transparent
 
         const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 50)
@@ -129,6 +144,7 @@ export default function Block3DPreview({ skinId = 'blocks_classic', height = 160
         scene.add(tower)
 
         const blockGeo = new THREE.BoxGeometry(1.4, 0.65, 1.4)
+        const meshes = []
         for (let i = 0; i < 5; i++) {
           const isP1 = i < 3
           const color = isP1 ? pal[0] : pal[1]
@@ -147,23 +163,41 @@ export default function Block3DPreview({ skinId = 'blocks_classic', height = 160
           mesh.castShadow = true
           mesh.receiveShadow = true
           tower.add(mesh)
+          meshes.push(mesh)
         }
 
         // Анимация
-        let rafId = 0
         const clock = new THREE.Clock()
         const animate = () => {
-          rafId = requestAnimationFrame(animate)
+          if (!animatingRef.current) { rafRef.current = 0; return }
+          rafRef.current = requestAnimationFrame(animate)
           const t = clock.getElapsedTime()
-          tower.rotation.y = t * 0.6
-          // Пульсация emissive для neon/glow
-          if (matProps.emissive > 0.2) {
-            tower.children.forEach((m, i) => {
-              m.material.emissiveIntensity = matProps.emissive + Math.sin(t * 2 + i * 0.5) * 0.15
-            })
+          if (!reducedMotion) {
+            tower.rotation.y = t * 0.6
+            // Пульсация emissive для neon/glow — идём по кэшу meshes,
+            // без traverse по сцене.
+            if (matProps.emissive > 0.2) {
+              for (let i = 0; i < meshes.length; i++) {
+                meshes[i].material.emissiveIntensity = matProps.emissive + Math.sin(t * 2 + i * 0.5) * 0.15
+              }
+            }
           }
           renderer.render(scene, camera)
         }
+
+        // IntersectionObserver — пауза вне viewport
+        const io = new IntersectionObserver(([entry]) => {
+          const visible = entry.isIntersecting
+          if (visible && !animatingRef.current) {
+            animatingRef.current = true
+            animate()
+          } else if (!visible && animatingRef.current) {
+            animatingRef.current = false
+            // Следующий самовызов animate увидит false и остановится.
+          }
+        }, { threshold: 0.05 })
+        io.observe(renderer.domElement)
+
         animate()
 
         // Resize
@@ -176,7 +210,7 @@ export default function Block3DPreview({ skinId = 'blocks_classic', height = 160
         }
         window.addEventListener('resize', onResize)
 
-        stateRef.current = { scene, renderer, rafId, onResize, blockGeo, floorGeo }
+        stateRef.current = { scene, renderer, onResize, blockGeo, floorGeo, io, rafRef, animatingRef }
       } catch (e) {
         console.error('[Block3DPreview] WebGL init error:', e)
       }
@@ -184,9 +218,11 @@ export default function Block3DPreview({ skinId = 'blocks_classic', height = 160
 
     return () => {
       disposed = true
+      animatingRef.current = false
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
       if (stateRef.current) {
-        const { scene, renderer, rafId, onResize, blockGeo, floorGeo } = stateRef.current
-        cancelAnimationFrame(rafId)
+        const { scene, renderer, onResize, blockGeo, floorGeo, io } = stateRef.current
+        io?.disconnect()
         window.removeEventListener('resize', onResize)
         scene?.traverse(o => {
           if (o.material) {

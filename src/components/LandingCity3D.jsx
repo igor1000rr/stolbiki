@@ -5,6 +5,7 @@
  * Не использует real-user данные — работает до логина, виральный hook для новых юзеров.
  * Lazy-грузит three.js (общий chunk с VictoryCity/Block3DPreview).
  * WebGL fallback: если WebGL нет — компонент не рендерится.
+ * prefers-reduced-motion: выключает авторотацию и пульсацию шпилей.
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -21,6 +22,11 @@ function hasWebGL() {
     const c = document.createElement('canvas')
     return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')))
   } catch { return false }
+}
+
+function prefersReducedMotion() {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 // Детерминированный (seed-based) генератор демо-города чтобы не моргал между рендерами
@@ -55,6 +61,7 @@ export default function LandingCity3D() {
     if (!canRender || !containerRef.current) return
     let disposed = false
     let cleanup = null
+    const reducedMotion = prefersReducedMotion()
 
     ;(async () => {
       try {
@@ -146,6 +153,8 @@ export default function LandingCity3D() {
 
         const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
         const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
+        // Кэшируем все spire-meshи чтобы не делать traverse на каждом кадре.
+        const spireMeshes = []
 
         DEMO_BUILDINGS.forEach((b, idx) => {
           const col = idx % COLS
@@ -182,6 +191,7 @@ export default function LandingCity3D() {
             mesh.position.y = FLOOR_H / 2 + (b.height + k) * FLOOR_H
             mesh.castShadow = true
             bGroup.add(mesh)
+            spireMeshes.push(mesh)
           }
 
           cityGroup.add(bGroup)
@@ -194,7 +204,7 @@ export default function LandingCity3D() {
         controls.maxDistance = 80
         controls.maxPolarAngle = Math.PI / 2.1
         controls.target.set(centerX, 3, centerZ)
-        controls.autoRotate = true
+        controls.autoRotate = !reducedMotion
         controls.autoRotateSpeed = 0.6
         controls.enablePan = false
         controls.rotateSpeed = 0.5
@@ -215,16 +225,20 @@ export default function LandingCity3D() {
         }
         window.addEventListener('resize', onResize)
 
-        let rafId = 0
+        // Мутабельный ref для rafId — cleanup читает актуальное значение.
+        const rafRef = { current: 0 }
+        const visibleRef = { current: true }
         const clock = new THREE.Clock()
         const animate = () => {
-          rafId = requestAnimationFrame(animate)
-          const t = clock.getElapsedTime()
-          cityGroup.traverse(o => {
-            if (o.isMesh && o.geometry === spireGeo) {
-              o.material.emissiveIntensity = 0.35 + Math.sin(t * 2 + o.position.y) * 0.12
+          if (!visibleRef.current) { rafRef.current = 0; return }
+          rafRef.current = requestAnimationFrame(animate)
+          if (!reducedMotion) {
+            const t = clock.getElapsedTime()
+            // Пульсация шпилей — по кэшу, без traverse.
+            for (let i = 0; i < spireMeshes.length; i++) {
+              spireMeshes[i].material.emissiveIntensity = 0.35 + Math.sin(t * 2 + spireMeshes[i].position.y) * 0.12
             }
-          })
+          }
           controls.update()
           renderer.render(scene, camera)
         }
@@ -233,14 +247,19 @@ export default function LandingCity3D() {
         // IntersectionObserver: пауза анимации когда элемент вне viewport
         const io = new IntersectionObserver(([entry]) => {
           const visible = entry.isIntersecting
-          controls.autoRotate = visible
-          if (visible && !rafId) animate()
-          if (!visible && rafId) { cancelAnimationFrame(rafId); rafId = 0 }
+          controls.autoRotate = visible && !reducedMotion
+          if (visible && !visibleRef.current) {
+            visibleRef.current = true
+            animate()
+          } else if (!visible) {
+            visibleRef.current = false
+          }
         }, { threshold: 0.1 })
         io.observe(renderer.domElement)
 
         cleanup = () => {
-          cancelAnimationFrame(rafId)
+          visibleRef.current = false
+          if (rafRef.current) cancelAnimationFrame(rafRef.current)
           io.disconnect()
           window.removeEventListener('resize', onResize)
           controls.dispose()
