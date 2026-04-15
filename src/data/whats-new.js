@@ -5,15 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    'Арена: исправлены 4 race condition — двойное начисление рейтинга, XP, генерация раундов',
-    'Dual-report лечится атомарным UPDATE — второй игрок получает 409 без изменений',
-    'Первый раунд Арены: Fisher-Yates shuffle вместо arr.sort(random) для честного распределения',
-    'XP top-3 больше не может начислиться дважды в финальном раунде',
+    'Город побед перерождён: 1 победа = 1-5 кирпичей, 11 кирпичей = высотка',
+    'Поделиться городом в Telegram или блоге — превью с картинкой',
+    'Сравнить свой город с другом бок-о-бок, сразу видно лидера',
+    'Запись 8-сек облёта города в видео — сразу в TikTok или Stories',
+    'Холл оф фейм: топ-20 игроков по размеру города, кирпичам, коронам',
   ],
   en: [
-    'Arena: 4 race conditions fixed — double rating/XP credit, duplicate round generation',
-    'Dual-report healed by atomic UPDATE — second player gets 409 with no side effects',
-    'First round of Arena: Fisher-Yates shuffle instead of arr.sort(random) for fair pairings',
-    'Top-3 XP can no longer be credited twice in the final round',
+    'Victory City reborn: 1 win = 1-5 bricks, 11 bricks close a highrise',
+    'Share city to Telegram or blogs — with image preview card',
+    'Compare your city with a friend side-by-side, leader is shown',
+    '8-sec city flythrough video recording — straight to TikTok or Stories',
+    'Hall of Fame: top 20 players by city size, bricks and crowns',
   ],
 }
