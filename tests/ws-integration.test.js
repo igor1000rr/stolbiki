@@ -10,6 +10,7 @@
  *  - sanitizeChat / sanitizeEmoji
  *  - server-side move validation через движок
  *  - spectator broadcast (баг-регрессия: s.ws.send → s.send)
+ *  - findMatch требует авторизации (SECURITY-ФИКС)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
@@ -17,7 +18,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 process.env.VITEST = 'true'
 process.env.JWT_SECRET = 'ws_test_secret_' + Math.random().toString(36).slice(2)
 
-let setupWebSocket, WebSocketClient, server, port, dbRef, express, createServer
+let setupWebSocket, WebSocketClient, server, port, dbRef, express, createServer, jwt
 
 try {
   express = (await import('express')).default
@@ -27,11 +28,12 @@ try {
   WebSocketClient = (await import('ws')).WebSocket
   const dbMod = await import('../server/db.js')
   dbRef = dbMod.db
+  jwt = (await import('jsonwebtoken')).default
 } catch {
   // better-sqlite3, ws, express — native/сервер-deps не доступны в sandbox
 }
 
-const run = (setupWebSocket && WebSocketClient && dbRef && express && createServer) ? describe : describe.skip
+const run = (setupWebSocket && WebSocketClient && dbRef && express && createServer && jwt) ? describe : describe.skip
 
 /** Wrapper: создаёт ws-клиент и собирает входящие сообщения в очередь с ожиданием по типу */
 function makeClient(url) {
@@ -400,10 +402,27 @@ run('WebSocket integration', () => {
   })
 
   describe('Matchmaking', () => {
-    it('один игрок → queued', async () => {
+    // SECURITY-ФИКС: findMatch теперь требует авторизации. Создаём JWT
+    // для тестовых юзеров. Реальные юзеры в DB не нужны — ws.js делает
+    // SELECT rating WHERE id=? но gracefully обрабатывает отсутствие.
+    function makeToken(id, username) {
+      return jwt.sign({ id, username, isAdmin: false, tv: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })
+    }
+
+    it('[SECURITY] findMatch без токена → error', async () => {
       const client = makeClient(wsUrl)
       await client.opened
-      client.send({ type: 'findMatch', name: 'solo' })
+      client.send({ type: 'findMatch' })
+      const msg = await client.waitFor('error', 2000)
+      expect(msg.msg).toMatch(/авториз/i)
+      client.close()
+    })
+
+    it('один авторизованный игрок → queued', async () => {
+      const token = makeToken(99001, 'solo_test')
+      const client = makeClient(`${wsUrl}?token=${token}`)
+      await client.opened
+      client.send({ type: 'findMatch' })
       const msg = await client.waitFor('queued', 2000)
       expect(msg.position).toBeGreaterThanOrEqual(1)
       client.send({ type: 'cancelMatch' })
@@ -411,13 +430,15 @@ run('WebSocket integration', () => {
       client.close()
     })
 
-    it('два игрока → matchFound + start', async () => {
-      const p1 = makeClient(wsUrl)
-      const p2 = makeClient(wsUrl)
+    it('два авторизованных игрока → matchFound + start', async () => {
+      const token1 = makeToken(99002, 'm1_test')
+      const token2 = makeToken(99003, 'm2_test')
+      const p1 = makeClient(`${wsUrl}?token=${token1}`)
+      const p2 = makeClient(`${wsUrl}?token=${token2}`)
       await Promise.all([p1.opened, p2.opened])
-      p1.send({ type: 'findMatch', name: 'm1' })
+      p1.send({ type: 'findMatch' })
       await p1.waitFor('queued')
-      p2.send({ type: 'findMatch', name: 'm2' })
+      p2.send({ type: 'findMatch' })
       const [mf1, mf2] = await Promise.all([
         p1.waitFor('matchFound', 3000),
         p2.waitFor('matchFound', 3000),
