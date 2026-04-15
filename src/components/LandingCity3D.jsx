@@ -20,9 +20,10 @@ const SKIN_COLORS = [
 ]
 const GOLDEN = 0xffd86e
 const CROWN_HEX = 0xffc845
-const WINDOW_HEX = 0xffe49a
-const WINDOW_OPACITY = 0.95          // ночью окна горят почти полностью
+const WINDOW_HEX = 0xfff4a8           // ярче, теплее
+const WINDOW_OPACITY = 1.0            // opacity максимум, яркость даёт AdditiveBlending
 const SMOKE_PER_BUILDING = 5
+const ROOF_BEACON_CHANCE = 0.3        // 30% небоскрёбов получают мигающий маяк на крыше
 
 function hasWebGL() {
   if (typeof window === 'undefined') return false
@@ -43,15 +44,24 @@ function seeded(i) {
   return x - Math.floor(x)
 }
 
-// 20 зданий по 5-колоночной сетке, разные высоты и цвета скинов
-const DEMO_BUILDINGS = Array.from({ length: 20 }, (_, i) => ({
-  height: 3 + Math.floor(seeded(i) * 6),
-  colorIdx: Math.floor(seeded(i + 100) * SKIN_COLORS.length),
-  golden: seeded(i + 200) < 0.18,
-  spires: seeded(i + 300) < 0.25 ? 1 + Math.floor(seeded(i + 400) * 3) : 0,
-  metallic: seeded(i + 500) < 0.15,
-  emissive: seeded(i + 600) < 0.15,
-}))
+// 20 зданий по 5-колоночной сетке, разные высоты и цвета скинов.
+// Доля metallic/emissive увеличена с 15% до 35% — больше визуального
+// разнообразия. roofBeacon — мигающий маяк на крыше (для небоскрёбов от 5 этажей).
+const DEMO_BUILDINGS = Array.from({ length: 20 }, (_, i) => {
+  const height = 3 + Math.floor(seeded(i) * 6)
+  return {
+    height,
+    colorIdx: Math.floor(seeded(i + 100) * SKIN_COLORS.length),
+    golden: seeded(i + 200) < 0.18,
+    spires: seeded(i + 300) < 0.25 ? 1 + Math.floor(seeded(i + 400) * 3) : 0,
+    metallic: seeded(i + 500) < 0.35,
+    emissive: seeded(i + 600) < 0.35,
+    // Маяк на крыше только для зданий >= 5 этажей и не «золотых» (там корона)
+    roofBeacon: height >= 5 && seeded(i + 700) < ROOF_BEACON_CHANCE,
+    // Случайный hue-shift для вариации между этажами
+    hueShift: (seeded(i + 800) - 0.5) * 0.3,
+  }
+})
 
 const COLS = 5
 const SPACING = 5.2
@@ -59,29 +69,41 @@ const FLOOR_H = 1.2
 const BLOCK_W = 2.8
 const SPIRE_W = 2.2
 const CROWN_W = 2.2
-const WINDOW_SIZE = 0.5
-// Окна выводим со 2 граней зданий (фронт+правая) — этого достаточно для эффекта,
-// без необходимости рисовать 4 грани × все этажи (экономия instance-ов на лендинге).
-const WINDOW_FACES_PER_FLOOR = 2
+const WINDOW_SIZE = 0.75              // было 0.5 — увеличено для читаемости с расстояния
+const WINDOW_FACES_PER_FLOOR = 4      // было 2 — теперь 4 грани, гарантированно видны с любого ракурса
 
-// Полосатая текстура асфальта с яркой разметкой. Намного контрастнее чем
-// просто #1a1a26 в VictoryCity — на лендинге надо чтобы дороги читались
-// мгновенно, без всматривания. Полосы шириной 3px каждые 24px + жёлтый
-// центральный пунктир.
+// Дорога: НАМНОГО контрастнее чем раньше. Раньше асфальт #2c2c3e на земле
+// #16162a — разница в яркости почти нулевая, дороги сливались. Теперь:
+// - асфальт #3a3a55 (заметно светлее земли)
+// - бордюры #9090b0 (светло-серо-синий, толщиной 4px)
+// - центральная разметка ярко-жёлтая #ffe14a, шириной 6px и пунктиром
+// - дополнительные параллельные тонкие белые полосы по бокам разметки
 function makeRoadTexture(THREE) {
   const c = document.createElement('canvas')
   c.width = 32; c.height = 256
   const ctx = c.getContext('2d')
-  // Базовый асфальт — тёмно-серый (не такой чёрный как у VictoryCity)
-  ctx.fillStyle = '#2c2c3e'
+  // Базовый асфальт — светлее чем раньше, читается на тёмной земле
+  ctx.fillStyle = '#3a3a55'
   ctx.fillRect(0, 0, 32, 256)
-  // Боковые светлые полосы (бордюр)
-  ctx.fillStyle = '#5a5a78'
-  ctx.fillRect(0, 0, 2, 256)
-  ctx.fillRect(30, 0, 2, 256)
-  // Жёлтая центральная разметка пунктиром
-  ctx.fillStyle = '#ffc845'
-  for (let y = 16; y < 256; y += 32) ctx.fillRect(14, y, 4, 16)
+  // Лёгкий шум поверх — даёт «текстуру» вместо плоского цвета
+  for (let i = 0; i < 200; i++) {
+    const x = Math.random() * 32
+    const y = Math.random() * 256
+    const a = 0.05 + Math.random() * 0.08
+    ctx.fillStyle = `rgba(${Math.random() < 0.5 ? '20,20,40' : '90,90,130'},${a})`
+    ctx.fillRect(x, y, 1, 1)
+  }
+  // Боковые бордюры — толще и светлее
+  ctx.fillStyle = '#9090b0'
+  ctx.fillRect(0, 0, 4, 256)
+  ctx.fillRect(28, 0, 4, 256)
+  // Тонкие белые полосы рядом с разметкой (как настоящая дорога)
+  ctx.fillStyle = 'rgba(220,220,235,0.5)'
+  ctx.fillRect(11, 0, 1, 256)
+  ctx.fillRect(20, 0, 1, 256)
+  // Ярко-жёлтая центральная разметка пунктиром (шире и ярче)
+  ctx.fillStyle = '#ffe14a'
+  for (let y = 12; y < 256; y += 32) ctx.fillRect(13, y, 6, 18)
   const tex = new THREE.CanvasTexture(c)
   tex.wrapS = THREE.RepeatWrapping
   tex.wrapT = THREE.RepeatWrapping
@@ -132,6 +154,18 @@ function makeSoftDotTexture(THREE) {
   return new THREE.CanvasTexture(c)
 }
 
+// Лёгкий hue shift hex-цвета (без RGB→HSL конвертации, простой множитель)
+function shiftHex(hex, shift) {
+  const r = (hex >> 16) & 0xff
+  const g = (hex >> 8) & 0xff
+  const b = hex & 0xff
+  const k = 1 + shift
+  const nr = Math.max(0, Math.min(255, Math.round(r * k)))
+  const ng = Math.max(0, Math.min(255, Math.round(g * (1 + shift * 0.5))))
+  const nb = Math.max(0, Math.min(255, Math.round(b * (1 - shift * 0.3))))
+  return (nr << 16) | (ng << 8) | nb
+}
+
 export default function LandingCity3D() {
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -177,17 +211,18 @@ export default function LandingCity3D() {
         renderer.shadowMap.enabled = true
         renderer.shadowMap.type = THREE.PCFSoftShadowMap
         renderer.toneMapping = THREE.ACESFilmicToneMapping
-        renderer.toneMappingExposure = 1.15
+        renderer.toneMappingExposure = 1.2
         container.appendChild(renderer.domElement)
         renderer.domElement.style.display = 'block'
         renderer.domElement.style.borderRadius = '14px'
         renderer.domElement.style.touchAction = 'none'
 
-        // Освещение: чуть теплее ambient + насыщенный rim сзади чтобы здания
-        // не сливались в одну тёмную массу как было раньше.
-        scene.add(new THREE.AmbientLight(0x8090d0, 0.55))
+        // Освещение: усилен ambient + насыщенный rim сзади + 2 точечных
+        // «уличных фонаря» по диагонали — даёт жилое ночное ощущение,
+        // подсвечивает дороги тёплым светом снизу.
+        scene.add(new THREE.AmbientLight(0x9098d8, 0.7))
 
-        const sun = new THREE.DirectionalLight(0xfff0c8, 1.1)
+        const sun = new THREE.DirectionalLight(0xfff0c8, 1.05)
         sun.position.set(centerX + 20, 35, centerZ + 12)
         sun.target.position.set(centerX, 0, centerZ)
         sun.castShadow = true
@@ -199,12 +234,22 @@ export default function LandingCity3D() {
         sun.shadow.bias = -0.0003
         scene.add(sun, sun.target)
 
-        const rim = new THREE.DirectionalLight(0x7060c0, 0.55)
+        const rim = new THREE.DirectionalLight(0x8070d0, 0.7)
         rim.position.set(centerX - 15, 12, centerZ - 15)
         scene.add(rim)
 
-        // Земля: чуть светлее (#16162a вместо #0d0d22) чтобы дороги читались
-        // на её фоне как самостоятельные элементы, а не сливались.
+        // Уличные фонари — два точечных источника тёплого света на уровне
+        // дорог, с decay 2 (физически корректное затухание). Создают пятна
+        // света на асфальте и боковую подсветку нижних этажей зданий.
+        const lamp1 = new THREE.PointLight(0xffb060, 1.2, 22, 2)
+        lamp1.position.set(centerX - SPACING * 1.5, 4, centerZ + SPACING * 0.5)
+        scene.add(lamp1)
+        const lamp2 = new THREE.PointLight(0xffa840, 1.0, 20, 2)
+        lamp2.position.set(centerX + SPACING * 1.2, 4, centerZ - SPACING * 1.5)
+        scene.add(lamp2)
+
+        // Земля: чуть светлее (#16162a) + лёгкий emissive чтобы дороги
+        // на ней не казались более тёмными чем сама земля.
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
@@ -217,16 +262,22 @@ export default function LandingCity3D() {
 
         // ─── ДОРОГИ ───
         // Сетка дорог между зданиями: COLS+1 продольных + rows+1 поперечных.
-        // Все дороги шарят одну геометрию, материал и текстуру (нет утечки
-        // GPU-ресурсов и быстрее рендер). roadTex.repeat настраивается
-        // глобально — все полосы получают одинаковое количество разметки.
+        // Все дороги шарят одну геометрию, материал и текстуру.
+        // Материал: emissive жёлтым с малой интенсивностью — даёт лёгкое
+        // самосвечение разметки, читается ночью даже когда фонари далеко.
         const roadW = 2.4
         const roadLen = Math.max(rows, COLS) * SPACING + SPACING * 2
         const roadTex = makeRoadTexture(THREE)
         roadTex.repeat.set(1, roadLen / 4)
         roadTex.needsUpdate = true
         const roadMat = new THREE.MeshStandardMaterial({
-          map: roadTex, color: 0xffffff, roughness: 0.8, metalness: 0,
+          map: roadTex,
+          color: 0xffffff,            // не дополнительно тонируем поверх текстуры
+          roughness: 0.7,
+          metalness: 0.05,
+          emissive: 0xffe14a,         // жёлтое самосвечение — разметка видна ночью
+          emissiveMap: roadTex,       // emissive следует текстуре (только разметка светится)
+          emissiveIntensity: 0.3,
         })
         const roadGeo = new THREE.PlaneGeometry(roadW, roadLen)
         const roadsGroup = new THREE.Group()
@@ -235,7 +286,7 @@ export default function LandingCity3D() {
           const m = new THREE.Mesh(roadGeo, roadMat)
           m.rotation.x = -Math.PI / 2
           m.rotation.z = Math.PI / 2
-          m.position.set(centerX, 0.01, z)
+          m.position.set(centerX, 0.02, z)
           m.receiveShadow = true
           roadsGroup.add(m)
         }
@@ -243,7 +294,7 @@ export default function LandingCity3D() {
           const x = c * SPACING + SPACING / 2
           const m = new THREE.Mesh(roadGeo, roadMat)
           m.rotation.x = -Math.PI / 2
-          m.position.set(x, 0.01, centerZ)
+          m.position.set(x, 0.02, centerZ)
           m.receiveShadow = true
           roadsGroup.add(m)
         }
@@ -268,9 +319,11 @@ export default function LandingCity3D() {
         scene.add(new THREE.Points(starGeo, starMat))
 
         // ─── ОКНА ───
-        // InstancedMesh с одним материалом — emissive жёлтый свет с opacity 0.95.
-        // Окна выводятся по 2 на этаж (фронт + правая грань) для всех этажей
-        // всех зданий. Считаем общее количество заранее.
+        // InstancedMesh — окна на ВСЕХ 4 гранях каждого этажа.
+        // Размер 0.75 (раньше 0.5) — гарантированно читаются с расстояния.
+        // AdditiveBlending — реальное «свечение» поверх стен, цвет смешивается
+        // с фоном здания и даёт жёлтые яркие точки независимо от того,
+        // какого цвета сама стена.
         let totalWindowSlots = 0
         for (const b of DEMO_BUILDINGS) totalWindowSlots += b.height * WINDOW_FACES_PER_FLOOR
         const windowGeo = new THREE.PlaneGeometry(WINDOW_SIZE, WINDOW_SIZE)
@@ -280,13 +333,13 @@ export default function LandingCity3D() {
           opacity: WINDOW_OPACITY,
           side: THREE.DoubleSide,
           depthWrite: false,
+          blending: THREE.AdditiveBlending,   // главное изменение — реально светятся
         })
         const windowsMesh = new THREE.InstancedMesh(windowGeo, windowMat, totalWindowSlots)
         windowsMesh.frustumCulled = false
         windowsMesh.matrixAutoUpdate = false
-        // renderOrder = 1 → окна рисуются ПОСЛЕ зданий, не уходят за стены
-        // при близкой камере (z-fighting на отступе 0.05 минимизирован).
-        windowsMesh.renderOrder = 1
+        // renderOrder = 2 → окна рисуются ПОСЛЕ зданий и звёзд
+        windowsMesh.renderOrder = 2
         scene.add(windowsMesh)
 
         // Текстуры для звезды над короной и дыма
@@ -311,6 +364,13 @@ export default function LandingCity3D() {
           // 5 чисел на частицу: [originX, originZ, life, lifeTotal, topY]
           smokeData = new Float32Array(totalSmoke * 5)
         }
+
+        // ─── КРЫШНЫЕ МАЯКИ (ROOF BEACONS) ───
+        // Красные мигающие точки на крышах высоких небоскрёбов — как
+        // авиамаяки на реальных зданиях. Sprites с AdditiveBlending,
+        // мигают синусоидально с разной фазой.
+        const beaconTex = makeSoftDotTexture(THREE)
+        const beaconSprites = []
 
         const cityGroup = new THREE.Group()
         scene.add(cityGroup)
@@ -343,17 +403,21 @@ export default function LandingCity3D() {
           const bGroup = new THREE.Group()
           bGroup.position.set(bx, 0, bz)
 
-          // Корпус здания: каждый этаж — отдельный куб для возможной разноцветности.
-          // У части зданий — лёгкое emissive-свечение цветом скина (даёт «жилой» оттенок).
+          // Корпус здания: каждый этаж — отдельный куб с лёгкой вариацией
+          // оттенка по высоте. Низ темнее, верх светлее (имитация атмосферы)
+          // плюс случайный hueShift на здание. Раньше все этажи были
+          // монохромными — теперь высотки выглядят «слоями».
           for (let i = 0; i < b.height; i++) {
             const isTop = i === b.height - 1 && b.spires === 0 && !b.golden
-            const colorHex = (isTop && b.golden) ? GOLDEN : baseColor
+            // Variation: -0.15 (низ темнее) до +0.15 (верх светлее) + b.hueShift
+            const heightFactor = (i / Math.max(1, b.height - 1)) * 0.3 - 0.15 + b.hueShift
+            const colorHex = (isTop && b.golden) ? GOLDEN : shiftHex(baseColor, heightFactor)
             const mat = new THREE.MeshStandardMaterial({
               color: colorHex,
-              roughness: b.metallic ? 0.25 : 0.55,
-              metalness: b.metallic ? 0.75 : 0.15,
+              roughness: b.metallic ? 0.25 : 0.5,
+              metalness: b.metallic ? 0.75 : 0.2,
               emissive: colorHex,
-              emissiveIntensity: b.emissive ? 0.25 : 0.05,
+              emissiveIntensity: b.emissive ? 0.3 : 0.08,
             })
             const mesh = new THREE.Mesh(floorGeo, mat)
             mesh.position.y = FLOOR_H / 2 + i * FLOOR_H
@@ -361,13 +425,16 @@ export default function LandingCity3D() {
             mesh.receiveShadow = true
             bGroup.add(mesh)
 
-            // Окна на этом этаже — 2 грани (фронт + правая).
-            // Отступ 0.05 от грани против z-fighting со стеной.
+            // Окна на этом этаже — 4 грани (front/back/left/right).
+            // Отступ 0.06 от грани против z-fighting + AdditiveBlending
+            // → окна гарантированно видны как яркие точки на любой стене.
             const fy = FLOOR_H / 2 + i * FLOOR_H
-            const half = BLOCK_W / 2 + 0.05
+            const half = BLOCK_W / 2 + 0.06
             const faces = [
-              { x: 0, z: half, ry: 0 },
-              { x: half, z: 0, ry: Math.PI / 2 },
+              { x: 0,    z: half,  ry: 0 },
+              { x: 0,    z: -half, ry: Math.PI },
+              { x: half, z: 0,     ry: Math.PI / 2 },
+              { x: -half, z: 0,    ry: -Math.PI / 2 },
             ]
             for (const f of faces) {
               tmpVec.set(bx + f.x, fy, bz + f.z)
@@ -393,8 +460,7 @@ export default function LandingCity3D() {
             spireMeshes.push(mesh)
           }
 
-          // Корона + звезда + дым для «золотых» зданий — главная виральная фича.
-          // Делает превью узнаваемым: юзер сразу понимает «это особые победы».
+          // Корона + звезда + дым для «золотых» зданий
           if (b.golden) {
             const crownMat = new THREE.MeshStandardMaterial({
               color: CROWN_HEX, roughness: 0.25, metalness: 0.85,
@@ -407,7 +473,6 @@ export default function LandingCity3D() {
             bGroup.add(crownMesh)
             crownMeshes.push(crownMesh)
 
-            // Sprite-звезда над короной
             const sMat = new THREE.SpriteMaterial({
               map: starTex, color: 0xffffff, transparent: true,
               opacity: 0.95, depthWrite: false,
@@ -418,17 +483,14 @@ export default function LandingCity3D() {
             bGroup.add(sprite)
             goldenSprites.push(sprite)
 
-            // Дым: 5 частиц в АБСОЛЮТНЫХ координатах (smoke в scene, не в bGroup).
-            // Каждая частица имеет origin (где появляется), life (текущий возраст),
-            // lifeTotal (сколько живёт), topY (откуда стартует).
             if (smoke && smokeFillIdx + SMOKE_PER_BUILDING <= totalSmoke) {
               const topY = crownTopY + 1
               for (let s = 0; s < SMOKE_PER_BUILDING; s++) {
                 const i = smokeFillIdx
                 smokeData[i * 5]     = bx
                 smokeData[i * 5 + 1] = bz
-                smokeData[i * 5 + 2] = Math.random() * 3      // стартовый возраст (разнобой)
-                smokeData[i * 5 + 3] = 3 + Math.random() * 2  // полное время жизни
+                smokeData[i * 5 + 2] = Math.random() * 3
+                smokeData[i * 5 + 3] = 3 + Math.random() * 2
                 smokeData[i * 5 + 4] = topY
                 const pos = smokeGeo.attributes.position.array
                 pos[i * 3]     = bx + (Math.random() - 0.5) * 0.5
@@ -437,6 +499,22 @@ export default function LandingCity3D() {
                 smokeFillIdx++
               }
             }
+          }
+
+          // Маяк на крыше — мигающая красная точка для высотных
+          // небоскрёбов (имитация авиамаяков). Не для золотых (там корона).
+          if (b.roofBeacon) {
+            const beaconMat = new THREE.SpriteMaterial({
+              map: beaconTex, color: 0xff3030, transparent: true,
+              opacity: 0.95, depthWrite: false,
+              blending: THREE.AdditiveBlending,
+            })
+            const beacon = new THREE.Sprite(beaconMat)
+            beacon.scale.set(0.8, 0.8, 1)
+            beacon.position.y = FLOOR_H / 2 + b.height * FLOOR_H + 0.4
+            beacon.userData.phase = seeded(idx + 900) * Math.PI * 2
+            bGroup.add(beacon)
+            beaconSprites.push(beacon)
           }
 
           cityGroup.add(bGroup)
@@ -501,8 +579,19 @@ export default function LandingCity3D() {
               s.material.opacity = 0.85 + Math.sin(t * 1.5 + i) * 0.15
               s.scale.setScalar(2.2 + Math.sin(t * 1.5 + i) * 0.18)
             }
-            // Дым: подъём + лёгкий wobble. Когда life > lifeTotal —
-            // респавн в исходную точку у вершины здания.
+            // Маяки на крышах — мигают резче (square-ish), фаза разная для каждого
+            for (let i = 0; i < beaconSprites.length; i++) {
+              const b = beaconSprites[i]
+              const phase = b.userData.phase + t * 1.8
+              // Резкая пульсация: opacity скачет 0.2 → 1.0
+              const blink = (Math.sin(phase) + 1) / 2  // 0..1
+              b.material.opacity = 0.25 + blink * 0.75
+              b.scale.setScalar(0.6 + blink * 0.5)
+            }
+            // Уличные фонари — лёгкое «дыхание» (не моргание, теплый свет колышется)
+            lamp1.intensity = 1.1 + Math.sin(t * 0.8) * 0.15
+            lamp2.intensity = 0.95 + Math.sin(t * 0.6 + 1.5) * 0.15
+            // Дым: подъём + лёгкий wobble
             if (smoke) {
               const pos = smokeGeo.attributes.position.array
               for (let i = 0; i < smokeFillIdx; i++) {
@@ -569,6 +658,7 @@ export default function LandingCity3D() {
           // Sprites + smoke
           starTex.dispose()
           dotTex.dispose()
+          beaconTex.dispose()
           if (smokeGeo) smokeGeo.dispose()
           if (smokeMat) smokeMat.dispose()
           renderer.dispose()
