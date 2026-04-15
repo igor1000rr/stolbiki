@@ -318,6 +318,10 @@ export default function VictoryCity({ userId }) {
   const containerRef = useRef(null)
   const threeRef = useRef(null)
   const recorderRef = useRef(null)
+  // FIX A: progressTimer для recordVideo надо clear при unmount,
+  // иначе interval живёт до 8 сек после размонтирования и зовёт setRecordProgress
+  // на disposed компоненте → React warning + нагрузка.
+  const progressTimerRef = useRef(null)
 
   useEffect(() => {
     if (!userId) { setLoading(false); return }
@@ -361,6 +365,10 @@ export default function VictoryCity({ userId }) {
     if (!containerRef.current || !cityData?.towers?.length) return
     const towers = cityData.towers
 
+    // FIX B: disposed используется не только в init-async, но и в animate()
+    // через замыкание. Если cleanup прошёл до того как RAF callback успеет
+    // выполниться — animate() сразу выходит, не зовя renderer.render() на
+    // disposed renderer (race ~16мс между cleanup и cancelAnimationFrame).
     let disposed = false
     const reducedMotion = prefersReducedMotion()
     const lowPower = hasLowPower()
@@ -973,6 +981,14 @@ export default function VictoryCity({ userId }) {
         const clock = new THREE.Clock()
         let lastFrameTime = performance.now()
         const animate = () => {
+          // FIX B: первая проверка — disposed. Если cleanup уже прошёл,
+          // НЕ запрашиваем следующий RAF и НЕ рендерим — renderer уже мёртв.
+          // Без этого guard'а RAF callback может встрять между cleanup и
+          // cancelAnimationFrame и вызвать renderer.render на disposed renderer.
+          if (disposed) {
+            rafRef.current = 0
+            return
+          }
           if (!ioVisibleRef.current || !tabVisibleRef.current) {
             rafRef.current = 0
             return
@@ -1160,7 +1176,12 @@ export default function VictoryCity({ userId }) {
             }
           }
 
-          if (!animRef.recordOrbit) controls.update()
+          // FIX E: controls.update() только когда controls.enabled === true.
+          // Раньше зовётся всегда (кроме recordOrbit). Во время intro и focusAnim
+          // controls.enabled = false, мы lerpVectors камеру/target вручную —
+          // controls.update() в этот момент пересчитывает spherical из
+          // текущей camera.position и может конфликтовать с lerp на низком FPS.
+          if (controls.enabled && !animRef.recordOrbit) controls.update()
           renderer.render(scene, camera)
         }
         animate()
@@ -1211,6 +1232,12 @@ export default function VictoryCity({ userId }) {
       disposed = true
       ioVisibleRef.current = false
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      // FIX A: progressTimer от recordVideo — clear иначе будет звать
+      // setRecordProgress на размонтированном компоненте до 8 сек.
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current)
+        progressTimerRef.current = null
+      }
       // Гарантированный stop записи при unmount
       if (recorderRef.current) {
         try { recorderRef.current.stop() } catch {}
@@ -1467,18 +1494,26 @@ export default function VictoryCity({ userId }) {
     t.startRecordOrbit(VIDEO_DURATION_MS)
     recorder.start()
 
-    // Прогресс UI обновляем каждые 100мс
+    // FIX A: progressTimer сохраняем в ref чтобы cleanup мог его отменить.
+    // Раньше — локальная переменная, при unmount во время записи interval
+    // продолжал работать и звать setRecordProgress на размонтированном компоненте.
     const progressStart = performance.now()
-    const progressTimer = setInterval(() => {
+    progressTimerRef.current = setInterval(() => {
       const elapsed = performance.now() - progressStart
       const p = Math.min(1, elapsed / VIDEO_DURATION_MS)
       setRecordProgress(p)
-      if (p >= 1) clearInterval(progressTimer)
+      if (p >= 1) {
+        clearInterval(progressTimerRef.current)
+        progressTimerRef.current = null
+      }
     }, 100)
 
     // Остановка точно через VIDEO_DURATION_MS
     setTimeout(() => {
-      clearInterval(progressTimer)
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current)
+        progressTimerRef.current = null
+      }
       if (recorderRef.current && recorderRef.current.state === 'recording') {
         try { recorderRef.current.stop() } catch (e) { console.error(e) }
       }
