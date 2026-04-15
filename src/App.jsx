@@ -8,10 +8,11 @@ import WhatsNewModal from './components/WhatsNewModal'
 import RatePopup from './components/RatePopup'
 import StreakPopup from './components/StreakPopup'
 import CookieBanner from './components/CookieBanner'
-import MoreTabPage from './components/MoreTabPage'
 import NativeTabs from './components/NativeTabs'
 import SiteHeader from './components/SiteHeader'
 import SiteFooter from './components/SiteFooter'
+import AppRoutes from './components/AppRoutes'
+import LazyFallback from './components/LazyFallback'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating } from './engine/appstore'
@@ -22,43 +23,19 @@ import './css/themes.css'
 import './css/native.css'
 import './css/mobile-ui.css'
 
-const Game = lazy(() => import('./components/Game'))
-const Online = lazy(() => import('./components/Online'))
-const Dashboard = lazy(() => import('./components/Dashboard'))
-const Replay = lazy(() => import('./components/Replay'))
-const Simulator = lazy(() => import('./components/Simulator'))
-const Rules = lazy(() => import('./components/Rules'))
-const Profile = lazy(() => import('./components/Profile'))
-const Puzzles = lazy(() => import('./components/Puzzles'))
-const Openings = lazy(() => import('./components/Openings'))
-const Landing = lazy(() => import('./components/Landing'))
+// Lazy: только модалки этого файла. Роуты lazy'изированы в AppRoutes.jsx.
 const Tutorial = lazy(() => import('./components/Tutorial'))
 const Lessons = lazy(() => import('./components/Lessons'))
 const Arena = lazy(() => import('./components/Arena'))
 const SkinShop = lazy(() => import('./components/SkinShop'))
-const Blog = lazy(() => import('./components/Blog'))
-const Settings = lazy(() => import('./components/Settings'))
-const Admin = lazy(() => import('./components/Admin'))
-const Changelog = lazy(() => import('./components/Changelog'))
-// Сценарная обучающая партия (заменила старый 4-слайдовый Onboarding).
-// Показывается при первом заходе на 'game' для всех платформ.
+// Сценарная обучающая партия — показывается при первом заходе на 'game'.
 const OnboardingGame = lazy(() => import('./components/OnboardingGame'))
-const Privacy = lazy(() => import('./components/Privacy'))
-const Terms = lazy(() => import('./components/Terms'))
 import SplashScreen from './components/SplashScreen'
 
-function LazyFallback() {
-  return <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-    <div style={{ animation: 'float 1.5s ease-in-out infinite' }}>
-      <img src="/mascot/think.webp" alt="" width={48} height={48} style={{ objectFit: 'contain' }} />
-    </div>
-  </div>
-}
-
 // РЕФАКТОР: embed/compare роуты вынесены в src/components/EmbedRoot.jsx,
-// рендерятся в main.jsx ДО App. Раньше здесь был early-return блок до
-// useI18nProvider() — нарушение rules of hooks.
-// РЕФАКТОР: header/footer вынесены в SiteHeader.jsx / SiteFooter.jsx.
+// рендерятся в main.jsx ДО App.
+// РЕФАКТОР: header/footer вынесены в SiteHeader/SiteFooter.
+// РЕФАКТОР: свитч роутов и их lazy imports в AppRoutes.
 
 export default function App() {
   const i18n = useI18nProvider()
@@ -428,41 +405,20 @@ export default function App() {
         />
       )}
 
-      <main className="site-content" id="main-content" role="main">
-        <Suspense fallback={<LazyFallback />}>
-          {tab === 'landing' && !isNative && <Landing onPlay={() => go('game')} onTutorial={() => setShowLessons(true)} publicStats={publicStats} installPrompt={installPrompt} />}
-        </Suspense>
-        <Suspense fallback={<LazyFallback />}>
-          <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
-          <div style={{ display: tab === 'online' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { padding: '0 8px', flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Online /></div>
-        </Suspense>
-        <Suspense fallback={<LazyFallback />}>
-          {tab === 'puzzles'   && <div style={isNative ? { padding: '0 8px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : undefined}><Puzzles /></div>}
-          {tab === 'openings'  && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
-          {tab === 'blog'      && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
-          {tab === 'settings'  && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
-          {tab === 'profile'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} initialTab={profileInitialTab} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
-          {tab === 'sim'       && isAdmin && <Simulator />}
-          {tab === 'dash'      && isAdmin && <Dashboard />}
-          {tab === 'replay'    && isAdmin && <Replay />}
-          {tab === 'admin'     && isAdmin && <Admin />}
-          {tab === 'changelog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
-          {tab === 'rules'     && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
-          {tab === 'terms'     && <Suspense fallback={<LazyFallback />}><Terms /></Suspense>}
-          {tab === 'privacy'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
-          {tab === 'more' && isNative && (
-            <MoreTabPage
-              authUser={authUser}
-              lang={lang}
-              setLang={setLang}
-              go={go}
-              onLessons={() => setShowLessons(true)}
-              onSkinShop={() => setShowSkinShop(true)}
-              onLogout={doLogout}
-            />
-          )}
-        </Suspense>
-      </main>
+      <AppRoutes
+        tab={tab} isNative={isNative} isAdmin={isAdmin}
+        authUser={authUser}
+        lang={lang} setLang={setLang}
+        viewProfile={viewProfile}
+        profileInitialTab={profileInitialTab}
+        setViewProfile={setViewProfile}
+        publicStats={publicStats}
+        installPrompt={installPrompt}
+        go={go}
+        onShowLessons={() => setShowLessons(true)}
+        onShowSkinShop={() => setShowSkinShop(true)}
+        onLogout={doLogout}
+      />
 
       {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => { setShowLessons(false); setTab('game') }} /></Suspense>}
