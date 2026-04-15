@@ -147,17 +147,19 @@ function applyTransfer(state, src, dst) {
 
 function applyPlacement(state, placement) {
   const player = state.currentPlayer
-  const canClose = state.canCloseByPlacement()
   for (const [idx, count] of Object.entries(placement)) {
     const i = +idx
     state.stands[i] = state.stands[i].concat(Array(count).fill(player))
     const total = state.stands[i].length
-    if (total >= MAX_CHIPS && canClose) {
+    // БАГ-ФИКС: закрываем ВСЕГДА при ≥11 блоков, независимо от canClose.
+    // Раньше условие было `total >= MAX_CHIPS && canClose` с fallback на
+    // `total > MAX_CHIPS` (trim без закрытия). При total===MAX_CHIPS && !canClose
+    // обе ветки пропускали → стойка оставалась с 11 блоками без closed[i].
+    // getValidPlacements уже ограничивает что можно класть → двойной гейт
+    // создавал только дыру. Инвариант движка: стойка ≥11 блоков ВСЕГДА закрыта.
+    if (total >= MAX_CHIPS) {
       if (total > MAX_CHIPS) state.stands[i] = state.stands[i].slice(total - MAX_CHIPS)
       state.closed[i] = player
-    } else if (total > MAX_CHIPS) {
-      // Обрезаем до MAX_CHIPS даже без закрытия (предотвращает overflow)
-      state.stands[i] = state.stands[i].slice(total - MAX_CHIPS)
     }
   }
 }
@@ -206,14 +208,16 @@ export function applyAction(state, action) {
   if (action.transfer) applyTransfer(ns, action.transfer[0], action.transfer[1])
   if (action.placement) applyPlacement(ns, action.placement)
 
-  // Авто-закрытие: если стойка ≥11 фишек и canClose — закрываем
-  if (ns.canCloseByPlacement()) {
-    for (const i of ns.openStands()) {
-      if (ns.stands[i].length >= MAX_CHIPS) {
-        if (ns.stands[i].length > MAX_CHIPS) ns.stands[i] = ns.stands[i].slice(ns.stands[i].length - MAX_CHIPS)
-        const [topColor] = ns.topGroup(i)
-        ns.closed[i] = topColor >= 0 ? topColor : ns.currentPlayer
-      }
+  // БАГ-ФИКС: defensive авто-закрытие БЕЗ canClose-гейта.
+  // Раньше условие `if (ns.canCloseByPlacement())` пропускало случаи когда
+  // стойка достигла 11 блоков при numOpen > 2 — такую стойку никто не закрывал.
+  // Теперь любая стойка ≥11 блоков закрывается здесь, это страховка от
+  // будущих рассинхронов в applyTransfer/applyPlacement.
+  for (const i of ns.openStands()) {
+    if (ns.stands[i].length >= MAX_CHIPS) {
+      if (ns.stands[i].length > MAX_CHIPS) ns.stands[i] = ns.stands[i].slice(ns.stands[i].length - MAX_CHIPS)
+      const [topColor] = ns.topGroup(i)
+      ns.closed[i] = topColor >= 0 ? topColor : ns.currentPlayer
     }
   }
 
