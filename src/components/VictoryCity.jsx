@@ -1,44 +1,31 @@
 /**
  * VictoryCity — Three.js 3D «Город побед»
  *
- * Каждая победа = здание. Цвет этажей = цвет скина игрока на момент победы.
- * Высота здания = реальные блоки + бонусные шпили за сложность AI.
+ * НОВАЯ КОНЦЕПЦИЯ (после v5.8):
+ * 1 победа = N кирпичей (не отдельное здание!). Кирпичи укладываются
+ * хронологически в стойки по 11 — как в самой игре. Закрытая стойка
+ * (11 кирпичей) = небоскрёб. Город растёт постепенно за десятки побед.
  *
- * Управление: OrbitControls — drag/pinch для вращения, зум колёсиком.
- * Клик по зданию → плавный zoom + модалка с деталями.
- * Hover → подсветка здания + tooltip с именем соперника.
+ * Backend: GET /api/buildings/city/:userId возвращает {towers, total_bricks,
+ * total_wins, next_tower_progress}. Каждый tower имеет pieces[] — массив
+ * кирпичей с инфой о победе которая его дала.
+ *
+ * Цвет кирпича = скин игрока на момент той победы (хроно-палитра).
+ * Если piece.special — этот кирпич золотой (победа была golden или Impossible).
+ * Если tower.golden_top — над закрытой высоткой висит золотой шпиль (корона).
  *
  * Режимы:
- *  - Intro: камера приземляется сверху на изометрический ракурс (1.8с)
- *  - Grow: каскадное появление зданий из земли при первом рендере
- *  - Photo Mode: 4 пресета камеры (Iso, Top, Cinematic, FPV) + автоповорот
- *  - Day/Night: 4 пресета времени суток с плавным переходом всех параметров
- *    освещения. Окна зажигаются ночью.
- *  - Time-lapse: проигрывает постройку города по хронологии побед
- *  - Fullscreen: на весь экран
- *  - Snapshot: PNG / Web Share API + фильтры (Vivid/B&W/Sepia) + watermark
- *  - Filter: показывать все / только golden / только Impossible / за неделю
- *  - Weather: снег зимой, дождь весной, листья осенью (по дате)
- *  - Minimap: SVG-overview в углу, клик → focus
- *  - Saved views: до 6 пользовательских ракурсов в localStorage
+ *  - Photo Mode: 4 пресета (Iso, Top, Cinematic, FPV) + автоповорот
+ *  - Day/Night: 4 пресета времени суток, окна зажигаются ночью
+ *  - Time-lapse: проигрывает постройку города tower за tower
+ *  - Filter: всё / золотые шпили / содержит Impossible / последняя неделя
+ *  - Weather: снег зимой, дождь весной, листья осенью
+ *  - Minimap, Fullscreen, Snapshot+watermark+filter, Saved views (6 слотов)
  *
- * Декорации:
- *  - Дороги между рядами и колонками с разметкой
- *  - Звёздное небо (opacity по timeOfDay)
- *  - Окна на гранях каждого этажа (InstancedMesh, fade с закатом)
- *  - ★ Sprite над «золотыми» победами
- *  - 🌫 Дым из шпилей у Hard+ зданий (Points particles, ленивая анимация)
+ * Performance: rafRef, кэш мешей, IntersectionObserver, visibilityState,
+ * prefers-reduced-motion, mobile-режим (упрощённая графика на слабых).
  *
- * Performance:
- *  - rafRef мутабельный объект — корректный cancel на cleanup
- *  - Шпили и окна кэшируются массивами, без traverse() per frame
- *  - IntersectionObserver — пауза вне viewport
- *  - document.visibilityState — пауза при свёрнутой вкладке
- *  - prefers-reduced-motion — отключает autoRotate и пульсации
- *  - Mobile-mode: уменьшает shadow map, отключает antialias и ACES tonemapping,
- *    меньше звёзд, меньше окон на этаж — для слабых телефонов
- *
- * Fallback: при отсутствии WebGL подгружается VictoryCity2D (SVG 2.5D).
+ * Fallback: WebGL error → VictoryCity2D с теми же towers данными.
  */
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -63,20 +50,20 @@ const SKIN_EMISSIVE = {
   blocks_glass: 0.10,
 }
 
-const SPIRE_HEX = { 1: 0xd4a017, 2: 0xe8b830, 3: 0xffc845, 4: 0xffe080 }
 const GOLDEN_HEX = 0xffd86e
+const CROWN_HEX  = 0xffc845         // шпиль-корона над закрытыми high towers с golden_top
 
 const SAVED_VIEWS_KEY = 'stolbiki_city_views'
 const MAX_SAVED_VIEWS = 6
+const TOWER_HEIGHT = 11
 
-function getDiffBonus(d) {
-  if (!d) return 0
-  d = typeof d === 'number' ? d : parseInt(d, 10) || 0
-  if (d >= 1500) return 4
-  if (d >= 800)  return 3
-  if (d >= 400)  return 2
-  if (d >= 150)  return 1
-  return 0
+function pieceColor(piece) {
+  const pal = SKIN_HEX[piece.skin_id] || SKIN_HEX.blocks_classic
+  return pal[0]                       // всегда основной цвет твоего скина
+}
+
+function pieceEmissive(piece) {
+  return SKIN_EMISSIVE[piece.skin_id] || 0
 }
 
 function getDiffLabel(d, en) {
@@ -87,18 +74,6 @@ function getDiffLabel(d, en) {
   if (d >= 400)  return en ? 'Hard' : 'Сложно'
   if (d >= 150)  return en ? 'Medium' : 'Средняя'
   return en ? 'Easy' : 'Лёгкая'
-}
-
-function getChips(b) {
-  const snap = b.stands_snapshot || []
-  const closed = snap.filter(s => s.owner !== null && Array.isArray(s.chips) && s.chips.length)
-  if (!closed.length) return []
-  return closed.reduce((a, b) => b.chips.length > a.chips.length ? b : a).chips
-}
-
-function getFloorColor(skinId, chipColor) {
-  const pal = SKIN_HEX[skinId] || SKIN_HEX.blocks_classic
-  return pal[chipColor] ?? pal[0]
 }
 
 function hasWebGL() {
@@ -114,34 +89,68 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-// Детект слабого устройства для упрощённой графики
 function hasLowPower() {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
   const ua = navigator.userAgent || ''
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua)
   const fewCores = (navigator.hardwareConcurrency || 8) <= 4
   const lowDpr = (window.devicePixelRatio || 1) < 1.5
-  // Mobile почти всегда слабее. Также десктопы с малым числом ядер.
   return isMobile || (fewCores && lowDpr)
 }
 
-// Определить сезон по текущей дате (для погодных эффектов)
 function getSeason() {
-  const m = new Date().getMonth()  // 0..11
-  if (m === 11 || m <= 1) return 'winter'   // дек, янв, фев → снег
-  if (m >= 2 && m <= 4)  return 'spring'    // мар, апр, май → дождь
-  if (m >= 5 && m <= 7)  return 'summer'    // лето → ничего
-  return 'autumn'                            // сен, окт, ноя → листья
+  const m = new Date().getMonth()
+  if (m === 11 || m <= 1) return 'winter'
+  if (m >= 2 && m <= 4)  return 'spring'
+  if (m >= 5 && m <= 7)  return 'summer'
+  return 'autumn'
 }
 
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3) }
 function lerp(a, b, t) { return a + (b - a) * t }
 
+// Проверка попадает ли tower под фильтр
+function towerMatchesFilter(tower, filter) {
+  if (filter === 'all') return true
+  if (filter === 'golden') return tower.is_closed && tower.golden_top
+  if (filter === 'impossible') {
+    return tower.pieces.some(p =>
+      p.is_ai && (parseInt(p.ai_difficulty, 10) || 0) >= 1500
+    )
+  }
+  if (filter === 'week') {
+    const weekAgo = Date.now() / 1000 - 7 * 24 * 3600
+    return tower.pieces.some(p => (p.date || 0) >= weekAgo)
+  }
+  return true
+}
+
+// Уникальные победы что внесли кирпичи в эту высотку
+function uniqueWinsInTower(tower) {
+  const seen = new Map()
+  for (const p of tower.pieces) {
+    if (!seen.has(p.source_id)) {
+      seen.set(p.source_id, {
+        source_id: p.source_id,
+        opponent: p.opponent,
+        date: p.date,
+        is_ai: p.is_ai,
+        ai_difficulty: p.ai_difficulty,
+        golden: p.golden,
+        bricks: 1,
+      })
+    } else {
+      seen.get(p.source_id).bricks++
+    }
+  }
+  return [...seen.values()]
+}
+
 const COLS = 5
 const SPACING = 6
 const FLOOR_H = 1.2
 const BLOCK_W = 3
-const SPIRE_W = 2.5
+const CROWN_W = 2.5
 const INTRO_MS = 1800
 const FOCUS_MS = 700
 const PRESET_MS = 900
@@ -151,38 +160,17 @@ const GROW_START_AT = 0.5
 const TIME_MS = 800
 const TIMELAPSE_STAGGER = 200
 const TIMELAPSE_GROW_MS = 400
-const SMOKE_PER_BUILDING = 6           // дым у каждого Hard+ здания
-const WEATHER_COUNT_HIGH = 600         // снег/дождь/листья всего на сцене
+const SMOKE_PER_BUILDING = 6        // дым над high closed towers с golden_top
+const WEATHER_COUNT_HIGH = 600
 const WEATHER_COUNT_LOW = 250
 
 const TIME_PRESETS = {
-  night: {
-    bg: 0x0a0a18, fogColor: 0x0a0a18, fogNear: 50, fogFar: 200,
-    sunColor: 0xfff0c8, sunIntensity: 1.1, sunPosOffset: [25, 40, 15],
-    ambientColor: 0x8080c0, ambientIntensity: 0.45,
-    starsOpacity: 0.7, exposure: 1.1, windowGlow: 0.95,
-  },
-  morning: {
-    bg: 0x7fa8cc, fogColor: 0x9ec0dc, fogNear: 70, fogFar: 260,
-    sunColor: 0xfff0d0, sunIntensity: 1.0, sunPosOffset: [-30, 18, 10],
-    ambientColor: 0xb0c8e0, ambientIntensity: 0.55,
-    starsOpacity: 0.05, exposure: 1.15, windowGlow: 0.05,
-  },
-  day: {
-    bg: 0x5ba7d9, fogColor: 0x8ec6ea, fogNear: 90, fogFar: 320,
-    sunColor: 0xffffff, sunIntensity: 1.4, sunPosOffset: [20, 60, 15],
-    ambientColor: 0xc0d8e8, ambientIntensity: 0.65,
-    starsOpacity: 0, exposure: 1.25, windowGlow: 0,
-  },
-  sunset: {
-    bg: 0x3a1a2e, fogColor: 0x6a3a4a, fogNear: 55, fogFar: 220,
-    sunColor: 0xff8040, sunIntensity: 0.95, sunPosOffset: [40, 8, 15],
-    ambientColor: 0xc06080, ambientIntensity: 0.4,
-    starsOpacity: 0.25, exposure: 1.15, windowGlow: 0.6,
-  },
+  night:   { bg:0x0a0a18, fogColor:0x0a0a18, fogNear:50, fogFar:200, sunColor:0xfff0c8, sunIntensity:1.1, sunPosOffset:[25,40,15],   ambientColor:0x8080c0, ambientIntensity:0.45, starsOpacity:0.7,  exposure:1.1,  windowGlow:0.95 },
+  morning: { bg:0x7fa8cc, fogColor:0x9ec0dc, fogNear:70, fogFar:260, sunColor:0xfff0d0, sunIntensity:1.0, sunPosOffset:[-30,18,10],  ambientColor:0xb0c8e0, ambientIntensity:0.55, starsOpacity:0.05, exposure:1.15, windowGlow:0.05 },
+  day:     { bg:0x5ba7d9, fogColor:0x8ec6ea, fogNear:90, fogFar:320, sunColor:0xffffff, sunIntensity:1.4, sunPosOffset:[20,60,15],   ambientColor:0xc0d8e8, ambientIntensity:0.65, starsOpacity:0,    exposure:1.25, windowGlow:0    },
+  sunset:  { bg:0x3a1a2e, fogColor:0x6a3a4a, fogNear:55, fogFar:220, sunColor:0xff8040, sunIntensity:0.95,sunPosOffset:[40,8,15],    ambientColor:0xc06080, ambientIntensity:0.4,  starsOpacity:0.25, exposure:1.15, windowGlow:0.6  },
 }
 
-// Параметры погоды по сезону
 const WEATHER_PARAMS = {
   winter: { color: 0xffffff, size: 0.45, fallSpeed: 1.2, sway: 0.6, opacity: 0.85 },
   spring: { color: 0x88aaff, size: 0.18, fallSpeed: 8.0, sway: 0.1, opacity: 0.6 },
@@ -250,7 +238,6 @@ function makeRoadTexture(THREE) {
   return tex
 }
 
-// Текстура мягкой круглой точки для частиц (дым, снег, листья)
 function makeSoftDotTexture(THREE) {
   const c = document.createElement('canvas')
   c.width = 32; c.height = 32
@@ -264,7 +251,6 @@ function makeSoftDotTexture(THREE) {
   return new THREE.CanvasTexture(c)
 }
 
-// Загрузить сохранённые ракурсы из localStorage
 function loadSavedViews() {
   try {
     const raw = localStorage.getItem(SAVED_VIEWS_KEY)
@@ -275,31 +261,17 @@ function loadSavedViews() {
 }
 
 function persistSavedViews(views) {
-  try {
-    localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(views.slice(0, MAX_SAVED_VIEWS)))
-  } catch { /* quota or denied */ }
-}
-
-// Применить фильтр зданий → массив отфильтрованных id
-function applyBuildingFilter(buildings, filter) {
-  if (filter === 'all') return null  // null = показывать всё
-  const ids = new Set()
-  const weekAgo = Date.now() / 1000 - 7 * 24 * 3600
-  for (const b of buildings) {
-    if (filter === 'golden' && b.result === 'draw_won') ids.add(b.id)
-    else if (filter === 'impossible' && b.is_ai && getDiffBonus(b.ai_difficulty) >= 4) ids.add(b.id)
-    else if (filter === 'week' && (b.created_at || 0) >= weekAgo) ids.add(b.id)
-  }
-  return ids
+  try { localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(views.slice(0, MAX_SAVED_VIEWS))) }
+  catch { /* quota */ }
 }
 
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
   const en = lang === 'en'
-  const [buildings, setBuildings] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [cityData, setCityData] = useState(null)    // { towers, total_bricks, total_wins, next_tower_progress }
   const [stats, setStats] = useState(null)
-  const [selId, setSelId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [selTowerIdx, setSelTowerIdx] = useState(null)
   const [webglOk] = useState(() => hasWebGL())
   const [forceSvg, setForceSvg] = useState(false)
   const [snapshotMsg, setSnapshotMsg] = useState(null)
@@ -312,7 +284,6 @@ export default function VictoryCity({ userId }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [shotFilter, setShotFilter] = useState('original')
   const [showShotMenu, setShowShotMenu] = useState(false)
-  // Новые
   const [savedViews, setSavedViews] = useState(() => loadSavedViews())
   const [weatherEnabled, setWeatherEnabled] = useState(true)
   const [season] = useState(() => getSeason())
@@ -323,19 +294,21 @@ export default function VictoryCity({ userId }) {
   const containerRef = useRef(null)
   const threeRef = useRef(null)
 
-  // Fetch data
+  // Fetch новый city + stats
   useEffect(() => {
     if (!userId) { setLoading(false); return }
     Promise.all([
-      fetch(`/api/buildings/${userId}?limit=60`).then(r => r.json()),
+      fetch(`/api/buildings/city/${userId}`).then(r => r.json()),
       fetch(`/api/buildings/stats/${userId}`).then(r => r.json()),
     ])
-      .then(([d, s]) => { setBuildings(d.buildings || []); setStats(s) })
-      .catch(() => {})
+      .then(([city, s]) => {
+        setCityData(city || { towers: [], total_bricks: 0, total_wins: 0, next_tower_progress: 0 })
+        setStats(s)
+      })
+      .catch(() => setCityData({ towers: [], total_bricks: 0, total_wins: 0, next_tower_progress: 0 }))
       .finally(() => setLoading(false))
   }, [userId])
 
-  // Fullscreen change listener
   useEffect(() => {
     const onFs = () => {
       const fs = !!document.fullscreenElement
@@ -347,24 +320,23 @@ export default function VictoryCity({ userId }) {
     return () => document.removeEventListener('fullscreenchange', onFs)
   }, [])
 
-  // Применение фильтра зданий — обновляем opacity мешей в реальном времени
   useEffect(() => {
     const t = threeRef.current
     if (!t?.applyFilter) return
     t.applyFilter(buildingFilter)
   }, [buildingFilter])
 
-  // Toggle weather в three
   useEffect(() => {
     const t = threeRef.current
     if (!t?.setWeatherEnabled) return
     t.setWeatherEnabled(weatherEnabled)
   }, [weatherEnabled])
 
-  // Init three.js
+  // Init three.js — рендерит towers вместо buildings
   useEffect(() => {
     if (!webglOk || forceSvg) return
-    if (!containerRef.current || !buildings.length) return
+    if (!containerRef.current || !cityData?.towers?.length) return
+    const towers = cityData.towers
 
     let disposed = false
     const reducedMotion = prefersReducedMotion()
@@ -372,8 +344,8 @@ export default function VictoryCity({ userId }) {
     const rafRef = { current: 0 }
     const ioVisibleRef = { current: true }
     const tabVisibleRef = { current: typeof document !== 'undefined' ? document.visibilityState !== 'hidden' : true }
-    const hoverRef = { current: { id: null, group: null } }
-    const filterRef = { current: null }    // Set<id> | null
+    const hoverRef = { current: { towerIdx: null, group: null, pieceIdx: null } }
+    const filterRef = { current: null }
 
     ;(async () => {
       try {
@@ -382,7 +354,6 @@ export default function VictoryCity({ userId }) {
           import('three/addons/controls/OrbitControls.js'),
         ])
         if (disposed) return
-
         const container = containerRef.current
         if (!container) return
 
@@ -395,7 +366,7 @@ export default function VictoryCity({ userId }) {
 
         const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 500)
 
-        const rows = Math.max(1, Math.ceil(buildings.length / COLS))
+        const rows = Math.max(1, Math.ceil(towers.length / COLS))
         const centerX = ((COLS - 1) / 2) * SPACING
         const centerZ = ((rows - 1) / 2) * SPACING
         const dist = Math.max(25, Math.max(COLS, rows) * SPACING * 1.4)
@@ -408,10 +379,8 @@ export default function VictoryCity({ userId }) {
         const introStartPos = camera.position.clone()
         const introStartTarget = new THREE.Vector3(centerX, 0, centerZ)
 
-        // ─── Mobile-режим: упрощённые настройки ───
         const renderer = new THREE.WebGLRenderer({
-          antialias: !lowPower,
-          alpha: false,
+          antialias: !lowPower, alpha: false,
           powerPreference: lowPower ? 'low-power' : 'default',
           preserveDrawingBuffer: true,
         })
@@ -428,22 +397,16 @@ export default function VictoryCity({ userId }) {
 
         const ambient = new THREE.AmbientLight(0x8080c0, 0.45)
         scene.add(ambient)
-
         const sun = new THREE.DirectionalLight(0xfff0c8, 1.1)
         sun.position.set(centerX + 25, 40, centerZ + 15)
         sun.target.position.set(centerX, 0, centerZ)
         sun.castShadow = true
         sun.shadow.mapSize.set(lowPower ? 512 : 1024, lowPower ? 512 : 1024)
-        sun.shadow.camera.left = -50
-        sun.shadow.camera.right = 50
-        sun.shadow.camera.top = 50
-        sun.shadow.camera.bottom = -50
-        sun.shadow.camera.near = 1
-        sun.shadow.camera.far = 100
+        sun.shadow.camera.left = -50; sun.shadow.camera.right = 50
+        sun.shadow.camera.top = 50; sun.shadow.camera.bottom = -50
+        sun.shadow.camera.near = 1; sun.shadow.camera.far = 100
         sun.shadow.bias = -0.0003
-        scene.add(sun)
-        scene.add(sun.target)
-
+        scene.add(sun); scene.add(sun.target)
         const rim = new THREE.DirectionalLight(0x6050a0, 0.4)
         rim.position.set(centerX - 20, 15, centerZ - 20)
         scene.add(rim)
@@ -459,9 +422,7 @@ export default function VictoryCity({ userId }) {
 
         // Дороги
         const roadTex = makeRoadTexture(THREE)
-        const roadMat = new THREE.MeshStandardMaterial({
-          map: roadTex, color: 0x222230, roughness: 0.95, metalness: 0,
-        })
+        const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, color: 0x222230, roughness: 0.95, metalness: 0 })
         const roadsGroup = new THREE.Group()
         const roadW = 2.6
         const roadLen = Math.max(rows, COLS) * SPACING + SPACING * 2
@@ -470,12 +431,9 @@ export default function VictoryCity({ userId }) {
           const m = new THREE.Mesh(new THREE.PlaneGeometry(roadLen, roadW), roadMat.clone())
           m.material.map = roadTex.clone()
           m.material.map.repeat.set(roadLen / 4, 1)
-          m.material.map.needsUpdate = true
-          m.material.needsUpdate = true
-          m.rotation.x = -Math.PI / 2
-          m.rotation.z = Math.PI / 2
-          m.position.set(centerX, 0.005, z)
-          m.receiveShadow = true
+          m.material.map.needsUpdate = true; m.material.needsUpdate = true
+          m.rotation.x = -Math.PI / 2; m.rotation.z = Math.PI / 2
+          m.position.set(centerX, 0.005, z); m.receiveShadow = true
           roadsGroup.add(m)
         }
         for (let c = -1; c < COLS; c++) {
@@ -483,16 +441,14 @@ export default function VictoryCity({ userId }) {
           const m = new THREE.Mesh(new THREE.PlaneGeometry(roadLen, roadW), roadMat.clone())
           m.material.map = roadTex.clone()
           m.material.map.repeat.set(roadLen / 4, 1)
-          m.material.map.needsUpdate = true
-          m.material.needsUpdate = true
+          m.material.map.needsUpdate = true; m.material.needsUpdate = true
           m.rotation.x = -Math.PI / 2
-          m.position.set(x, 0.005, centerZ)
-          m.receiveShadow = true
+          m.position.set(x, 0.005, centerZ); m.receiveShadow = true
           roadsGroup.add(m)
         }
         scene.add(roadsGroup)
 
-        // Звёздный купол (меньше точек на mobile)
+        // Звёзды
         const starCount = lowPower ? 200 : 400
         const starGeo = new THREE.BufferGeometry()
         const starPositions = new Float32Array(starCount * 3)
@@ -513,23 +469,18 @@ export default function VictoryCity({ userId }) {
         scene.add(cityGroup)
 
         const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
-        const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
+        const crownGeo = new THREE.BoxGeometry(CROWN_W, FLOOR_H, CROWN_W)
 
-        const buildingPositions = new Map()
-        const spireMeshes = []
+        const towerPositions = new Map()
+        const crownMeshes = []
         const goldenSprites = []
-        const buildingGroups = []
-        // Все mesh-материалы каждого bGroup — для filter opacity
-        const buildingMaterials = new Map()  // id → array of materials
+        const towerGroups = []
+        const towerMaterials = new Map()
 
-        // Окна (меньше на mobile: только front+back)
+        // Окна (меньше на mobile)
         const windowsPerFloor = lowPower ? 2 : 4
         let totalFloors = 0
-        for (const b of buildings) {
-          const chips = getChips(b)
-          if (!chips.length) continue
-          totalFloors += chips.length
-        }
+        for (const t of towers) totalFloors += t.pieces.length
         const totalWindows = totalFloors * windowsPerFloor
         const windowGeo = new THREE.PlaneGeometry(0.55, 0.55)
         const windowMat = new THREE.MeshBasicMaterial({
@@ -554,15 +505,10 @@ export default function VictoryCity({ userId }) {
         const starTex = makeStarTexture(THREE)
         const dotTex = makeSoftDotTexture(THREE)
 
-        // ─── Дым из шпилей: подготовим Points для каждого Hard+ здания ───
-        // Используем ОДИН общий BufferGeometry для всех частиц дыма всех зданий
-        const smokeBuildings = []  // { baseX, baseZ, baseY, particleStart, particleCount }
+        // Дым над high closed towers с golden_top
         let totalSmoke = 0
-        for (const b of buildings) {
-          const chips = getChips(b)
-          if (!chips.length) continue
-          const extra = b.is_ai ? getDiffBonus(b.ai_difficulty) : 0
-          if (extra >= 2) totalSmoke += SMOKE_PER_BUILDING
+        for (const t of towers) {
+          if (t.is_closed && t.golden_top) totalSmoke += SMOKE_PER_BUILDING
         }
         let smokeGeo = null, smokeMat = null, smoke = null, smokeData = null
         if (totalSmoke > 0) {
@@ -576,11 +522,10 @@ export default function VictoryCity({ userId }) {
           })
           smoke = new THREE.Points(smokeGeo, smokeMat)
           scene.add(smoke)
-          // Per-particle data: x_orig, z_orig, life, lifeTotal, baseY
           smokeData = new Float32Array(totalSmoke * 5)
         }
 
-        // ─── Погода: один Points на сцену ───
+        // Погода
         const weatherCfg = WEATHER_PARAMS[season]
         let weatherGeo = null, weatherMat = null, weather = null, weatherData = null
         const weatherCount = lowPower ? WEATHER_COUNT_LOW : WEATHER_COUNT_HIGH
@@ -601,7 +546,6 @@ export default function VictoryCity({ userId }) {
           })
           weather = new THREE.Points(weatherGeo, weatherMat)
           scene.add(weather)
-          // Per-particle: vx, vy, vz, swayPhase
           weatherData = new Float32Array(weatherCount * 4)
           for (let i = 0; i < weatherCount; i++) {
             weatherData[i * 4]     = (Math.random() - 0.5) * weatherCfg.sway
@@ -612,56 +556,52 @@ export default function VictoryCity({ userId }) {
         }
 
         let smokeFillIdx = 0
-        buildings.forEach((b, idx) => {
-          const chips = getChips(b)
-          if (!chips.length) return
-
+        // ─── Создаём здания: 1 tower = 1 здание, кирпичи внутри = этажи ───
+        towers.forEach((tower, idx) => {
           const col = idx % COLS
           const row = Math.floor(idx / COLS)
-          const extraFloors = b.is_ai ? getDiffBonus(b.ai_difficulty) : 0
-          const skinId = b.player_skin_id || 'blocks_classic'
-          const golden = b.result === 'draw_won'
-          const emissiveIntensity = SKIN_EMISSIVE[skinId] || 0
-
-          const bGroup = new THREE.Group()
           const bx = col * SPACING
           const bz = row * SPACING
+          const heightFloors = tower.pieces.length
+
+          const bGroup = new THREE.Group()
           bGroup.position.set(bx, 0, bz)
-          bGroup.userData.buildingId = b.id
-          bGroup.userData.idx = idx
-          bGroup.userData.created_at = b.created_at || 0
-          bGroup.userData.golden = golden
-          bGroup.userData.extra = extraFloors
+          bGroup.userData.towerIdx = idx
+          bGroup.userData.is_closed = tower.is_closed
+          bGroup.userData.created_at_first = tower.period_from
           bGroup.scale.y = 0
           bGroup.userData.growDelay = idx * GROW_STAGGER
-          buildingPositions.set(b.id, {
+          towerPositions.set(idx, {
             x: bx, z: bz,
-            height: (chips.length + extraFloors) * FLOOR_H,
-            golden, extra,
+            height: (heightFloors + (tower.golden_top ? 1 : 0)) * FLOOR_H,
+            isClosed: tower.is_closed,
+            goldenTop: tower.golden_top,
           })
 
-          const buildingMatList = []
+          const matList = []
 
-          chips.forEach((c, i) => {
-            const isTop = i === chips.length - 1 && extraFloors === 0
-            const colorHex = (isTop && golden) ? GOLDEN_HEX : getFloorColor(skinId, c)
+          tower.pieces.forEach((piece, i) => {
+            // Цвет этажа: золотой если piece.special, иначе цвет скина победы
+            const colorHex = piece.special ? GOLDEN_HEX : pieceColor(piece)
+            const emissiveInt = piece.special ? 0.4 : pieceEmissive(piece)
             const mat = new THREE.MeshStandardMaterial({
               color: colorHex,
-              roughness: skinId === 'blocks_metal' ? 0.3 : 0.55,
-              metalness: skinId === 'blocks_metal' ? 0.7 : 0.15,
+              roughness: piece.skin_id === 'blocks_metal' ? 0.3 : 0.55,
+              metalness: piece.skin_id === 'blocks_metal' ? 0.7 : 0.15,
               emissive: colorHex,
-              emissiveIntensity,
-              transparent: false,
-              opacity: 1,
+              emissiveIntensity: emissiveInt,
+              transparent: false, opacity: 1,
             })
-            buildingMatList.push(mat)
+            matList.push(mat)
             const mesh = new THREE.Mesh(floorGeo, mat)
             mesh.position.y = FLOOR_H / 2 + i * FLOOR_H
             mesh.castShadow = true
             mesh.receiveShadow = true
-            mesh.userData.buildingId = b.id
+            mesh.userData.towerIdx = idx
+            mesh.userData.pieceIdx = i
             bGroup.add(mesh)
 
+            // Окна
             if (windowsMesh) {
               const fy = FLOOR_H / 2 + i * FLOOR_H
               const half = BLOCK_W / 2 + 0.01
@@ -683,122 +623,95 @@ export default function VictoryCity({ userId }) {
             }
           })
 
-          for (let k = 0; k < extraFloors; k++) {
-            const spireLvl = Math.max(1, Math.min(4, extraFloors - k))
-            const color = SPIRE_HEX[spireLvl]
-            const mat = new THREE.MeshStandardMaterial({
-              color, roughness: 0.25, metalness: 0.8,
-              emissive: color, emissiveIntensity: 0.35,
+          // Корона (золотой шпиль) над закрытой высоткой с golden_top
+          if (tower.is_closed && tower.golden_top) {
+            const crownMat = new THREE.MeshStandardMaterial({
+              color: CROWN_HEX, roughness: 0.25, metalness: 0.85,
+              emissive: CROWN_HEX, emissiveIntensity: 0.4,
               transparent: false, opacity: 1,
             })
-            buildingMatList.push(mat)
-            const mesh = new THREE.Mesh(spireGeo, mat)
-            mesh.position.y = FLOOR_H / 2 + (chips.length + k) * FLOOR_H
-            mesh.castShadow = true
-            mesh.userData.buildingId = b.id
-            bGroup.add(mesh)
-            spireMeshes.push(mesh)
-          }
+            matList.push(crownMat)
+            const crownMesh = new THREE.Mesh(crownGeo, crownMat)
+            crownMesh.position.y = FLOOR_H / 2 + heightFloors * FLOOR_H
+            crownMesh.castShadow = true
+            crownMesh.userData.towerIdx = idx
+            bGroup.add(crownMesh)
+            crownMeshes.push(crownMesh)
 
-          if (golden && starTex) {
+            // Звезда-Sprite над короной
             const sMat = new THREE.SpriteMaterial({
               map: starTex, color: 0xffffff, transparent: true,
               opacity: 0.95, depthWrite: false,
             })
             const sprite = new THREE.Sprite(sMat)
             sprite.scale.set(2.5, 2.5, 1)
-            sprite.position.y = (chips.length + extraFloors) * FLOOR_H + 1.6
-            sprite.userData.buildingId = b.id
+            sprite.position.y = (heightFloors + 1) * FLOOR_H + 1.6
+            sprite.userData.towerIdx = idx
             bGroup.add(sprite)
             goldenSprites.push(sprite)
-          }
 
-          // ─── Дым над шпилем (только Hard+) ───
-          if (smoke && extraFloors >= 2) {
-            const topY = (chips.length + extraFloors) * FLOOR_H + 1
-            for (let s = 0; s < SMOKE_PER_BUILDING; s++) {
-              const i = smokeFillIdx
-              smokeData[i * 5]     = bx                          // baseX
-              smokeData[i * 5 + 1] = bz                          // baseZ
-              smokeData[i * 5 + 2] = Math.random() * 3           // life — стартуем со случайной фазы
-              smokeData[i * 5 + 3] = 3 + Math.random() * 2       // lifeTotal (сек)
-              smokeData[i * 5 + 4] = topY                        // baseY
-              const pos = smokeGeo.attributes.position.array
-              pos[i * 3]     = bx + (Math.random() - 0.5) * 0.5
-              pos[i * 3 + 1] = topY
-              pos[i * 3 + 2] = bz + (Math.random() - 0.5) * 0.5
-              smokeFillIdx++
+            // Дым над короной
+            if (smoke) {
+              const topY = (heightFloors + 1) * FLOOR_H + 1
+              for (let s = 0; s < SMOKE_PER_BUILDING; s++) {
+                const i = smokeFillIdx
+                smokeData[i * 5]     = bx
+                smokeData[i * 5 + 1] = bz
+                smokeData[i * 5 + 2] = Math.random() * 3
+                smokeData[i * 5 + 3] = 3 + Math.random() * 2
+                smokeData[i * 5 + 4] = topY
+                const pos = smokeGeo.attributes.position.array
+                pos[i * 3]     = bx + (Math.random() - 0.5) * 0.5
+                pos[i * 3 + 1] = topY
+                pos[i * 3 + 2] = bz + (Math.random() - 0.5) * 0.5
+                smokeFillIdx++
+              }
             }
           }
 
           cityGroup.add(bGroup)
-          buildingGroups.push(bGroup)
-          buildingMaterials.set(b.id, buildingMatList)
+          towerGroups.push(bGroup)
+          towerMaterials.set(idx, matList)
         })
 
         if (windowsMesh) windowsMesh.instanceMatrix.needsUpdate = true
         if (smokeGeo) smokeGeo.attributes.position.needsUpdate = true
 
         const controls = new OrbitControls(camera, renderer.domElement)
-        controls.enableDamping = true
-        controls.dampingFactor = 0.08
-        controls.minDistance = 10
-        controls.maxDistance = 150
+        controls.enableDamping = true; controls.dampingFactor = 0.08
+        controls.minDistance = 10; controls.maxDistance = 150
         controls.maxPolarAngle = Math.PI / 2.1
         controls.target.copy(introStartTarget)
-        controls.enablePan = true
-        controls.panSpeed = 0.6
-        controls.rotateSpeed = 0.7
-        controls.zoomSpeed = 0.8
-        controls.autoRotateSpeed = 0.5
-        controls.enabled = false
+        controls.enablePan = true; controls.panSpeed = 0.6
+        controls.rotateSpeed = 0.7; controls.zoomSpeed = 0.8
+        controls.autoRotateSpeed = 0.5; controls.enabled = false
         controls.update()
 
-        // Пресеты камеры (4-й — FPV, низкая орбита по периметру)
         const CAMERA_PRESETS = {
-          iso: {
-            pos: finalCamPos.clone(),
-            target: finalTarget.clone(),
-          },
-          top: {
-            pos: new THREE.Vector3(centerX, dist * 1.3, centerZ + 4),
-            target: new THREE.Vector3(centerX, 0, centerZ),
-          },
-          cinematic: {
-            pos: new THREE.Vector3(centerX + dist * 1.1, dist * 0.18, centerZ + dist * 0.55),
-            target: new THREE.Vector3(centerX, 4, centerZ),
-          },
-          fpv: {
-            pos: new THREE.Vector3(centerX + dist * 0.6, 4, centerZ + dist * 0.6),
-            target: new THREE.Vector3(centerX, 4, centerZ),
-            autoRotate: true,
-          },
+          iso:       { pos: finalCamPos.clone(), target: finalTarget.clone() },
+          top:       { pos: new THREE.Vector3(centerX, dist * 1.3, centerZ + 4), target: new THREE.Vector3(centerX, 0, centerZ) },
+          cinematic: { pos: new THREE.Vector3(centerX + dist * 1.1, dist * 0.18, centerZ + dist * 0.55), target: new THREE.Vector3(centerX, 4, centerZ) },
+          fpv:       { pos: new THREE.Vector3(centerX + dist * 0.6, 4, centerZ + dist * 0.6), target: new THREE.Vector3(centerX, 4, centerZ), autoRotate: true },
         }
 
         const animRef = {
-          focusAnim: null,
-          focusDuration: FOCUS_MS,
-          autoRotate: false,
-          timeAnim: null,
-          timelapse: null,
-          weatherEnabled: true,
+          focusAnim: null, focusDuration: FOCUS_MS,
+          autoRotate: false, timeAnim: null,
+          timelapse: null, weatherEnabled: true,
         }
 
         function startCamAnim(toPos, toTarget, duration) {
           animRef.focusAnim = {
-            fromPos: camera.position.clone(),
-            toPos: toPos.clone(),
-            fromTarget: controls.target.clone(),
-            toTarget: toTarget.clone(),
+            fromPos: camera.position.clone(), toPos: toPos.clone(),
+            fromTarget: controls.target.clone(), toTarget: toTarget.clone(),
             start: performance.now(),
           }
           animRef.focusDuration = duration || FOCUS_MS
-          controls.enabled = false
-          controls.autoRotate = false
+          controls.enabled = false; controls.autoRotate = false
         }
 
-        function startFocusAnim(buildingId) {
-          const p = buildingPositions.get(buildingId)
+        function startFocusAnim(towerIdx) {
+          const p = towerPositions.get(towerIdx)
           if (!p) return
           const offset = Math.max(8, p.height + 6)
           startCamAnim(
@@ -816,27 +729,26 @@ export default function VictoryCity({ userId }) {
             to: {
               bg: new THREE.Color(target.bg),
               fogColor: new THREE.Color(target.fogColor),
-              fogNear: target.fogNear,
-              fogFar: target.fogFar,
+              fogNear: target.fogNear, fogFar: target.fogFar,
               sunColor: new THREE.Color(target.sunColor),
               sunIntensity: target.sunIntensity,
               sunPos: new THREE.Vector3(centerX + target.sunPosOffset[0], target.sunPosOffset[1], centerZ + target.sunPosOffset[2]),
               ambientColor: new THREE.Color(target.ambientColor),
               ambientIntensity: target.ambientIntensity,
               starsOpacity: target.starsOpacity,
-              exposure: target.exposure,
-              windowGlow: target.windowGlow,
+              exposure: target.exposure, windowGlow: target.windowGlow,
             },
             start: performance.now(),
           }
         }
 
         function startTimelapse() {
-          const sorted = [...buildingGroups].sort((a, b) => (a.userData.created_at || 0) - (b.userData.created_at || 0))
+          // Башни уже в хронологическом порядке (compileCity ASC)
+          const sorted = [...towerGroups]
           for (const g of sorted) g.scale.y = 0
           animRef.timelapse = { sortedGroups: sorted, start: performance.now() }
           setIsTimelapsing(true)
-          hoverRef.current = { id: null, group: null }
+          hoverRef.current = { towerIdx: null, group: null, pieceIdx: null }
           setHoverInfo(null)
           if (rafRef.current === 0 && ioVisibleRef.current && tabVisibleRef.current) animate()
         }
@@ -850,22 +762,25 @@ export default function VictoryCity({ userId }) {
           setTimelapseDate(null)
         }
 
-        // ─── Применить фильтр зданий: opacity 1.0 для матчей, 0.15 для остальных ───
         function applyFilter(filter) {
-          const ids = applyBuildingFilter(buildings, filter)
-          filterRef.current = ids
-          for (const bGroup of buildingGroups) {
-            const id = bGroup.userData.buildingId
-            const visible = ids === null || ids.has(id)
-            const targetOpacity = visible ? 1.0 : 0.15
-            const mats = buildingMaterials.get(id) || []
+          if (filter === 'all') {
+            filterRef.current = null
+          } else {
+            const matchSet = new Set()
+            towers.forEach((t, i) => { if (towerMatchesFilter(t, filter)) matchSet.add(i) })
+            filterRef.current = matchSet
+          }
+          for (const bGroup of towerGroups) {
+            const idx = bGroup.userData.towerIdx
+            const visible = filterRef.current === null || filterRef.current.has(idx)
+            const opacity = visible ? 1.0 : 0.15
+            const mats = towerMaterials.get(idx) || []
             for (const m of mats) {
               m.transparent = !visible || m.transparent
-              m.opacity = targetOpacity
+              m.opacity = opacity
               m.depthWrite = visible
               m.needsUpdate = true
             }
-            // Также opacity для золотой звезды если есть
             for (const ch of bGroup.children) {
               if (ch.material instanceof THREE.SpriteMaterial) {
                 ch.material.opacity = visible ? 0.95 : 0.1
@@ -903,11 +818,10 @@ export default function VictoryCity({ userId }) {
           raycaster.setFromCamera(mouse, camera)
           const hits = raycaster.intersectObjects(cityGroup.children, true)
           if (hits.length) {
-            const id = hits[0].object.userData.buildingId
-            // Игнорируем клики по отфильтрованным зданиям
-            if (id != null && (filterRef.current === null || filterRef.current.has(id))) {
-              setSelId(prev => {
-                const next = prev === id ? null : id
+            const towerIdx = hits[0].object.userData.towerIdx
+            if (towerIdx != null && (filterRef.current === null || filterRef.current.has(towerIdx))) {
+              setSelTowerIdx(prev => {
+                const next = prev === towerIdx ? null : towerIdx
                 if (next != null) startFocusAnim(next)
                 return next
               })
@@ -926,42 +840,42 @@ export default function VictoryCity({ userId }) {
           let found = null
           if (hits.length) {
             const obj = hits[0].object
-            const id = obj.userData.buildingId
-            // hover игнорирует отфильтрованные
-            if (id != null && (filterRef.current === null || filterRef.current.has(id))) {
+            const towerIdx = obj.userData.towerIdx
+            if (towerIdx != null && (filterRef.current === null || filterRef.current.has(towerIdx))) {
               let g = obj
-              while (g && !buildingGroups.includes(g)) g = g.parent
-              found = { id, group: g }
+              while (g && !towerGroups.includes(g)) g = g.parent
+              found = { towerIdx, group: g, pieceIdx: obj.userData.pieceIdx }
             }
           }
-          if (found && found.id != null) {
-            if (hoverRef.current.id !== found.id) {
+          if (found && found.towerIdx != null) {
+            const tower = towers[found.towerIdx]
+            const piece = found.pieceIdx != null ? tower.pieces[found.pieceIdx] : null
+            if (hoverRef.current.towerIdx !== found.towerIdx || hoverRef.current.pieceIdx !== found.pieceIdx) {
               hoverRef.current = found
-              const b = buildings.find(bb => bb.id === found.id)
-              if (b) {
-                const chips = getChips(b)
-                setHoverInfo({
-                  x: e.clientX - rect.left,
-                  y: e.clientY - rect.top,
-                  name: b.opponent_name || (b.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок')),
-                  date: b.created_at,
-                  floors: chips.length,
-                  golden: b.result === 'draw_won',
-                  diff: b.is_ai ? getDiffLabel(b.ai_difficulty, en) : null,
-                })
-              }
+              setHoverInfo({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+                towerIdx: found.towerIdx,
+                height: tower.height,
+                isClosed: tower.is_closed,
+                goldenTop: tower.golden_top,
+                sourceWins: tower.source_wins,
+                periodFrom: tower.period_from,
+                periodTo: tower.period_to,
+                piece,
+              })
             } else {
               setHoverInfo(prev => prev ? { ...prev, x: e.clientX - rect.left, y: e.clientY - rect.top } : prev)
             }
           } else {
-            if (hoverRef.current.id != null) {
-              hoverRef.current = { id: null, group: null }
+            if (hoverRef.current.towerIdx != null) {
+              hoverRef.current = { towerIdx: null, group: null, pieceIdx: null }
               setHoverInfo(null)
             }
           }
         }
         const onPointerLeave = () => {
-          hoverRef.current = { id: null, group: null }
+          hoverRef.current = { towerIdx: null, group: null, pieceIdx: null }
           setHoverInfo(null)
         }
         renderer.domElement.addEventListener('pointermove', onPointerMove)
@@ -996,7 +910,6 @@ export default function VictoryCity({ userId }) {
           const dt = Math.min(0.1, (now - lastFrameTime) / 1000)
           lastFrameTime = now
 
-          // Intro
           const introElapsed = now - introStart
           if (introElapsed < INTRO_MS) {
             const p = introElapsed / INTRO_MS
@@ -1070,8 +983,7 @@ export default function VictoryCity({ userId }) {
               const p2 = Math.min(1, localElapsed / TIMELAPSE_GROW_MS)
               g.scale.y = easeOutCubic(p2)
               if (p2 < 1) allDone = false
-              if (p2 > 0 && p2 < 1) currentDateForUI = g.userData.created_at
-              else if (p2 >= 1 && currentDateForUI === null) currentDateForUI = g.userData.created_at
+              if (p2 > 0) currentDateForUI = g.userData.created_at_first
             }
             if (currentDateForUI && (!tl._lastUiAt || now - tl._lastUiAt > 100)) {
               tl._lastUiAt = now
@@ -1088,9 +1000,9 @@ export default function VictoryCity({ userId }) {
           }
 
           if (!reducedMotion) {
-            for (let i = 0; i < spireMeshes.length; i++) {
-              const m = spireMeshes[i]
-              m.material.emissiveIntensity = 0.3 + Math.sin(t * 2 + m.position.y) * 0.1
+            for (let i = 0; i < crownMeshes.length; i++) {
+              const m = crownMeshes[i]
+              m.material.emissiveIntensity = 0.35 + Math.sin(t * 2 + m.position.y) * 0.12
             }
             for (let i = 0; i < goldenSprites.length; i++) {
               const s = goldenSprites[i]
@@ -1099,15 +1011,13 @@ export default function VictoryCity({ userId }) {
             }
           }
 
-          // ─── Дым из шпилей ───
           if (smoke && !reducedMotion) {
             const pos = smokeGeo.attributes.position.array
             for (let i = 0; i < smokeFillIdx; i++) {
-              smokeData[i * 5 + 2] += dt   // life++
+              smokeData[i * 5 + 2] += dt
               const life = smokeData[i * 5 + 2]
               const lifeTotal = smokeData[i * 5 + 3]
               if (life >= lifeTotal) {
-                // reset particle
                 smokeData[i * 5 + 2] = 0
                 pos[i * 3]     = smokeData[i * 5]     + (Math.random() - 0.5) * 0.5
                 pos[i * 3 + 1] = smokeData[i * 5 + 4]
@@ -1122,7 +1032,6 @@ export default function VictoryCity({ userId }) {
             smokeGeo.attributes.position.needsUpdate = true
           }
 
-          // ─── Погода ───
           if (weather && animRef.weatherEnabled && !reducedMotion) {
             const pos = weatherGeo.attributes.position.array
             const halfSpread = weatherSpread / 2
@@ -1132,22 +1041,19 @@ export default function VictoryCity({ userId }) {
               pos[i * 3]     += dt * weatherData[i * 4]     + dt * Math.sin(phase) * 0.3
               pos[i * 3 + 1] += dt * weatherData[i * 4 + 1]
               pos[i * 3 + 2] += dt * weatherData[i * 4 + 2] + dt * Math.cos(phase) * 0.3
-              // Reset когда упало ниже земли
               if (pos[i * 3 + 1] < -1) {
                 pos[i * 3]     = centerX + (Math.random() - 0.5) * weatherSpread
                 pos[i * 3 + 1] = 50
                 pos[i * 3 + 2] = centerZ + (Math.random() - 0.5) * weatherSpread
               }
-              // Reset если улетело за горизонт
               if (Math.abs(pos[i * 3] - centerX) > halfSpread) pos[i * 3] = centerX + (Math.random() - 0.5) * weatherSpread
               if (Math.abs(pos[i * 3 + 2] - centerZ) > halfSpread) pos[i * 3 + 2] = centerZ + (Math.random() - 0.5) * weatherSpread
             }
             weatherGeo.attributes.position.needsUpdate = true
           }
 
-          // Hover scale lerp
-          for (let i = 0; i < buildingGroups.length; i++) {
-            const g = buildingGroups[i]
+          for (let i = 0; i < towerGroups.length; i++) {
+            const g = towerGroups[i]
             const target = (hoverRef.current.group === g) ? 1.06 : 1.0
             const cur = g.scale.x
             if (Math.abs(cur - target) > 0.001) {
@@ -1174,34 +1080,24 @@ export default function VictoryCity({ userId }) {
         }
         document.addEventListener('visibilitychange', onVisibility)
 
-        // Геометрия для минимапа: bounds
         const minimapBounds = {
-          minX: -SPACING / 2,
-          maxX: (COLS - 1) * SPACING + SPACING / 2,
-          minZ: -SPACING / 2,
-          maxZ: (rows - 1) * SPACING + SPACING / 2,
+          minX: -SPACING / 2, maxX: (COLS - 1) * SPACING + SPACING / 2,
+          minZ: -SPACING / 2, maxZ: (rows - 1) * SPACING + SPACING / 2,
         }
 
         threeRef.current = {
           scene, camera, renderer, controls, onResize, onVisibility, io,
-          floorGeo, spireGeo, windowGeo, windowMat, windowsMesh,
-          starTex, roadTex, dotTex,
-          smoke, smokeGeo, smokeMat,
-          weather, weatherGeo, weatherMat,
-          rafRef,
-          cameraPresets: CAMERA_PRESETS,
-          animRef,
-          startCamAnim, startTimeAnim, startTimelapse, stopTimelapse,
-          startFocusAnim,
+          floorGeo, crownGeo, windowGeo, windowMat, windowsMesh,
+          starTex, roadTex, dotTex, smoke, smokeGeo, smokeMat,
+          weather, weatherGeo, weatherMat, rafRef,
+          cameraPresets: CAMERA_PRESETS, animRef,
+          startCamAnim, startTimeAnim, startTimelapse, stopTimelapse, startFocusAnim,
           applyFilter, setWeatherEnabled,
-          minimapBounds,
-          buildingPositions,
+          minimapBounds, towerPositions,
           onPointerMove, onPointerLeave,
-          _sceneObjects: { sun, ambient, stars, centerX, centerZ },
           THREE_MOD: THREE,
         }
 
-        // Применить начальное состояние weather/filter
         if (weather) weather.visible = weatherEnabled
         if (buildingFilter !== 'all') applyFilter(buildingFilter)
       } catch (e) {
@@ -1230,17 +1126,11 @@ export default function VictoryCity({ userId }) {
             else o.material.dispose()
           }
         })
-        t.floorGeo?.dispose()
-        t.spireGeo?.dispose()
-        t.windowGeo?.dispose()
-        t.windowMat?.dispose()
-        t.starTex?.dispose()
-        t.roadTex?.dispose()
-        t.dotTex?.dispose()
-        t.smokeGeo?.dispose()
-        t.smokeMat?.dispose()
-        t.weatherGeo?.dispose()
-        t.weatherMat?.dispose()
+        t.floorGeo?.dispose(); t.crownGeo?.dispose()
+        t.windowGeo?.dispose(); t.windowMat?.dispose()
+        t.starTex?.dispose(); t.roadTex?.dispose(); t.dotTex?.dispose()
+        t.smokeGeo?.dispose(); t.smokeMat?.dispose()
+        t.weatherGeo?.dispose(); t.weatherMat?.dispose()
         t.renderer?.dispose()
         if (t.renderer?.domElement?.parentNode) {
           t.renderer.domElement.parentNode.removeChild(t.renderer.domElement)
@@ -1249,7 +1139,7 @@ export default function VictoryCity({ userId }) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildings, webglOk, forceSvg])
+  }, [cityData, webglOk, forceSvg])
 
   function applyCameraPreset(name) {
     const t = threeRef.current
@@ -1258,7 +1148,6 @@ export default function VictoryCity({ userId }) {
     if (!preset) return
     setCurrentPreset(name)
     t.startCamAnim(preset.pos, preset.target, PRESET_MS)
-    // FPV сразу включает autoRotate
     if (preset.autoRotate && !autoRotate) {
       setAutoRotate(true)
       if (t.animRef) t.animRef.autoRotate = true
@@ -1291,14 +1180,10 @@ export default function VictoryCity({ userId }) {
   }
 
   function handleFullscreen() {
-    if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {})
-    } else {
-      containerRef.current?.requestFullscreen?.().catch(() => {})
-    }
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+    else containerRef.current?.requestFullscreen?.().catch(() => {})
   }
 
-  // ─── Сохранённые ракурсы ───
   function saveCurrentView() {
     const t = threeRef.current
     if (!t?.camera || !t?.controls) return
@@ -1315,8 +1200,7 @@ export default function VictoryCity({ userId }) {
       target: [t.controls.target.x, t.controls.target.y, t.controls.target.z],
     }
     const next = [...savedViews, view]
-    setSavedViews(next)
-    persistSavedViews(next)
+    setSavedViews(next); persistSavedViews(next)
     setSnapshotMsg(en ? 'View saved!' : 'Сохранено!')
     setTimeout(() => setSnapshotMsg(null), 1500)
   }
@@ -1335,53 +1219,41 @@ export default function VictoryCity({ userId }) {
 
   function deleteView(idx) {
     const next = savedViews.filter((_, i) => i !== idx)
-    setSavedViews(next)
-    persistSavedViews(next)
+    setSavedViews(next); persistSavedViews(next)
   }
 
-  // ─── Скриншот ───
   function downloadScreenshot() {
     const t = threeRef.current
     if (!t?.renderer || !t?.scene || !t?.camera) return
     t.renderer.render(t.scene, t.camera)
     const src = t.renderer.domElement
-    const w = src.width
-    const h = src.height
+    const w = src.width, h = src.height
     const canvas = document.createElement('canvas')
     canvas.width = w; canvas.height = h
     const ctx = canvas.getContext('2d')
     const filterMap = {
-      original: 'none',
-      vivid: 'saturate(1.4) contrast(1.1)',
-      bw: 'grayscale(1) contrast(1.1)',
-      sepia: 'sepia(0.8) contrast(1.05)',
+      original: 'none', vivid: 'saturate(1.4) contrast(1.1)',
+      bw: 'grayscale(1) contrast(1.1)', sepia: 'sepia(0.8) contrast(1.05)',
     }
     ctx.filter = filterMap[shotFilter] || 'none'
     ctx.drawImage(src, 0, 0, w, h)
     ctx.filter = 'none'
     const profile = (() => {
-      try { return JSON.parse(localStorage.getItem('stolbiki_profile') || '{}') }
-      catch { return {} }
+      try { return JSON.parse(localStorage.getItem('stolbiki_profile') || '{}') } catch { return {} }
     })()
     const playerName = profile?.name || (en ? 'Player' : 'Игрок')
     const winsCount = stats?.total || 0
     const wmText = `Highrise Heist · ${playerName} · ${winsCount} ${en ? 'wins' : 'побед'}`
     const fontSize = Math.max(18, Math.round(w * 0.022))
     ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`
-    const textMetrics = ctx.measureText(wmText)
-    const padX = fontSize * 0.7
-    const padY = fontSize * 0.4
-    const boxW = textMetrics.width + padX * 2
-    const boxH = fontSize + padY * 2
-    const boxX = w - boxW - 20
-    const boxY = h - boxH - 20
+    const tm = ctx.measureText(wmText)
+    const padX = fontSize * 0.7, padY = fontSize * 0.4
+    const boxW = tm.width + padX * 2, boxH = fontSize + padY * 2
+    const boxX = w - boxW - 20, boxY = h - boxH - 20
     ctx.fillStyle = 'rgba(10, 10, 24, 0.7)'
-    ctx.beginPath()
-    ctx.roundRect(boxX, boxY, boxW, boxH, 12)
-    ctx.fill()
+    ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 12); ctx.fill()
     const grad = ctx.createLinearGradient(boxX, boxY, boxX + boxW, boxY)
-    grad.addColorStop(0, '#ffd86e')
-    grad.addColorStop(1, '#ff9020')
+    grad.addColorStop(0, '#ffd86e'); grad.addColorStop(1, '#ff9020')
     ctx.fillStyle = grad
     ctx.fillText(wmText, boxX + padX, boxY + padY + fontSize * 0.85)
 
@@ -1394,18 +1266,14 @@ export default function VictoryCity({ userId }) {
         : `Мой Город побед в Highrise Heist — ${winsCount} побед!`
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
         navigator.share({ text: shareText, files: [file] })
-          .then(() => {
-            setSnapshotMsg(en ? 'Shared!' : 'Отправлено!')
-            setTimeout(() => setSnapshotMsg(null), 2000)
-          })
+          .then(() => { setSnapshotMsg(en ? 'Shared!' : 'Отправлено!'); setTimeout(() => setSnapshotMsg(null), 2000) })
           .catch(() => {})
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url; a.download = filename; a.click()
         URL.revokeObjectURL(url)
-        setSnapshotMsg(en ? 'Downloaded!' : 'Скачано!')
-        setTimeout(() => setSnapshotMsg(null), 2000)
+        setSnapshotMsg(en ? 'Downloaded!' : 'Скачано!'); setTimeout(() => setSnapshotMsg(null), 2000)
       }
       setShowShotMenu(false)
     }, 'image/png')
@@ -1417,18 +1285,19 @@ export default function VictoryCity({ userId }) {
     </div>
   )
 
-  if (!buildings.length) return (
+  if (!cityData?.towers?.length) return (
     <div style={{ textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>🏙️</div>
-      <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 280, margin: '0 auto', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>🧱</div>
+      <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 320, margin: '0 auto', lineHeight: 1.6 }}>
         {en
-          ? 'Win games to build your Victory City — each win adds a new skyscraper!'
-          : 'Побеждайте — и стройте Город побед! Каждая победа — новая высотка.'}
+          ? 'Win games to start building. 1 win = at least 1 brick. 11 bricks make a closed highrise!'
+          : 'Побеждайте — каждая победа добавляет хотя бы 1 кирпич. 11 кирпичей закрывают высотку.'}
       </div>
     </div>
   )
 
-  const selB = selId ? buildings.find(b => b.id === selId) : null
+  const towers = cityData.towers
+  const selTower = selTowerIdx != null ? towers[selTowerIdx] : null
   const useFallback = !webglOk || forceSvg
 
   const CAMERA_PRESETS_UI = [
@@ -1437,89 +1306,82 @@ export default function VictoryCity({ userId }) {
     { id: 'cinematic', emoji: '🎬', label_ru: 'Кино', label_en: 'Cine' },
     { id: 'fpv', emoji: '🛸', label_ru: 'Облёт', label_en: 'FPV' },
   ]
-
   const TIME_PRESETS_UI = [
     { id: 'night',   emoji: '🌙', label_ru: 'Ночь',  label_en: 'Night' },
     { id: 'morning', emoji: '🌅', label_ru: 'Утро',  label_en: 'Morn' },
     { id: 'day',     emoji: '☀️', label_ru: 'День',  label_en: 'Day' },
     { id: 'sunset',  emoji: '🌇', label_ru: 'Закат', label_en: 'Dusk' },
   ]
-
   const FILTERS_UI = [
     { id: 'original', label_ru: 'Ориг',  label_en: 'Orig' },
     { id: 'vivid',    label_ru: 'Vivid', label_en: 'Vivid' },
     { id: 'bw',       label_ru: 'Ч/Б',   label_en: 'B&W' },
     { id: 'sepia',    label_ru: 'Сепия', label_en: 'Sepia' },
   ]
-
   const BUILDING_FILTERS_UI = [
-    { id: 'all',        label_ru: 'Все',         label_en: 'All',     emoji: '🏙' },
-    { id: 'golden',     label_ru: 'Золотые',     label_en: 'Golden',  emoji: '★' },
-    { id: 'impossible', label_ru: 'Impossible',  label_en: 'Imposs.', emoji: '⚡' },
-    { id: 'week',       label_ru: 'За неделю',   label_en: 'Week',    emoji: '🗓' },
+    { id: 'all',        label_ru: 'Все',          label_en: 'All',     emoji: '🏙' },
+    { id: 'golden',     label_ru: 'С короной',    label_en: 'Crowned', emoji: '★' },
+    { id: 'impossible', label_ru: 'С Impossible', label_en: 'Imposs.', emoji: '⚡' },
+    { id: 'week',       label_ru: 'За неделю',    label_en: 'Week',    emoji: '🗓' },
   ]
-
   const seasonEmoji = { winter: '❄️', spring: '🌧', autumn: '🍂', summer: null }[season]
   const seasonLabel = {
-    winter: en ? 'Snow' : 'Снег',
-    spring: en ? 'Rain' : 'Дождь',
-    autumn: en ? 'Leaves' : 'Листья',
-    summer: null,
+    winter: en ? 'Snow' : 'Снег', spring: en ? 'Rain' : 'Дождь',
+    autumn: en ? 'Leaves' : 'Листья', summer: null,
   }[season]
 
-  // Минимап — позиции в SVG-координатах
   const minimapData = (() => {
     if (!showMinimap || useFallback) return null
     const t = threeRef.current
-    if (!t?.minimapBounds || !t?.buildingPositions) return null
+    if (!t?.minimapBounds || !t?.towerPositions) return null
     const { minX, maxX, minZ, maxZ } = t.minimapBounds
-    const w = maxX - minX
-    const h = maxZ - minZ
-    const padding = 6
-    const svgSize = 100
+    const w = maxX - minX, h = maxZ - minZ
+    const padding = 6, svgSize = 100
     const dots = []
-    t.buildingPositions.forEach((p, id) => {
+    t.towerPositions.forEach((p, idx) => {
       const sx = padding + ((p.x - minX) / w) * (svgSize - padding * 2)
       const sy = padding + ((p.z - minZ) / h) * (svgSize - padding * 2)
-      const isFiltered = buildingFilter !== 'all' &&
-        !applyBuildingFilter(buildings, buildingFilter)?.has(id)
-      dots.push({ id, x: sx, y: sy, golden: p.golden, extra: p.extra, dim: isFiltered })
+      const tower = towers[idx]
+      const isFiltered = buildingFilter !== 'all' && !towerMatchesFilter(tower, buildingFilter)
+      let color = '#4a9eff'
+      if (p.goldenTop) color = '#ffd86e'
+      else if (!p.isClosed) color = '#9b59b6'   // строящиеся
+      dots.push({ idx, x: sx, y: sy, color, dim: isFiltered })
     })
     return { svgSize, dots }
   })()
 
   return (
     <div>
-      {stats && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {[
-            [stats.total,       en ? 'Buildings' : 'Зданий',       'var(--ink)'],
-            [stats.vs_ai,       'vs AI',                            'var(--p1)'],
-            [stats.vs_human,    en ? 'vs Human' : 'vs Живой',       'var(--green)'],
-            [stats.golden_wins, '★ ' + (en ? 'Golden' : 'Золотых'), 'var(--gold)'],
-          ].map(([v, l, c]) => (
-            <div key={l} style={{ textAlign: 'center', padding: '8px 14px', background: 'var(--surface2)', borderRadius: 8, minWidth: 54 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c }}>{v}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{l}</div>
-            </div>
-          ))}
+      {/* Stats: победы + кирпичи + высотки */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {[
+          [cityData.total_wins,    en ? 'Wins'      : 'Побед',     'var(--green)'],
+          [cityData.total_bricks,  en ? 'Bricks'    : 'Кирпичей',  'var(--accent)'],
+          [towers.filter(t => t.is_closed).length, en ? 'Closed' : 'Высоток',  'var(--ink)'],
+          [towers.filter(t => t.golden_top).length, '★ ' + (en ? 'Crowned' : 'С короной'), 'var(--gold)'],
+        ].map(([v, l, c]) => (
+          <div key={l} style={{ textAlign: 'center', padding: '8px 14px', background: 'var(--surface2)', borderRadius: 8, minWidth: 60 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: c }}>{v}</div>
+            <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Прогресс текущей высотки */}
+      {cityData.next_tower_progress > 0 && (
+        <div style={{ textAlign: 'center', marginBottom: 10, fontSize: 11, color: 'var(--ink3)' }}>
+          {en ? 'Next highrise: ' : 'Следующая высотка: '}
+          <strong style={{ color: 'var(--accent)' }}>{cityData.next_tower_progress}/{TOWER_HEIGHT}</strong>
+          <span> {en ? 'bricks laid' : 'кирпичей'}</span>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {[
-          [en ? 'Easy' : 'Лёгкая', 'var(--ink3)', 0],
-          [en ? 'Medium' : 'Средняя', '#d4a017', 1],
-          [en ? 'Hard' : 'Сложная', '#e8b830', 2],
-          [en ? 'Extreme' : 'Экстрим', '#ffc845', 3],
-          [en ? 'Impossible' : 'Невозможно', '#ffe080', 4],
-        ].map(([label, color, bonus]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)' }}>
-            <span style={{ color, fontWeight: 700 }}>▲</span>
-            <span style={{ color }}>{label}</span>
-            {bonus > 0 && <span style={{ color: 'var(--ink3)', opacity: 0.5 }}>+{bonus}</span>}
-          </div>
-        ))}
+      {/* Легенда */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 10, justifyContent: 'center', flexWrap: 'wrap', fontSize: 10, color: 'var(--ink3)' }}>
+        <div><span style={{ color: 'var(--accent)' }}>■</span> {en ? 'Regular brick' : 'Обычный кирпич'}</div>
+        <div><span style={{ color: 'var(--gold)' }}>■</span> {en ? 'Special (Imposs/Golden)' : 'Особый (Imp/Золотая)'}</div>
+        <div><span style={{ color: 'var(--gold)' }}>★</span> {en ? 'Crowned tower' : 'Высотка с короной'}</div>
       </div>
 
       {useFallback ? (
@@ -1528,7 +1390,7 @@ export default function VictoryCity({ userId }) {
             {en ? 'Loading 2D view…' : 'Загрузка 2D-вида…'}
           </div>
         }>
-          <VictoryCity2D buildings={buildings} stats={stats} en={en} />
+          <VictoryCity2D towers={towers} stats={stats} en={en} />
         </Suspense>
       ) : (
         <div
@@ -1537,38 +1399,43 @@ export default function VictoryCity({ userId }) {
             background: 'linear-gradient(180deg, #06060f 0%, #0a0a18 100%)',
             borderRadius: isFullscreen ? 0 : 12,
             border: '1px solid rgba(255,255,255,0.07)',
-            overflow: 'hidden',
-            minHeight: 320,
-            position: 'relative',
+            overflow: 'hidden', minHeight: 320, position: 'relative',
           }}
         >
-          {/* Hover tooltip */}
           {hoverInfo && !isTimelapsing && (
             <div style={{
               position: 'absolute', left: hoverInfo.x + 14, top: hoverInfo.y + 14,
               pointerEvents: 'none',
               background: 'rgba(10,10,24,0.92)',
-              border: `1px solid ${hoverInfo.golden ? 'var(--gold)' : 'var(--accent)'}`,
+              border: `1px solid ${hoverInfo.goldenTop ? 'var(--gold)' : 'var(--accent)'}`,
               borderRadius: 8, padding: '8px 12px', fontSize: 11, color: 'var(--ink)',
-              minWidth: 140, boxShadow: '0 6px 24px rgba(0,0,0,0.6)', zIndex: 5,
-              whiteSpace: 'nowrap',
+              minWidth: 160, boxShadow: '0 6px 24px rgba(0,0,0,0.6)', zIndex: 5,
             }}>
-              <div style={{ fontWeight: 700, color: hoverInfo.golden ? 'var(--gold)' : 'var(--ink)', marginBottom: 3 }}>
-                {hoverInfo.golden && '★ '}{hoverInfo.name}
+              <div style={{ fontWeight: 700, color: hoverInfo.goldenTop ? 'var(--gold)' : 'var(--ink)', marginBottom: 3 }}>
+                {hoverInfo.goldenTop && '★ '}{en ? 'Tower' : 'Высотка'} #{hoverInfo.towerIdx + 1}
+                {' '}<span style={{ color: 'var(--ink3)', fontWeight: 400 }}>{hoverInfo.height}/{TOWER_HEIGHT}</span>
               </div>
               <div style={{ color: 'var(--ink3)', fontSize: 10 }}>
-                {hoverInfo.floors} {en ? 'floors' : 'этажей'}
-                {hoverInfo.diff && ` · ${hoverInfo.diff}`}
+                {hoverInfo.isClosed ? (en ? 'Closed' : 'Закрыта') : (en ? 'Building...' : 'Строится...')}
+                {' · '}{hoverInfo.sourceWins} {en ? 'wins' : 'побед'}
               </div>
-              {hoverInfo.date && (
+              {hoverInfo.periodFrom && (
                 <div style={{ color: 'var(--ink3)', fontSize: 10, marginTop: 2 }}>
-                  {new Date(hoverInfo.date * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+                  {new Date(hoverInfo.periodFrom * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+                  {hoverInfo.periodTo !== hoverInfo.periodFrom && ' — ' +
+                    new Date(hoverInfo.periodTo * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+                </div>
+              )}
+              {hoverInfo.piece && (
+                <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 10, color: 'var(--ink2)' }}>
+                  {en ? 'Brick' : 'Кирпич'}: vs {hoverInfo.piece.opponent || (en ? 'Player' : 'Игрок')}
+                  {hoverInfo.piece.is_ai && hoverInfo.piece.ai_difficulty && ` (${getDiffLabel(hoverInfo.piece.ai_difficulty, en)})`}
+                  {hoverInfo.piece.special && <span style={{ color: 'var(--gold)' }}> ★</span>}
                 </div>
               )}
             </div>
           )}
 
-          {/* Time-lapse overlay */}
           {isTimelapsing && timelapseDate && (
             <div style={{
               position: 'absolute', top: 16, left: 16,
@@ -1581,140 +1448,90 @@ export default function VictoryCity({ userId }) {
             </div>
           )}
 
-          {/* Fullscreen exit hint */}
           {isFullscreen && (
             <div style={{
               position: 'absolute', top: 16, right: 16,
-              background: 'rgba(10,10,24,0.85)',
-              borderRadius: 8, padding: '6px 10px',
+              background: 'rgba(10,10,24,0.85)', borderRadius: 8, padding: '6px 10px',
               fontSize: 11, color: 'var(--ink3)', zIndex: 5,
-            }}>
-              {en ? 'Press ESC to exit' : 'ESC чтобы выйти'}
-            </div>
+            }}>{en ? 'Press ESC to exit' : 'ESC чтобы выйти'}</div>
           )}
 
-          {/* Минимап */}
-          {minimapData && !isTimelapsing && buildings.length >= 6 && (
+          {minimapData && !isTimelapsing && towers.length >= 4 && (
             <div style={{
-              position: 'absolute',
-              bottom: 12, right: 12,
-              width: 100, height: 100,
-              background: 'rgba(10,10,24,0.7)',
+              position: 'absolute', bottom: 12, right: 12,
+              width: 100, height: 100, background: 'rgba(10,10,24,0.7)',
               border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              padding: 0,
-              overflow: 'hidden',
-              zIndex: 5,
+              borderRadius: 8, overflow: 'hidden', zIndex: 5,
             }}>
               <svg viewBox={`0 0 ${minimapData.svgSize} ${minimapData.svgSize}`} width="100" height="100">
                 {minimapData.dots.map(d => (
-                  <rect
-                    key={d.id}
-                    x={d.x - 2.5} y={d.y - 2.5}
-                    width={5} height={5}
-                    rx={1}
-                    fill={d.golden ? '#ffd86e' : (d.extra >= 4 ? '#ffe080' : (d.extra >= 2 ? '#ffc845' : '#4a9eff'))}
-                    opacity={d.dim ? 0.2 : 0.95}
+                  <rect key={d.idx} x={d.x - 2.5} y={d.y - 2.5} width={5} height={5} rx={1}
+                    fill={d.color} opacity={d.dim ? 0.2 : 0.95}
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
                       const t = threeRef.current
-                      if (t?.startFocusAnim) {
-                        t.startFocusAnim(d.id)
-                        setSelId(d.id)
-                      }
+                      if (t?.startFocusAnim) { t.startFocusAnim(d.idx); setSelTowerIdx(d.idx) }
                     }}
                   />
                 ))}
               </svg>
-              <button
-                onClick={() => setShowMinimap(false)}
+              <button onClick={() => setShowMinimap(false)}
                 style={{
-                  position: 'absolute', top: 2, right: 2,
-                  width: 16, height: 16, borderRadius: 4,
-                  background: 'rgba(0,0,0,0.5)', border: 'none',
-                  color: 'var(--ink3)', cursor: 'pointer', fontSize: 10,
+                  position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 4,
+                  background: 'rgba(0,0,0,0.5)', border: 'none', color: 'var(--ink3)',
+                  cursor: 'pointer', fontSize: 10, padding: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: 0,
-                }}
-                aria-label={en ? 'Hide minimap' : 'Скрыть карту'}
-              >×</button>
+                }} aria-label="hide minimap">×</button>
             </div>
           )}
-          {/* Кнопка показать минимап если скрыт */}
-          {!showMinimap && !useFallback && buildings.length >= 6 && (
-            <button
-              onClick={() => setShowMinimap(true)}
+          {!showMinimap && !useFallback && towers.length >= 4 && (
+            <button onClick={() => setShowMinimap(true)}
               style={{
                 position: 'absolute', bottom: 12, right: 12,
-                background: 'rgba(10,10,24,0.7)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 6, padding: '4px 8px',
-                fontSize: 11, color: 'var(--ink3)', cursor: 'pointer',
-                zIndex: 5,
-              }}
-            >🗺</button>
+                background: 'rgba(10,10,24,0.7)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 6, padding: '4px 8px', fontSize: 11,
+                color: 'var(--ink3)', cursor: 'pointer', zIndex: 5,
+              }}>🗺</button>
           )}
         </div>
       )}
 
       {/* Photo Mode buttons */}
       {!useFallback && (
-        <div style={{
-          display: 'flex', justifyContent: 'center', marginTop: 10, gap: 6,
-          flexWrap: 'wrap', alignItems: 'center',
-        }}>
-          <div style={{
-            display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)',
-            borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)',
-          }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10, gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
             {CAMERA_PRESETS_UI.map(p => {
               const active = currentPreset === p.id
               return (
-                <button
-                  key={p.id}
-                  onClick={() => applyCameraPreset(p.id)}
-                  disabled={isTimelapsing}
+                <button key={p.id} onClick={() => applyCameraPreset(p.id)} disabled={isTimelapsing}
                   style={{
                     fontSize: 11, padding: '6px 10px', borderRadius: 6,
                     background: active ? 'var(--accent)' : 'transparent',
-                    color: active ? '#0a0a12' : 'var(--ink2)',
-                    border: 'none', cursor: isTimelapsing ? 'default' : 'pointer',
-                    opacity: isTimelapsing ? 0.5 : 1,
-                    fontWeight: active ? 700 : 500, fontFamily: 'inherit',
-                    transition: 'all 0.15s ease',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                  }}
-                  aria-pressed={active}
-                >
-                  <span>{p.emoji}</span>
-                  <span>{en ? p.label_en : p.label_ru}</span>
+                    color: active ? '#0a0a12' : 'var(--ink2)', border: 'none',
+                    cursor: isTimelapsing ? 'default' : 'pointer',
+                    opacity: isTimelapsing ? 0.5 : 1, fontWeight: active ? 700 : 500,
+                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+                  }} aria-pressed={active}>
+                  <span>{p.emoji}</span><span>{en ? p.label_en : p.label_ru}</span>
                 </button>
               )
             })}
           </div>
 
-          <button
-            onClick={toggleAutoRotate}
-            disabled={isTimelapsing}
+          <button onClick={toggleAutoRotate} disabled={isTimelapsing}
             style={{
               fontSize: 11, padding: '6px 10px', borderRadius: 8,
               background: autoRotate ? 'rgba(61,214,140,0.15)' : 'var(--surface2)',
               color: autoRotate ? 'var(--green)' : 'var(--ink3)',
               border: `1px solid ${autoRotate ? 'var(--green)' : 'rgba(255,255,255,0.05)'}`,
               cursor: isTimelapsing ? 'default' : 'pointer',
-              opacity: isTimelapsing ? 0.5 : 1,
-              fontWeight: 600, fontFamily: 'inherit',
-              transition: 'all 0.15s ease',
+              opacity: isTimelapsing ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 4,
-            }}
-            aria-pressed={autoRotate}
-          >
-            <span>🔄</span>
-            <span>{en ? 'Rotate' : 'Авто'}</span>
+            }} aria-pressed={autoRotate}>
+            <span>🔄</span><span>{en ? 'Rotate' : 'Авто'}</span>
           </button>
 
-          <button
-            onClick={handleTimelapse}
+          <button onClick={handleTimelapse}
             style={{
               fontSize: 11, padding: '6px 10px', borderRadius: 8,
               background: isTimelapsing ? 'rgba(255,193,69,0.18)' : 'var(--surface2)',
@@ -1722,92 +1539,71 @@ export default function VictoryCity({ userId }) {
               border: `1px solid ${isTimelapsing ? 'var(--gold)' : 'rgba(255,255,255,0.05)'}`,
               cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 4,
-            }}
-          >
+            }}>
             <span>{isTimelapsing ? '⏹' : '⏯'}</span>
             <span>{isTimelapsing ? (en ? 'Stop' : 'Стоп') : (en ? 'Time-lapse' : 'История')}</span>
           </button>
 
-          <button
-            onClick={handleFullscreen}
+          <button onClick={handleFullscreen}
             style={{
               fontSize: 11, padding: '6px 10px', borderRadius: 8,
               background: 'var(--surface2)', color: 'var(--ink3)',
               border: '1px solid rgba(255,255,255,0.05)',
               cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 4,
-            }}
-          >
+            }}>
             <span>{isFullscreen ? '🗗' : '⛶'}</span>
             <span>{isFullscreen ? (en ? 'Exit' : 'Свернуть') : (en ? 'Full' : 'Полный')}</span>
           </button>
 
-          {/* Weather toggle (только если сезон не лето) */}
           {seasonEmoji && (
-            <button
-              onClick={() => setWeatherEnabled(v => !v)}
-              disabled={isTimelapsing}
+            <button onClick={() => setWeatherEnabled(v => !v)} disabled={isTimelapsing}
               style={{
                 fontSize: 11, padding: '6px 10px', borderRadius: 8,
                 background: weatherEnabled ? 'rgba(74,158,255,0.15)' : 'var(--surface2)',
                 color: weatherEnabled ? 'var(--accent)' : 'var(--ink3)',
                 border: `1px solid ${weatherEnabled ? 'var(--accent)' : 'rgba(255,255,255,0.05)'}`,
                 cursor: isTimelapsing ? 'default' : 'pointer',
-                opacity: isTimelapsing ? 0.5 : 1,
-                fontWeight: 600, fontFamily: 'inherit',
+                opacity: isTimelapsing ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 4,
-              }}
-              aria-pressed={weatherEnabled}
-            >
-              <span>{seasonEmoji}</span>
-              <span>{seasonLabel}</span>
+              }} aria-pressed={weatherEnabled}>
+              <span>{seasonEmoji}</span><span>{seasonLabel}</span>
             </button>
           )}
 
-          {/* Filter dropdown */}
           <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowFilterMenu(s => !s)}
-              disabled={isTimelapsing}
+            <button onClick={() => setShowFilterMenu(s => !s)} disabled={isTimelapsing}
               style={{
                 fontSize: 11, padding: '6px 10px', borderRadius: 8,
                 background: buildingFilter !== 'all' ? 'rgba(155,89,182,0.15)' : (showFilterMenu ? 'rgba(255,255,255,0.05)' : 'var(--surface2)'),
                 color: buildingFilter !== 'all' ? '#cf9cff' : 'var(--ink3)',
                 border: `1px solid ${buildingFilter !== 'all' ? '#9b59b6' : 'rgba(255,255,255,0.05)'}`,
                 cursor: isTimelapsing ? 'default' : 'pointer',
-                opacity: isTimelapsing ? 0.5 : 1,
-                fontWeight: 600, fontFamily: 'inherit',
+                opacity: isTimelapsing ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >
-              <span>🔍</span>
-              <span>{en ? 'Filter' : 'Фильтр'}</span>
+              }}>
+              <span>🔍</span><span>{en ? 'Filter' : 'Фильтр'}</span>
             </button>
             {showFilterMenu && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                background: 'var(--surface)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10, padding: 6, minWidth: 160,
+                background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 10, padding: 6, minWidth: 180,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 10,
               }}>
                 {BUILDING_FILTERS_UI.map(f => {
                   const active = buildingFilter === f.id
                   return (
-                    <button
-                      key={f.id}
+                    <button key={f.id}
                       onClick={() => { setBuildingFilter(f.id); setShowFilterMenu(false) }}
                       style={{
                         width: '100%', padding: '7px 10px', borderRadius: 6,
                         background: active ? 'var(--accent)' : 'transparent',
-                        color: active ? '#0a0a12' : 'var(--ink2)',
-                        border: 'none', cursor: 'pointer',
-                        fontWeight: active ? 700 : 500, fontSize: 12,
+                        color: active ? '#0a0a12' : 'var(--ink2)', border: 'none',
+                        cursor: 'pointer', fontWeight: active ? 700 : 500, fontSize: 12,
                         fontFamily: 'inherit', textAlign: 'left',
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        marginBottom: 2,
-                      }}
-                    >
+                        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2,
+                      }}>
                       <span style={{ width: 16 }}>{f.emoji}</span>
                       <span>{en ? f.label_en : f.label_ru}</span>
                     </button>
@@ -1817,27 +1613,21 @@ export default function VictoryCity({ userId }) {
             )}
           </div>
 
-          {/* Snapshot */}
           <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowShotMenu(s => !s)}
+            <button onClick={() => setShowShotMenu(s => !s)}
               style={{
                 fontSize: 11, padding: '6px 12px', borderRadius: 8,
                 border: '1px solid var(--accent)',
                 background: showShotMenu ? 'rgba(74,158,255,0.15)' : 'transparent',
-                color: 'var(--accent)',
-                cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+                color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >
-              <span>📸</span>
-              <span>{en ? 'Snapshot' : 'Снимок'}</span>
+              }}>
+              <span>📸</span><span>{en ? 'Snapshot' : 'Снимок'}</span>
             </button>
             {showShotMenu && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                background: 'var(--surface)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 10, padding: 8, minWidth: 200,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 10,
               }}>
@@ -1848,33 +1638,22 @@ export default function VictoryCity({ userId }) {
                   {FILTERS_UI.map(f => {
                     const active = shotFilter === f.id
                     return (
-                      <button
-                        key={f.id}
-                        onClick={() => setShotFilter(f.id)}
+                      <button key={f.id} onClick={() => setShotFilter(f.id)}
                         style={{
                           fontSize: 11, padding: '5px 10px', borderRadius: 6,
                           background: active ? 'var(--accent)' : 'var(--surface2)',
-                          color: active ? '#0a0a12' : 'var(--ink2)',
-                          border: 'none', cursor: 'pointer',
-                          fontWeight: active ? 700 : 500, fontFamily: 'inherit',
-                        }}
-                      >
-                        {en ? f.label_en : f.label_ru}
-                      </button>
+                          color: active ? '#0a0a12' : 'var(--ink2)', border: 'none',
+                          cursor: 'pointer', fontWeight: active ? 700 : 500, fontFamily: 'inherit',
+                        }}>{en ? f.label_en : f.label_ru}</button>
                     )
                   })}
                 </div>
-                <button
-                  onClick={downloadScreenshot}
+                <button onClick={downloadScreenshot}
                   style={{
                     width: '100%', padding: '8px 12px', borderRadius: 6,
-                    background: 'var(--accent)', color: '#0a0a12',
-                    border: 'none', cursor: 'pointer', fontWeight: 700,
-                    fontSize: 12, fontFamily: 'inherit',
-                  }}
-                >
-                  {en ? 'Save / Share' : 'Сохранить'}
-                </button>
+                    background: 'var(--accent)', color: '#0a0a12', border: 'none',
+                    cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
+                  }}>{en ? 'Save / Share' : 'Сохранить'}</button>
               </div>
             )}
           </div>
@@ -1885,89 +1664,62 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
-      {/* Saved views row */}
-      {!useFallback && (savedViews.length > 0 || true) && (
-        <div style={{
-          display: 'flex', justifyContent: 'center', marginTop: 8, gap: 4,
-          flexWrap: 'wrap', alignItems: 'center',
-        }}>
+      {/* Saved views */}
+      {!useFallback && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           {savedViews.map((v, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 0,
-              background: 'var(--surface2)', borderRadius: 6,
-              border: '1px solid rgba(255,255,255,0.05)',
-              overflow: 'hidden',
+              display: 'flex', alignItems: 'center', background: 'var(--surface2)',
+              borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden',
             }}>
-              <button
-                onClick={() => loadView(v)}
-                disabled={isTimelapsing}
+              <button onClick={() => loadView(v)} disabled={isTimelapsing}
                 style={{
-                  fontSize: 11, padding: '5px 10px',
-                  background: 'transparent', color: 'var(--ink2)',
-                  border: 'none', cursor: isTimelapsing ? 'default' : 'pointer',
-                  opacity: isTimelapsing ? 0.5 : 1,
-                  fontFamily: 'inherit', fontWeight: 500,
-                }}
-              >📍 {v.name}</button>
-              <button
-                onClick={() => deleteView(i)}
+                  fontSize: 11, padding: '5px 10px', background: 'transparent',
+                  color: 'var(--ink2)', border: 'none',
+                  cursor: isTimelapsing ? 'default' : 'pointer',
+                  opacity: isTimelapsing ? 0.5 : 1, fontFamily: 'inherit', fontWeight: 500,
+                }}>📍 {v.name}</button>
+              <button onClick={() => deleteView(i)}
                 style={{
-                  fontSize: 12, padding: '5px 8px',
-                  background: 'transparent', color: 'var(--ink3)',
-                  border: 'none', borderLeft: '1px solid rgba(255,255,255,0.05)',
+                  fontSize: 12, padding: '5px 8px', background: 'transparent',
+                  color: 'var(--ink3)', border: 'none',
+                  borderLeft: '1px solid rgba(255,255,255,0.05)',
                   cursor: 'pointer', fontFamily: 'inherit',
-                }}
-                aria-label={en ? 'Delete view' : 'Удалить ракурс'}
-              >×</button>
+                }} aria-label="delete view">×</button>
             </div>
           ))}
           {savedViews.length < MAX_SAVED_VIEWS && (
-            <button
-              onClick={saveCurrentView}
-              disabled={isTimelapsing}
+            <button onClick={saveCurrentView} disabled={isTimelapsing}
               style={{
                 fontSize: 11, padding: '5px 10px', borderRadius: 6,
                 background: 'transparent', color: 'var(--ink3)',
                 border: '1px dashed rgba(255,255,255,0.15)',
                 cursor: isTimelapsing ? 'default' : 'pointer',
-                opacity: isTimelapsing ? 0.5 : 1,
-                fontFamily: 'inherit', fontWeight: 500,
+                opacity: isTimelapsing ? 0.5 : 1, fontFamily: 'inherit', fontWeight: 500,
                 display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >
+              }}>
               <span>+</span><span>{en ? 'Save view' : 'Сохранить ракурс'}</span>
             </button>
           )}
         </div>
       )}
 
-      {/* Day/Night */}
       {!useFallback && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
-          <div style={{
-            display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)',
-            borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)',
-          }}>
+          <div style={{ display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
             {TIME_PRESETS_UI.map(p => {
               const active = timeOfDay === p.id
               return (
-                <button
-                  key={p.id}
-                  onClick={() => applyTimeOfDay(p.id)}
-                  disabled={isTimelapsing}
+                <button key={p.id} onClick={() => applyTimeOfDay(p.id)} disabled={isTimelapsing}
                   style={{
                     fontSize: 11, padding: '6px 10px', borderRadius: 6,
                     background: active ? 'var(--accent)' : 'transparent',
-                    color: active ? '#0a0a12' : 'var(--ink2)',
-                    border: 'none', cursor: isTimelapsing ? 'default' : 'pointer',
-                    opacity: isTimelapsing ? 0.5 : 1,
-                    fontWeight: active ? 700 : 500, fontFamily: 'inherit',
+                    color: active ? '#0a0a12' : 'var(--ink2)', border: 'none',
+                    cursor: isTimelapsing ? 'default' : 'pointer',
+                    opacity: isTimelapsing ? 0.5 : 1, fontWeight: active ? 700 : 500, fontFamily: 'inherit',
                     display: 'flex', alignItems: 'center', gap: 4,
-                  }}
-                  aria-pressed={active}
-                >
-                  <span>{p.emoji}</span>
-                  <span>{en ? p.label_en : p.label_ru}</span>
+                  }} aria-pressed={active}>
+                  <span>{p.emoji}</span><span>{en ? p.label_en : p.label_ru}</span>
                 </button>
               )
             })}
@@ -1975,10 +1727,9 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
-      {/* Building modal */}
-      {selB && (() => {
-        const diffBonus = selB.is_ai ? getDiffBonus(selB.ai_difficulty) : 0
-        const diffLabel = getDiffLabel(selB.ai_difficulty, en)
+      {/* Tower modal — список побед составивших эту высотку */}
+      {selTower && (() => {
+        const wins = uniqueWinsInTower(selTower)
         return (
           <div style={{
             marginTop: 10, padding: '14px 16px',
@@ -1987,60 +1738,48 @@ export default function VictoryCity({ userId }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: selB.result === 'draw_won' ? 'var(--gold)' : 'var(--green)' }}>
-                  {selB.result === 'draw_won' ? '★ ' : '🏆 '}
-                  {selB.result === 'draw_won'
-                    ? (en ? 'Golden victory' : 'Победа по золотой')
-                    : (en ? 'Victory' : 'Победа')}
+                <div style={{ fontSize: 15, fontWeight: 700, color: selTower.golden_top ? 'var(--gold)' : 'var(--ink)' }}>
+                  {selTower.golden_top ? '★ ' : '🏢 '}
+                  {en ? 'Highrise' : 'Высотка'} #{selTowerIdx + 1} <span style={{ color: 'var(--ink3)', fontSize: 12, fontWeight: 400 }}>({selTower.height}/{TOWER_HEIGHT})</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>
-                  {new Date(selB.created_at * 1000).toLocaleDateString(
-                    en ? 'en-US' : 'ru',
-                    { day: 'numeric', month: 'long', year: 'numeric' }
-                  )}
+                  {selTower.is_closed
+                    ? (en ? 'Closed' : 'Закрыта') + (selTower.golden_top ? ' · ' + (en ? 'Crowned' : 'С короной') : '')
+                    : (en ? `Building... ${TOWER_HEIGHT - selTower.height} bricks to go` : `Строится... ещё ${TOWER_HEIGHT - selTower.height} кирпичей`)}
                 </div>
               </div>
-              <button
-                onClick={() => setSelId(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}
-              >✕</button>
+              <button onClick={() => setSelTowerIdx(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}>✕</button>
             </div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Opponent' : 'Соперник'}</div>
-                <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
-                  {selB.opponent_name || (selB.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок'))}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Floors' : 'Этажей'}</div>
-                <div style={{ fontWeight: 700, color: 'var(--gold)', marginTop: 2, fontSize: 16 }}>
-                  {getChips(selB).length}
-                  {diffBonus > 0 && <span style={{ fontSize: 11, color: '#ffc845', marginLeft: 4 }}>+{diffBonus}▲</span>}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Closed' : 'Достроено'}</div>
-                <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
-                  {(selB.stands_snapshot || []).filter(s => s.owner !== null).length} / 10
-                </div>
-              </div>
-              {diffLabel && (
-                <div>
-                  <div style={{ color: 'var(--ink3)' }}>{en ? 'Difficulty' : 'Сложность'}</div>
-                  <div style={{ fontWeight: 600, color: diffBonus >= 3 ? '#ffc845' : diffBonus >= 1 ? '#e8b830' : 'var(--ink)', marginTop: 2 }}>
-                    {diffLabel} {diffBonus > 0 && '⭐'.repeat(diffBonus)}
+            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>
+              {en ? 'Built from' : 'Построено из'} <strong style={{ color: 'var(--accent)' }}>{wins.length}</strong> {en ? 'wins' : 'побед'}
+              {' · '}{new Date(selTower.period_from * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+              {selTower.period_to !== selTower.period_from && ' — ' +
+                new Date(selTower.period_to * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+            </div>
+            <div style={{ maxHeight: 160, overflowY: 'auto', paddingRight: 4 }}>
+              {wins.map(w => (
+                <div key={w.source_id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 11,
+                }}>
+                  <div>
+                    <span style={{ color: 'var(--ink)' }}>vs {w.opponent || (w.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок'))}</span>
+                    {w.golden && <span style={{ color: 'var(--gold)', marginLeft: 4 }}>★</span>}
+                    {w.is_ai && w.ai_difficulty && (
+                      <span style={{ color: 'var(--ink3)', marginLeft: 6, fontSize: 10 }}>
+                        {getDiffLabel(w.ai_difficulty, en)}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 700 }}>+{w.bricks}🧱</span>
+                    <span style={{ color: 'var(--ink3)', fontSize: 10 }}>
+                      {new Date(w.date * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+                    </span>
                   </div>
                 </div>
-              )}
-              {selB.player_skin_id && selB.player_skin_id !== 'blocks_classic' && (
-                <div>
-                  <div style={{ color: 'var(--ink3)' }}>{en ? 'Skin' : 'Скин'}</div>
-                  <div style={{ fontWeight: 600, color: 'var(--accent)', marginTop: 2, fontSize: 11 }}>
-                    {selB.player_skin_id.replace('blocks_', '')}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
           </div>
         )
@@ -2049,8 +1788,8 @@ export default function VictoryCity({ userId }) {
       <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, opacity: 0.6 }}>
         {useFallback
           ? (en ? 'Scroll to zoom · Drag to pan · Tap a building for details' : 'Колёсико — зум · Тащи — пан · Тап — детали')
-          : (en ? 'Drag to rotate · Pinch/scroll to zoom · Hover for info · Tap a building to focus'
-                : 'Тащи — вращай · Щипок/колёсико — зум · Наведи — инфо · Тап — фокус')}
+          : (en ? 'Drag to rotate · Pinch/scroll to zoom · Hover for info · Tap a tower for wins list'
+                : 'Тащи — вращай · Щипок/колёсико — зум · Наведи — инфо · Тап — список побед')}
       </div>
     </div>
   )

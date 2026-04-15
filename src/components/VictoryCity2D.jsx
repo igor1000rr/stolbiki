@@ -1,77 +1,40 @@
 /**
  * VictoryCity2D — SVG 2.5D fallback для устройств без WebGL.
- * Копия прежнего изометрического рендера (v5.4.x) на SVG параллелограммах.
- * Используется из VictoryCity.jsx при WebGL error или при useSWRender=true.
+ * Адаптирован под новую модель: получает towers вместо buildings.
+ * Каждая tower — изометрическое здание из tower.pieces[].
  */
 import { useState, useEffect, useRef } from 'react'
-import { useI18n } from '../engine/i18n'
 
 const HW = 26
 const HH = 13
 const FH = 9
 const COLS = 5
+const TOWER_HEIGHT = 11
 
 const SKIN_PALETTE = {
-  blocks_classic:  { p1: ['#6db4ff','#3a85d0','#1a5fa0'], p2: ['#ff8888','#cc3333','#991111'] },
-  blocks_flat:     { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
-  blocks_round:    { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
-  blocks_glass:    { p1: ['rgba(74,158,255,0.85)','rgba(74,158,255,0.55)','rgba(74,158,255,0.3)'], p2: ['rgba(255,96,102,0.85)','rgba(255,96,102,0.55)','rgba(255,96,102,0.3)'] },
-  blocks_metal:    { p1: ['#b8d4f0','#6a9cc8','#4a7ca8'], p2: ['#f0b8b8','#c86a6a','#a84a4a'] },
-  blocks_candy:    { p1: ['#a0e0ff','#60c0ff','#40a0e0'], p2: ['#ffa0c0','#ff6090','#e04070'] },
-  blocks_pixel:    { p1: ['#4a9eff','#2a7edf','#1060b0'], p2: ['#ff6066','#df3040','#b01020'] },
-  blocks_neon:     { p1: ['#00e5ff','#0099bb','#006688'], p2: ['#ff3090','#bb0060','#880040'] },
-  blocks_glow:     { p1: ['#7ec8ff','#4a9eff','#2a7edf'], p2: ['#ff9090','#ff6066','#cc3333'] },
+  blocks_classic:  ['#6db4ff','#3a85d0','#1a5fa0'],
+  blocks_flat:     ['#4a9eff','#2a7edf','#1060b0'],
+  blocks_round:    ['#4a9eff','#2a7edf','#1060b0'],
+  blocks_glass:    ['#6ab4ff','#4a9eff','#2a7edf'],
+  blocks_metal:    ['#b8d4f0','#6a9cc8','#4a7ca8'],
+  blocks_candy:    ['#80d0ff','#4a9eff','#2a7edf'],
+  blocks_pixel:    ['#4a9eff','#2a7edf','#1060b0'],
+  blocks_neon:     ['#00e5ff','#0099bb','#006688'],
+  blocks_glow:     ['#7ec8ff','#4a9eff','#2a7edf'],
 }
+const GOLDEN_PAL = ['#ffd86e','#bf8800','#8a5f00']
+const CROWN_PAL  = ['#ffe080','#e0a030','#a07020']
 
-const CHIP_DEFAULT = {
-  0: ['#6db4ff','#3a85d0','#1a5fa0'],
-  1: ['#ff8888','#cc3333','#991111'],
-  g: ['#ffd86e','#bf8800','#8a5f00'],
-}
-
-const SPIRE_COLORS = {
-  1: ['#d4a017','#9a7010','#6a4c08'],
-  2: ['#e8b830','#b08820','#806012'],
-  3: ['#ffc845','#c09020','#906814'],
-  4: ['#ffe080','#e0a030','#a07020'],
-}
-
-function getDiffBonus(aiDifficulty) {
-  if (!aiDifficulty) return 0
-  const d = typeof aiDifficulty === 'number' ? aiDifficulty : parseInt(aiDifficulty, 10) || 0
-  if (d >= 1500) return 4
-  if (d >= 800)  return 3
-  if (d >= 400)  return 2
-  if (d >= 150)  return 1
-  return 0
-}
-
-function getDiffLabel(aiDifficulty, en) {
-  if (!aiDifficulty) return null
-  const d = typeof aiDifficulty === 'number' ? aiDifficulty : parseInt(aiDifficulty, 10) || 0
-  if (d >= 1500) return en ? 'Impossible' : 'Невозможно'
-  if (d >= 800)  return en ? 'Extreme' : 'Экстрим'
-  if (d >= 400)  return en ? 'Hard' : 'Сложно'
-  if (d >= 150)  return en ? 'Medium' : 'Средняя'
-  return en ? 'Easy' : 'Лёгкая'
-}
-
-function getSkinColors(skinId, colorIdx) {
-  if (skinId && SKIN_PALETTE[skinId]) {
-    return colorIdx === 0 ? SKIN_PALETTE[skinId].p1 : SKIN_PALETTE[skinId].p2
-  }
-  return CHIP_DEFAULT[colorIdx] || CHIP_DEFAULT[0]
+function pieceColors(piece) {
+  if (piece.special) return GOLDEN_PAL
+  return SKIN_PALETTE[piece.skin_id] || SKIN_PALETTE.blocks_classic
 }
 
 function pts(arr) {
   return arr.map(([a, b]) => `${a},${b}`).join(' ')
 }
 
-function IsoFloor({ bx, by, i, color, golden, skinId, spireLevel = 0 }) {
-  let c
-  if (spireLevel > 0) c = SPIRE_COLORS[spireLevel] || SPIRE_COLORS[1]
-  else if (golden) c = CHIP_DEFAULT.g
-  else c = getSkinColors(skinId, color)
+function IsoFloor({ bx, by, i, palette }) {
   const y0 = by - i * FH
   const y1 = by - (i + 1) * FH
   const left  = pts([[bx-HW,y1],[bx,y1+HH],[bx,y0+HH],[bx-HW,y0]])
@@ -79,17 +42,17 @@ function IsoFloor({ bx, by, i, color, golden, skinId, spireLevel = 0 }) {
   const top   = pts([[bx-HW,y1],[bx,y1-HH],[bx+HW,y1],[bx,y1+HH]])
   return (
     <g>
-      <polygon points={left}  fill={c[1]} />
-      <polygon points={right} fill={c[2]} />
-      <polygon points={top}   fill={c[0]} />
+      <polygon points={left}  fill={palette[1]} />
+      <polygon points={right} fill={palette[2]} />
+      <polygon points={top}   fill={palette[0]} />
     </g>
   )
 }
 
-function Building({ bx, by, chips, golden, skinId, extraFloors = 0, selected, onSelect }) {
-  if (!chips.length) return null
-  const n = chips.length
-  const totalFloors = n + extraFloors
+function Tower({ bx, by, tower, selected, onSelect }) {
+  if (!tower.pieces.length) return null
+  const n = tower.pieces.length
+  const totalFloors = n + (tower.is_closed && tower.golden_top ? 1 : 0)
   const outline = pts([
     [bx, by - totalFloors * FH - HH],
     [bx + HW, by - totalFloors * FH],
@@ -100,56 +63,41 @@ function Building({ bx, by, chips, golden, skinId, extraFloors = 0, selected, on
   ])
   return (
     <g onClick={onSelect} style={{ cursor: 'pointer' }}>
-      {chips.map((c, i) => {
-        const isTop = i === n - 1 && extraFloors === 0
-        return <IsoFloor key={i} bx={bx} by={by} i={i} color={c} golden={isTop && golden} skinId={skinId} />
-      })}
-      {extraFloors > 0 && Array.from({ length: extraFloors }).map((_, j) => {
-        const spireLevel = extraFloors - j
-        const clamped = Math.max(1, Math.min(4, spireLevel))
-        return <IsoFloor key={`spire-${j}`} bx={bx} by={by} i={n + j} color={0} golden={false} skinId={skinId} spireLevel={clamped} />
-      })}
+      {tower.pieces.map((p, i) => (
+        <IsoFloor key={i} bx={bx} by={by} i={i} palette={pieceColors(p)} />
+      ))}
+      {tower.is_closed && tower.golden_top && (
+        <IsoFloor bx={bx} by={by} i={n} palette={CROWN_PAL} />
+      )}
       {selected && <polygon points={outline} fill="none" stroke="rgba(255,193,69,0.9)" strokeWidth="1.5" />}
     </g>
   )
 }
 
-function getChips(building) {
-  const snap = building.stands_snapshot || []
-  const closed = snap.filter(s => s.owner !== null && Array.isArray(s.chips) && s.chips.length)
-  if (!closed.length) return []
-  return closed.reduce((a, b) => b.chips.length > a.chips.length ? b : a).chips
-}
-
-export default function VictoryCity2D({ buildings, stats, en }) {
-  const [selId, setSelId] = useState(null)
+export default function VictoryCity2D({ towers, stats, en }) {
+  const [selIdx, setSelIdx] = useState(null)
   const [view, setView] = useState(null)
   const containerRef = useRef(null)
   const dragRef = useRef(null)
 
-  const positioned = buildings
-    .map((b, i) => ({
-      b,
-      col: i % COLS,
-      row: Math.floor(i / COLS),
-      chips: getChips(b),
-      extraFloors: b.is_ai ? getDiffBonus(b.ai_difficulty) : 0,
+  const positioned = towers
+    .map((t, i) => ({
+      tower: t, idx: i,
+      col: i % COLS, row: Math.floor(i / COLS),
     }))
-    .filter(p => p.chips.length)
-    .sort((a, b_) => (a.col + a.row) - (b_.col + b_.row))
+    .sort((a, b) => (a.col + a.row) - (b.col + b.row))
 
-  const rows = Math.max(1, Math.ceil(buildings.length / COLS))
-  const maxExtra = positioned.reduce((m, p) => Math.max(m, p.extraFloors), 0)
-  const maxChips = positioned.reduce((m, p) => Math.max(m, p.chips.length), 11)
+  const rows = Math.max(1, Math.ceil(towers.length / COLS))
+  const maxFloors = positioned.reduce((m, p) =>
+    Math.max(m, p.tower.pieces.length + (p.tower.is_closed && p.tower.golden_top ? 1 : 0)), 11)
   const pad = 14
-  const totalMaxH = maxChips + maxExtra
   const vx0 = -(rows - 1) * HW - HW - pad
   const vx1 = (COLS - 1) * HW + HW + pad
-  const vy0 = -totalMaxH * FH - HH - pad
+  const vy0 = -maxFloors * FH - HH - pad
   const vy1 = (COLS - 1 + rows - 1) * HH + HH * 2 + pad
   const vw0 = vx1 - vx0, vh0 = vy1 - vy0
 
-  useEffect(() => { setView({ x: vx0, y: vy0, w: vw0, h: vh0 }) }, [buildings.length]) // eslint-disable-line
+  useEffect(() => { setView({ x: vx0, y: vy0, w: vw0, h: vh0 }) }, [towers.length]) // eslint-disable-line
 
   const cv = view || { x: vx0, y: vy0, w: vw0, h: vh0 }
 
@@ -172,8 +120,7 @@ export default function VictoryCity2D({ buildings, stats, en }) {
   const onPointerDown = (e) => {
     if (e.target.tagName === 'polygon') return
     dragRef.current = {
-      sx: e.clientX, sy: e.clientY,
-      vx: cv.x, vy: cv.y,
+      sx: e.clientX, sy: e.clientY, vx: cv.x, vy: cv.y,
       cw: containerRef.current?.clientWidth || 320,
       ch: containerRef.current?.clientHeight || 220,
     }
@@ -188,7 +135,7 @@ export default function VictoryCity2D({ buildings, stats, en }) {
   }
   const onPointerUp = () => { dragRef.current = null }
 
-  const selB = selId ? buildings.find(b => b.id === selId) : null
+  const selTower = selIdx != null ? towers[selIdx] : null
 
   return (
     <div>
@@ -214,76 +161,46 @@ export default function VictoryCity2D({ buildings, stats, en }) {
               r={(i % 5 === 0) ? 1.4 : 0.6}
               fill="white" opacity={0.12 + (i % 8) * 0.06} />
           ))}
-          <circle cx={vx1 - 22} cy={vy0 + 22} r={11} fill="#f5e6b0" opacity="0.18" />
-          <circle cx={vx1 - 17} cy={vy0 + 18} r={9}  fill="#06060f" opacity="0.95" />
-          {positioned.map(({ b, col, row, chips, extraFloors }) => (
-            <Building
-              key={b.id}
+          {positioned.map(({ tower, idx, col, row }) => (
+            <Tower
+              key={idx}
               bx={(col - row) * HW}
               by={(col + row) * HH}
-              chips={chips}
-              golden={b.result === 'draw_won'}
-              skinId={b.player_skin_id || 'blocks_classic'}
-              extraFloors={extraFloors}
-              selected={selId === b.id}
-              onSelect={(e) => { e.stopPropagation(); setSelId(selId === b.id ? null : b.id) }}
+              tower={tower}
+              selected={selIdx === idx}
+              onSelect={(e) => { e.stopPropagation(); setSelIdx(selIdx === idx ? null : idx) }}
             />
           ))}
         </svg>
       </div>
 
-      {selB && (() => {
-        const diffBonus = selB.is_ai ? getDiffBonus(selB.ai_difficulty) : 0
-        const diffLabel = getDiffLabel(selB.ai_difficulty, en)
-        return (
-          <div style={{ marginTop: 10, padding: '14px 16px', background: 'var(--surface)',
-            borderRadius: 10, border: '1px solid rgba(255,193,69,0.22)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: selB.result === 'draw_won' ? 'var(--gold)' : 'var(--green)' }}>
-                  {selB.result === 'draw_won' ? '★ ' : '🏆 '}
-                  {selB.result === 'draw_won' ? (en ? 'Golden victory' : 'Победа по золотой') : (en ? 'Victory' : 'Победа')}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>
-                  {new Date(selB.created_at * 1000).toLocaleDateString(en ? 'en-US' : 'ru',
-                    { day: 'numeric', month: 'long', year: 'numeric' })}
-                </div>
+      {selTower && (
+        <div style={{ marginTop: 10, padding: '14px 16px', background: 'var(--surface)',
+          borderRadius: 10, border: '1px solid rgba(255,193,69,0.22)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: selTower.golden_top ? 'var(--gold)' : 'var(--ink)' }}>
+                {selTower.golden_top ? '★ ' : '🏢 '}
+                {en ? 'Highrise' : 'Высотка'} #{selIdx + 1}
+                <span style={{ color: 'var(--ink3)', fontSize: 12, fontWeight: 400, marginLeft: 6 }}>
+                  ({selTower.height}/{TOWER_HEIGHT})
+                </span>
               </div>
-              <button onClick={() => setSelId(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}>✕</button>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>
+                {selTower.is_closed ? (en ? 'Closed' : 'Закрыта') : (en ? 'Building...' : 'Строится...')}
+                {' · '}{selTower.source_wins} {en ? 'wins' : 'побед'}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Opponent' : 'Соперник'}</div>
-                <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
-                  {selB.opponent_name || (selB.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок'))}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Floors' : 'Этажей'}</div>
-                <div style={{ fontWeight: 700, color: 'var(--gold)', marginTop: 2, fontSize: 16 }}>
-                  {getChips(selB).length}
-                  {diffBonus > 0 && <span style={{ fontSize: 11, color: '#ffc845', marginLeft: 4 }}>+{diffBonus}▲</span>}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--ink3)' }}>{en ? 'Closed' : 'Достроено'}</div>
-                <div style={{ fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
-                  {(selB.stands_snapshot || []).filter(s => s.owner !== null).length} / 10
-                </div>
-              </div>
-              {diffLabel && (
-                <div>
-                  <div style={{ color: 'var(--ink3)' }}>{en ? 'Difficulty' : 'Сложность'}</div>
-                  <div style={{ fontWeight: 600, color: diffBonus >= 3 ? '#ffc845' : diffBonus >= 1 ? '#e8b830' : 'var(--ink)', marginTop: 2 }}>
-                    {diffLabel} {diffBonus > 0 && '⭐'.repeat(diffBonus)}
-                  </div>
-                </div>
-              )}
-            </div>
+            <button onClick={() => setSelIdx(null)}
+              style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}>✕</button>
           </div>
-        )
-      })()}
+          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
+            {new Date(selTower.period_from * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+            {selTower.period_to !== selTower.period_from && ' — ' +
+              new Date(selTower.period_to * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
