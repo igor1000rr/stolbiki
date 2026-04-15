@@ -13,14 +13,11 @@
  *  - Минимум 1, максимум ~5 (Impossible + golden)
  *
  * Endpoints:
- *  - POST /api/buildings — записать победу (как раньше, не меняли)
- *  - GET /api/buildings/stats/:userId — агрегаты побед (как раньше)
- *  - GET /api/buildings/city/:userId — НОВОЕ: собранный город из кирпичей
- *  - GET /api/buildings/:userId — DEPRECATED: legacy список побед,
- *      оставлен для backward compat (старая логика 1 победа = 1 здание).
- *      Новый клиент использует /city.
- *
- * Таблица victory_buildings создаётся при импорте (CREATE TABLE IF NOT EXISTS).
+ *  - POST /api/buildings — записать победу
+ *  - GET /api/buildings/stats/:userId — агрегаты побед
+ *  - GET /api/buildings/city/:userId — собранный город из кирпичей
+ *  - GET /api/buildings/leaderboard — топ-города (Хол оф фейм)
+ *  - GET /api/buildings/:userId — DEPRECATED legacy список
  */
 
 import { Router } from 'express'
@@ -46,36 +43,30 @@ db.exec(`
     ON victory_buildings(user_id, created_at DESC);
 `)
 
-const TOWER_HEIGHT = 11   // как в самой игре
+const TOWER_HEIGHT = 11
 
-// Цена победы в кирпичах
 function brickValue(b) {
   let v = 1
-  // Бонус за сложность AI
   if (b.is_ai && b.ai_difficulty) {
     const d = parseInt(b.ai_difficulty, 10) || 0
-    if (d >= 1500) v += 3       // Impossible
-    else if (d >= 800) v += 2   // Extreme
-    else if (d >= 400) v += 1   // Hard
+    if (d >= 1500) v += 3
+    else if (d >= 800) v += 2
+    else if (d >= 400) v += 1
   }
-  // Победа над живым человеком
   if (!b.is_ai) v += 1
-  // Золотая победа
   if (b.result === 'draw_won') v += 1
   return v
 }
 
-// Является ли победа "особой" (золотой кирпич сверху если попадает в верх стойки)
 function isSpecialWin(b) {
   if (b.result === 'draw_won') return true
   if (b.is_ai && b.ai_difficulty) {
     const d = parseInt(b.ai_difficulty, 10) || 0
-    if (d >= 1500) return true   // Impossible
+    if (d >= 1500) return true
   }
   return false
 }
 
-// Скомпилировать город из кирпичей в стойки
 function compileCity(userId) {
   const rows = db.prepare(`
     SELECT id, opponent_name, is_ai, ai_difficulty, player_skin_id, result, created_at
@@ -84,7 +75,6 @@ function compileCity(userId) {
     ORDER BY created_at ASC
   `).all(userId)
 
-  // Раскладываем все кирпичи в плоский массив
   const pieces = []
   for (const b of rows) {
     const v = brickValue(b)
@@ -98,31 +88,25 @@ function compileCity(userId) {
         golden: b.result === 'draw_won',
         is_ai: !!b.is_ai,
         ai_difficulty: b.ai_difficulty,
-        // Только последний кирпич группы — special (он попадёт в "верх стека" этой победы)
         special: i === v - 1 && special,
       })
     }
   }
 
-  // Группируем по TOWER_HEIGHT в стойки (хронологически)
   const towers = []
   for (let i = 0; i < pieces.length; i += TOWER_HEIGHT) {
     const towerPieces = pieces.slice(i, i + TOWER_HEIGHT)
     const isClosed = towerPieces.length === TOWER_HEIGHT
     const topPiece = towerPieces[towerPieces.length - 1]
-    // Уникальные победы что внесли кирпичи в эту высотку
     const sourceIds = [...new Set(towerPieces.map(p => p.source_id))]
     towers.push({
       idx: towers.length,
       pieces: towerPieces,
       height: towerPieces.length,
       is_closed: isClosed,
-      // Золотой шпиль над закрытой высоткой если последний кирпич был особым
       golden_top: isClosed && topPiece.special,
-      // Период строительства этой высотки
       period_from: towerPieces[0].date,
       period_to: topPiece.date,
-      // Сколько уникальных побед составили эту высотку
       source_wins: sourceIds.length,
     })
   }
@@ -131,13 +115,70 @@ function compileCity(userId) {
     towers,
     total_bricks: pieces.length,
     total_wins: rows.length,
-    next_tower_progress: pieces.length % TOWER_HEIGHT,    // 0..10 — сколько кирпичей в текущей открытой высотке
+    next_tower_progress: pieces.length % TOWER_HEIGHT,
+  }
+}
+
+// ─── Кэш leaderboard: считается тяжело, обновляется раз в 5 минут ───
+const LEADERBOARD_TTL_MS = 5 * 60 * 1000
+let leaderboardCache = { data: null, builtAt: 0 }
+
+function buildLeaderboard(limit = 20) {
+  // Получаем все user_id у которых есть хоть одна победа.
+  // Считаем агрегаты в JS т.к. brickValue нелинейна и зависит от is_ai+difficulty+result.
+  const userRows = db.prepare(`
+    SELECT user_id, COUNT(*) as wins
+    FROM victory_buildings
+    GROUP BY user_id
+    HAVING wins > 0
+  `).all()
+
+  const enriched = []
+  for (const u of userRows) {
+    // Тянем юзера: имя + аватар если есть
+    const userInfo = db.prepare(`
+      SELECT id, name, avatar_url
+      FROM users WHERE id = ?
+    `).get(u.user_id)
+    if (!userInfo) continue
+
+    // Считаем кирпичи и закрытые высотки через compileCity
+    const city = compileCity(u.user_id)
+    const closedTowers = city.towers.filter(t => t.is_closed).length
+    const crownedTowers = city.towers.filter(t => t.golden_top).length
+
+    enriched.push({
+      user_id: userInfo.id,
+      name: userInfo.name || `Игрок #${userInfo.id}`,
+      avatar_url: userInfo.avatar_url || null,
+      total_wins: city.total_wins,
+      total_bricks: city.total_bricks,
+      closed_towers: closedTowers,
+      crowned_towers: crownedTowers,
+      // "Размер города" — комплексная метрика для главного топа
+      score: closedTowers * 100 + crownedTowers * 50 + city.total_bricks,
+    })
+  }
+
+  // Сортируем по разным метрикам, отдаём по N топов
+  const byScore = [...enriched].sort((a, b) => b.score - a.score).slice(0, limit)
+  const byBricks = [...enriched].sort((a, b) => b.total_bricks - a.total_bricks).slice(0, limit)
+  const byTowers = [...enriched].sort((a, b) => b.closed_towers - a.closed_towers || b.total_bricks - a.total_bricks).slice(0, limit)
+  const byCrowned = [...enriched].sort((a, b) => b.crowned_towers - a.crowned_towers || b.total_bricks - a.total_bricks).slice(0, limit)
+
+  return {
+    by_score: byScore,
+    by_bricks: byBricks,
+    by_towers: byTowers,
+    by_crowned: byCrowned,
+    total_players: enriched.length,
+    total_bricks_global: enriched.reduce((s, e) => s + e.total_bricks, 0),
+    total_towers_global: enriched.reduce((s, e) => s + e.closed_towers, 0),
   }
 }
 
 const router = Router()
 
-// ─── POST /api/buildings — сохранить победу ───
 router.post('/', auth, (req, res) => {
   try {
     const {
@@ -170,15 +211,8 @@ router.post('/', auth, (req, res) => {
          stands_snapshot, player_skin_id, background_id, result, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))
     `).run(
-      req.user.id,
-      game_id || null,
-      oppName,
-      is_ai ? 1 : 0,
-      aiDiff,
-      snapshotJson,
-      skin,
-      bg,
-      result
+      req.user.id, game_id || null, oppName,
+      is_ai ? 1 : 0, aiDiff, snapshotJson, skin, bg, result
     )
     res.json({ ok: true, id: info.lastInsertRowid })
   } catch (e) {
@@ -187,7 +221,6 @@ router.post('/', auth, (req, res) => {
   }
 })
 
-// ─── GET /api/buildings/stats/:userId ───
 router.get('/stats/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -207,7 +240,6 @@ router.get('/stats/:userId', (req, res) => {
   })
 })
 
-// ─── GET /api/buildings/city/:userId — НОВЫЙ: собранный город из кирпичей ───
 router.get('/city/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -220,7 +252,27 @@ router.get('/city/:userId', (req, res) => {
   }
 })
 
-// ─── GET /api/buildings/:userId — DEPRECATED legacy список ───
+// ─── GET /api/buildings/leaderboard — Хол оф фейм ───
+// Тяжёлый запрос (compileCity для каждого юзера), кэшируется на 5 минут.
+router.get('/leaderboard', (req, res) => {
+  try {
+    const now = Date.now()
+    if (!leaderboardCache.data || (now - leaderboardCache.builtAt) > LEADERBOARD_TTL_MS) {
+      leaderboardCache = {
+        data: buildLeaderboard(20),
+        builtAt: now,
+      }
+    }
+    res.json({
+      ...leaderboardCache.data,
+      cached_age_sec: Math.floor((now - leaderboardCache.builtAt) / 1000),
+    })
+  } catch (e) {
+    console.error('GET /buildings/leaderboard error:', e)
+    res.status(500).json({ error: 'Не удалось построить таблицу лидеров' })
+  }
+})
+
 router.get('/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -242,7 +294,6 @@ router.get('/:userId', (req, res) => {
   res.json({ buildings, limit, offset })
 })
 
-// ─── DELETE /api/buildings/:id ───
 router.delete('/:id', auth, (req, res) => {
   const id = parseInt(req.params.id, 10)
   if (!id) return res.status(400).json({ error: 'invalid id' })
