@@ -13,9 +13,19 @@ import { filterText } from './routes/globalchat.js'
 import { canChatNow } from './chat-limits.js'
 import { sendPushTo, isPushConfigured } from './push-helpers.js'
 
+// ═══ Per-IP connection limit ═══
+// Защита от amplification DoS через множественные WS коннекты с одного IP.
+// Счётчики sub-second rate (5 chat/s, 20 gameplay/s) живут на замыкании одного
+// WS — атакующий мог бы открыть N коннектов и получить N×лимиты. Per-IP cap
+// это закрывает. 5 — щедро для одного юзера (вкладки + telegram web + прочее).
+const MAX_CONN_PER_IP = 5
+
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   const server = createServer(app)
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 })
+
+  // IP → Set<ws>
+  const ipConnections = new Map()
 
   // ─── Глобальный чат: подписчики ───
   // Set WS-клиентов подписанных на глобальный чат
@@ -108,6 +118,21 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     if (winner >= 0) {
       const roomWinner = gameToRoomPlayer(room, winner)
       room.scores[roomWinner]++
+
+      // SECURITY-ФИКС: server-verified начисление кирпичей за online-победу.
+      // Раньше бриксы начислялись ТОЛЬКО через /api/games с клиентским
+      // isOnline=true — читер мог слать AI-моды с флагом online и получать
+      // по 5 кирпичей вместо 1-3. Теперь сервер САМ начисляет в момент
+      // завершения online-матча — здесь известно что это реальный PvP.
+      try {
+        const winPlayer = room.players[roomWinner]
+        if (winPlayer?.userId) {
+          db.prepare('UPDATE users SET bricks = COALESCE(bricks, 0) + 5 WHERE id = ?')
+            .run(winPlayer.userId)
+          db.prepare('INSERT INTO brick_transactions (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)')
+            .run(winPlayer.userId, 5, 'win:pvp_verified', Date.now())
+        }
+      } catch {}
     }
     if (room.moveHistory && room.moveHistory.length >= 5) {
       try {
@@ -155,6 +180,20 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   wss.on('connection', (ws, req) => {
     ws.isAlive = true
     ws.on('pong', () => { ws.isAlive = true })
+
+    // SECURITY: IP extraction с учётом trust proxy (nginx → x-forwarded-for)
+    const xff = req.headers['x-forwarded-for']
+    const ip = (typeof xff === 'string' ? xff.split(',')[0].trim() : null) || req.socket.remoteAddress || 'unknown'
+
+    // SECURITY: per-IP cap против amplification DoS через множественные коннекты
+    if (!ipConnections.has(ip)) ipConnections.set(ip, new Set())
+    const conns = ipConnections.get(ip)
+    if (conns.size >= MAX_CONN_PER_IP) {
+      try { ws.close(1008, 'Too many connections from IP') } catch {}
+      return
+    }
+    conns.add(ws)
+    ws._trackedIp = ip
 
     let playerRoom = null
     let playerIdx = -1
@@ -280,15 +319,26 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // ─── MATCHMAKING ───
       if (msg.type === 'findMatch') {
-        const name = wsUser?.username || msg.name || 'Player'
+        // SECURITY-ФИКС: только авторизованные могут искать ранговый матч.
+        // Раньше любой гость мог подсесть в очередь с rating=1000 → играл
+        // против реальных рейтинговых игроков без аккаунта. Рейтинг теряется
+        // корректно (/api/games требует auth), но UX и справедливость страдают.
+        if (!wsUser) {
+          ws.send(JSON.stringify({ type: 'error', msg: 'Для рангового матча нужна авторизация' }))
+          return
+        }
+        const name = wsUser.username
         const skins = msg.skins || {}
-        const rating = wsUser?.rating || 1000
+        const rating = wsUser.rating || 1000
+        // SECURITY-ФИКС: sanitizeTimer против больших/отрицательных значений
+        const safeTimer = sanitizeTimer(msg.timer)
+
         for (let i = matchQueue.length - 1; i >= 0; i--) {
           if (matchQueue[i].ws.readyState !== 1) matchQueue.splice(i, 1)
         }
         if (matchQueue.some(q => q.ws === ws)) return
 
-        const entry = { ws, name, userId: wsUser?.id || null, skins, rating, joinedAt: Date.now() }
+        const entry = { ws, name, userId: wsUser.id, skins, rating, joinedAt: Date.now() }
         matchQueue.push(entry)
 
         let matched = null
@@ -318,8 +368,8 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
             ],
             mode: 'single', totalGames: 1, currentGame: 1, scores: [0, 0],
             gameState: new GameState(), firstPlayer: 0, spectators: [],
-            timer: msg.timer || null,
-            playerTime: msg.timer ? [msg.timer * 60, msg.timer * 60] : null,
+            timer: safeTimer,
+            playerTime: safeTimer ? [safeTimer * 60, safeTimer * 60] : null,
           }
           rooms.set(roomId, room)
           p1.ws.send(JSON.stringify({ type: 'matchFound', roomId, playerIdx: 0, opponentRating: p2.rating }))
@@ -536,14 +586,10 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         }
       }
 
-      if (msg.type === 'gameOver' && playerRoom) {
-        if (!playerRoom.gameState) {
-          const room = playerRoom
-          if (msg.winner === 0) room.scores[0]++
-          else if (msg.winner === 1) room.scores[1]++
-          handleTournamentNext(room)
-        }
-      }
+      // SECURITY-ФИКС: удалён handler msg.type === 'gameOver'.
+      // Раньше при playerRoom.gameState === null доверяли клиенту
+      // (msg.winner) и меняли scores. Сервер должен быть авторитативным —
+      // если gameState пропал, это баг сервера, а не повод верить клиенту.
 
       // ─── REMATCH ───
       if (msg.type === 'rematchOffer' && playerRoom) {
@@ -568,6 +614,15 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     })
 
     ws.on('close', () => {
+      // Per-IP cleanup
+      if (ws._trackedIp) {
+        const conns = ipConnections.get(ws._trackedIp)
+        if (conns) {
+          conns.delete(ws)
+          if (conns.size === 0) ipConnections.delete(ws._trackedIp)
+        }
+      }
+
       // Убираем из чата
       chatSubscribers.delete(ws)
 
