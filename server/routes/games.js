@@ -22,38 +22,33 @@ router.post('/games', auth, (req, res) => {
   }
   if (s1 + s2 > 10) return res.status(400).json({ error: 'Сумма счёта > 10' })
 
-  const safeTurns = Math.max(0, Math.min(500, Math.floor(+turns || 0)))
   const safeDuration = Math.max(0, Math.min(7200, Math.floor(+duration || 0)))
   const safeDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 150)))
 
-  let verifiedWon = !!won
-  let verifiedScore = score
-  let verifiedTurns = safeTurns
-  if (moves && Array.isArray(moves) && moves.length >= 5) {
-    const v = verifyGameFromMoves(moves)
-    if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
-    verifiedScore = v.scoreStr
-    verifiedTurns = v.turns
+  // SECURITY-ФИКС: moves обязательны для ВСЕХ партий (включая online).
+  // Раньше isOnline=true пропускало верификацию через верификацию ходов —
+  // читер мог слать любой счёт без проверки. Клиент отправляет moveHistoryRef
+  // во всех режимах (AI и online), так что requirement не ломает legitimate поток.
+  if (!moves || !Array.isArray(moves) || moves.length < 5) {
+    return res.status(400).json({ error: 'Требуется история ходов (минимум 5)' })
+  }
+  const v = verifyGameFromMoves(moves)
+  if (!v.ok) return res.status(400).json({ error: 'Нелегальная последовательность ходов' })
 
-    // БАГ-ФИКС: раньше было verifiedWon = v.winner === 0, что ломало игроков за цвет 1
-    // (красные). Все их партии получали "Результат не совпадает с ходами" → 400.
-    //
-    // Теперь если клиент передал humanColor (0|1) — сверяем v.winner с ним.
-    // Ничья (v.winner === -1) → всегда не-победа.
-    // Если humanColor не передан (старые клиенты) — доверяем !!won как было,
-    // чтобы не ломать обратную совместимость. После обновления клиента anti-cheat
-    // восстановится (см. этап 2 в клиентском коммите).
-    const hc = (humanColor === 0 || humanColor === 1) ? humanColor : null
-    if (hc !== null) {
-      verifiedWon = v.winner === hc
-      if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
-    } else {
-      // Legacy fallback: без humanColor можем только проверить согласованность победы vs ничьей
-      if (!!won && v.winner < 0) return res.status(400).json({ error: 'Ничья, а не победа' })
-      verifiedWon = !!won
-    }
+  const verifiedScore = v.scoreStr
+  const verifiedTurns = v.turns
+  let verifiedWon
+
+  // humanColor: если клиент передал 0|1 — строгая проверка winner.
+  // Legacy fallback для старых клиентов, которые не передают humanColor.
+  // TODO: сделать required через 30 дней (отслеживать % клиентов через лог).
+  const hc = (humanColor === 0 || humanColor === 1) ? humanColor : null
+  if (hc !== null) {
+    verifiedWon = v.winner === hc
+    if (verifiedWon !== !!won) return res.status(400).json({ error: 'Результат не совпадает с ходами' })
   } else {
-    if (!isOnline) return res.status(400).json({ error: 'Требуется история ходов для AI-игры' })
+    if (!!won && v.winner < 0) return res.status(400).json({ error: 'Ничья, а не победа' })
+    verifiedWon = !!won
   }
 
   const now = Date.now()
@@ -105,22 +100,24 @@ router.post('/games', auth, (req, res) => {
 
   db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
 
-  if (moves && Array.isArray(moves) && moves.length >= 5) {
-    try {
-      const gameData = JSON.stringify(moves)
-      if (gameData.length < 500000) {
-        db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(req.user.id, gameData, verifiedWon ? 0 : 1, moves.length, isOnline ? 'online' : 'ai', safeDifficulty)
-      }
-    } catch {}
-  }
+  try {
+    const gameData = JSON.stringify(moves)
+    if (gameData.length < 500000) {
+      db.prepare('INSERT INTO training_data (user_id, game_data, winner, total_moves, mode, difficulty) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(req.user.id, gameData, verifiedWon ? 0 : 1, moves.length, isOnline ? 'online' : 'ai', safeDifficulty)
+    }
+  } catch {}
 
   // ─── Кирпичи за победу ───
+  // SECURITY-ФИКС: бриксы за online-победу теперь начисляются в ws.js
+  // handleServerGameOver (server-verified реальный PvP). Здесь только AI.
+  // Раньше клиент с isOnline=true получал 5 бриксов без проверки что это
+  // реальный онлайн-матч — можно было фармить по 5 за фейковые PvP.
   let bricksDelta = 0
   let bricksAfter = null
-  if (verifiedWon) {
-    bricksDelta = isOnline ? 5 : safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
-    bricksAfter = awardBricks(req.user.id, bricksDelta, `win:${isOnline ? 'pvp' : `ai_${safeDifficulty}`}`, gameResult.lastInsertRowid)
+  if (verifiedWon && !isOnline) {
+    bricksDelta = safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
+    bricksAfter = awardBricks(req.user.id, bricksDelta, `win:ai_${safeDifficulty}`, gameResult.lastInsertRowid)
   }
 
   // ─── Реферальная программа: +30 кирпичей рефереру при 10 партиях ───
