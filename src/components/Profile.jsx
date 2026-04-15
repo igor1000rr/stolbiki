@@ -24,6 +24,7 @@ import ProfileAccount from './ProfileAccount'
 import ProfileFriends from './ProfileFriends'
 import ProfileAnalytics from './ProfileAnalytics'
 import VictoryCity from './VictoryCity'
+import CityShareControls from './CityShareControls'
 import BrickBalance from './BrickBalance'
 import SeasonPass from './SeasonPass'
 import Clubs from './Clubs'
@@ -52,8 +53,6 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   const [profile, setProfile] = useState(loadLocal)
   const [publicProfile, setPublicProfile] = useState(null)
   const [publicLoading, setPublicLoading] = useState(false)
-  // initialTab позволяет вызывающему открыть Profile сразу на нужной вкладке
-  // (например, после онбординга — сразу 'city').
   const [tab, setTab] = useState(initialTab || 'profile')
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
@@ -71,8 +70,6 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   const [analyticsData, setAnalyticsData] = useState(null)
   const [referralData, setReferralData] = useState(null)
 
-  // Если родитель меняет initialTab после mount (например, второй заход
-  // в профиль с другой вкладкой) — переключаемся.
   useEffect(() => {
     if (initialTab) setTab(initialTab)
   }, [initialTab])
@@ -187,7 +184,6 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
     })
   }, [serverOnline, gameCtx]) // eslint-disable-line
 
-  // ─── Публичный профиль другого игрока ───
   if (viewUsername) {
     if (publicLoading) {
       return (
@@ -238,12 +234,29 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
             ))}
           </div>
           <PublicAchievementsList achievements={ppAchievements} en={en} />
+          {/* Сравнить свой город с этим публичным профилем */}
+          {pp.id && (() => {
+            const myProf = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { return {} } })()
+            if (!myProf?.id || myProf.id === pp.id) return null
+            return (
+              <div style={{
+                marginTop: 16, paddingTop: 14,
+                borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center',
+              }}>
+                <a href={`/compare/${myProf.id}/${pp.id}`} style={{
+                  display: 'inline-block', padding: '10px 16px', borderRadius: 8,
+                  background: 'rgba(255,216,110,0.1)', color: 'var(--gold)',
+                  border: '1px solid var(--gold)', textDecoration: 'none',
+                  fontSize: 12, fontWeight: 700,
+                }}>⚔ {en ? 'Compare cities' : 'Сравнить города'}</a>
+              </div>
+            )
+          })()}
         </div>
       </div>
     )
   }
 
-  // ─── Регистрация/логин ───
   if (!profile) {
     const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
       background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
@@ -285,7 +298,6 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
     )
   }
 
-  // ─── Основная панель профиля ───
   const winRate = profile.gamesPlayed > 0 ? (profile.wins / profile.gamesPlayed * 100).toFixed(1) : '—'
   const unlockedAch = ALL_ACHIEVEMENTS.filter(a => profile.achievements.includes(a.id))
 
@@ -490,6 +502,12 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
             🏙️ {en ? 'Victory City' : 'Город побед'}
           </h3>
           <VictoryCity userId={profile?.id} />
+          <CityShareControls
+            userId={profile?.id}
+            userName={profile?.name}
+            friendsList={friendsList}
+            en={en}
+          />
         </div>
       )}
       {tab === 'clubs' && <Clubs />}
