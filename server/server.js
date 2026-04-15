@@ -44,6 +44,7 @@ import clubsRouter from './routes/clubs.js'
 import pushRouter from './routes/push.js'
 import achievementsRouter from './routes/achievements.js'
 import onboardingRouter from './routes/onboarding.js'
+import embedRouter from './routes/embed.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -66,7 +67,13 @@ try {
   }
 } catch {}
 
-app.use(helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], scriptSrc: scriptSrcDirective, styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], fontSrc: ["'self'", 'https://fonts.gstatic.com'], imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru', 'https://api.qrserver.com'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://mc.yandex.ru'] } }, permissionsPolicy: { features: { camera: [], microphone: [], geolocation: [] } } }))
+// Helmet навешиваем на /api/* и всё остальное КРОМЕ /embed/* —
+// embed-страница сама ставит свои CSP/X-Frame-Options чтобы работать в iframe.
+const helmetMw = helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], scriptSrc: scriptSrcDirective, styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], fontSrc: ["'self'", 'https://fonts.gstatic.com'], imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru', 'https://api.qrserver.com'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://mc.yandex.ru'] } }, permissionsPolicy: { features: { camera: [], microphone: [], geolocation: [] } } })
+app.use((req, res, next) => {
+  if (req.path.startsWith('/embed/')) return next()
+  return helmetMw(req, res, next)
+})
 app.use(cors({ origin: (origin, cb) => { if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true); else cb(new Error(`CORS: origin ${origin} не разрешён`)) }, maxAge: 3600 }))
 
 const jsonSmall = express.json({ limit: '256kb' })
@@ -80,6 +87,8 @@ app.use('/api/', (req, res, next) => { apiStats.requests++; const start = Date.n
 app.use('/api/auth', rateLimit(60000, 20))
 app.use('/api/games', rateLimit(60000, 60))
 app.use('/api/', rateLimit(60000, 120))
+// embed: 60 запросов/мин с IP — валидное для iframe превью
+app.use('/embed/', rateLimit(60000, 60))
 
 const rooms = new Map()
 const matchQueue = []
@@ -199,6 +208,8 @@ app.use('/api/clubs', clubsRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/achievements', achievementsRouter)
 app.use('/api/onboarding', onboardingRouter)
+// ═══ Embed: отдаёт HTML, не JSON — монтируется под /embed а не /api ═══
+app.use('/embed', embedRouter)
 
 app.use('/api/', (req, res) => { res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` }) })
 
