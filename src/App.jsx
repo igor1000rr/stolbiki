@@ -6,12 +6,15 @@ import * as API from './engine/api'
 import Icon from './components/Icon'
 import BrickBalance from './components/BrickBalance'
 import ErrorBoundary from './components/ErrorBoundary'
+import WhatsNewModal from './components/WhatsNewModal'
+import RatePopup from './components/RatePopup'
+import StreakPopup from './components/StreakPopup'
+import CookieBanner from './components/CookieBanner'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
-import { shouldAskRating, markRatingAsked, shareApp } from './engine/appstore'
+import { shouldAskRating, shareApp } from './engine/appstore'
 import { initPush } from './engine/push'
 import { APP_VERSION } from './version'
-import { WHATS_NEW } from './data/whats-new'
 import './app.css'
 import './css/themes.css'
 import './css/native.css'
@@ -358,36 +361,11 @@ export default function App() {
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
       {showWhatsNew && !showSplash && tab !== 'landing' && !showOnboardingGame && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION) }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '24px 28px', maxWidth: 340, width: '90%',
-            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 64px rgba(0,0,0,0.5)' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ textAlign: 'center', marginBottom: 12 }}>
-              <div style={{ animation: 'float 1.5s ease-in-out infinite', display: 'inline-block' }}>
-                <img src="/mascot/celebrate.webp" alt="" width={64} height={64} style={{ objectFit: 'contain' }} />
-              </div>
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', textAlign: 'center', marginBottom: 4 }}>
-              {en ? "What's New" : 'Что нового'} <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 400 }}>v{APP_VERSION}</span>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'center', marginBottom: 16 }}>
-              {en ? 'Latest updates' : 'Последние обновления'}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(WHATS_NEW[en ? 'en' : 'ru']).map((item, i) => (
-                <div key={i} style={{ fontSize: 13, color: 'var(--ink2)', paddingLeft: 16, position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 0, color: 'var(--accent)' }}>•</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-            <button className="btn primary" onClick={() => { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION) }}
-              style={{ width: '100%', marginTop: 20, justifyContent: 'center', fontSize: 14 }}>
-              {en ? 'Got it!' : 'Понятно!'}
-            </button>
-          </div>
-        </div>
+        <WhatsNewModal
+          lang={lang}
+          version={APP_VERSION}
+          onClose={() => { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION) }}
+        />
       )}
 
       {showOnboardingGame && (
@@ -413,46 +391,16 @@ export default function App() {
       )}
 
       {showRatePopup && isNative && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2500, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={() => { markRatingAsked(); setShowRatePopup(false) }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '28px 24px', maxWidth: 340, width: '100%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.06)' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--gold)"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
-            </div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
-              {en ? 'Enjoying Highrise Heist?' : 'Нравится Highrise Heist?'}
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.5 }}>
-              {en ? 'Rate us on Google Play! It helps a lot.' : 'Оцените нас в Google Play! Это очень помогает.'}
-            </p>
-            <button onClick={() => { markRatingAsked(); setShowRatePopup(false) }} style={{ width: '100%', padding: '14px 0', borderRadius: 12, border: 'none', background: 'var(--gold)', color: 'var(--bg)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>
-              {en ? 'Rate now' : 'Оценить'}
-            </button>
-            <button onClick={() => { markRatingAsked(); setShowRatePopup(false) }} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'none', color: 'var(--ink3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {en ? 'Maybe later' : 'Позже'}
-            </button>
-          </div>
-        </div>
+        <RatePopup lang={lang} onClose={() => setShowRatePopup(false)} />
       )}
 
       {streakPopup && (
-        <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 2000, background: 'var(--surface)', borderRadius: 16, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 14, border: '1px solid rgba(255,193,69,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', animation: 'fadeIn 0.3s ease' }}>
-          <div style={{ fontSize: 32 }}>
-            <svg viewBox="0 0 32 32" width="36" height="36" fill="none">
-              <path d="M16 4c1 8-4 10-4 16a8 8 0 0016 0c0-6-5-8-4-16" stroke="var(--gold)" strokeWidth="2" fill="rgba(255,193,69,0.15)"/>
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>
-              {streakPopup.streak} {en ? 'day streak!' : (streakPopup.streak >= 5 ? 'дней подряд!' : streakPopup.streak >= 2 ? 'дня подряд!' : 'день подряд!')}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--ink2)' }}>
-              {en ? `Best: ${streakPopup.best}` : `Рекорд: ${streakPopup.best}`}
-              {streakPopup.streakXP && <span style={{ color: 'var(--green)', marginLeft: 8 }}>+{streakPopup.streakXP} XP</span>}
-            </div>
-          </div>
-        </div>
+        <StreakPopup
+          lang={lang}
+          streak={streakPopup.streak}
+          best={streakPopup.best}
+          streakXP={streakPopup.streakXP}
+        />
       )}
 
       {!isNative && <header className="site-header" role="banner">
@@ -831,21 +779,7 @@ export default function App() {
       )}
 
       {!isNative && !cookieOk && (
-        <div style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: 'var(--surface)', border: '1px solid var(--surface3)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontSize: 13, color: 'var(--ink2)', maxWidth: 600, width: 'calc(100% - 32px)' }}>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><circle cx="8" cy="9" r="1" fill="var(--gold)"/><circle cx="14" cy="7" r="1" fill="var(--gold)"/><circle cx="16" cy="13" r="1" fill="var(--gold)"/><circle cx="10" cy="15" r="1" fill="var(--gold)"/></svg>
-          <span style={{ flex: 1, lineHeight: 1.5 }}>
-            {en ? 'We use cookies and Yandex Metrika for analytics. No personal data is sold.' : 'Cookies для авторизации + Яндекс Метрика для аналитики. Данные не продаём.'}
-          </span>
-          <button className="btn primary" style={{ fontSize: 12, padding: '8px 20px', flexShrink: 0, borderRadius: 8 }}
-            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true); window.dispatchEvent(new Event('stolbiki-cookies-accepted')) }}>
-            OK
-          </button>
-          <button style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 16, padding: 4, flexShrink: 0 }}
-            onClick={() => { localStorage.setItem('stolbiki_cookies', '1'); setCookieOk(true); window.dispatchEvent(new Event('stolbiki-cookies-accepted')) }}
-            aria-label="Close">
-            ✕
-          </button>
-        </div>
+        <CookieBanner lang={lang} onAccept={() => setCookieOk(true)} />
       )}
 
     </div>
