@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { GameProvider } from './engine/GameContext'
 import { AuthProvider } from './engine/AuthContext'
 import { captureReferralCode } from './engine/api'
+import { getEmbedComponent } from './components/EmbedRoot'
 import App from './App'
 
 // Ловим ?ref=XXX из URL до рендера
@@ -133,12 +134,18 @@ if (isNative) {
   // Native mode
 }
 
+// РЕФАКТОР: embed/compare страницы рендерятся отдельной веткой ДО App.
+// Раньше это был early-return блок в App.jsx до useI18nProvider() —
+// нарушение rules of hooks. Provider-ы оставлены обёрнутыми вокруг embed
+// тоже на случай если EmbedCity/CompareCities используют контексты.
+const embedComponent = getEmbedComponent()
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
         <GameProvider>
-          <App />
+          {embedComponent ?? <App />}
         </GameProvider>
       </AuthProvider>
     </ErrorBoundary>
