@@ -1,19 +1,16 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
-import { I18nContext, useI18nProvider, LANGS } from './engine/i18n'
+import { I18nContext, useI18nProvider } from './engine/i18n'
 import { GameProvider, useGameContext } from './engine/GameContext'
 import { useAuth } from './engine/AuthContext'
 import * as API from './engine/api'
-import Icon from './components/Icon'
-import BrickBalance from './components/BrickBalance'
 import ErrorBoundary from './components/ErrorBoundary'
 import WhatsNewModal from './components/WhatsNewModal'
 import RatePopup from './components/RatePopup'
 import StreakPopup from './components/StreakPopup'
 import CookieBanner from './components/CookieBanner'
 import MoreTabPage from './components/MoreTabPage'
-import NotificationBell from './components/NotificationBell'
-import AuthDropdown from './components/AuthDropdown'
 import NativeTabs from './components/NativeTabs'
+import SiteHeader from './components/SiteHeader'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating } from './engine/appstore'
@@ -60,6 +57,7 @@ function LazyFallback() {
 // РЕФАКТОР: embed/compare роуты вынесены в src/components/EmbedRoot.jsx,
 // рендерятся в main.jsx ДО App. Раньше здесь был early-return блок до
 // useI18nProvider() — нарушение rules of hooks.
+// РЕФАКТОР: header вынесен в src/components/SiteHeader.jsx (~110 строк).
 
 export default function App() {
   const i18n = useI18nProvider()
@@ -407,134 +405,27 @@ export default function App() {
         />
       )}
 
-      {!isNative && <header className="site-header" role="banner">
-        <div className="site-header-inner">
-          <div className="site-logo" onClick={() => go('landing')}>
-            <img src="/logo-text.webp" alt="Highrise Heist" style={{ height: 28, width: 'auto' }} />
-            <span className="beta-badge">beta</span>
-          </div>
-
-          <nav className="site-nav-desktop" aria-label="Main navigation">
-            {primaryNav.map(n => (
-              <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
-                {n.label}
-              </button>
-            ))}
-            <div className="nav-more">
-              <button className={isSecondaryActive ? 'active' : ''}>
-                {en ? 'More' : 'Ещё'}
-                <Icon name="chevron" size={14} style={{ marginLeft: 3 }} />
-              </button>
-              <div className="nav-more-menu">
-                <div>
-                  {secondaryNav.map(n => (
-                    <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
-                      <Icon name={n.icon} size={15} style={{ marginRight: 8, opacity: 0.5 }} />
-                      {n.label}
-                    </button>
-                  ))}
-                  <div className="nav-more-divider" />
-                  <div className="nav-more-row">
-                    <button onClick={() => { setShowSkinShop(true); setMobileMenu(false) }}
-                      className="nav-more-theme active" style={{ flex: 1 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:6, flexShrink:0}}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
-                      <span style={{whiteSpace:'nowrap'}}>{en ? 'Customize' : 'Оформление'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </nav>
-
-          <div className="site-actions">
-            {authUser && (
-              <BrickBalance
-                bricks={authUser.bricks || 0}
-                onClick={() => setShowSkinShop(true)}
-                style={{ marginRight: 4 }}
-              />
-            )}
-
-            {authUser && (
-              <NotificationBell
-                count={notifCount}
-                data={notifData}
-                open={notifOpen}
-                onToggle={() => { setNotifOpen(v => !v); setAuthOpen(false) }}
-                onClose={() => setNotifOpen(false)}
-                onGo={go}
-                lang={lang}
-              />
-            )}
-
-            <div className="header-auth" ref={authRef}>
-              {authUser ? (
-                <button className="header-auth-user" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
-                  <div className="header-avatar">{
-                    authUser.avatar && authUser.avatar !== 'default'
-                      ? { cat:'🐱',dog:'🐶',fox:'🦊',bear:'🐻',owl:'🦉',robot:'🤖',crown:'👑',fire:'🔥',star:'⭐',diamond:'💎',ghost:'👻' }[authUser.avatar] || authUser.name.charAt(0).toUpperCase()
-                      : authUser.name.charAt(0).toUpperCase()
-                  }</div>
-                  <span className="header-username">{authUser.name}</span>
-                  {authUser.rating > 0 && <span className="header-rating">{authUser.rating}</span>}
-                </button>
-              ) : (
-                <button className="header-login-btn" onClick={(e) => { e.stopPropagation(); setAuthOpen(v => !v) }}>
-                  <Icon name="profile" size={14} />
-                  <span>{en ? 'Login' : 'Войти'}</span>
-                </button>
-              )}
-              {authOpen && (
-                <div className="header-auth-dropdown">
-                  <AuthDropdown
-                    authUser={authUser}
-                    lang={lang}
-                    authMode={authMode}
-                    authName={authName} setAuthName={setAuthName}
-                    authPass={authPass} setAuthPass={setAuthPass}
-                    authError={authError}
-                    authLoading={authLoading}
-                    onAuth={doAuth}
-                    onLogout={doLogout}
-                    onClose={() => setAuthOpen(false)}
-                    onGo={go}
-                    onSwitchMode={() => { setAuthMode(m => m === 'login' ? 'register' : 'login'); setAuthError('') }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {LANGS.map(l => (
-              <button key={l.code} onClick={() => setLang(l.code)} className={`lang-btn ${lang === l.code ? 'active' : ''}`}
-                aria-label={`Switch to ${l.code === 'ru' ? 'Russian' : 'English'}`} aria-pressed={lang === l.code}>
-                {l.label}
-              </button>
-            ))}
-            <button className="mobile-burger" onClick={() => setMobileMenu(m => !m)} aria-label={mobileMenu ? 'Close menu' : 'Open menu'}>
-              <Icon name={mobileMenu ? 'close' : 'menu'} size={22} />
-            </button>
-          </div>
-        </div>
-
-        {mobileMenu && (
-          <nav className="site-nav-mobile" aria-label="Mobile navigation">
-            {allNav.map(n => (
-              <button key={n.id} className={tab === n.id ? 'active' : ''} onClick={() => go(n.id)}>
-                <Icon name={n.icon} size={16} style={{ marginRight: 10, opacity: 0.5 }} />
-                {n.label}
-              </button>
-            ))}
-            <div className="nav-more-divider" />
-            <div style={{ padding: '8px 16px' }}>
-              <button onClick={() => { setShowSkinShop(true); setMobileMenu(false) }}
-                className="nav-more-theme active" style={{ width: '100%', padding: '10px 16px', fontSize: 13 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:6, flexShrink:0}}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
-                <span style={{whiteSpace:'nowrap'}}>{en ? 'Customize' : 'Оформление'}</span>
-              </button>
-            </div>
-          </nav>
-        )}
-      </header>}
+      {!isNative && (
+        <SiteHeader
+          lang={lang} setLang={setLang}
+          tab={tab} go={go}
+          mobileMenu={mobileMenu} setMobileMenu={setMobileMenu}
+          primaryNav={primaryNav} secondaryNav={secondaryNav}
+          allNav={allNav} isSecondaryActive={isSecondaryActive}
+          authUser={authUser}
+          notifCount={notifCount} notifData={notifData}
+          notifOpen={notifOpen} setNotifOpen={setNotifOpen}
+          authOpen={authOpen} setAuthOpen={setAuthOpen}
+          authMode={authMode} setAuthMode={setAuthMode}
+          authName={authName} setAuthName={setAuthName}
+          authPass={authPass} setAuthPass={setAuthPass}
+          authError={authError} setAuthError={setAuthError}
+          authLoading={authLoading}
+          doAuth={doAuth} doLogout={doLogout}
+          authRef={authRef}
+          onSkinShop={() => setShowSkinShop(true)}
+        />
+      )}
 
       <main className="site-content" id="main-content" role="main">
         <Suspense fallback={<LazyFallback />}>
