@@ -800,3 +800,67 @@ describe('Full game simulation', () => {
     expect(JSON.stringify(gs.stands)).toBe(original)
   })
 })
+
+// ═══ Regression: баги найденные в проде ═══
+describe('Regression: production bug fixes', () => {
+  // БАГ: на скрине игрока стойка с 11 блоками не закрыта (4 открытых, canClose=false).
+  // Корень: applyPlacement имел дыру при total===MAX_CHIPS && !canClose.
+  // Фикс: закрывать всегда при ≥11 + defensive-проверка без canClose-гейта.
+
+  it('placement доводит стойку до 11 — ДОЛЖНА быть закрыта при numOpen > 2', () => {
+    const stands = emptyStands()
+    stands[5] = Array(10).fill(0) // 10 блоков P0
+    // 4 открытых стойки → canClose=false
+    const gs = makeState(stands, { currentPlayer: 0, turn: 20 })
+    // Теоретически getValidPlacements не разрешил бы это действие (space-1).
+    // Но если оно как-то прошло (читер / рассинхрон / MCTS edge case),
+    // движок обязан всё равно закрыть стойку — иначе получим bagged state.
+    const ns = applyAction(gs, { placement: { 5: 1 } })
+    expect(ns.stands[5].length).toBe(11)
+    expect(5 in ns.closed).toBe(true)
+    expect(ns.closed[5]).toBe(0)
+  })
+
+  it('transfer доводит стойку до 11 — закрыта при numOpen > 2', () => {
+    const stands = emptyStands()
+    stands[5] = Array(9).fill(0)
+    stands[3] = [0, 0] // группа для переноса
+    const gs = makeState(stands, { currentPlayer: 0, turn: 15 })
+    const ns = applyAction(gs, { transfer: [3, 5], placement: {} })
+    expect(ns.stands[5].length).toBe(11)
+    expect(5 in ns.closed).toBe(true)
+    expect(ns.closed[5]).toBe(0)
+  })
+
+  it('defensive: стойка УЖЕ с 11 блоками закрывается любым action', () => {
+    // Моделируем рассинхрон — в стейте стойка с 11 блоками, но не в closed.
+    // Defensive-проверка в applyAction обязана её закрыть при любом ходу.
+    const stands = emptyStands()
+    stands[5] = Array(11).fill(0) // 11 блоков, но закрытия нет
+    stands[2] = [0] // чтобы было что-то легальное для placement
+    const gs = makeState(stands, { currentPlayer: 0, turn: 15 })
+    // No-op placement (пустой) тоже должен триггернуть defensive check
+    const ns = applyAction(gs, { placement: {} })
+    expect(5 in ns.closed).toBe(true)
+    expect(ns.closed[5]).toBe(0) // цвет верхней группы
+  })
+
+  it('invariant: после applyAction нет открытых стоек с ≥11 блоков', () => {
+    // Универсальная проверка инварианта через 20 случайных партий
+    for (let seed = 0; seed < 20; seed++) {
+      let gs = new GameState()
+      let safety = 0
+      while (!gs.gameOver && safety < 500) {
+        const actions = getLegalActions(gs)
+        if (actions.length === 0) break
+        const action = actions[Math.floor(Math.random() * actions.length)]
+        gs = applyAction(gs, action)
+        // После КАЖДОГО хода: открытые стойки должны быть строго < MAX_CHIPS
+        for (const i of gs.openStands()) {
+          expect(gs.stands[i].length).toBeLessThan(MAX_CHIPS)
+        }
+        safety++
+      }
+    }
+  })
+})
