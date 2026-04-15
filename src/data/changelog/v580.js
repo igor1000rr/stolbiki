@@ -47,6 +47,11 @@ export default {
     { type: 'perf', text: 'OG-картинки через @resvg/resvg-js (Rust binding, ~50ms) вместо headless chrome (экономия ~195MB зависимостей). LRU кэш 500 картинок / 1ч. Сброс после новой победы инвалидирует и city-, и compare-картинки' },
     { type: 'perf', text: 'IntersectionObserver останавливает рендер когда город вне экрана. visibilityState — когда вкладка в фоне. Окна башен рендерятся одним InstancedMesh' },
     { type: 'perf', text: 'Версионирование кэш-ключей OG (v1:userId, cmpv1:id1-id2). При правке SVG-дизайна бампаем префикс — старые картинки обновляются' },
+    { type: 'improve', text: 'Окна на высотках теперь зажигаются ночью при первой загрузке профиля, а не только после клика по пресету времени суток' },
+    { type: 'improve', text: 'Окна больше не висят в воздухе пока башни вырастают из земли (intro и time-lapse) — появляются только после того как город построен' },
+    { type: 'improve', text: 'Запись 8-секундного облёта больше не «съедает» включённый авто-поворот — после видео он восстанавливается, если был активен' },
+    { type: 'perf', text: 'Дороги (~10 штук) теперь шарят одну геометрию, материал и текстуру вместо клонирования каждой — экономия ~10 GPU-текстур и геометрий на каждое открытие профиля' },
+    { type: 'perf', text: 'Город побед корректно высвобождает все WebGL-ресурсы при закрытии профиля: убраны утечки прогресс-таймера записи, обработчиков мыши и race condition между unmount и анимационным циклом' },
   ],
   changes_en: [
     { type: 'new', text: 'New concept: 1 win = 1 to 5 bricks (instead of an entire skyscraper). 11 bricks = closed highrise. Just like in the game itself' },
@@ -92,5 +97,10 @@ export default {
     { type: 'perf', text: 'OG previews via @resvg/resvg-js (Rust binding, ~50ms) instead of headless chrome (saves ~195MB of dependencies). LRU cache 500 images / 1h. After a new win invalidates both city and compare images' },
     { type: 'perf', text: 'IntersectionObserver pauses rendering when city is off-screen. visibilityState — when tab is in the background. Tower windows are rendered as a single InstancedMesh' },
     { type: 'perf', text: 'Versioned OG cache keys (v1:userId, cmpv1:id1-id2). Bumping the prefix on SVG redesign — old previews refresh' },
+    { type: 'improve', text: 'Tower windows now light up at night on first profile load, not only after clicking a time-of-day preset' },
+    { type: 'improve', text: 'Windows no longer hang in the air while towers grow from the ground (intro and time-lapse) — they appear only after the city is built' },
+    { type: 'improve', text: '8-second flythrough recording no longer “eats” the enabled auto-rotate — after the video it is restored if it was active' },
+    { type: 'perf', text: 'Roads (~10 pieces) now share one geometry, material and texture instead of cloning each — saves ~10 GPU textures and geometries on every profile open' },
+    { type: 'perf', text: 'Victory City correctly releases all WebGL resources when the profile is closed: fixed leaks of recording progress timer, mouse handlers and a race condition between unmount and the animation loop' },
   ],
 }
