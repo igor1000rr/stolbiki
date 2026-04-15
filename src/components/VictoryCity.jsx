@@ -503,8 +503,11 @@ export default function VictoryCity({ userId }) {
         for (const t of towers) totalFloors += t.pieces.length
         const totalWindows = totalFloors * windowsPerFloor
         const windowGeo = new THREE.PlaneGeometry(0.55, 0.55)
+        // Initial opacity сразу выставляем по текущему timeOfDay чтобы окна светились
+        // ночью при первой загрузке — без необходимости кликать на time-preset.
+        const initialWindowGlow = TIME_PRESETS[timeOfDay]?.windowGlow ?? 0
         const windowMat = new THREE.MeshBasicMaterial({
-          color: 0xffe49a, transparent: true, opacity: 0,
+          color: 0xffe49a, transparent: true, opacity: initialWindowGlow,
           side: THREE.DoubleSide, depthWrite: false,
         })
         const windowsMesh = totalWindows > 0
@@ -688,6 +691,16 @@ export default function VictoryCity({ userId }) {
 
         if (windowsMesh) windowsMesh.instanceMatrix.needsUpdate = true
         if (smokeGeo) smokeGeo.attributes.position.needsUpdate = true
+
+        // Initial sync с timeOfDay: stars opacity тоже выставляем сразу,
+        // чтобы небо ночью было звёздное без анимации (она не запущена пока юзер
+        // не кликнет time-preset). Цвета scene.background/fog/sun уже соответствуют
+        // ночи через начальные значения выше.
+        const initialPreset = TIME_PRESETS[timeOfDay]
+        if (initialPreset) {
+          stars.material.opacity = initialPreset.starsOpacity
+          renderer.toneMappingExposure = initialPreset.exposure
+        }
 
         const controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true; controls.dampingFactor = 0.08
