@@ -140,12 +140,14 @@ function CompareModal({ userId, friendsList, en, onClose }) {
     window.location.href = `/compare/${userId}/${opponentId}`
   }
 
+  // Реальный endpoint в server/routes/profile.js: GET /api/profile/:username
+  // (без /public/!) — возвращает formatPublicUser с полем id.
   async function tryManual() {
     setManualErr(null)
     if (!manualName.trim()) return
     setManualLoading(true)
     try {
-      const r = await fetch(`/api/profile/public/${encodeURIComponent(manualName.trim())}`)
+      const r = await fetch(`/api/profile/${encodeURIComponent(manualName.trim())}`)
       if (!r.ok) throw new Error('not found')
       const data = await r.json()
       const oppId = data?.id || data?.user?.id

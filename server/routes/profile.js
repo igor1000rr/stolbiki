@@ -231,7 +231,20 @@ router.get('/referrals', auth, (req, res) => {
   }
 })
 
-// ВАЖНО: /:username должен быть ПОСЛЕДНИМ — иначе перехватит /avatar, /rating-history и т.д.
+// ═══ GET /api/profile/by-id/:id — публичный профиль по числовому id ═══
+// Нужен для Hall of Fame click — там есть только user_id, имя нужно получить
+// чтобы передать в Profile который работает по username.
+// Должен быть ПЕРЕД /:username иначе будет перехвачен как username='by-id'.
+router.get('/by-id/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10)
+  if (!id) return res.status(400).json({ error: 'invalid id' })
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id)
+  if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
+  const achievements = db.prepare('SELECT achievement_id FROM achievements WHERE user_id = ?').all(user.id)
+  res.json({ ...formatPublicUser(user), achievements: achievements.map(a => a.achievement_id) })
+})
+
+// ВАЖНО: /:username должен быть ПОСЛЕДНИМ — иначе перехватит /avatar, /rating-history, /by-id и т.д.
 router.get('/:username', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(req.params.username)
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' })
