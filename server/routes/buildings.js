@@ -118,9 +118,24 @@ function getUserBrief(userId) {
   }
 }
 
+// Безопасный SELECT с avatar_url — фолбэк если колонки нет в БД
+function safeSelectUsers(ids) {
+  if (!ids.length) return new Map()
+  const placeholders = ids.map(() => '?').join(',')
+  try {
+    const rows = db.prepare(`SELECT id, name, avatar_url FROM users WHERE id IN (${placeholders})`).all(...ids)
+    return new Map(rows.map(r => [r.id, r]))
+  } catch {
+    try {
+      const rows = db.prepare(`SELECT id, name FROM users WHERE id IN (${placeholders})`).all(...ids)
+      return new Map(rows.map(r => [r.id, r]))
+    } catch { return new Map() }
+  }
+}
+
 const router = Router()
 
-// ─── POST /api/buildings ===
+// ─── POST /api/buildings ───
 // Ответ включает поле city: {towers, total_bricks, total_wins, next_tower_progress}
 // Клиенту не нужно делать второй GET после победы — обновлённый город
 // возвращается сразу. Экономия 1 round-trip на каждую победу.
@@ -156,8 +171,10 @@ router.post('/', auth, (req, res) => {
       is_ai ? 1 : 0, aiDiff, snapshotJson, skin, bg, result
     )
     try { invalidateOgCache(req.user.id) } catch {}
+    // Лента и leaderboard содержат эту победу — сбрасываем
+    feedCache = null
+    leaderboardCache = null
 
-    // Возвращаем обновлённый город сразу — клиент обновляет UI без второго запроса.
     let city = null
     try { city = compileCity(req.user.id) } catch (e) {
       console.error('POST /buildings compileCity error:', e)
@@ -170,14 +187,132 @@ router.post('/', auth, (req, res) => {
   }
 })
 
-// ─── GET /api/buildings/feed/recent ───
-// Лента последних побед всех игроков + глобальные счётчики за 24ч.
-// Используется для статбара на лендинге и будущей глобальной ленты.
-// Кэш 30 секунд (лента обновляется не чаще).
+// ═══ Кэши лент/топов в памяти ═══
 let feedCache = null
 let feedCacheAt = 0
 const FEED_TTL_MS = 30 * 1000
 
+let leaderboardCache = null
+let leaderboardCacheAt = 0
+const LEADERBOARD_TTL_MS = 5 * 60 * 1000  // 5 минут — топ обновляется редко
+
+// ─── GET /api/buildings/leaderboard ───
+// Топ-20 игроков по 4 метрикам + глобальные счётчики.
+// Используется в Hall of Fame модалке.
+//
+// Метрики:
+//   score          = closed_towers × 100 + crowned_towers × 50 + total_bricks
+//   total_bricks   = сумма brickValue по всем победам игрока
+//   closed_towers  = floor(total_bricks / 11)
+//   crowned_towers = число закрытых высоток где 11-й (последний) кирпич — special
+//
+// Закрытые высотки и короны считаются дороже на JS-стороне через compileCity
+// (нужно знать порядок побед чтобы понять попадает ли special в топ-этаж стойки).
+// Для топ-20 это допустимо по перфу — кэш 5 минут.
+router.get('/leaderboard', (req, res) => {
+  const now = Date.now()
+  if (leaderboardCache && (now - leaderboardCacheAt) < LEADERBOARD_TTL_MS) {
+    res.set('Cache-Control', 'public, max-age=120')
+    return res.json({ ...leaderboardCache, cached_age_sec: Math.round((now - leaderboardCacheAt) / 1000) })
+  }
+
+  try {
+    // Шаг 1: достаём топ-100 кандидатов по сырому подсчёту кирпичей через SQL.
+    // Из них уже на JS-стороне вычисляем точные метрики через compileCity.
+    // 100 — потому что у топ-20 по разным метрикам могут быть разные игроки.
+    const candidates = db.prepare(`
+      SELECT user_id, COUNT(*) as wins,
+        SUM(
+          1
+          + CASE WHEN is_ai = 0 THEN 1 ELSE 0 END
+          + CASE
+              WHEN is_ai = 1 AND CAST(ai_difficulty AS INTEGER) >= 1500 THEN 3
+              WHEN is_ai = 1 AND CAST(ai_difficulty AS INTEGER) >= 800  THEN 2
+              WHEN is_ai = 1 AND CAST(ai_difficulty AS INTEGER) >= 400  THEN 1
+              ELSE 0
+            END
+          + CASE WHEN result = 'draw_won' THEN 1 ELSE 0 END
+        ) as bricks_raw
+      FROM victory_buildings
+      GROUP BY user_id
+      ORDER BY bricks_raw DESC
+      LIMIT 100
+    `).all()
+
+    if (!candidates.length) {
+      const empty = {
+        by_score: [], by_bricks: [], by_towers: [], by_crowned: [],
+        total_players: 0, total_bricks_global: 0, total_towers_global: 0,
+        cached_age_sec: 0,
+      }
+      leaderboardCache = empty
+      leaderboardCacheAt = now
+      return res.json(empty)
+    }
+
+    const userIds = candidates.map(c => c.user_id)
+    const usersMap = safeSelectUsers(userIds)
+
+    // Считаем точные метрики через compileCity для каждого кандидата.
+    // Для топ-100 это ~100 запросов в БД — приемлемо в кэшируемом эндпоинте.
+    const entries = []
+    for (const c of candidates) {
+      const u = usersMap.get(c.user_id)
+      if (!u) continue   // юзер удалён — пропускаем
+      let city
+      try { city = compileCity(c.user_id) } catch { continue }
+      const closed = city.towers.filter(t => t.is_closed).length
+      const crowned = city.towers.filter(t => t.golden_top).length
+      const score = closed * 100 + crowned * 50 + city.total_bricks
+      entries.push({
+        user_id: c.user_id,
+        name: u.name,
+        avatar_url: u.avatar_url || null,
+        total_wins: city.total_wins,
+        total_bricks: city.total_bricks,
+        closed_towers: closed,
+        crowned_towers: crowned,
+        score,
+        // Лёгкие данные для CityMiniPreview SVG (компактный формат)
+        towers_compact: city.towers.map(t => ({
+          h: t.pieces.length,
+          g: t.golden_top ? 1 : 0,
+        })),
+      })
+    }
+
+    // Сортировки — независимые срезы по 20
+    const by_score = [...entries].sort((a, b) => b.score - a.score).slice(0, 20)
+    const by_bricks = [...entries].sort((a, b) => b.total_bricks - a.total_bricks).slice(0, 20)
+    const by_towers = [...entries].sort((a, b) => b.closed_towers - a.closed_towers || b.total_bricks - a.total_bricks).slice(0, 20)
+    const by_crowned = [...entries].sort((a, b) => b.crowned_towers - a.crowned_towers || b.score - a.score).slice(0, 20)
+
+    // Глобальные счётчики
+    const totalPlayers = db.prepare('SELECT COUNT(DISTINCT user_id) as c FROM victory_buildings').get()?.c || 0
+    const totalBricks = entries.reduce((s, e) => s + e.total_bricks, 0)  // достаточно точно для top-100
+    const totalTowers = entries.reduce((s, e) => s + e.closed_towers, 0)
+
+    const result = {
+      by_score, by_bricks, by_towers, by_crowned,
+      total_players: totalPlayers,
+      total_bricks_global: totalBricks,
+      total_towers_global: totalTowers,
+      cached_age_sec: 0,
+    }
+    leaderboardCache = result
+    leaderboardCacheAt = now
+    res.set('Cache-Control', 'public, max-age=120')
+    res.json(result)
+  } catch (e) {
+    console.error('GET /buildings/leaderboard error:', e)
+    res.status(500).json({ error: 'Не удалось получить топ' })
+  }
+})
+
+// ─── GET /api/buildings/feed/recent ───
+// Лента последних побед всех игроков + глобальные счётчики за 24ч.
+// Используется для статбара на лендинге и будущей глобальной ленты.
+// Кэш 30 секунд (лента обновляется не чаще).
 router.get('/feed/recent', (req, res) => {
   const now = Date.now()
   if (feedCache && (now - feedCacheAt) < FEED_TTL_MS) {
@@ -189,7 +324,6 @@ router.get('/feed/recent', (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50)
     const oneDayAgo = Math.floor(now / 1000) - 24 * 3600
 
-    // Последние победы с именами игроков
     const recent = db.prepare(`
       SELECT vb.id, vb.user_id, vb.opponent_name, vb.is_ai, vb.ai_difficulty,
              vb.player_skin_id, vb.result, vb.created_at,
@@ -222,7 +356,6 @@ router.get('/feed/recent', (req, res) => {
       created_at: r.created_at,
     }))
 
-    // Глобальная статистика за 24ч и всё время
     const day = db.prepare(`
       SELECT COUNT(*) as wins, COUNT(DISTINCT user_id) as players
       FROM victory_buildings
@@ -234,8 +367,6 @@ router.get('/feed/recent', (req, res) => {
       FROM victory_buildings
     `).get()
 
-    // Глобальный подсчёт кирпичей: суммируем brickValue по всем победам.
-    // Выносим в SQL CASE-выражение — быстрее чем проход по всем рядам в JS.
     const bricksRow = db.prepare(`
       SELECT SUM(
         1
@@ -337,8 +468,8 @@ router.delete('/:id', auth, (req, res) => {
   if (row.user_id !== req.user.id) return res.status(403).json({ error: 'forbidden' })
   db.prepare('DELETE FROM victory_buildings WHERE id = ?').run(id)
   try { invalidateOgCache(req.user.id) } catch {}
-  // Инвалидируем ленту — в ней может быть эта победа
   feedCache = null
+  leaderboardCache = null
   res.json({ ok: true })
 })
 
