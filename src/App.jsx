@@ -287,6 +287,42 @@ export default function App() {
     return () => window.removeEventListener('stolbiki-go-tab', handler)
   }, [])
 
+  // ─── HallOfFame модалка диспатчит CustomEvent('open-profile', { detail: { userId } })
+  // когда юзер кликает по строке топа. Без этого слушателя клик ничего не делал —
+  // событие летело в пустоту. Теперь переключаемся на вкладку profile с нужным id.
+  // Profile.jsx принимает viewUsername — передаём через setViewProfile.
+  // Для подгрузки профиля по userId фетчим имя через /api/profile/public-by-id/:id
+  // если оно есть, иначе передаём 'id:N' который Profile сам разрулит.
+  useEffect(() => {
+    const handler = async (e) => {
+      const userId = e?.detail?.userId
+      if (!userId) return
+      // Пытаемся найти имя через известные эндпоинты — Profile.jsx работает по username
+      try {
+        const res = await fetch(`/api/profile/public-by-id/${userId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.name) {
+            setViewProfile(data.name)
+            setProfileInitialTab('city')
+            setTab('profile')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            return
+          }
+        }
+      } catch {}
+      // Fallback: если по id ручка не вернула — идём через лента/leaderboard где username точно был
+      // Просто переключим на свой профиль если userId совпадает
+      if (authUser && authUser.id === userId) {
+        setViewProfile(null)
+        setProfileInitialTab('city')
+        setTab('profile')
+      }
+    }
+    window.addEventListener('open-profile', handler)
+    return () => window.removeEventListener('open-profile', handler)
+  }, [authUser])
+
   useEffect(() => {
     if (!isAdmin && ['sim', 'dash', 'replay', 'admin'].includes(tab)) {
       const timer = setTimeout(() => { if (!isAdmin) setTab('game') }, 1500)
