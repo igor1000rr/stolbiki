@@ -118,7 +118,6 @@ function getUserBrief(userId) {
   }
 }
 
-// Безопасный SELECT с avatar_url — фолбэк если колонки нет в БД
 function safeSelectUsers(ids) {
   if (!ids.length) return new Map()
   const placeholders = ids.map(() => '?').join(',')
@@ -136,9 +135,6 @@ function safeSelectUsers(ids) {
 const router = Router()
 
 // ─── POST /api/buildings ───
-// Ответ включает поле city: {towers, total_bricks, total_wins, next_tower_progress}
-// Клиенту не нужно делать второй GET после победы — обновлённый город
-// возвращается сразу. Экономия 1 round-trip на каждую победу.
 router.post('/', auth, (req, res) => {
   try {
     const {
@@ -171,7 +167,6 @@ router.post('/', auth, (req, res) => {
       is_ai ? 1 : 0, aiDiff, snapshotJson, skin, bg, result
     )
     try { invalidateOgCache(req.user.id) } catch {}
-    // Лента и leaderboard содержат эту победу — сбрасываем
     feedCache = null
     leaderboardCache = null
 
@@ -187,28 +182,21 @@ router.post('/', auth, (req, res) => {
   }
 })
 
-// ═══ Кэши лент/топов в памяти ═══
+// ═══ Кэши ленты/топов ═══
 let feedCache = null
 let feedCacheAt = 0
 const FEED_TTL_MS = 30 * 1000
 
 let leaderboardCache = null
 let leaderboardCacheAt = 0
-const LEADERBOARD_TTL_MS = 5 * 60 * 1000  // 5 минут — топ обновляется редко
+const LEADERBOARD_TTL_MS = 5 * 60 * 1000
 
 // ─── GET /api/buildings/leaderboard ───
-// Топ-20 игроков по 4 метрикам + глобальные счётчики.
-// Используется в Hall of Fame модалке.
+// Топ-20 игроков по 4 метрикам + глобальные счётчики. Используется в HallOfFame.
 //
-// Метрики:
-//   score          = closed_towers × 100 + crowned_towers × 50 + total_bricks
-//   total_bricks   = сумма brickValue по всем победам игрока
-//   closed_towers  = floor(total_bricks / 11)
-//   crowned_towers = число закрытых высоток где 11-й (последний) кирпич — special
-//
-// Закрытые высотки и короны считаются дороже на JS-стороне через compileCity
-// (нужно знать порядок побед чтобы понять попадает ли special в топ-этаж стойки).
-// Для топ-20 это допустимо по перфу — кэш 5 минут.
+// Ответ содержит только агрегаты на игрока (closed_towers, crowned_towers,
+// total_bricks). CityMiniPreview восстанавливает силуэт из этих трёх чисел —
+// больше ему ничего не нужно (towers_compact был lишним bandwidth).
 router.get('/leaderboard', (req, res) => {
   const now = Date.now()
   if (leaderboardCache && (now - leaderboardCacheAt) < LEADERBOARD_TTL_MS) {
@@ -217,9 +205,6 @@ router.get('/leaderboard', (req, res) => {
   }
 
   try {
-    // Шаг 1: достаём топ-100 кандидатов по сырому подсчёту кирпичей через SQL.
-    // Из них уже на JS-стороне вычисляем точные метрики через compileCity.
-    // 100 — потому что у топ-20 по разным метрикам могут быть разные игроки.
     const candidates = db.prepare(`
       SELECT user_id, COUNT(*) as wins,
         SUM(
@@ -253,12 +238,10 @@ router.get('/leaderboard', (req, res) => {
     const userIds = candidates.map(c => c.user_id)
     const usersMap = safeSelectUsers(userIds)
 
-    // Считаем точные метрики через compileCity для каждого кандидата.
-    // Для топ-100 это ~100 запросов в БД — приемлемо в кэшируемом эндпоинте.
     const entries = []
     for (const c of candidates) {
       const u = usersMap.get(c.user_id)
-      if (!u) continue   // юзер удалён — пропускаем
+      if (!u) continue
       let city
       try { city = compileCity(c.user_id) } catch { continue }
       const closed = city.towers.filter(t => t.is_closed).length
@@ -273,23 +256,16 @@ router.get('/leaderboard', (req, res) => {
         closed_towers: closed,
         crowned_towers: crowned,
         score,
-        // Лёгкие данные для CityMiniPreview SVG (компактный формат)
-        towers_compact: city.towers.map(t => ({
-          h: t.pieces.length,
-          g: t.golden_top ? 1 : 0,
-        })),
       })
     }
 
-    // Сортировки — независимые срезы по 20
     const by_score = [...entries].sort((a, b) => b.score - a.score).slice(0, 20)
     const by_bricks = [...entries].sort((a, b) => b.total_bricks - a.total_bricks).slice(0, 20)
     const by_towers = [...entries].sort((a, b) => b.closed_towers - a.closed_towers || b.total_bricks - a.total_bricks).slice(0, 20)
     const by_crowned = [...entries].sort((a, b) => b.crowned_towers - a.crowned_towers || b.score - a.score).slice(0, 20)
 
-    // Глобальные счётчики
     const totalPlayers = db.prepare('SELECT COUNT(DISTINCT user_id) as c FROM victory_buildings').get()?.c || 0
-    const totalBricks = entries.reduce((s, e) => s + e.total_bricks, 0)  // достаточно точно для top-100
+    const totalBricks = entries.reduce((s, e) => s + e.total_bricks, 0)
     const totalTowers = entries.reduce((s, e) => s + e.closed_towers, 0)
 
     const result = {
@@ -310,9 +286,6 @@ router.get('/leaderboard', (req, res) => {
 })
 
 // ─── GET /api/buildings/feed/recent ───
-// Лента последних побед всех игроков + глобальные счётчики за 24ч.
-// Используется для статбара на лендинге и будущей глобальной ленты.
-// Кэш 30 секунд (лента обновляется не чаще).
 router.get('/feed/recent', (req, res) => {
   const now = Date.now()
   if (feedCache && (now - feedCacheAt) < FEED_TTL_MS) {
