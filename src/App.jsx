@@ -291,15 +291,13 @@ export default function App() {
   // когда юзер кликает по строке топа. Без этого слушателя клик ничего не делал —
   // событие летело в пустоту. Теперь переключаемся на вкладку profile с нужным id.
   // Profile.jsx принимает viewUsername — передаём через setViewProfile.
-  // Для подгрузки профиля по userId фетчим имя через /api/profile/public-by-id/:id
-  // если оно есть, иначе передаём 'id:N' который Profile сам разрулит.
+  // Для подгрузки имени по userId фетчим /api/profile/by-id/:id (добавлен в коммите 941504a).
   useEffect(() => {
     const handler = async (e) => {
       const userId = e?.detail?.userId
       if (!userId) return
-      // Пытаемся найти имя через известные эндпоинты — Profile.jsx работает по username
       try {
-        const res = await fetch(`/api/profile/public-by-id/${userId}`)
+        const res = await fetch(`/api/profile/by-id/${userId}`)
         if (res.ok) {
           const data = await res.json()
           if (data?.name) {
@@ -311,8 +309,7 @@ export default function App() {
           }
         }
       } catch {}
-      // Fallback: если по id ручка не вернула — идём через лента/leaderboard где username точно был
-      // Просто переключим на свой профиль если userId совпадает
+      // Fallback: для своего id — на свой профиль; для чужого без имени — мягкий no-op
       if (authUser && authUser.id === userId) {
         setViewProfile(null)
         setProfileInitialTab('city')
