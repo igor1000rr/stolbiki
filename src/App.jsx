@@ -40,6 +40,9 @@ const Changelog = lazy(() => import('./components/Changelog'))
 const OnboardingGame = lazy(() => import('./components/OnboardingGame'))
 const Privacy = lazy(() => import('./components/Privacy'))
 const Terms = lazy(() => import('./components/Terms'))
+// Embed и Compare — самостоятельные страницы для встраивания/шаринга
+const EmbedCity = lazy(() => import('./components/EmbedCity'))
+const CompareCities = lazy(() => import('./components/CompareCities'))
 import SplashScreen from './components/SplashScreen'
 
 function LazyFallback() {
@@ -50,7 +53,38 @@ function LazyFallback() {
   </div>
 }
 
+// Минималистичный wrapper для embed/compare страниц.
+// Без header/footer/cookie-banner/popup-ов основного приложения.
+function EmbedRoot({ children }) {
+  const i18n = useI18nProvider()
+  return (
+    <ErrorBoundary>
+      <I18nContext.Provider value={i18n}>
+        <Suspense fallback={<LazyFallback />}>{children}</Suspense>
+      </I18nContext.Provider>
+    </ErrorBoundary>
+  )
+}
+
 export default function App() {
+  // ─── Embed/Compare роуты: ранний return до основных хуков ───
+  // Эти страницы рендерятся вне основного layout (без шапки, футера, cookie-баннера).
+  // На сервере (nginx) /embed/* и /compare/* должны проксироваться на index.html
+  // (try_files $uri /index.html;) — у вас уже скорее всего так настроено для SPA.
+  if (typeof window !== 'undefined') {
+    const _path = window.location.pathname
+    if (_path.startsWith('/embed/city/')) {
+      const id = parseInt(_path.split('/')[3], 10)
+      if (id) return <EmbedRoot><EmbedCity userId={id} /></EmbedRoot>
+    }
+    if (_path.startsWith('/compare/')) {
+      const parts = _path.split('/')
+      const id1 = parseInt(parts[2], 10)
+      const id2 = parseInt(parts[3], 10)
+      if (id1 && id2) return <EmbedRoot><CompareCities userId1={id1} userId2={id2} /></EmbedRoot>
+    }
+  }
+
   const i18n = useI18nProvider()
   const { t, lang, setLang } = i18n
   const gameCtx = useGameContext()
