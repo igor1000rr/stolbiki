@@ -9,6 +9,7 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
+import { invalidateOgCache } from './embed.js'
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS victory_buildings (
@@ -150,6 +151,8 @@ router.post('/', auth, (req, res) => {
       req.user.id, game_id || null, oppName,
       is_ai ? 1 : 0, aiDiff, snapshotJson, skin, bg, result
     )
+    // Сбрасываем OG-кэш — на следующем шаринге игрок увидит обновлённую картинку
+    try { invalidateOgCache(req.user.id) } catch {}
     res.json({ ok: true, id: info.lastInsertRowid })
   } catch (e) {
     console.error('POST /buildings error:', e)
@@ -221,6 +224,7 @@ router.delete('/:id', auth, (req, res) => {
   if (!row) return res.status(404).json({ error: 'not found' })
   if (row.user_id !== req.user.id) return res.status(403).json({ error: 'forbidden' })
   db.prepare('DELETE FROM victory_buildings WHERE id = ?').run(id)
+  try { invalidateOgCache(req.user.id) } catch {}
   res.json({ ok: true })
 })
 
