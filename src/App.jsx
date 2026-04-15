@@ -10,9 +10,13 @@ import WhatsNewModal from './components/WhatsNewModal'
 import RatePopup from './components/RatePopup'
 import StreakPopup from './components/StreakPopup'
 import CookieBanner from './components/CookieBanner'
+import MoreTabPage from './components/MoreTabPage'
+import NotificationBell from './components/NotificationBell'
+import AuthDropdown from './components/AuthDropdown'
+import NativeTabs from './components/NativeTabs'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
-import { shouldAskRating, shareApp } from './engine/appstore'
+import { shouldAskRating } from './engine/appstore'
 import { initPush } from './engine/push'
 import { APP_VERSION } from './version'
 import './app.css'
@@ -452,53 +456,15 @@ export default function App() {
             )}
 
             {authUser && (
-              <div style={{ position: 'relative' }}>
-                <button onClick={() => { setNotifOpen(v => !v); setAuthOpen(false) }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', position: 'relative', color: 'var(--ink2)', fontSize: 18 }}
-                  aria-label="Notifications">
-                  🔔
-                  {notifCount > 0 && (
-                    <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: 'var(--p2)', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifCount}</span>
-                  )}
-                </button>
-                {notifOpen && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, width: 280, marginTop: 8, background: 'var(--surface)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 200, overflow: 'hidden' }}>
-                    <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--surface2)', fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
-                      {en ? 'Notifications' : 'Уведомления'} {notifCount > 0 && `(${notifCount})`}
-                    </div>
-                    {notifData.challenges.map(ch => (
-                      <div key={ch.id} style={{ padding: '10px 14px', borderBottom: '1px solid var(--surface2)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>⚔️</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, color: 'var(--ink)' }}>{ch.from_username}</div>
-                          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'challenges you!' : 'вызывает вас!'}</div>
-                        </div>
-                        <button className="btn primary" style={{ fontSize: 10, padding: '4px 10px' }}
-                          onClick={() => { go('online'); window.dispatchEvent(new CustomEvent('stolbiki-deeplink-room', { detail: { room: ch.room_id } })); setNotifOpen(false) }}>
-                          {en ? 'Accept' : 'Принять'}
-                        </button>
-                      </div>
-                    ))}
-                    {notifData.friends.map(f => (
-                      <div key={f.id} style={{ padding: '10px 14px', borderBottom: '1px solid var(--surface2)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>👋</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, color: 'var(--ink)' }}>{f.username}</div>
-                          <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{en ? 'friend request' : 'запрос в друзья'}</div>
-                        </div>
-                        <button className="btn primary" style={{ fontSize: 10, padding: '4px 10px' }} onClick={() => { go('profile'); setNotifOpen(false) }}>
-                          {en ? 'View' : 'Открыть'}
-                        </button>
-                      </div>
-                    ))}
-                    {notifCount === 0 && (
-                      <div style={{ padding: '20px 14px', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
-                        {en ? 'No new notifications' : 'Нет новых уведомлений'}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <NotificationBell
+                count={notifCount}
+                data={notifData}
+                open={notifOpen}
+                onToggle={() => { setNotifOpen(v => !v); setAuthOpen(false) }}
+                onClose={() => setNotifOpen(false)}
+                onGo={go}
+                lang={lang}
+              />
             )}
 
             <div className="header-auth" ref={authRef}>
@@ -520,53 +486,20 @@ export default function App() {
               )}
               {authOpen && (
                 <div className="header-auth-dropdown">
-                  {authUser ? (
-                    <>
-                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--surface2)' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{authUser.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
-                          {en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000} · {en ? 'Games' : 'Партий'}: {authUser.gamesPlayed || 0}
-                          {(authUser.bricks || 0) > 0 && ` · 🧱 ${authUser.bricks}`}
-                        </div>
-                      </div>
-                      <button onClick={() => { go('profile'); setAuthOpen(false) }} className="header-auth-item">
-                        <Icon name="profile" size={14} style={{ opacity: 0.5 }} />{en ? 'Profile' : 'Профиль'}
-                      </button>
-                      <button onClick={() => { go('settings'); setAuthOpen(false) }} className="header-auth-item">
-                        <Icon name="theme" size={14} style={{ opacity: 0.5 }} />{en ? 'Settings' : 'Настройки'}
-                      </button>
-                      <div className="nav-more-divider" />
-                      <button onClick={doLogout} className="header-auth-item" style={{ color: 'var(--p2)' }}>
-                        {en ? 'Logout' : 'Выйти'}
-                      </button>
-                    </>
-                  ) : (
-                    <div style={{ padding: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>
-                        {authMode === 'login' ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}
-                      </div>
-                      {authError && <div style={{ fontSize: 11, color: 'var(--p2)', marginBottom: 8 }}>{authError}</div>}
-                      <input type="text" placeholder={en ? 'Username' : 'Никнейм'} value={authName}
-                        onChange={e => setAuthName(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
-                        className="header-auth-input" autoFocus />
-                      <input type="password" placeholder={en ? 'Password' : 'Пароль'} value={authPass}
-                        onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAuth()}
-                        className="header-auth-input" />
-                      {authMode === 'register' && (
-                        <input type="text" placeholder={en ? 'Referral code (optional)' : 'Код друга (необязательно)'}
-                          defaultValue={API.getSavedReferralCode() || ''}
-                          onChange={e => { if (e.target.value) localStorage.setItem('stolbiki_ref', e.target.value.trim().toUpperCase()); else localStorage.removeItem('stolbiki_ref') }}
-                          className="header-auth-input" style={{ fontSize: 11 }} />
-                      )}
-                      <button className="btn primary" onClick={doAuth} disabled={authLoading} style={{ width: '100%', fontSize: 12, padding: '8px 0' }}>
-                        {authLoading ? '...' : authMode === 'login' ? (en ? 'Login' : 'Войти') : (en ? 'Register' : 'Создать')}
-                      </button>
-                      <button onClick={() => { setAuthMode(m => m === 'login' ? 'register' : 'login'); setAuthError('') }}
-                        style={{ width: '100%', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 11, padding: '8px 0', cursor: 'pointer' }}>
-                        {authMode === 'login' ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация') : (en ? 'Have account? Login' : 'Есть аккаунт? Войти')}
-                      </button>
-                    </div>
-                  )}
+                  <AuthDropdown
+                    authUser={authUser}
+                    lang={lang}
+                    authMode={authMode}
+                    authName={authName} setAuthName={setAuthName}
+                    authPass={authPass} setAuthPass={setAuthPass}
+                    authError={authError}
+                    authLoading={authLoading}
+                    onAuth={doAuth}
+                    onLogout={doLogout}
+                    onClose={() => setAuthOpen(false)}
+                    onGo={go}
+                    onSwitchMode={() => { setAuthMode(m => m === 'login' ? 'register' : 'login'); setAuthError('') }}
+                  />
                 </div>
               )}
             </div>
@@ -626,89 +559,15 @@ export default function App() {
           {tab === 'terms'     && <Suspense fallback={<LazyFallback />}><Terms /></Suspense>}
           {tab === 'privacy'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
           {tab === 'more' && isNative && (
-            <div className="m-more-page">
-              {authUser && (
-                <div className="m-more-user">
-                  <div className="m-more-avatar">{authUser.name.charAt(0).toUpperCase()}</div>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{authUser.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                      {en ? 'Rating' : 'Рейтинг'}: {authUser.rating || 1000}
-                      {(authUser.bricks || 0) > 0 && <span style={{ color: 'var(--gold)', marginLeft: 8 }}>🧱 {authUser.bricks}</span>}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {!authUser && (
-                <button className="m-more-item" onClick={() => go('profile')}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 3.6-7 7-7s7 3 7 7"/></svg>
-                  <span>{en ? 'Login / Register' : 'Вход / Регистрация'}</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-                </button>
-              )}
-              <div className="m-more-section">{en ? 'Game' : 'Игра'}</div>
-              <button className="m-more-item" onClick={() => go('rules')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h6M8 16h4"/></svg>
-                <span>{en ? 'Rules' : 'Правила'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <button className="m-more-item" onClick={() => setShowLessons(true)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                <span>{en ? 'Lessons' : 'Уроки'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <button className="m-more-item" onClick={() => setShowSkinShop(true)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                <span>{en ? 'Customize' : 'Оформление'}</span>
-                {authUser && (authUser.bricks || 0) > 0 && <span className="m-more-value" style={{ color: 'var(--gold)' }}>🧱 {authUser.bricks}</span>}
-              </button>
-              <button className="m-more-item" onClick={() => go('openings')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M3 20l4-8 4 4 4-12 6 16"/></svg>
-                <span>{en ? 'Analytics' : 'Аналитика'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <button className="m-more-item" onClick={() => go('blog')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 4h16v16H4z"/><path d="M8 2v4M16 2v4M4 10h16"/></svg>
-                <span>{en ? 'Blog' : 'Блог'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <div className="m-more-section">{en ? 'Settings' : 'Настройки'}</div>
-              <button className="m-more-item" onClick={() => go('settings')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8"/></svg>
-                <span>{en ? 'Customization' : 'Кастомизация'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <div className="m-more-item" onClick={() => setLang(lang === 'ru' ? 'en' : 'ru')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 010 18M12 3a15 15 0 000 18M3 12h18"/></svg>
-                <span>{en ? 'Language' : 'Язык'}</span>
-                <span className="m-more-value">{lang === 'ru' ? 'RU' : 'EN'}</span>
-              </div>
-              <button className="m-more-item" onClick={() => go('changelog')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
-                <span>Changelog</span>
-                <span className="m-more-value">v{APP_VERSION}</span>
-              </button>
-              <div className="m-more-section">{en ? 'About' : 'О приложении'}</div>
-              <button className="m-more-item" onClick={() => shareApp(lang)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-                <span>{en ? 'Share app' : 'Поделиться'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              <button className="m-more-item" onClick={() => go('privacy')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>{en ? 'Privacy Policy' : 'Конфиденциальность'}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-              {authUser && (
-                <>
-                  <div className="m-more-section" />
-                  <button className="m-more-item m-more-danger" onClick={doLogout}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                    <span>{en ? 'Logout' : 'Выйти'}</span>
-                  </button>
-                </>
-              )}
-            </div>
+            <MoreTabPage
+              authUser={authUser}
+              lang={lang}
+              setLang={setLang}
+              go={go}
+              onLessons={() => setShowLessons(true)}
+              onSkinShop={() => setShowSkinShop(true)}
+              onLogout={doLogout}
+            />
           )}
         </Suspense>
       </main>
@@ -758,25 +617,7 @@ export default function App() {
         </div>
       </footer>}
 
-      {isNative && (
-        <nav className="native-tabs" role="tablist">
-          {[
-            { id: 'game',    label: en ? 'Play'    : 'Играть',  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg> },
-            { id: 'online',  label: en ? 'Online'  : 'Онлайн',  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 010 18M12 3a15 15 0 000 18M3 12h18"/></svg> },
-            { id: 'puzzles', label: en ? 'Puzzles' : 'Задачи',  svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg> },
-            { id: 'profile', label: en ? 'Profile' : 'Профиль', svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 3.6-7 7-7s7 3 7 7"/></svg> },
-            { id: 'more',    label: en ? 'More'    : 'Ещё',     svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg> },
-          ].map(n => (
-            <button key={n.id} role="tab"
-              aria-selected={tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog','privacy'].includes(tab))}
-              className={`native-tab ${tab === n.id || (n.id === 'more' && ['settings','rules','blog','changelog','privacy'].includes(tab)) ? 'active' : ''}`}
-              onClick={() => go(n.id)}>
-              <span className="native-tab-icon">{n.svg}</span>
-              <span className="native-tab-label">{n.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
+      {isNative && <NativeTabs tab={tab} lang={lang} onGo={go} />}
 
       {!isNative && !cookieOk && (
         <CookieBanner lang={lang} onAccept={() => setCookieOk(true)} />
