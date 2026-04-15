@@ -8,6 +8,10 @@
  *
  * Над каждым городом — имя + статистика. Между ними — счёт и победитель.
  * Очки = closed×100 + crowned×50 + bricks (та же формула что в leaderboard).
+ *
+ * Кнопка шаринга копирует /embed/compare/:id1/:id2 — это SSR-роут с
+ * полноценным og:image превью, который при шаринге в Telegram/Discord
+ * покажет красивую PNG-картинку обоих городов со счётом.
  */
 import { useEffect, useState, lazy, Suspense } from 'react'
 
@@ -84,6 +88,58 @@ function CityPanel({ userId, city, error, isWinner }) {
         <VictoryCity2D towers={city.towers || []} stats={null} en={false} />
       </Suspense>
     </div>
+  )
+}
+
+function copyToClipboard(text, onDone) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => onDone(true)).catch(() => onDone(false))
+  } else {
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
+      document.body.appendChild(ta); ta.select()
+      document.execCommand('copy'); document.body.removeChild(ta)
+      onDone(true)
+    } catch { onDone(false) }
+  }
+}
+
+function ShareButton({ userId1, userId2, name1, name2, score1, score2 }) {
+  const [copied, setCopied] = useState(false)
+  // Шарим embed-роут — он отдаёт SSR HTML с og:image для preview в мессенджерах.
+  // Если просто шарить /compare/:id1/:id2 (SPA) — боты не получат preview.
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://highriseheist.com'
+  const shareUrl = `${origin}/embed/compare/${userId1}/${userId2}`
+  const shareText = name1 && name2
+    ? `${name1} vs ${name2} (${score1}:${score2}) — Highrise Heist`
+    : 'Сравнение городов в Highrise Heist'
+
+  function doShare() {
+    if (navigator.share) {
+      navigator.share({ title: shareText, text: shareText, url: shareUrl })
+        .catch(() => copyToClipboard(`${shareText}\n${shareUrl}`, ok => {
+          if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500) }
+        }))
+    } else {
+      copyToClipboard(`${shareText}\n${shareUrl}`, ok => {
+        if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500) }
+      })
+    }
+  }
+
+  return (
+    <button onClick={doShare} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '8px 16px', borderRadius: 8,
+      background: copied ? 'rgba(61,214,140,0.15)' : 'rgba(255,216,110,0.1)',
+      color: copied ? '#3dd68c' : '#ffd86e',
+      border: `1px solid ${copied ? '#3dd68c' : '#ffd86e'}`,
+      fontSize: 12, fontWeight: 700, cursor: 'pointer',
+      fontFamily: 'inherit',
+    }}>
+      {copied ? '✓ Скопировано' : '🔗 Поделиться сравнением'}
+    </button>
   )
 }
 
@@ -169,6 +225,20 @@ export default function CompareCities({ userId1, userId2 }) {
           }}>
             👑 Лидер: {(leader === 1 ? c1.data : c2.data)?.user?.name || `Player #${leader === 1 ? userId1 : userId2}`}
           </span>
+        </div>
+      )}
+
+      {/* Кнопка шаринга — рендерим только когда оба города загружены */}
+      {c1.data && c2.data && (
+        <div style={{ textAlign: 'center', marginTop: 18 }}>
+          <ShareButton
+            userId1={userId1}
+            userId2={userId2}
+            name1={c1.data.user?.name}
+            name2={c2.data.user?.name}
+            score1={s1}
+            score2={s2}
+          />
         </div>
       )}
 
