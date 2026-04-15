@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
 import '../css/game.css'
 import Mascot from './Mascot'
-import Confetti from './Confetti'
 import MascotRunner from './MascotRunner'
 import {
   GameState, getValidTransfers, applyAction,
@@ -27,6 +26,11 @@ import { useSessionStats } from '../engine/useSessionStats'
 import { useOnlineGameHandlers } from '../engine/useOnlineGameHandlers'
 import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 import { maybeShowInterstitial } from '../engine/admob'
+import GameTutorialModal from './GameTutorialModal'
+import GameShortcutsModal from './GameShortcutsModal'
+import HintPanel from './HintPanel'
+import GameLog from './GameLog'
+import ConfettiOverlay from './ConfettiOverlay'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -136,7 +140,6 @@ export default function Game() {
   const modifiersRef = useRef(modifiers)
   useEffect(() => { modifiersRef.current = modifiers }, [modifiers])
 
-  const sk = soundClick
   // БАГ-ФИКСx: убран onTick — soundClick не должен играть каждую секунду таймера
   const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
     timerSetting: userSettings.timer,
@@ -617,39 +620,7 @@ export default function Game() {
     <div className={isNative ? 'native-game-wrapper' : ''}>
       <MascotRunner run={mascotRun} onDone={() => setMascotRun(null)} />
 
-      {showTutorial && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isNative ? 12 : 20, overflowY: 'auto' }}
-          onClick={dismissTutorial}>
-          <div style={{ maxWidth: 420, width: '100%', background: 'var(--surface)', borderRadius: 16, padding: isNative ? '20px 16px' : '28px 24px', border: '1px solid var(--surface3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', margin: 'auto' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ textAlign: 'center', marginBottom: isNative ? 10 : 16 }}>
-              <img src="/logo-text.webp" alt="Highrise Heist" style={{ width: 180, height: 'auto', marginBottom: 8 }} />
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{lang === 'en' ? 'How to play' : 'Как играть'}</div>
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.9 }}>
-              {lang === 'en' ? <>
-                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Click stands</b> to place blocks (up to 3 on 2 stands)</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Transfer</b> — hold a stand to start transfer, tap destination</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Completing</b> — stand with 11 blocks is complete. Top group color = owner</p>
-                <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Golden stand</b> breaks 5:5 ties</p>
-                <p>Close <b>6+ stands</b> out of 10 to win</p>
-              </> : <>
-                <p><b style={{ color: 'var(--p1-light)' }}>1.</b> <b>Кликайте на стойки</b> чтобы ставить блоки (до 3 на 2 стойки)</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>2.</b> <b>Перенос</b> — удержите стойку (long press) → тапните цель</p>
-                <p><b style={{ color: 'var(--p1-light)' }}>3.</b> <b>Достройка</b> — высотка с 11 блоками достроена. Цвет верхней группы = владелец</p>
-                <p><b style={{ color: 'var(--gold)' }}>★</b> <b>Золотая стойка</b> решает при ничьей 5:5</p>
-                <p>Достройте <b>6+ высоток</b> из 10 чтобы победить</p>
-              </>}
-            </div>
-            <button className="btn primary" onClick={dismissTutorial} style={{ width: '100%', marginTop: 16, padding: '12px 0' }}>
-              {lang === 'en' ? "Got it, let's play!" : 'Понятно, играем!'}
-            </button>
-            <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: 'var(--ink3)' }}>
-              {lang === 'en' ? 'Detailed rules — Rules tab' : 'Подробные правила — вкладка «Правила»'}
-            </div>
-          </div>
-        </div>
-      )}
+      {showTutorial && <GameTutorialModal lang={lang} onDismiss={dismissTutorial} />}
 
       {mode === 'online' && (
         <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
@@ -1026,12 +997,7 @@ export default function Game() {
         }}>{floatingEmoji.emoji}</div>
       )}
 
-      {hint && (
-        <div className="hint-panel">
-          <div className="hint-title">{lang === 'en' ? 'Hint' : 'Подсказка'}</div>
-          {hint.explanation.map((l, i) => <p key={i} className="hint-line">{l}</p>)}
-        </div>
-      )}
+      <HintPanel hint={hint} lang={lang} />
 
       <GameResultPanel
         result={result} mode={mode} humanPlayer={humanPlayer} gs={gs}
@@ -1043,30 +1009,9 @@ export default function Game() {
         setShowReplay={setShowReplay} setShowReview={setShowReview}
       />
 
-      <div className="game-log" ref={logRef}>
-        {log.map((e, i) => (
-          <div key={i}>
-            <span style={{ color: 'var(--ink3)', fontSize: 10, marginRight: 6 }}>{e.time}</span>
-            <span className={e.player >= 0 ? `log-p${e.player}` : ''}>{e.text}</span>
-          </div>
-        ))}
-      </div>
+      <GameLog ref={logRef} log={log} />
 
-      {confetti && (
-        <div className="confetti-container">
-          {Array.from({ length: 40 }).map((_, i) => (
-            <div key={i} className="confetti" style={{
-              left: `${Math.random() * 100}%`,
-              background: ['var(--gold)', 'var(--p1-light)', 'var(--p2)', 'var(--green)', 'var(--purple)', 'var(--coral)'][i % 6],
-              width: `${6 + Math.random() * 8}px`,
-              height: `${6 + Math.random() * 8}px`,
-              borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-              animationDuration: `${1.5 + Math.random() * 2}s`,
-              animationDelay: `${Math.random() * 0.8}s`,
-            }} />
-          ))}
-        </div>
-      )}
+      <ConfettiOverlay show={confetti} />
 
       {newAch && (
         <div className="achievement-popup">
@@ -1111,33 +1056,7 @@ export default function Game() {
         </Suspense>
       )}
 
-      {showShortcuts && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowShortcuts(false)}>
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '24px 32px', maxWidth: 340, width: '90%', border: '1px solid rgba(255,255,255,0.08)' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>
-              {en ? 'Keyboard shortcuts' : 'Горячие клавиши'}
-            </div>
-            {[
-              ['Enter', en ? 'Confirm turn' : 'Подтвердить ход'],
-              ['Esc', en ? 'Cancel transfer' : 'Отменить перенос'],
-              ['N', en ? 'New game' : 'Новая игра'],
-              ['Z', en ? 'Undo (PvP)' : 'Отмена хода (PvP)'],
-              ['H', en ? 'Hint' : 'Подсказка'],
-              ['0-9', en ? 'Select stand' : 'Выбрать стойку'],
-              ['?', en ? 'This help' : 'Эта справка'],
-            ].map(([key, desc]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <kbd style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontFamily: 'monospace', color: 'var(--accent)', minWidth: 36, textAlign: 'center' }}>{key}</kbd>
-                <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{desc}</span>
-              </div>
-            ))}
-            <button className="btn primary" onClick={() => setShowShortcuts(false)}
-              style={{ width: '100%', marginTop: 16, justifyContent: 'center' }}>OK</button>
-          </div>
-        </div>
-      )}
+      {showShortcuts && <GameShortcutsModal lang={lang} onClose={() => setShowShortcuts(false)} />}
     </div>
   )
 }
