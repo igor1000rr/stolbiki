@@ -2,17 +2,14 @@
  * VictoryCity — Three.js 3D «Город побед»
  *
  * НОВАЯ КОНЦЕПЦИЯ (после v5.8):
- * 1 победа = N кирпичей (не отдельное здание!). Кирпичи укладываются
- * хронологически в стойки по 11 — как в самой игре. Закрытая стойка
- * (11 кирпичей) = небоскрёб. Город растёт постепенно за десятки побед.
+ * 1 победа = N кирпичей. Кирпичи укладываются хронологически в стойки по 11 —
+ * как в самой игре. Закрытая стойка (11 кирпичей) = небоскрёб.
  *
  * Backend: GET /api/buildings/city/:userId возвращает {towers, total_bricks,
- * total_wins, next_tower_progress}. Каждый tower имеет pieces[] — массив
- * кирпичей с инфой о победе которая его дала.
+ * total_wins, next_tower_progress}.
  *
- * Цвет кирпича = скин игрока на момент той победы (хроно-палитра).
- * Если piece.special — этот кирпич золотой (победа была golden или Impossible).
- * Если tower.golden_top — над закрытой высоткой висит золотой шпиль (корона).
+ * Цвет кирпича = скин игрока на момент той победы. piece.special — золотой кирпич.
+ * tower.golden_top — над высоткой висит шпиль-корона.
  *
  * Режимы:
  *  - Photo Mode: 4 пресета (Iso, Top, Cinematic, FPV) + автоповорот
@@ -21,6 +18,8 @@
  *  - Filter: всё / золотые шпили / содержит Impossible / последняя неделя
  *  - Weather: снег зимой, дождь весной, листья осенью
  *  - Minimap, Fullscreen, Snapshot+watermark+filter, Saved views (6 слотов)
+ *  - MP4 video record: 8-сек FPV-облёт через MediaRecorder, .webm файл
+ *  - Hall of Fame: кнопка-ссылка открывает топ-городов модалкой
  *
  * Performance: rafRef, кэш мешей, IntersectionObserver, visibilityState,
  * prefers-reduced-motion, mobile-режим (упрощённая графика на слабых).
@@ -31,6 +30,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useI18n } from '../engine/i18n'
 
 const VictoryCity2D = lazy(() => import('./VictoryCity2D'))
+const HallOfFame = lazy(() => import('./HallOfFame'))
 
 const SKIN_HEX = {
   blocks_classic: { 0: 0x6db4ff, 1: 0xff8888 },
@@ -51,15 +51,18 @@ const SKIN_EMISSIVE = {
 }
 
 const GOLDEN_HEX = 0xffd86e
-const CROWN_HEX  = 0xffc845         // шпиль-корона над закрытыми high towers с golden_top
+const CROWN_HEX  = 0xffc845
 
 const SAVED_VIEWS_KEY = 'stolbiki_city_views'
 const MAX_SAVED_VIEWS = 6
 const TOWER_HEIGHT = 11
+const VIDEO_DURATION_MS = 8000      // длительность MP4-видео
+const VIDEO_FPS = 30
+const VIDEO_BITRATE = 4_000_000     // 4 Mbps — норм для 720p облёта
 
 function pieceColor(piece) {
   const pal = SKIN_HEX[piece.skin_id] || SKIN_HEX.blocks_classic
-  return pal[0]                       // всегда основной цвет твоего скина
+  return pal[0]
 }
 
 function pieceEmissive(piece) {
@@ -109,7 +112,25 @@ function getSeason() {
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3) }
 function lerp(a, b, t) { return a + (b - a) * t }
 
-// Проверка попадает ли tower под фильтр
+// Пробуем подобрать поддерживаемый MIME для MediaRecorder.
+// Safari не умеет vp9, Chrome умеет всё, Firefox — vp8/vp9.
+function pickVideoMimeType() {
+  if (typeof MediaRecorder === 'undefined') return null
+  const candidates = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4;codecs=h264',  // Safari
+    'video/mp4',
+  ]
+  for (const c of candidates) {
+    if (MediaRecorder.isTypeSupported(c)) return c
+  }
+  return null
+}
+
 function towerMatchesFilter(tower, filter) {
   if (filter === 'all') return true
   if (filter === 'golden') return tower.is_closed && tower.golden_top
@@ -125,7 +146,6 @@ function towerMatchesFilter(tower, filter) {
   return true
 }
 
-// Уникальные победы что внесли кирпичи в эту высотку
 function uniqueWinsInTower(tower) {
   const seen = new Map()
   for (const p of tower.pieces) {
@@ -160,7 +180,7 @@ const GROW_START_AT = 0.5
 const TIME_MS = 800
 const TIMELAPSE_STAGGER = 200
 const TIMELAPSE_GROW_MS = 400
-const SMOKE_PER_BUILDING = 6        // дым над high closed towers с golden_top
+const SMOKE_PER_BUILDING = 6
 const WEATHER_COUNT_HIGH = 600
 const WEATHER_COUNT_LOW = 250
 
@@ -268,7 +288,7 @@ function persistSavedViews(views) {
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
   const en = lang === 'en'
-  const [cityData, setCityData] = useState(null)    // { towers, total_bricks, total_wins, next_tower_progress }
+  const [cityData, setCityData] = useState(null)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selTowerIdx, setSelTowerIdx] = useState(null)
@@ -290,11 +310,15 @@ export default function VictoryCity({ userId }) {
   const [buildingFilter, setBuildingFilter] = useState('all')
   const [showFilterMenu, setShowFilterMenu] = useState(false)
   const [showMinimap, setShowMinimap] = useState(true)
+  // Новые
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordProgress, setRecordProgress] = useState(0)
+  const [showHallOfFame, setShowHallOfFame] = useState(false)
 
   const containerRef = useRef(null)
   const threeRef = useRef(null)
+  const recorderRef = useRef(null)
 
-  // Fetch новый city + stats
   useEffect(() => {
     if (!userId) { setLoading(false); return }
     Promise.all([
@@ -332,7 +356,6 @@ export default function VictoryCity({ userId }) {
     t.setWeatherEnabled(weatherEnabled)
   }, [weatherEnabled])
 
-  // Init three.js — рендерит towers вместо buildings
   useEffect(() => {
     if (!webglOk || forceSvg) return
     if (!containerRef.current || !cityData?.towers?.length) return
@@ -420,7 +443,6 @@ export default function VictoryCity({ userId }) {
         ground.receiveShadow = true
         scene.add(ground)
 
-        // Дороги
         const roadTex = makeRoadTexture(THREE)
         const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, color: 0x222230, roughness: 0.95, metalness: 0 })
         const roadsGroup = new THREE.Group()
@@ -448,7 +470,6 @@ export default function VictoryCity({ userId }) {
         }
         scene.add(roadsGroup)
 
-        // Звёзды
         const starCount = lowPower ? 200 : 400
         const starGeo = new THREE.BufferGeometry()
         const starPositions = new Float32Array(starCount * 3)
@@ -477,7 +498,6 @@ export default function VictoryCity({ userId }) {
         const towerGroups = []
         const towerMaterials = new Map()
 
-        // Окна (меньше на mobile)
         const windowsPerFloor = lowPower ? 2 : 4
         let totalFloors = 0
         for (const t of towers) totalFloors += t.pieces.length
@@ -505,7 +525,6 @@ export default function VictoryCity({ userId }) {
         const starTex = makeStarTexture(THREE)
         const dotTex = makeSoftDotTexture(THREE)
 
-        // Дым над high closed towers с golden_top
         let totalSmoke = 0
         for (const t of towers) {
           if (t.is_closed && t.golden_top) totalSmoke += SMOKE_PER_BUILDING
@@ -525,7 +544,6 @@ export default function VictoryCity({ userId }) {
           smokeData = new Float32Array(totalSmoke * 5)
         }
 
-        // Погода
         const weatherCfg = WEATHER_PARAMS[season]
         let weatherGeo = null, weatherMat = null, weather = null, weatherData = null
         const weatherCount = lowPower ? WEATHER_COUNT_LOW : WEATHER_COUNT_HIGH
@@ -556,7 +574,6 @@ export default function VictoryCity({ userId }) {
         }
 
         let smokeFillIdx = 0
-        // ─── Создаём здания: 1 tower = 1 здание, кирпичи внутри = этажи ───
         towers.forEach((tower, idx) => {
           const col = idx % COLS
           const row = Math.floor(idx / COLS)
@@ -581,7 +598,6 @@ export default function VictoryCity({ userId }) {
           const matList = []
 
           tower.pieces.forEach((piece, i) => {
-            // Цвет этажа: золотой если piece.special, иначе цвет скина победы
             const colorHex = piece.special ? GOLDEN_HEX : pieceColor(piece)
             const emissiveInt = piece.special ? 0.4 : pieceEmissive(piece)
             const mat = new THREE.MeshStandardMaterial({
@@ -601,7 +617,6 @@ export default function VictoryCity({ userId }) {
             mesh.userData.pieceIdx = i
             bGroup.add(mesh)
 
-            // Окна
             if (windowsMesh) {
               const fy = FLOOR_H / 2 + i * FLOOR_H
               const half = BLOCK_W / 2 + 0.01
@@ -623,7 +638,6 @@ export default function VictoryCity({ userId }) {
             }
           })
 
-          // Корона (золотой шпиль) над закрытой высоткой с golden_top
           if (tower.is_closed && tower.golden_top) {
             const crownMat = new THREE.MeshStandardMaterial({
               color: CROWN_HEX, roughness: 0.25, metalness: 0.85,
@@ -638,7 +652,6 @@ export default function VictoryCity({ userId }) {
             bGroup.add(crownMesh)
             crownMeshes.push(crownMesh)
 
-            // Звезда-Sprite над короной
             const sMat = new THREE.SpriteMaterial({
               map: starTex, color: 0xffffff, transparent: true,
               opacity: 0.95, depthWrite: false,
@@ -650,7 +663,6 @@ export default function VictoryCity({ userId }) {
             bGroup.add(sprite)
             goldenSprites.push(sprite)
 
-            // Дым над короной
             if (smoke) {
               const topY = (heightFloors + 1) * FLOOR_H + 1
               for (let s = 0; s < SMOKE_PER_BUILDING; s++) {
@@ -698,6 +710,8 @@ export default function VictoryCity({ userId }) {
           focusAnim: null, focusDuration: FOCUS_MS,
           autoRotate: false, timeAnim: null,
           timelapse: null, weatherEnabled: true,
+          // Кастомная орбита для записи видео: { start, durationMs, centerX, centerZ, radius, height, lookAt }
+          recordOrbit: null,
         }
 
         function startCamAnim(toPos, toTarget, duration) {
@@ -743,7 +757,6 @@ export default function VictoryCity({ userId }) {
         }
 
         function startTimelapse() {
-          // Башни уже в хронологическом порядке (compileCity ASC)
           const sorted = [...towerGroups]
           for (const g of sorted) g.scale.y = 0
           animRef.timelapse = { sortedGroups: sorted, start: performance.now() }
@@ -796,6 +809,27 @@ export default function VictoryCity({ userId }) {
           if (rafRef.current === 0 && ioVisibleRef.current && tabVisibleRef.current) animate()
         }
 
+        // ─── Кастомная FPV-орбита для записи видео ───
+        // Камера летит по кругу вокруг центра города на высоте dist*0.18,
+        // полный оборот за durationMs. Время даёт детерминированный запись.
+        function startRecordOrbit(durationMs) {
+          animRef.focusAnim = null
+          animRef.recordOrbit = {
+            start: performance.now(),
+            durationMs,
+            centerX, centerZ,
+            radius: dist * 0.85,
+            height: dist * 0.25,
+            lookHeight: 4,
+          }
+          controls.enabled = false
+          controls.autoRotate = false
+        }
+        function stopRecordOrbit() {
+          animRef.recordOrbit = null
+          controls.enabled = true
+        }
+
         const introStart = performance.now()
 
         const raycaster = new THREE.Raycaster()
@@ -811,7 +845,7 @@ export default function VictoryCity({ userId }) {
           clickStart = null
           if (dx > 5 || dy > 5) return
           if (performance.now() - introStart < INTRO_MS) return
-          if (animRef.timelapse) return
+          if (animRef.timelapse || animRef.recordOrbit) return
           const rect = renderer.domElement.getBoundingClientRect()
           mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
           mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
@@ -830,7 +864,7 @@ export default function VictoryCity({ userId }) {
         })
 
         const onPointerMove = (e) => {
-          if (animRef.timelapse) return
+          if (animRef.timelapse || animRef.recordOrbit) return
           if (performance.now() - introStart < INTRO_MS) return
           const rect = renderer.domElement.getBoundingClientRect()
           mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -917,7 +951,7 @@ export default function VictoryCity({ userId }) {
             camera.position.lerpVectors(introStartPos, finalCamPos, e)
             controls.target.lerpVectors(introStartTarget, finalTarget, e)
             camera.lookAt(controls.target)
-          } else if (controls.enabled === false && !animRef.focusAnim) {
+          } else if (controls.enabled === false && !animRef.focusAnim && !animRef.recordOrbit) {
             controls.enabled = true
             controls.autoRotate = animRef.autoRotate && !reducedMotion
           }
@@ -930,9 +964,27 @@ export default function VictoryCity({ userId }) {
             camera.lookAt(controls.target)
             if (p >= 1) {
               animRef.focusAnim = null
-              controls.enabled = true
-              controls.autoRotate = animRef.autoRotate && !reducedMotion
+              if (!animRef.recordOrbit) {
+                controls.enabled = true
+                controls.autoRotate = animRef.autoRotate && !reducedMotion
+              }
             }
+          }
+
+          // ─── Record orbit: камера летит по кругу детерминированно ───
+          if (animRef.recordOrbit) {
+            const ro = animRef.recordOrbit
+            const elapsed = now - ro.start
+            const p = Math.min(1, elapsed / ro.durationMs)
+            // Полный оборот 360° за все 8 сек. easing убрали — линейная скорость для плавности видео.
+            const angle = p * Math.PI * 2 + Math.PI / 4   // +45° стартовый
+            const px = ro.centerX + Math.cos(angle) * ro.radius
+            const pz = ro.centerZ + Math.sin(angle) * ro.radius
+            // Высота немного колышется — добавляет дыхание в кадр
+            const h = ro.height + Math.sin(p * Math.PI * 2) * 2
+            camera.position.set(px, h, pz)
+            controls.target.set(ro.centerX, ro.lookHeight, ro.centerZ)
+            camera.lookAt(controls.target)
           }
 
           if (animRef.timeAnim) {
@@ -1063,7 +1115,7 @@ export default function VictoryCity({ userId }) {
             }
           }
 
-          controls.update()
+          if (!animRef.recordOrbit) controls.update()
           renderer.render(scene, camera)
         }
         animate()
@@ -1092,6 +1144,7 @@ export default function VictoryCity({ userId }) {
           weather, weatherGeo, weatherMat, rafRef,
           cameraPresets: CAMERA_PRESETS, animRef,
           startCamAnim, startTimeAnim, startTimelapse, stopTimelapse, startFocusAnim,
+          startRecordOrbit, stopRecordOrbit,
           applyFilter, setWeatherEnabled,
           minimapBounds, towerPositions,
           onPointerMove, onPointerLeave,
@@ -1110,6 +1163,11 @@ export default function VictoryCity({ userId }) {
       disposed = true
       ioVisibleRef.current = false
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      // Гарантированный stop записи при unmount
+      if (recorderRef.current) {
+        try { recorderRef.current.stop() } catch {}
+        recorderRef.current = null
+      }
       if (threeRef.current) {
         const t = threeRef.current
         t.io?.disconnect()
@@ -1279,6 +1337,102 @@ export default function VictoryCity({ userId }) {
     }, 'image/png')
   }
 
+  // ─── MP4-видео: 8-сек FPV-облёт через MediaRecorder + canvas.captureStream ───
+  function recordVideo() {
+    const t = threeRef.current
+    if (!t?.renderer || !t?.startRecordOrbit || isRecording) return
+
+    const mime = pickVideoMimeType()
+    if (!mime || typeof MediaRecorder === 'undefined') {
+      setSnapshotMsg(en ? 'Video not supported in this browser' : 'Запись видео не поддерживается')
+      setTimeout(() => setSnapshotMsg(null), 3000)
+      return
+    }
+
+    let stream
+    try {
+      stream = t.renderer.domElement.captureStream(VIDEO_FPS)
+    } catch (e) {
+      setSnapshotMsg(en ? 'Could not capture canvas' : 'Не удалось захватить canvas')
+      setTimeout(() => setSnapshotMsg(null), 3000)
+      return
+    }
+
+    let recorder
+    try {
+      recorder = new MediaRecorder(stream, {
+        mimeType: mime,
+        videoBitsPerSecond: VIDEO_BITRATE,
+      })
+    } catch (e) {
+      console.error('[VictoryCity] MediaRecorder failed:', e)
+      setSnapshotMsg(en ? 'Recorder error' : 'Ошибка записи')
+      setTimeout(() => setSnapshotMsg(null), 3000)
+      return
+    }
+
+    recorderRef.current = recorder
+    const chunks = []
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data) }
+    recorder.onstop = () => {
+      try {
+        const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm'
+        const blob = new Blob(chunks, { type: mime })
+        const filename = `highrise-heist-flythrough-${Date.now()}.${ext}`
+        const file = new File([blob], filename, { type: mime })
+        const shareText = en
+          ? `Flythrough of my Victory City in Highrise Heist!`
+          : `Облёт моего Города побед в Highrise Heist!`
+        if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+          navigator.share({ text: shareText, files: [file] })
+            .then(() => { setSnapshotMsg(en ? 'Shared!' : 'Отправлено!'); setTimeout(() => setSnapshotMsg(null), 2000) })
+            .catch(() => {})
+        } else {
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url; a.download = filename; a.click()
+          URL.revokeObjectURL(url)
+          setSnapshotMsg(en ? `Downloaded! (${ext.toUpperCase()})` : `Скачано! (${ext.toUpperCase()})`)
+          setTimeout(() => setSnapshotMsg(null), 3000)
+        }
+      } catch (e) {
+        console.error('[VictoryCity] video save error:', e)
+      } finally {
+        recorderRef.current = null
+        try { stream.getTracks().forEach(tr => tr.stop()) } catch {}
+        const tt = threeRef.current
+        if (tt?.stopRecordOrbit) tt.stopRecordOrbit()
+        setIsRecording(false)
+        setRecordProgress(0)
+      }
+    }
+
+    // Начинаем орбиту и запись одновременно
+    setIsRecording(true)
+    setRecordProgress(0)
+    setShowShotMenu(false)
+    setHoverInfo(null)
+    t.startRecordOrbit(VIDEO_DURATION_MS)
+    recorder.start()
+
+    // Прогресс UI обновляем каждые 100мс
+    const progressStart = performance.now()
+    const progressTimer = setInterval(() => {
+      const elapsed = performance.now() - progressStart
+      const p = Math.min(1, elapsed / VIDEO_DURATION_MS)
+      setRecordProgress(p)
+      if (p >= 1) clearInterval(progressTimer)
+    }, 100)
+
+    // Остановка точно через VIDEO_DURATION_MS
+    setTimeout(() => {
+      clearInterval(progressTimer)
+      if (recorderRef.current && recorderRef.current.state === 'recording') {
+        try { recorderRef.current.stop() } catch (e) { console.error(e) }
+      }
+    }, VIDEO_DURATION_MS + 100)
+  }
+
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 32, color: 'var(--ink3)', fontSize: 13 }}>
       {en ? 'Loading city...' : 'Загружаю город...'}
@@ -1288,11 +1442,26 @@ export default function VictoryCity({ userId }) {
   if (!cityData?.towers?.length) return (
     <div style={{ textAlign: 'center', padding: 40 }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🧱</div>
-      <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 320, margin: '0 auto', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 320, margin: '0 auto', lineHeight: 1.6, marginBottom: 16 }}>
         {en
           ? 'Win games to start building. 1 win = at least 1 brick. 11 bricks make a closed highrise!'
           : 'Побеждайте — каждая победа добавляет хотя бы 1 кирпич. 11 кирпичей закрывают высотку.'}
       </div>
+      <button onClick={() => setShowHallOfFame(true)}
+        style={{
+          padding: '8px 16px', borderRadius: 8,
+          background: 'var(--surface2)', color: 'var(--gold)',
+          border: '1px solid rgba(255,193,69,0.3)',
+          cursor: 'pointer', fontSize: 12, fontWeight: 600,
+          fontFamily: 'inherit',
+        }}>
+        🏆 {en ? 'See top cities' : 'Посмотреть топ городов'}
+      </button>
+      {showHallOfFame && (
+        <Suspense fallback={null}>
+          <HallOfFame onClose={() => setShowHallOfFame(false)} en={en} currentUserId={userId} />
+        </Suspense>
+      )}
     </div>
   )
 
@@ -1345,7 +1514,7 @@ export default function VictoryCity({ userId }) {
       const isFiltered = buildingFilter !== 'all' && !towerMatchesFilter(tower, buildingFilter)
       let color = '#4a9eff'
       if (p.goldenTop) color = '#ffd86e'
-      else if (!p.isClosed) color = '#9b59b6'   // строящиеся
+      else if (!p.isClosed) color = '#9b59b6'
       dots.push({ idx, x: sx, y: sy, color, dim: isFiltered })
     })
     return { svgSize, dots }
@@ -1353,7 +1522,6 @@ export default function VictoryCity({ userId }) {
 
   return (
     <div>
-      {/* Stats: победы + кирпичи + высотки */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
         {[
           [cityData.total_wins,    en ? 'Wins'      : 'Побед',     'var(--green)'],
@@ -1368,7 +1536,6 @@ export default function VictoryCity({ userId }) {
         ))}
       </div>
 
-      {/* Прогресс текущей высотки */}
       {cityData.next_tower_progress > 0 && (
         <div style={{ textAlign: 'center', marginBottom: 10, fontSize: 11, color: 'var(--ink3)' }}>
           {en ? 'Next highrise: ' : 'Следующая высотка: '}
@@ -1377,7 +1544,6 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
-      {/* Легенда */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 10, justifyContent: 'center', flexWrap: 'wrap', fontSize: 10, color: 'var(--ink3)' }}>
         <div><span style={{ color: 'var(--accent)' }}>■</span> {en ? 'Regular brick' : 'Обычный кирпич'}</div>
         <div><span style={{ color: 'var(--gold)' }}>■</span> {en ? 'Special (Imposs/Golden)' : 'Особый (Imp/Золотая)'}</div>
@@ -1402,7 +1568,7 @@ export default function VictoryCity({ userId }) {
             overflow: 'hidden', minHeight: 320, position: 'relative',
           }}
         >
-          {hoverInfo && !isTimelapsing && (
+          {hoverInfo && !isTimelapsing && !isRecording && (
             <div style={{
               position: 'absolute', left: hoverInfo.x + 14, top: hoverInfo.y + 14,
               pointerEvents: 'none',
@@ -1448,6 +1614,32 @@ export default function VictoryCity({ userId }) {
             </div>
           )}
 
+          {/* REC indicator во время записи */}
+          {isRecording && (
+            <div style={{
+              position: 'absolute', top: 16, left: 16,
+              background: 'rgba(10,10,24,0.85)', border: '1px solid #ff5050',
+              borderRadius: 10, padding: '8px 14px', display: 'flex',
+              alignItems: 'center', gap: 10, zIndex: 5,
+              boxShadow: '0 6px 24px rgba(0,0,0,0.6)',
+            }}>
+              <span style={{
+                width: 10, height: 10, borderRadius: '50%', background: '#ff5050',
+                animation: 'pulse 1s ease-in-out infinite',
+              }}></span>
+              <span style={{ color: '#ff8080', fontSize: 13, fontWeight: 700, fontFamily: 'system-ui' }}>
+                REC {Math.ceil((1 - recordProgress) * VIDEO_DURATION_MS / 1000)}s
+              </span>
+              {/* Прогресс-бар */}
+              <div style={{ width: 60, height: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{
+                  width: `${recordProgress * 100}%`, height: '100%',
+                  background: '#ff5050', transition: 'width 0.1s linear',
+                }}></div>
+              </div>
+            </div>
+          )}
+
           {isFullscreen && (
             <div style={{
               position: 'absolute', top: 16, right: 16,
@@ -1456,7 +1648,7 @@ export default function VictoryCity({ userId }) {
             }}>{en ? 'Press ESC to exit' : 'ESC чтобы выйти'}</div>
           )}
 
-          {minimapData && !isTimelapsing && towers.length >= 4 && (
+          {minimapData && !isTimelapsing && !isRecording && towers.length >= 4 && (
             <div style={{
               position: 'absolute', bottom: 12, right: 12,
               width: 100, height: 100, background: 'rgba(10,10,24,0.7)',
@@ -1503,13 +1695,13 @@ export default function VictoryCity({ userId }) {
             {CAMERA_PRESETS_UI.map(p => {
               const active = currentPreset === p.id
               return (
-                <button key={p.id} onClick={() => applyCameraPreset(p.id)} disabled={isTimelapsing}
+                <button key={p.id} onClick={() => applyCameraPreset(p.id)} disabled={isTimelapsing || isRecording}
                   style={{
                     fontSize: 11, padding: '6px 10px', borderRadius: 6,
                     background: active ? 'var(--accent)' : 'transparent',
                     color: active ? '#0a0a12' : 'var(--ink2)', border: 'none',
-                    cursor: isTimelapsing ? 'default' : 'pointer',
-                    opacity: isTimelapsing ? 0.5 : 1, fontWeight: active ? 700 : 500,
+                    cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+                    opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontWeight: active ? 700 : 500,
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
                   }} aria-pressed={active}>
                   <span>{p.emoji}</span><span>{en ? p.label_en : p.label_ru}</span>
@@ -1518,38 +1710,42 @@ export default function VictoryCity({ userId }) {
             })}
           </div>
 
-          <button onClick={toggleAutoRotate} disabled={isTimelapsing}
+          <button onClick={toggleAutoRotate} disabled={isTimelapsing || isRecording}
             style={{
               fontSize: 11, padding: '6px 10px', borderRadius: 8,
               background: autoRotate ? 'rgba(61,214,140,0.15)' : 'var(--surface2)',
               color: autoRotate ? 'var(--green)' : 'var(--ink3)',
               border: `1px solid ${autoRotate ? 'var(--green)' : 'rgba(255,255,255,0.05)'}`,
-              cursor: isTimelapsing ? 'default' : 'pointer',
-              opacity: isTimelapsing ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
+              cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+              opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 4,
             }} aria-pressed={autoRotate}>
             <span>🔄</span><span>{en ? 'Rotate' : 'Авто'}</span>
           </button>
 
-          <button onClick={handleTimelapse}
+          <button onClick={handleTimelapse} disabled={isRecording}
             style={{
               fontSize: 11, padding: '6px 10px', borderRadius: 8,
               background: isTimelapsing ? 'rgba(255,193,69,0.18)' : 'var(--surface2)',
               color: isTimelapsing ? 'var(--gold)' : 'var(--ink3)',
               border: `1px solid ${isTimelapsing ? 'var(--gold)' : 'rgba(255,255,255,0.05)'}`,
-              cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+              cursor: isRecording ? 'default' : 'pointer',
+              opacity: isRecording ? 0.5 : 1,
+              fontWeight: 600, fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
             <span>{isTimelapsing ? '⏹' : '⏯'}</span>
             <span>{isTimelapsing ? (en ? 'Stop' : 'Стоп') : (en ? 'Time-lapse' : 'История')}</span>
           </button>
 
-          <button onClick={handleFullscreen}
+          <button onClick={handleFullscreen} disabled={isRecording}
             style={{
               fontSize: 11, padding: '6px 10px', borderRadius: 8,
               background: 'var(--surface2)', color: 'var(--ink3)',
               border: '1px solid rgba(255,255,255,0.05)',
-              cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+              cursor: isRecording ? 'default' : 'pointer',
+              opacity: isRecording ? 0.5 : 1,
+              fontWeight: 600, fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
             <span>{isFullscreen ? '🗗' : '⛶'}</span>
@@ -1557,14 +1753,14 @@ export default function VictoryCity({ userId }) {
           </button>
 
           {seasonEmoji && (
-            <button onClick={() => setWeatherEnabled(v => !v)} disabled={isTimelapsing}
+            <button onClick={() => setWeatherEnabled(v => !v)} disabled={isTimelapsing || isRecording}
               style={{
                 fontSize: 11, padding: '6px 10px', borderRadius: 8,
                 background: weatherEnabled ? 'rgba(74,158,255,0.15)' : 'var(--surface2)',
                 color: weatherEnabled ? 'var(--accent)' : 'var(--ink3)',
                 border: `1px solid ${weatherEnabled ? 'var(--accent)' : 'rgba(255,255,255,0.05)'}`,
-                cursor: isTimelapsing ? 'default' : 'pointer',
-                opacity: isTimelapsing ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
+                cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+                opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 4,
               }} aria-pressed={weatherEnabled}>
               <span>{seasonEmoji}</span><span>{seasonLabel}</span>
@@ -1572,14 +1768,14 @@ export default function VictoryCity({ userId }) {
           )}
 
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowFilterMenu(s => !s)} disabled={isTimelapsing}
+            <button onClick={() => setShowFilterMenu(s => !s)} disabled={isTimelapsing || isRecording}
               style={{
                 fontSize: 11, padding: '6px 10px', borderRadius: 8,
                 background: buildingFilter !== 'all' ? 'rgba(155,89,182,0.15)' : (showFilterMenu ? 'rgba(255,255,255,0.05)' : 'var(--surface2)'),
                 color: buildingFilter !== 'all' ? '#cf9cff' : 'var(--ink3)',
                 border: `1px solid ${buildingFilter !== 'all' ? '#9b59b6' : 'rgba(255,255,255,0.05)'}`,
-                cursor: isTimelapsing ? 'default' : 'pointer',
-                opacity: isTimelapsing ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
+                cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+                opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 4,
               }}>
               <span>🔍</span><span>{en ? 'Filter' : 'Фильтр'}</span>
@@ -1614,12 +1810,15 @@ export default function VictoryCity({ userId }) {
           </div>
 
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowShotMenu(s => !s)}
+            <button onClick={() => setShowShotMenu(s => !s)} disabled={isRecording}
               style={{
                 fontSize: 11, padding: '6px 12px', borderRadius: 8,
                 border: '1px solid var(--accent)',
                 background: showShotMenu ? 'rgba(74,158,255,0.15)' : 'transparent',
-                color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+                color: 'var(--accent)',
+                cursor: isRecording ? 'default' : 'pointer',
+                opacity: isRecording ? 0.5 : 1,
+                fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 4,
               }}>
               <span>📸</span><span>{en ? 'Snapshot' : 'Снимок'}</span>
@@ -1628,7 +1827,7 @@ export default function VictoryCity({ userId }) {
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 4,
                 background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10, padding: 8, minWidth: 200,
+                borderRadius: 10, padding: 8, minWidth: 220,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 10,
               }}>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', marginBottom: 6, padding: '0 4px' }}>
@@ -1653,10 +1852,32 @@ export default function VictoryCity({ userId }) {
                     width: '100%', padding: '8px 12px', borderRadius: 6,
                     background: 'var(--accent)', color: '#0a0a12', border: 'none',
                     cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
-                  }}>{en ? 'Save / Share' : 'Сохранить'}</button>
+                    marginBottom: 6,
+                  }}>📷 {en ? 'Save photo' : 'Сохранить фото'}</button>
+                <button onClick={recordVideo}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: 6,
+                    background: 'linear-gradient(90deg, #ff5050 0%, #ff7060 100%)', color: '#fff', border: 'none',
+                    cursor: 'pointer', fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
+                  }}>🎥 {en ? 'Record 8s flythrough' : 'Записать 8с облёт'}</button>
               </div>
             )}
           </div>
+
+          {/* Hall of Fame button */}
+          <button onClick={() => setShowHallOfFame(true)} disabled={isRecording}
+            style={{
+              fontSize: 11, padding: '6px 12px', borderRadius: 8,
+              background: 'linear-gradient(90deg, rgba(255,193,69,0.15) 0%, rgba(255,140,40,0.15) 100%)',
+              color: 'var(--gold)',
+              border: '1px solid rgba(255,193,69,0.4)',
+              cursor: isRecording ? 'default' : 'pointer',
+              opacity: isRecording ? 0.5 : 1,
+              fontWeight: 700, fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+            <span>🏆</span><span>{en ? 'Top' : 'Топ'}</span>
+          </button>
 
           {snapshotMsg && (
             <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>{snapshotMsg}</span>
@@ -1672,30 +1893,31 @@ export default function VictoryCity({ userId }) {
               display: 'flex', alignItems: 'center', background: 'var(--surface2)',
               borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden',
             }}>
-              <button onClick={() => loadView(v)} disabled={isTimelapsing}
+              <button onClick={() => loadView(v)} disabled={isTimelapsing || isRecording}
                 style={{
                   fontSize: 11, padding: '5px 10px', background: 'transparent',
                   color: 'var(--ink2)', border: 'none',
-                  cursor: isTimelapsing ? 'default' : 'pointer',
-                  opacity: isTimelapsing ? 0.5 : 1, fontFamily: 'inherit', fontWeight: 500,
+                  cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+                  opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontFamily: 'inherit', fontWeight: 500,
                 }}>📍 {v.name}</button>
-              <button onClick={() => deleteView(i)}
+              <button onClick={() => deleteView(i)} disabled={isRecording}
                 style={{
                   fontSize: 12, padding: '5px 8px', background: 'transparent',
                   color: 'var(--ink3)', border: 'none',
                   borderLeft: '1px solid rgba(255,255,255,0.05)',
-                  cursor: 'pointer', fontFamily: 'inherit',
+                  cursor: isRecording ? 'default' : 'pointer', fontFamily: 'inherit',
+                  opacity: isRecording ? 0.5 : 1,
                 }} aria-label="delete view">×</button>
             </div>
           ))}
           {savedViews.length < MAX_SAVED_VIEWS && (
-            <button onClick={saveCurrentView} disabled={isTimelapsing}
+            <button onClick={saveCurrentView} disabled={isTimelapsing || isRecording}
               style={{
                 fontSize: 11, padding: '5px 10px', borderRadius: 6,
                 background: 'transparent', color: 'var(--ink3)',
                 border: '1px dashed rgba(255,255,255,0.15)',
-                cursor: isTimelapsing ? 'default' : 'pointer',
-                opacity: isTimelapsing ? 0.5 : 1, fontFamily: 'inherit', fontWeight: 500,
+                cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+                opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontFamily: 'inherit', fontWeight: 500,
                 display: 'flex', alignItems: 'center', gap: 4,
               }}>
               <span>+</span><span>{en ? 'Save view' : 'Сохранить ракурс'}</span>
@@ -1710,13 +1932,13 @@ export default function VictoryCity({ userId }) {
             {TIME_PRESETS_UI.map(p => {
               const active = timeOfDay === p.id
               return (
-                <button key={p.id} onClick={() => applyTimeOfDay(p.id)} disabled={isTimelapsing}
+                <button key={p.id} onClick={() => applyTimeOfDay(p.id)} disabled={isTimelapsing || isRecording}
                   style={{
                     fontSize: 11, padding: '6px 10px', borderRadius: 6,
                     background: active ? 'var(--accent)' : 'transparent',
                     color: active ? '#0a0a12' : 'var(--ink2)', border: 'none',
-                    cursor: isTimelapsing ? 'default' : 'pointer',
-                    opacity: isTimelapsing ? 0.5 : 1, fontWeight: active ? 700 : 500, fontFamily: 'inherit',
+                    cursor: (isTimelapsing || isRecording) ? 'default' : 'pointer',
+                    opacity: (isTimelapsing || isRecording) ? 0.5 : 1, fontWeight: active ? 700 : 500, fontFamily: 'inherit',
                     display: 'flex', alignItems: 'center', gap: 4,
                   }} aria-pressed={active}>
                   <span>{p.emoji}</span><span>{en ? p.label_en : p.label_ru}</span>
@@ -1727,7 +1949,6 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
-      {/* Tower modal — список побед составивших эту высотку */}
       {selTower && (() => {
         const wins = uniqueWinsInTower(selTower)
         return (
@@ -1791,6 +2012,21 @@ export default function VictoryCity({ userId }) {
           : (en ? 'Drag to rotate · Pinch/scroll to zoom · Hover for info · Tap a tower for wins list'
                 : 'Тащи — вращай · Щипок/колёсико — зум · Наведи — инфо · Тап — список побед')}
       </div>
+
+      {/* Hall of Fame модалка */}
+      {showHallOfFame && (
+        <Suspense fallback={null}>
+          <HallOfFame onClose={() => setShowHallOfFame(false)} en={en} currentUserId={userId} />
+        </Suspense>
+      )}
+
+      {/* Inline keyframes для REC pulse */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   )
 }
