@@ -443,27 +443,29 @@ export default function VictoryCity({ userId }) {
         ground.receiveShadow = true
         scene.add(ground)
 
-        const roadTex = makeRoadTexture(THREE)
-        const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, color: 0x222230, roughness: 0.95, metalness: 0 })
-        const roadsGroup = new THREE.Group()
+        // Дороги: shared текстура + shared материал + shared geometry.
+        // Раньше клонировались roadTex и roadMat в цикле — это утекало
+        // ~10 GPU-текстур и ~10 PlaneGeometry на каждый mount без dispose.
+        // Все дороги одного размера и используют одинаковый repeat,
+        // поэтому шаринг безопасен.
         const roadW = 2.6
         const roadLen = Math.max(rows, COLS) * SPACING + SPACING * 2
+        const roadTex = makeRoadTexture(THREE)
+        roadTex.repeat.set(roadLen / 4, 1)
+        roadTex.needsUpdate = true
+        const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, color: 0x222230, roughness: 0.95, metalness: 0 })
+        const roadGeo = new THREE.PlaneGeometry(roadLen, roadW)
+        const roadsGroup = new THREE.Group()
         for (let r = -1; r < rows; r++) {
           const z = r * SPACING + SPACING / 2
-          const m = new THREE.Mesh(new THREE.PlaneGeometry(roadLen, roadW), roadMat.clone())
-          m.material.map = roadTex.clone()
-          m.material.map.repeat.set(roadLen / 4, 1)
-          m.material.map.needsUpdate = true; m.material.needsUpdate = true
+          const m = new THREE.Mesh(roadGeo, roadMat)
           m.rotation.x = -Math.PI / 2; m.rotation.z = Math.PI / 2
           m.position.set(centerX, 0.005, z); m.receiveShadow = true
           roadsGroup.add(m)
         }
         for (let c = -1; c < COLS; c++) {
           const x = c * SPACING + SPACING / 2
-          const m = new THREE.Mesh(new THREE.PlaneGeometry(roadLen, roadW), roadMat.clone())
-          m.material.map = roadTex.clone()
-          m.material.map.repeat.set(roadLen / 4, 1)
-          m.material.map.needsUpdate = true; m.material.needsUpdate = true
+          const m = new THREE.Mesh(roadGeo, roadMat)
           m.rotation.x = -Math.PI / 2
           m.position.set(x, 0.005, centerZ); m.receiveShadow = true
           roadsGroup.add(m)
@@ -516,6 +518,12 @@ export default function VictoryCity({ userId }) {
         if (windowsMesh) {
           windowsMesh.frustumCulled = false
           windowsMesh.matrixAutoUpdate = false
+          // ВАЖНО: окна позиционируются в АБСОЛЮТНЫХ координатах (windowsMesh
+          // в scene, не в bGroup). Пока башни вырастают через bGroup.scale.y =
+          // 0→1 (intro grow + time-lapse), окна болтаются в воздухе на финальных
+          // позициях. Решение: прячем окна до завершения grow, включаем когда
+          // город построен. Аналогично в startTimelapse / по окончании timelapse.
+          windowsMesh.visible = false
           scene.add(windowsMesh)
         }
         let windowIdx = 0
@@ -722,8 +730,12 @@ export default function VictoryCity({ userId }) {
         const animRef = {
           focusAnim: null, focusDuration: FOCUS_MS,
           autoRotate: false, timeAnim: null,
-          timelapse: null, weatherEnabled: true,
-          // Кастомная орбита для записи видео: { start, durationMs, centerX, centerZ, radius, height, lookAt }
+          timelapse: null,
+          // Синхронизация с React state на init: если weather выключен в state,
+          // animRef.weatherEnabled тоже false — animate не делает бесполезные
+          // вычисления позиций невидимых частиц.
+          weatherEnabled: weatherEnabled,
+          // Кастомная орбита для записи видео: { start, durationMs, centerX, centerZ, radius, height, lookAt, prevAutoRotate }
           recordOrbit: null,
         }
 
@@ -772,6 +784,8 @@ export default function VictoryCity({ userId }) {
         function startTimelapse() {
           const sorted = [...towerGroups]
           for (const g of sorted) g.scale.y = 0
+          // Прячем окна — иначе будут болтаться в воздухе пока башни вырастают
+          if (windowsMesh) windowsMesh.visible = false
           animRef.timelapse = { sortedGroups: sorted, start: performance.now() }
           setIsTimelapsing(true)
           hoverRef.current = { towerIdx: null, group: null, pieceIdx: null }
@@ -786,6 +800,8 @@ export default function VictoryCity({ userId }) {
           animRef.timelapse = null
           setIsTimelapsing(false)
           setTimelapseDate(null)
+          // Башни на финальных позициях — окна снова уместны
+          if (windowsMesh) windowsMesh.visible = true
         }
 
         function applyFilter(filter) {
@@ -834,13 +850,19 @@ export default function VictoryCity({ userId }) {
             radius: dist * 0.85,
             height: dist * 0.25,
             lookHeight: 4,
+            // Сохраняем чтобы восстановить после записи. Раньше после записи
+            // авто-поворот молча выключался даже если был включён юзером.
+            prevAutoRotate: animRef.autoRotate,
           }
           controls.enabled = false
           controls.autoRotate = false
         }
         function stopRecordOrbit() {
+          const wasAutoRotate = animRef.recordOrbit?.prevAutoRotate
           animRef.recordOrbit = null
           controls.enabled = true
+          // Восстанавливаем авто-поворот если он был активен до записи
+          if (wasAutoRotate && !reducedMotion) controls.autoRotate = true
         }
 
         const introStart = performance.now()
@@ -848,10 +870,12 @@ export default function VictoryCity({ userId }) {
         const raycaster = new THREE.Raycaster()
         const mouse = new THREE.Vector2()
         let clickStart = null
-        renderer.domElement.addEventListener('pointerdown', (e) => {
+        // pointerdown/pointerup были анонимными — leak handlers на removed
+        // domElement при unmount. Сохраняем в const + добавляем в cleanup.
+        const onPointerDown = (e) => {
           clickStart = { x: e.clientX, y: e.clientY }
-        })
-        renderer.domElement.addEventListener('pointerup', (e) => {
+        }
+        const onPointerUp = (e) => {
           if (!clickStart) return
           const dx = Math.abs(e.clientX - clickStart.x)
           const dy = Math.abs(e.clientY - clickStart.y)
@@ -874,7 +898,9 @@ export default function VictoryCity({ userId }) {
               })
             }
           }
-        })
+        }
+        renderer.domElement.addEventListener('pointerdown', onPointerDown)
+        renderer.domElement.addEventListener('pointerup', onPointerUp)
 
         const onPointerMove = (e) => {
           if (animRef.timelapse || animRef.recordOrbit) return
@@ -1031,7 +1057,11 @@ export default function VictoryCity({ userId }) {
                 g.scale.y = easeOutCubic(p2)
                 if (p2 < 1) allDone = false
               }
-              if (allDone) growComplete = true
+              if (allDone) {
+                growComplete = true
+                // Башни доросли — окна на них больше не висят в воздухе, можно показывать
+                if (windowsMesh) windowsMesh.visible = true
+              }
             }
           }
 
@@ -1060,6 +1090,8 @@ export default function VictoryCity({ userId }) {
                 animRef.timelapse = null
                 setIsTimelapsing(false)
                 setTimelapseDate(null)
+                // Time-lapse завершён, башни на финальных позициях — окна включаются
+                if (windowsMesh) windowsMesh.visible = true
               }
             }
           }
@@ -1155,12 +1187,15 @@ export default function VictoryCity({ userId }) {
           floorGeo, crownGeo, windowGeo, windowMat, windowsMesh,
           starTex, roadTex, dotTex, smoke, smokeGeo, smokeMat,
           weather, weatherGeo, weatherMat, rafRef,
+          // Shared road resources — нужны для cleanup
+          roadGeo, roadMat,
           cameraPresets: CAMERA_PRESETS, animRef,
           startCamAnim, startTimeAnim, startTimelapse, stopTimelapse, startFocusAnim,
           startRecordOrbit, stopRecordOrbit,
           applyFilter, setWeatherEnabled,
           minimapBounds, towerPositions,
-          onPointerMove, onPointerLeave,
+          // Все pointer handlers — для корректного cleanup
+          onPointerMove, onPointerLeave, onPointerDown, onPointerUp,
           THREE_MOD: THREE,
         }
 
@@ -1189,6 +1224,8 @@ export default function VictoryCity({ userId }) {
         if (t.renderer?.domElement) {
           if (t.onPointerMove) t.renderer.domElement.removeEventListener('pointermove', t.onPointerMove)
           if (t.onPointerLeave) t.renderer.domElement.removeEventListener('pointerleave', t.onPointerLeave)
+          if (t.onPointerDown) t.renderer.domElement.removeEventListener('pointerdown', t.onPointerDown)
+          if (t.onPointerUp) t.renderer.domElement.removeEventListener('pointerup', t.onPointerUp)
         }
         t.controls?.dispose()
         t.scene?.traverse(o => {
@@ -1199,6 +1236,8 @@ export default function VictoryCity({ userId }) {
         })
         t.floorGeo?.dispose(); t.crownGeo?.dispose()
         t.windowGeo?.dispose(); t.windowMat?.dispose()
+        // Shared road resources — теперь корректно дисчпозятся
+        t.roadGeo?.dispose(); t.roadMat?.dispose()
         t.starTex?.dispose(); t.roadTex?.dispose(); t.dotTex?.dispose()
         t.smokeGeo?.dispose(); t.smokeMat?.dispose()
         t.weatherGeo?.dispose(); t.weatherMat?.dispose()
