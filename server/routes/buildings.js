@@ -4,20 +4,6 @@
  * Концепция: 1 победа = N кирпичей (brickValue). Кирпичи укладываются
  * хронологически в стойки по 11 — как в самой игре Highrise Heist.
  * Закрытая стойка (11 кирпичей) = небоскрёб.
- *
- * brickValue:
- *  - База 1 кирпич
- *  - +1 если соперник живой (vs human ценнее AI)
- *  - +1 за Hard, +2 за Extreme, +3 за Impossible
- *  - +1 если победа золотая (draw_won)
- *  - Минимум 1, максимум ~5 (Impossible + golden)
- *
- * Endpoints:
- *  - POST /api/buildings — записать победу
- *  - GET /api/buildings/stats/:userId — агрегаты побед
- *  - GET /api/buildings/city/:userId — собранный город из кирпичей
- *  - GET /api/buildings/leaderboard — топ-города (Хол оф фейм)
- *  - GET /api/buildings/:userId — DEPRECATED legacy список
  */
 
 import { Router } from 'express'
@@ -119,77 +105,27 @@ function compileCity(userId) {
   }
 }
 
-// ─── Кэш leaderboard: считается тяжело, обновляется раз в 5 минут ───
-const LEADERBOARD_TTL_MS = 5 * 60 * 1000
-let leaderboardCache = { data: null, builtAt: 0 }
-
-function buildLeaderboard(limit = 20) {
-  // Получаем все user_id у которых есть хоть одна победа.
-  // Считаем агрегаты в JS т.к. brickValue нелинейна и зависит от is_ai+difficulty+result.
-  const userRows = db.prepare(`
-    SELECT user_id, COUNT(*) as wins
-    FROM victory_buildings
-    GROUP BY user_id
-    HAVING wins > 0
-  `).all()
-
-  const enriched = []
-  for (const u of userRows) {
-    // Тянем юзера: имя + аватар если есть
-    const userInfo = db.prepare(`
-      SELECT id, name, avatar_url
-      FROM users WHERE id = ?
-    `).get(u.user_id)
-    if (!userInfo) continue
-
-    // Считаем кирпичи и закрытые высотки через compileCity
-    const city = compileCity(u.user_id)
-    const closedTowers = city.towers.filter(t => t.is_closed).length
-    const crownedTowers = city.towers.filter(t => t.golden_top).length
-
-    enriched.push({
-      user_id: userInfo.id,
-      name: userInfo.name || `Игрок #${userInfo.id}`,
-      avatar_url: userInfo.avatar_url || null,
-      total_wins: city.total_wins,
-      total_bricks: city.total_bricks,
-      closed_towers: closedTowers,
-      crowned_towers: crownedTowers,
-      // "Размер города" — комплексная метрика для главного топа
-      score: closedTowers * 100 + crownedTowers * 50 + city.total_bricks,
-    })
-  }
-
-  // Сортируем по разным метрикам, отдаём по N топов
-  const byScore = [...enriched].sort((a, b) => b.score - a.score).slice(0, limit)
-  const byBricks = [...enriched].sort((a, b) => b.total_bricks - a.total_bricks).slice(0, limit)
-  const byTowers = [...enriched].sort((a, b) => b.closed_towers - a.closed_towers || b.total_bricks - a.total_bricks).slice(0, limit)
-  const byCrowned = [...enriched].sort((a, b) => b.crowned_towers - a.crowned_towers || b.total_bricks - a.total_bricks).slice(0, limit)
-
-  return {
-    by_score: byScore,
-    by_bricks: byBricks,
-    by_towers: byTowers,
-    by_crowned: byCrowned,
-    total_players: enriched.length,
-    total_bricks_global: enriched.reduce((s, e) => s + e.total_bricks, 0),
-    total_towers_global: enriched.reduce((s, e) => s + e.closed_towers, 0),
+function getUserBrief(userId) {
+  try {
+    return db.prepare('SELECT id, name, avatar_url FROM users WHERE id = ?').get(userId) || null
+  } catch {
+    // На случай если в users нет колонки avatar_url — фолбэк
+    try {
+      return db.prepare('SELECT id, name FROM users WHERE id = ?').get(userId) || null
+    } catch { return null }
   }
 }
 
 const router = Router()
 
+// ─── POST /api/buildings ───
 router.post('/', auth, (req, res) => {
   try {
     const {
-      stands_snapshot,
-      result,
-      game_id = null,
-      opponent_name = null,
-      is_ai = false,
-      ai_difficulty = null,
-      player_skin_id = null,
-      background_id = null,
+      stands_snapshot, result,
+      game_id = null, opponent_name = null,
+      is_ai = false, ai_difficulty = null,
+      player_skin_id = null, background_id = null,
     } = req.body || {}
 
     if (!Array.isArray(stands_snapshot) || stands_snapshot.length === 0) {
@@ -221,6 +157,7 @@ router.post('/', auth, (req, res) => {
   }
 })
 
+// ─── GET /api/buildings/stats/:userId ───
 router.get('/stats/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -240,39 +177,21 @@ router.get('/stats/:userId', (req, res) => {
   })
 })
 
+// ─── GET /api/buildings/city/:userId — собранный город + инфа об игроке ───
 router.get('/city/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
   try {
     const city = compileCity(userId)
-    res.json(city)
+    const user = getUserBrief(userId)
+    res.json({ ...city, user })
   } catch (e) {
     console.error('GET /buildings/city error:', e)
     res.status(500).json({ error: 'Не удалось собрать город' })
   }
 })
 
-// ─── GET /api/buildings/leaderboard — Хол оф фейм ───
-// Тяжёлый запрос (compileCity для каждого юзера), кэшируется на 5 минут.
-router.get('/leaderboard', (req, res) => {
-  try {
-    const now = Date.now()
-    if (!leaderboardCache.data || (now - leaderboardCache.builtAt) > LEADERBOARD_TTL_MS) {
-      leaderboardCache = {
-        data: buildLeaderboard(20),
-        builtAt: now,
-      }
-    }
-    res.json({
-      ...leaderboardCache.data,
-      cached_age_sec: Math.floor((now - leaderboardCache.builtAt) / 1000),
-    })
-  } catch (e) {
-    console.error('GET /buildings/leaderboard error:', e)
-    res.status(500).json({ error: 'Не удалось построить таблицу лидеров' })
-  }
-})
-
+// ─── GET /api/buildings/:userId — DEPRECATED legacy список ───
 router.get('/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -294,6 +213,7 @@ router.get('/:userId', (req, res) => {
   res.json({ buildings, limit, offset })
 })
 
+// ─── DELETE /api/buildings/:id ───
 router.delete('/:id', auth, (req, res) => {
   const id = parseInt(req.params.id, 10)
   if (!id) return res.status(400).json({ error: 'invalid id' })
