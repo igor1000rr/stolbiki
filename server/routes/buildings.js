@@ -1,16 +1,32 @@
 /**
- * Маршруты Города побед — снимки финальных раскладок после побед
- * См. issue #2
+ * Маршруты Города побед.
  *
- * Таблица victory_buildings создаётся при импорте модуля (CREATE TABLE IF NOT EXISTS).
- * Это позволяет деплоить роутер автономно, без правки миграций в db.js.
+ * Концепция: 1 победа = N кирпичей (brickValue). Кирпичи укладываются
+ * хронологически в стойки по 11 — как в самой игре Highrise Heist.
+ * Закрытая стойка (11 кирпичей) = небоскрёб.
+ *
+ * brickValue:
+ *  - База 1 кирпич
+ *  - +1 если соперник живой (vs human ценнее AI)
+ *  - +1 за Hard, +2 за Extreme, +3 за Impossible
+ *  - +1 если победа золотая (draw_won)
+ *  - Минимум 1, максимум ~5 (Impossible + golden)
+ *
+ * Endpoints:
+ *  - POST /api/buildings — записать победу (как раньше, не меняли)
+ *  - GET /api/buildings/stats/:userId — агрегаты побед (как раньше)
+ *  - GET /api/buildings/city/:userId — НОВОЕ: собранный город из кирпичей
+ *  - GET /api/buildings/:userId — DEPRECATED: legacy список побед,
+ *      оставлен для backward compat (старая логика 1 победа = 1 здание).
+ *      Новый клиент использует /city.
+ *
+ * Таблица victory_buildings создаётся при импорте (CREATE TABLE IF NOT EXISTS).
  */
 
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
 
-// ─── Bootstrap: таблица victory_buildings ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS victory_buildings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,9 +46,98 @@ db.exec(`
     ON victory_buildings(user_id, created_at DESC);
 `)
 
+const TOWER_HEIGHT = 11   // как в самой игре
+
+// Цена победы в кирпичах
+function brickValue(b) {
+  let v = 1
+  // Бонус за сложность AI
+  if (b.is_ai && b.ai_difficulty) {
+    const d = parseInt(b.ai_difficulty, 10) || 0
+    if (d >= 1500) v += 3       // Impossible
+    else if (d >= 800) v += 2   // Extreme
+    else if (d >= 400) v += 1   // Hard
+  }
+  // Победа над живым человеком
+  if (!b.is_ai) v += 1
+  // Золотая победа
+  if (b.result === 'draw_won') v += 1
+  return v
+}
+
+// Является ли победа "особой" (золотой кирпич сверху если попадает в верх стойки)
+function isSpecialWin(b) {
+  if (b.result === 'draw_won') return true
+  if (b.is_ai && b.ai_difficulty) {
+    const d = parseInt(b.ai_difficulty, 10) || 0
+    if (d >= 1500) return true   // Impossible
+  }
+  return false
+}
+
+// Скомпилировать город из кирпичей в стойки
+function compileCity(userId) {
+  const rows = db.prepare(`
+    SELECT id, opponent_name, is_ai, ai_difficulty, player_skin_id, result, created_at
+    FROM victory_buildings
+    WHERE user_id = ?
+    ORDER BY created_at ASC
+  `).all(userId)
+
+  // Раскладываем все кирпичи в плоский массив
+  const pieces = []
+  for (const b of rows) {
+    const v = brickValue(b)
+    const special = isSpecialWin(b)
+    for (let i = 0; i < v; i++) {
+      pieces.push({
+        skin_id: b.player_skin_id || 'blocks_classic',
+        source_id: b.id,
+        opponent: b.opponent_name || (b.is_ai ? 'Snappy' : null),
+        date: b.created_at,
+        golden: b.result === 'draw_won',
+        is_ai: !!b.is_ai,
+        ai_difficulty: b.ai_difficulty,
+        // Только последний кирпич группы — special (он попадёт в "верх стека" этой победы)
+        special: i === v - 1 && special,
+      })
+    }
+  }
+
+  // Группируем по TOWER_HEIGHT в стойки (хронологически)
+  const towers = []
+  for (let i = 0; i < pieces.length; i += TOWER_HEIGHT) {
+    const towerPieces = pieces.slice(i, i + TOWER_HEIGHT)
+    const isClosed = towerPieces.length === TOWER_HEIGHT
+    const topPiece = towerPieces[towerPieces.length - 1]
+    // Уникальные победы что внесли кирпичи в эту высотку
+    const sourceIds = [...new Set(towerPieces.map(p => p.source_id))]
+    towers.push({
+      idx: towers.length,
+      pieces: towerPieces,
+      height: towerPieces.length,
+      is_closed: isClosed,
+      // Золотой шпиль над закрытой высоткой если последний кирпич был особым
+      golden_top: isClosed && topPiece.special,
+      // Период строительства этой высотки
+      period_from: towerPieces[0].date,
+      period_to: topPiece.date,
+      // Сколько уникальных побед составили эту высотку
+      source_wins: sourceIds.length,
+    })
+  }
+
+  return {
+    towers,
+    total_bricks: pieces.length,
+    total_wins: rows.length,
+    next_tower_progress: pieces.length % TOWER_HEIGHT,    // 0..10 — сколько кирпичей в текущей открытой высотке
+  }
+}
+
 const router = Router()
 
-// ─── POST /api/buildings — сохранить здание после победы ───
+// ─── POST /api/buildings — сохранить победу ───
 router.post('/', auth, (req, res) => {
   try {
     const {
@@ -82,8 +187,7 @@ router.post('/', auth, (req, res) => {
   }
 })
 
-// ─── GET /api/buildings/stats/:userId — агрегаты ───
-// ВАЖНО: stats должен быть выше /:userId, иначе перехватится
+// ─── GET /api/buildings/stats/:userId ───
 router.get('/stats/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -103,7 +207,20 @@ router.get('/stats/:userId', (req, res) => {
   })
 })
 
-// ─── GET /api/buildings/:userId — список зданий ───
+// ─── GET /api/buildings/city/:userId — НОВЫЙ: собранный город из кирпичей ───
+router.get('/city/:userId', (req, res) => {
+  const userId = parseInt(req.params.userId, 10)
+  if (!userId) return res.status(400).json({ error: 'invalid userId' })
+  try {
+    const city = compileCity(userId)
+    res.json(city)
+  } catch (e) {
+    console.error('GET /buildings/city error:', e)
+    res.status(500).json({ error: 'Не удалось собрать город' })
+  }
+})
+
+// ─── GET /api/buildings/:userId — DEPRECATED legacy список ───
 router.get('/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) return res.status(400).json({ error: 'invalid userId' })
@@ -125,7 +242,7 @@ router.get('/:userId', (req, res) => {
   res.json({ buildings, limit, offset })
 })
 
-// ─── DELETE /api/buildings/:id — удалить (только владелец) ───
+// ─── DELETE /api/buildings/:id ───
 router.delete('/:id', auth, (req, res) => {
   const id = parseInt(req.params.id, 10)
   if (!id) return res.status(400).json({ error: 'invalid id' })
