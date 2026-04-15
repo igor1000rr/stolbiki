@@ -14,7 +14,8 @@
     "cors": "^2.8.5",
     "helmet": "^8.0.0",
     "ws": "^8.18.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "@resvg/resvg-js": "^2.6.2"
   },
   "devDependencies": {
     "supertest": "^7.0.0"

@@ -1,32 +1,28 @@
 /**
  * Embed-роуты: встраиваемые виджеты Города побед.
  *
- * GET /embed/city/:userId — самодостаточная HTML-страница с 3D визуализацией
- * города игрока. Не зависит от основного бандла. Содержит OG-теги
- * для красивых превью в соцсетях.
+ * GET /embed/city/:userId          — самодостаточная HTML с 3D визуализацией.
+ * GET /embed/og/city/:userId.png   — PNG 1200×630 для og:image (Telegram, Twitter, Discord).
  *
- * Предназначено для:
- *  - <iframe src="https://highriseheist.com/embed/city/123"> в блогах/форумах
- *  - Превью при шаре линки в Telegram/Twitter/Discord
- *  - TikTok bio link, Twitter cards
+ * PNG генерируется через @resvg/resvg-js (нативный Rust binding) —
+ * лёгкий, без headless chrome. Рендер ~50ms, кэш в памяти 1 час,
+ * LRU max 500 записей.
  *
- * Параметры query string:
- *  - ?theme=night|day (default night)
- *  - ?nocontrols=1 (спрятать подпись и лого — для чистых скриншотов)
+ * Для работы нужны системные шрифты. На Ubuntu/Debian:
+ *   apt install -y fontconfig fonts-dejavu-core
  */
 import { Router } from 'express'
+import { Resvg } from '@resvg/resvg-js'
 import { db } from '../db.js'
 
 const router = Router()
 
-// HTML escape helper: ck XSS-защита для имени
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-// Переиспользуем ту же логику что в buildings.js — локальный compileCity
 const TOWER_HEIGHT = 11
 function brickValue(b) {
   let v = 1
@@ -82,6 +78,213 @@ function compileCity(userId) {
   }
 }
 
+function toCompact(city) {
+  return city.towers.map(t => ({
+    h: t.pieces.length,
+    g: t.golden_top ? 1 : 0,
+    s: t.pieces.map(p => [p.skin_id, p.special ? 1 : 0]),
+  }))
+}
+
+// ═══ OG картинка ═══
+
+const SKIN_HEX_OG = {
+  blocks_classic: '#6db4ff', blocks_flat: '#4a9eff', blocks_round: '#4a9eff',
+  blocks_glass: '#6ab4ff', blocks_metal: '#b8d4f0', blocks_candy: '#80d0ff',
+  blocks_pixel: '#4a9eff', blocks_neon: '#00e5ff', blocks_glow: '#7ec8ff',
+}
+const OG_GOLDEN = '#ffd86e'
+const OG_CROWN = '#ffc845'
+
+function buildOgSvg({ name, wins, bricks, closed, crowned, towers }) {
+  const W = 1200, H = 630
+  const safeName = esc(name).slice(0, 24)
+
+  // Район города: снизу всей картинки
+  const cityTop = 380, cityBottom = 580, cityH = cityBottom - cityTop
+  const blockH = 12  // высота одного этажа-кирпича
+  const maxFloors = 11
+
+  const displayed = towers.slice(0, 28)
+  const remaining = towers.length - displayed.length
+
+  const innerW = W - 80
+  const slotW = innerW / Math.max(displayed.length, 1)
+  const blockW = Math.min(32, slotW * 0.78)
+
+  let cityElems = ''
+  displayed.forEach((tower, i) => {
+    const x = 40 + i * slotW + (slotW - blockW) / 2
+    // Строим снизу вверх
+    tower.s.forEach(([skin, special], j) => {
+      const color = special ? OG_GOLDEN : (SKIN_HEX_OG[skin] || SKIN_HEX_OG.blocks_classic)
+      const y = cityBottom - blockH - j * blockH
+      cityElems += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${blockW.toFixed(1)}" height="${blockH - 1}" fill="${color}" rx="1.5"/>`
+    })
+    // Корона и звезда над закрытыми high towers с golden_top
+    if (tower.g) {
+      const yCrown = cityBottom - blockH * (tower.h + 1)
+      const cw = blockW * 0.72
+      const cx = x + (blockW - cw) / 2
+      cityElems += `<rect x="${cx.toFixed(1)}" y="${yCrown.toFixed(1)}" width="${cw.toFixed(1)}" height="${blockH - 1}" fill="${OG_CROWN}" rx="1.5"/>`
+      // 5-конечная звезда
+      const sy = yCrown - 12
+      const sx = x + blockW / 2
+      const r1 = 8, r2 = 3.5
+      let pts = ''
+      for (let k = 0; k < 10; k++) {
+        const r = k % 2 === 0 ? r1 : r2
+        const a = (Math.PI * 2 / 10) * k - Math.PI / 2
+        pts += `${(sx + Math.cos(a) * r).toFixed(1)},${(sy + Math.sin(a) * r).toFixed(1)} `
+      }
+      cityElems += `<polygon points="${pts.trim()}" fill="${OG_GOLDEN}"/>`
+    }
+  })
+
+  if (remaining > 0) {
+    cityElems += `<text x="${W - 40}" y="${cityBottom + 30}" font-family="sans-serif" font-size="22" font-weight="600" fill="#888" text-anchor="end">+${remaining} башен</text>`
+  }
+
+  // Empty state
+  if (!towers.length) {
+    cityElems = `<text x="${W / 2}" y="${cityTop + cityH / 2}" font-family="sans-serif" font-size="36" fill="#444" text-anchor="middle">Город ещё пуст</text>`
+  }
+
+  // Статы: 4 крупных числа с подписями
+  const stats = [
+    { v: wins,    l: 'Побед',     c: '#3dd68c' },
+    { v: bricks,  l: 'Кирпичей',  c: '#4a9eff' },
+    { v: closed,  l: 'Высоток',    c: '#ffffff' },
+    { v: crowned, l: 'С короной',  c: '#ffd86e' },
+  ]
+  const statW = 270
+  const statY = 240
+  let statElems = ''
+  stats.forEach((s, i) => {
+    const x = 40 + i * statW
+    statElems += `<text x="${x}" y="${statY}" font-family="sans-serif" font-size="72" font-weight="800" fill="${s.c}">${s.v}</text>`
+    statElems += `<text x="${x}" y="${statY + 32}" font-family="sans-serif" font-size="20" fill="#888">${s.l}</text>`
+  })
+
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0d22"/>
+      <stop offset="100%" stop-color="#06060f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="75%" r="75%">
+      <stop offset="0%" stop-color="#4a9eff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <rect width="${W}" height="${H}" fill="url(#glow)"/>
+
+  <!-- Лого -->
+  <text x="40" y="58" font-family="sans-serif" font-size="22" font-weight="800" fill="#ffd86e" letter-spacing="4">HIGHRISE HEIST</text>
+  <line x1="40" y1="75" x2="260" y2="75" stroke="#ffd86e" stroke-width="2" opacity="0.4"/>
+
+  <!-- Имя игрока -->
+  <text x="40" y="150" font-family="sans-serif" font-size="60" font-weight="800" fill="#ffffff">${safeName}</text>
+  <text x="40" y="185" font-family="sans-serif" font-size="22" fill="#888">Город побед</text>
+
+  <!-- Статы -->
+  ${statElems}
+
+  <!-- Город внизу -->
+  ${cityElems}
+
+  <!-- Footer разделитель -->
+  <line x1="40" y1="595" x2="${W - 40}" y2="595" stroke="#222" stroke-width="1"/>
+
+  <!-- Footer -->
+  <text x="40" y="618" font-family="sans-serif" font-size="16" fill="#666">Стратегическая настолка · Побеждай, строй, выигрывай</text>
+  <text x="${W - 40}" y="618" font-family="sans-serif" font-size="16" font-weight="700" fill="#ffd86e" text-anchor="end">highriseheist.com</text>
+</svg>`
+}
+
+// LRU кэш PNG
+const ogCache = new Map()
+const OG_CACHE_TTL = 60 * 60 * 1000     // 1 час
+const OG_CACHE_MAX = 500
+
+function cacheGet(key) {
+  const e = ogCache.get(key)
+  if (!e) return null
+  if (Date.now() - e.at > OG_CACHE_TTL) { ogCache.delete(key); return null }
+  // refresh LRU position
+  ogCache.delete(key); ogCache.set(key, e)
+  return e.png
+}
+function cacheSet(key, png) {
+  if (ogCache.size >= OG_CACHE_MAX) {
+    const firstKey = ogCache.keys().next().value
+    ogCache.delete(firstKey)
+  }
+  ogCache.set(key, { png, at: Date.now() })
+}
+
+router.get('/og/city/:userId.png', (req, res) => {
+  const userId = parseInt(req.params.userId, 10)
+  if (!userId) return res.status(400).send('invalid userId')
+
+  // Кэш-ключ учитывает версию — при изменениях SVG-дизайна бампай версию
+  const cacheKey = `v1:${userId}`
+  const cached = cacheGet(cacheKey)
+  if (cached) {
+    res.set('Cache-Control', 'public, max-age=1800').type('image/png').send(cached)
+    return
+  }
+
+  const user = db.prepare('SELECT id, name FROM users WHERE id = ?').get(userId)
+  if (!user) return res.status(404).send('user not found')
+
+  let city
+  try {
+    city = compileCity(userId)
+  } catch (e) {
+    console.error('og compileCity error:', e)
+    return res.status(500).send('compile error')
+  }
+
+  const closed = city.towers.filter(t => t.is_closed).length
+  const crowned = city.towers.filter(t => t.golden_top).length
+  const compactTowers = toCompact(city)
+
+  try {
+    const svg = buildOgSvg({
+      name: user.name || `Player #${userId}`,
+      wins: city.total_wins,
+      bricks: city.total_bricks,
+      closed, crowned,
+      towers: compactTowers,
+    })
+    const resvg = new Resvg(svg, {
+      fitTo: { mode: 'width', value: 1200 },
+      font: {
+        loadSystemFonts: true,
+        defaultFontFamily: 'DejaVu Sans',
+      },
+      background: '#06060f',
+    })
+    const png = resvg.render().asPng()
+    cacheSet(cacheKey, png)
+    res.set('Cache-Control', 'public, max-age=1800').type('image/png').send(png)
+  } catch (e) {
+    console.error('OG render error:', e)
+    res.status(500).send('render error')
+  }
+})
+
+// Инвалидация кэша при новой победе игрока.
+// Экспортируется чтобы buildings.js мог вызывать после INSERT.
+export function invalidateOgCache(userId) {
+  ogCache.delete(`v1:${userId}`)
+}
+
+// ═══ HTML embed-страница ═══
+
 router.get('/city/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
   if (!userId) {
@@ -107,12 +310,7 @@ router.get('/city/:userId', (req, res) => {
   const theme = req.query.theme === 'day' ? 'day' : 'night'
   const noControls = req.query.nocontrols === '1'
 
-  // Компактные данные для клиентского рендера — только то что нужно для визуала
-  const compactTowers = city.towers.map(t => ({
-    h: t.pieces.length,
-    g: t.golden_top ? 1 : 0,
-    s: t.pieces.map(p => [p.skin_id, p.special ? 1 : 0]),
-  }))
+  const compactTowers = toCompact(city)
   const dataJson = JSON.stringify({
     towers: compactTowers,
     bricks: city.total_bricks,
@@ -126,8 +324,8 @@ router.get('/city/:userId', (req, res) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`
   const pageUrl = `${baseUrl}/embed/city/${userId}`
   const profileUrl = `${baseUrl}/?profile=${userId}`
+  const ogImage = `${baseUrl}/embed/og/city/${userId}.png`
 
-  // Самодостаточная страница с лёгким three.js-рендером из CDN
   const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -138,15 +336,20 @@ router.get('/city/:userId', (req, res) => {
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="🏙 Город побед · ${playerName}">
+<meta property="og:title" content="Город побед · ${playerName}">
 <meta property="og:description" content="${ogDescription} · Highrise Heist">
 <meta property="og:url" content="${pageUrl}">
 <meta property="og:site_name" content="Highrise Heist">
+<meta property="og:image" content="${ogImage}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
 
 <!-- Twitter Card -->
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Город побед ${playerName}">
 <meta name="twitter:description" content="${ogDescription}">
+<meta name="twitter:image" content="${ogImage}">
 
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -211,7 +414,6 @@ const THEME = ${JSON.stringify(theme)};
 if (CITY.towers.length === 0) {
   // Пусто — ничего не рисуем
 } else {
-  // Лёгкий рендер с three.js из CDN
   try {
     const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.169/build/three.module.js');
     const { OrbitControls } = await import('https://cdn.jsdelivr.net/npm/three@0.169/examples/jsm/controls/OrbitControls.js');
@@ -340,11 +542,9 @@ if (CITY.towers.length === 0) {
 </body>
 </html>`
 
-  // Позволяем iframe из любых доменов, кэш на 5 мин
   res.set({
     'Cache-Control': 'public, max-age=300',
     'X-Frame-Options': 'ALLOWALL',
-    // CSP для embed: разрешаем three.js из CDN
     'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://cdn.jsdelivr.net; frame-ancestors *;",
   })
   res.type('html').send(html)
