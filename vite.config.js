@@ -8,13 +8,14 @@ import { createHash } from 'crypto'
 const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
 const APP_VERSION = pkg.version
 
-// Плагин: подставляет версию и __BUILD_HASH__ в dist/index.html и dist/sw.js после сборки.
+// Плагин: подставляет версию в dist/index.html после сборки.
+// ВАЖНО: должен выполняться ДО cspHashes(), иначе хеши считаются для HTML с {{APP_VERSION}}
+// и не совпадают с реальными в проде → инлайн-скрипты блокируются CSP.
 function injectVersion() {
   return {
     name: 'inject-version',
     apply: 'build',
     closeBundle() {
-      // index.html: подменяем {{APP_VERSION}} на реальную версию
       const htmlPath = resolve('dist/index.html')
       if (existsSync(htmlPath)) {
         const html = readFileSync(htmlPath, 'utf8').replace(/\{\{APP_VERSION\}\}/g, APP_VERSION)
@@ -43,6 +44,7 @@ function swBuildHash() {
 
 // Плагин: парсит dist/index.html, считает sha256 каждого inline <script>, пишет в dist/csp-hashes.json.
 // Сервер читает этот файл при старте и подставляет хеши в CSP script-src → позволяет убрать 'unsafe-inline'.
+// ДОЛЖЕН быть ПОСЛЕ injectVersion() — иначе хеши считаются до подстановки версии и не совпадают с итоговым HTML.
 function cspHashes() {
   return {
     name: 'csp-hashes',
@@ -76,7 +78,11 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
   },
-  plugins: [react(), swBuildHash(), cspHashes(), injectVersion()],
+  // ПОРЯДОК ПЛАГИНОВ КРИТИЧЕН: injectVersion() перед cspHashes().
+  // Если cspHashes запустится раньше, он считает sha256 от версии HTML с плейсхолдером
+  // {{APP_VERSION}} в JSON-LD блоке. В итоговом HTML стоит реальная версия → хэши не совпадают,
+  // браузер блокирует inline-скрипты (unsafe-inline убирается когда есть хеши).
+  plugins: [react(), swBuildHash(), injectVersion(), cspHashes()],
   base: '/',
   build: {
     rollupOptions: {

@@ -56,16 +56,48 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : [...DEFAULT_ORIGINS, ...DEV_ORIGINS]
 
-let scriptSrcDirective = ["'self'", "'unsafe-inline'", 'https://mc.yandex.ru']
+// ═══ CSP script-src ═══
+// Логика подбора:
+//   1) Ищем csp-hashes.json (генерится vite-плагином cspHashes() при сборке)
+//   2) Если найден и непустой → используем sha256-хеши без unsafe-inline
+//   3) Если не найден:
+//        - в dev (!isProd) или с флагом CSP_ALLOW_UNSAFE_INLINE=1 → fallback на unsafe-inline
+//        - в prod без флага → ЖИРНЫЙ warning в логи (скрипты будут блокироваться, но сервер не падает)
+const isProd = process.env.NODE_ENV === 'production'
+const allowUnsafeInline = process.env.CSP_ALLOW_UNSAFE_INLINE === '1'
+
+let scriptSrcDirective = ["'self'", 'https://mc.yandex.ru']
+let cspHashesFound = false
+let cspHashesPath = null
 try {
   const cspPaths = [process.env.CSP_HASHES_PATH, new URL('./csp-hashes.json', import.meta.url).pathname, '/opt/stolbiki-api/csp-hashes.json', '/opt/stolbiki-web/csp-hashes.json'].filter(Boolean)
   for (const p of cspPaths) {
     if (fs.existsSync(p)) {
       const { scriptSrc } = JSON.parse(fs.readFileSync(p, 'utf8'))
-      if (Array.isArray(scriptSrc) && scriptSrc.length > 0) { scriptSrcDirective = ["'self'", ...scriptSrc, 'https://mc.yandex.ru']; break }
+      if (Array.isArray(scriptSrc) && scriptSrc.length > 0) {
+        scriptSrcDirective = ["'self'", ...scriptSrc, 'https://mc.yandex.ru']
+        cspHashesFound = true
+        cspHashesPath = p
+        break
+      }
     }
   }
-} catch {}
+} catch (e) {
+  console.error('[CSP] Failed to read csp-hashes.json:', e.message)
+}
+
+if (!cspHashesFound) {
+  if (allowUnsafeInline || !isProd) {
+    scriptSrcDirective = ["'self'", "'unsafe-inline'", 'https://mc.yandex.ru']
+    if (isProd && !isTest) console.warn('[CSP] ⚠️  FALLBACK: unsafe-inline enabled via CSP_ALLOW_UNSAFE_INLINE=1 (emergency mode)')
+    else if (!isTest) console.log('[CSP] dev mode — unsafe-inline enabled')
+  } else if (!isTest) {
+    console.error('[CSP] ❌ PRODUCTION without csp-hashes.json! Inline scripts (JSON-LD, Metrika loader) will be BLOCKED by browser.')
+    console.error('[CSP]    Fix: run `npm run build` to generate hashes, or set CSP_ALLOW_UNSAFE_INLINE=1 as emergency fallback.')
+  }
+} else if (!isTest) {
+  console.log(`[CSP] ✅ Using ${scriptSrcDirective.length - 2} script hashes from ${cspHashesPath}`)
+}
 
 // Helmet навешиваем на /api/* и всё остальное КРОМЕ /embed/* —
 // embed-страница сама ставит свои CSP/X-Frame-Options чтобы работать в iframe.
@@ -135,7 +167,7 @@ app.get('/api/stats', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
-  res.json({ status: 'ok', version: APP_VERSION, node: process.version, uptime: Math.round(process.uptime()), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c, rooms: rooms.size, activeRooms: [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length, matchQueue: matchQueue.length, memoryMB: Math.round(mem.heapUsed / 1024 / 1024), schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0, api: { requests: apiStats.requests, errors: apiStats.errors, uptimeHours: Math.round((Date.now() - apiStats.startedAt) / 3600000 * 10) / 10 }, rateLimits: rateLimits.size })
+  res.json({ status: 'ok', version: APP_VERSION, node: process.version, uptime: Math.round(process.uptime()), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c, rooms: rooms.size, activeRooms: [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length, matchQueue: matchQueue.length, memoryMB: Math.round(mem.heapUsed / 1024 / 1024), schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0, api: { requests: apiStats.requests, errors: apiStats.errors, uptimeHours: Math.round((Date.now() - apiStats.startedAt) / 3600000 * 10) / 10 }, rateLimits: rateLimits.size, csp: { hashesFound: cspHashesFound, hashCount: cspHashesFound ? scriptSrcDirective.length - 2 : 0, unsafeInline: scriptSrcDirective.includes("'unsafe-inline'") } })
 })
 
 const trackStmt = db.prepare('INSERT INTO analytics_events (event, page, user_id, session_id, meta, ip, ua) VALUES (?, ?, ?, ?, ?, ?, ?)')
