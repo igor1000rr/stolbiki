@@ -20,6 +20,7 @@ export function useAiRunner({
   // setter'ы
   setGs, setPhase, setResult, setInfo, setLocked,
   setAiThinking, setTransfersLeft, setConfetti, setTournament,
+  setTransfer, setPlacement,
   addLog,
   // значения (попадают в deps useCallback)
   humanPlayer, difficulty,
