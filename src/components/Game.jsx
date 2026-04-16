@@ -35,6 +35,8 @@ import ModifierBadge from './ModifierBadge'
 import TournamentBanner from './TournamentBanner'
 import MobileGameBar from './MobileGameBar'
 import MobileSettingsSheet from './MobileSettingsSheet'
+import GameScoreboard from './GameScoreboard'
+import GameOnlineBanners from './GameOnlineBanners'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -609,22 +611,10 @@ export default function Game() {
 
       {showTutorial && <GameTutorialModal lang={lang} onDismiss={dismissTutorial} />}
 
-      {mode === 'online' && (
-        <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
-          background: 'rgba(61,214,140,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(61,214,140,0.15)' }}>
-          <span style={{ fontSize: isNative ? 11 : 12, color: 'var(--green)', fontWeight: 600 }}>{lang === 'en' ? 'Online' : 'Онлайн'} — {onlinePlayers.join(' vs ')}</span>
-          {spectatorCount > 0 && <span style={{ fontSize: 10, color: 'var(--ink3)', marginLeft: 8 }}>👁 {spectatorCount}</span>}
-        </div>
-      )}
-      {mode === 'spectate-online' && (
-        <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 12,
-          background: 'rgba(155,89,182,0.08)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(155,89,182,0.15)' }}>
-          <span style={{ fontSize: isNative ? 11 : 12, color: 'var(--purple)', fontWeight: 600 }}>
-            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="#c8a4e8" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 4 }}><circle cx="10" cy="10" r="3"/><path d="M1 10s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z"/></svg>
-            {onlinePlayers.join(' vs ')}
-          </span>
-        </div>
-      )}
+      <GameOnlineBanners
+        mode={mode} lang={lang} isNative={isNative}
+        onlinePlayers={onlinePlayers} spectatorCount={spectatorCount}
+      />
 
       {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
       <div className="game-settings">
@@ -711,29 +701,10 @@ export default function Game() {
         </div>
       )}
 
-      {/* РЕФАКТОР: имя игрока берётся из useAuth() вместо localStorage IIFE */}
-      <div className="scoreboard">
-        <div className="score-player">
-          <div className="score-label">{mode === 'ai'
-            ? (humanPlayer === 0 ? (authUser?.name || t('game.player')) : 'Snappy')
-            : (en ? 'Blue' : 'Синие')}</div>
-          <div className={`score-num p0 ${scoreBump === 0 ? 'score-bump' : ''}`}>{gs.countClosed(0)}</div>
-        </div>
-        <div className="score-sep">:</div>
-        <div className="score-player">
-          <div className="score-label">{mode === 'ai'
-            ? (humanPlayer === 1 ? (authUser?.name || t('game.player')) : 'Snappy')
-            : (en ? 'Red' : 'Красные')}</div>
-          <div className={`score-num p1 ${scoreBump === 1 ? 'score-bump' : ''}`}>{gs.countClosed(1)}</div>
-        </div>
-        <button onClick={() => gameCtx?.emit('openSkinShop')}
-          style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-            background: 'none', border: 'none', cursor: 'pointer', padding: 6, opacity: 0.4,
-            color: 'var(--ink3)', fontSize: 16, lineHeight: 1 }}
-          title={en ? 'Skin Shop' : 'Скины'}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
-          </button>
-      </div>
+      <GameScoreboard
+        gs={gs} mode={mode} humanPlayer={humanPlayer} scoreBump={scoreBump}
+        en={en} t={t} gameCtx={gameCtx} authUser={authUser}
+      />
 
       <div className={`game-info ${aiThinking ? 'thinking-dots' : ''}`} role="status" aria-live="polite">{info}</div>
 
