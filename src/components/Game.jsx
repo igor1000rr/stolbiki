@@ -31,6 +31,10 @@ import GameShortcutsModal from './GameShortcutsModal'
 import HintPanel from './HintPanel'
 import GameLog from './GameLog'
 import ConfettiOverlay from './ConfettiOverlay'
+import ModifierBadge from './ModifierBadge'
+import TournamentBanner from './TournamentBanner'
+import MobileGameBar from './MobileGameBar'
+import MobileSettingsSheet from './MobileSettingsSheet'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -51,23 +55,6 @@ function getActiveSkinId() {
     const cs = s.chipStyle || 'classic'
     return cs.startsWith('blocks_') ? cs : (CHIP_STYLE_TO_SKIN_ID[cs] || 'blocks_classic')
   } catch { return 'blocks_classic' }
-}
-
-function ModifierBadge({ label, active, onToggle, color = 'var(--accent)' }) {
-  return (
-    <button
-      onClick={onToggle}
-      style={{
-        fontSize: 10, padding: '3px 8px', borderRadius: 6, border: `1px solid ${active ? color : 'var(--surface3)'}`,
-        background: active ? `${color}18` : 'transparent',
-        color: active ? color : 'var(--ink3)',
-        cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-        userSelect: 'none',
-      }}
-    >
-      {label}
-    </button>
-  )
 }
 
 export default function Game() {
@@ -681,114 +668,29 @@ export default function Game() {
         </div>
       )}
 
-      {mode !== 'online' && mode !== 'spectate-online' && isNative && (
-        <div className="m-game-bar">
-          <div className="m-game-bar-info">
-            <span className="m-diff-badge">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                {difficulty >= 1500 ? <><circle cx="12" cy="10" r="7"/><path d="M9 14v2M15 14v2M8 20h8"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><circle cx="15" cy="9" r="1.5" fill="currentColor"/></> :
-                 difficulty >= 800 ? <path d="M12 2c-4 6-8 9-8 13a8 8 0 0016 0c0-4-4-7-8-13z"/> :
-                 difficulty >= 400 ? <><path d="M12 22V2"/><path d="M4 12l4-4 4 4 4-4 4 4"/></> :
-                 difficulty >= 150 ? <><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></> :
-                 <circle cx="12" cy="12" r="9"/>}
-              </svg>
-              {difficulty >= 1500 ? (lang === 'en' ? 'Hardcore' : 'Хардкор') : difficulty >= 800 ? (lang === 'en' ? 'Extreme' : 'Экстрим') : difficulty >= 400 ? t('game.hard') : difficulty >= 150 ? t('game.medium') : t('game.easy')}
-              {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 3 }}>GPU</span>}
-            </span>
-            {mode === 'ai' && <span className="m-side-indicator" style={{ background: humanPlayer === 0 ? 'var(--p1)' : 'var(--p2)' }} />}
-            {modifiers.fog && <span style={{ fontSize: 9, color: '#4a9eff' }}>🌫</span>}
-            {modifiers.doubleTransfer && <span style={{ fontSize: 9, color: '#9b59b6' }}>⇄×2</span>}
-            {modifiers.blitz && <span style={{ fontSize: 9, color: '#ff9800' }}>⚡</span>}
-          </div>
-          <button className="m-gear-btn" onClick={() => setShowMobileSettings(true)} aria-label="Settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8"/>
-            </svg>
-          </button>
-        </div>
-      )}
+      <MobileGameBar
+        isNative={isNative} mode={mode} difficulty={difficulty}
+        modifiers={modifiers} humanPlayer={humanPlayer} lang={lang} t={t}
+        onSettingsOpen={() => setShowMobileSettings(true)}
+      />
 
-      {showMobileSettings && isNative && (
-        <div className="m-sheet-overlay" onClick={() => setShowMobileSettings(false)}>
-          <div className="m-sheet" onClick={e => e.stopPropagation()}>
-            <div className="m-sheet-handle" />
-            <div className="m-sheet-title">{lang === 'en' ? 'Game Settings' : 'Настройки игры'}</div>
-            <div className="m-setting-row">
-              <span className="m-setting-label">{lang === 'en' ? 'Mode' : 'Режим'}</span>
-              <select value={mode} onChange={e => { newGame(humanPlayer, difficulty, e.target.value); setShowMobileSettings(false) }}>
-                <option value="ai">{lang === 'en' ? 'vs AI' : 'Против AI'}</option>
-                <option value="pvp">PvP</option>
-                <option value="spectate">AI vs AI</option>
-              </select>
-            </div>
-            {mode === 'ai' && (
-              <div className="m-setting-row">
-                <span className="m-setting-label">{lang === 'en' ? 'Difficulty' : 'Сложность'}</span>
-                <div className="m-difficulty-grid">
-                  {[{v:50,l:lang === 'en' ? 'Easy' : 'Лёгкая'},{v:150,l:lang === 'en' ? 'Medium' : 'Средняя'},{v:400,l:lang === 'en' ? 'Hard' : 'Сложная'},{v:800,l:lang === 'en' ? 'Extreme' : 'Экстрим'},{v:1500,l:lang === 'en' ? 'Hardcore' : 'Хардкор'}].map(d => (
-                    <button key={d.v} className={`m-diff-opt ${difficulty === d.v ? 'active' : ''}`}
-                      onClick={() => { newGame(humanPlayer, d.v, mode); setShowMobileSettings(false) }}>
-                      {d.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="m-setting-row" style={{ flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-              <span className="m-setting-label">{en ? 'Modifiers' : 'Модификаторы'}</span>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog} onToggle={toggleFog} color="#4a9eff" />
-                <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer} onToggle={() => setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm })} color="#9b59b6" />
-                <ModifierBadge label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'} active={modifiers.blitz} onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })} color="#ff9800" />
-              </div>
-            </div>
-            {mode === 'ai' && !tournament && (
-              <div className="m-setting-row">
-                <span className="m-setting-label">{lang === 'en' ? 'Series' : 'Серия'}</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="m-diff-opt" style={{ flex: 1 }} onClick={() => { startTournament(3); setShowMobileSettings(false) }}>3 {lang === 'en' ? 'games' : 'партии'}</button>
-                  <button className="m-diff-opt" style={{ flex: 1 }} onClick={() => { startTournament(5); setShowMobileSettings(false) }}>5 {lang === 'en' ? 'games' : 'партий'}</button>
-                </div>
-              </div>
-            )}
-            <button className="m-sheet-close" onClick={() => setShowMobileSettings(false)}>{lang === 'en' ? 'Done' : 'Готово'}</button>
-          </div>
-        </div>
-      )}
+      <MobileSettingsSheet
+        show={showMobileSettings} isNative={isNative}
+        mode={mode} difficulty={difficulty} modifiers={modifiers}
+        tournament={tournament} lang={lang} en={en} humanPlayer={humanPlayer}
+        onClose={() => setShowMobileSettings(false)}
+        onModeChange={(m) => newGame(humanPlayer, difficulty, m)}
+        onDifficultyChange={(d) => newGame(humanPlayer, d, mode)}
+        toggleFog={toggleFog}
+        setModifiers={setModifiers}
+        modifiersRef={modifiersRef}
+        onStartTournament={startTournament}
+      />
 
-      {tournament && (
-        <div style={{ textAlign: 'center', padding: isNative ? '4px 12px' : '8px 16px', marginBottom: isNative ? 4 : 10,
-          background: 'rgba(240,160,48,0.06)', borderRadius: isNative ? 8 : 12, border: '1px solid rgba(255,193,69,0.12)' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 4 }}>
-            {lang === 'en' ? `Tournament — game ${tournament.currentGame} of ${tournament.total}` : `Турнир — партия ${tournament.currentGame} из ${tournament.total}`}
-          </div>
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-            {Array.from({ length: tournament.total }).map((_, i) => {
-              const game = tournament.games[i]
-              return (
-                <div key={i} style={{
-                  width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700,
-                  background: game ? (game.won ? 'rgba(61,214,140,0.15)' : 'rgba(255,96,102,0.15)') :
-                    (i + 1 === tournament.currentGame ? 'rgba(74,158,255,0.15)' : 'rgba(42,42,56,0.5)'),
-                  border: `1px solid ${game ? (game.won ? '#3dd68c33' : '#ff606633') :
-                    (i + 1 === tournament.currentGame ? '#4a9eff33' : '#2a2a3833')}`,
-                  color: game ? (game.won ? 'var(--green)' : 'var(--p2)') : (i + 1 === tournament.currentGame ? 'var(--p1)' : 'var(--ink3)'),
-                }}>
-                  {game ? (game.won ? '✓' : '✕') : (i + 1)}
-                </div>
-              )
-            })}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>
-            {tournament.games.filter(g => g.won).length} : {tournament.games.filter(g => !g.won).length}
-            {tournament.currentGame > 1 && ` · ${humanPlayer === 0 ? t('game.blue') : t('game.red')}`}
-          </div>
-          <button className="btn" onClick={() => setTournament(null)} style={{ fontSize: 9, padding: '2px 8px', marginTop: 4 }}>
-            {lang === 'en' ? 'Cancel tournament' : 'Отменить турнир'}
-          </button>
-        </div>
-      )}
+      <TournamentBanner
+        tournament={tournament} isNative={isNative} lang={lang} t={t}
+        humanPlayer={humanPlayer} onCancel={() => setTournament(null)}
+      />
 
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
