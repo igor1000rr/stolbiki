@@ -24,7 +24,6 @@ import ReplayViewer, { describeAction } from './ReplayViewer'
 import { useGameLog } from '../engine/useGameLog'
 import { useSessionStats } from '../engine/useSessionStats'
 import { useOnlineGameHandlers } from '../engine/useOnlineGameHandlers'
-import { useKeyboardShortcuts } from '../engine/useKeyboardShortcuts'
 import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
 import { maybeShowInterstitial } from '../engine/admob'
 import GameTutorialModal from './GameTutorialModal'
@@ -32,17 +31,14 @@ import GameShortcutsModal from './GameShortcutsModal'
 import HintPanel from './HintPanel'
 import GameLog from './GameLog'
 import ConfettiOverlay from './ConfettiOverlay'
-import ModifierBadge from './ModifierBadge'
 import TournamentBanner from './TournamentBanner'
 import MobileGameBar from './MobileGameBar'
 import MobileSettingsSheet from './MobileSettingsSheet'
 import GameScoreboard from './GameScoreboard'
 import GameOnlineBanners from './GameOnlineBanners'
-import GameTimers from './GameTimers'
-import SwapPrompt from './SwapPrompt'
-import GameOnlineOffers from './GameOnlineOffers'
-import GameEmojiReactions from './GameEmojiReactions'
-import FirstWinCelebration from './FirstWinCelebration'
+import GameActions from './GameActions'
+import GameOverlays from './GameOverlays'
+import GameDesktopControls from './GameDesktopControls'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -549,26 +545,6 @@ export default function Game() {
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
   }
 
-  // Swap-ход на 1-м ходу. Раньше inline в JSX — вынесено в callback для SwapPrompt.
-  function handleSwap() {
-    const action = { swap: true }
-    if (mode === 'online') MP.sendMove(action, playerTime)
-    recordMove(gs, action, gs.currentPlayer)
-    moveHistoryRef.current.push({ action, player: gs.currentPlayer })
-    addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
-    ss()
-    const ns = applyAction(gs, action)
-    setGs(ns); setPhase('place')
-    if (mode === 'online') {
-      setHumanPlayer(0)
-      if (onlineRef.current) onlineRef.current.myColor = 0
-      setLocked(false)
-      setInfo(t('game.swapOnlineDone'))
-    } else {
-      setInfo(t('game.swapDone'))
-    }
-  }
-
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
@@ -576,13 +552,22 @@ export default function Game() {
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
-  useKeyboardShortcuts({
-    canConfirm, isMyTurn, phase, inTransferMode,
-    gameOver: gs.gameOver, result, mode, undoStackLen: undoStack.length,
-    locked, numStands: gs.numStands,
-    confirmTurn, cancelTransfer, newGame, undoMove,
-    onStandClick, requestHint,
-    toggleShortcutsModal: () => setShowShortcuts(p => !p),
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'Enter' && canConfirm && isMyTurn && phase === 'place') { e.preventDefault(); confirmTurn() }
+      if (e.key === 'Escape' && inTransferMode) cancelTransfer()
+      if (e.key === 'n' && (gs.gameOver || result !== null)) newGame()
+      if (e.key === 'z' && mode === 'pvp' && undoStack.length > 0) undoMove()
+      if (!locked && !gs.gameOver && /^[0-9]$/.test(e.key)) {
+        const standIdx = e.key === '0' ? 0 : parseInt(e.key)
+        if (standIdx >= 0 && standIdx < gs.numStands) onStandClick(standIdx)
+      }
+      if (e.key === 'h' && !e.ctrlKey && !e.metaKey && !locked && !gs.gameOver) requestHint?.()
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) setShowShortcuts(p => !p)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
   })
 
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('stolbiki_tutorial_seen'))
@@ -634,45 +619,17 @@ export default function Game() {
       />
 
       {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
-      <div className="game-settings">
-        <label>{t('game.modeLabel')}
-          <select value={mode} onChange={e => newGame(humanPlayer, difficulty, e.target.value)}>
-            <option value="ai">{t('game.vsAI')}</option>
-            <option value="pvp">{t('game.pvp')}</option>
-            <option value="spectate">AI vs AI</option>
-          </select>
-        </label>
-        {mode === 'ai' && (
-          <label>{t('game.diffLabel')}
-            <select value={difficulty} onChange={e => newGame(humanPlayer, +e.target.value, mode)}>
-              <option value={50}>{t('game.easy')}</option>
-              <option value={150}>{t('game.medium')}</option>
-              <option value={400}>{t('game.hard')}</option>
-              <option value={800}>{t('game.extreme')}</option>
-              <option value={1500}>{lang === 'en' ? 'Hardcore' : 'Хардкор'}</option>
-            </select>
-            {isGpuReady() && <span style={{ fontSize: 8, color: 'var(--green)', marginLeft: 4 }}>GPU</span>}
-          </label>
-        )}
-        {mode === 'ai' && !tournament && (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn" onClick={() => startTournament(3)} style={{ fontSize: 10, padding: '4px 8px' }}>{lang === 'en' ? 'Best of 3' : 'Серия 3'}</button>
-            <button className="btn" onClick={() => startTournament(5)} style={{ fontSize: 10, padding: '4px 8px' }}>{lang === 'en' ? 'Best of 5' : 'Серия 5'}</button>
-          </div>
-        )}
-      </div>
-      )}
-
-      {mode !== 'online' && mode !== 'spectate-online' && !isNative && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, color: 'var(--ink3)', marginRight: 2 }}>{en ? 'Mods:' : 'Моды:'}</span>
-          <ModifierBadge label={en ? '🌫 Fog' : '🌫 Туман'} active={modifiers.fog}
-            onToggle={toggleFog} color="#4a9eff" />
-          <ModifierBadge label={en ? '⇄ ×2 Transfer' : '⇄ ×2 перенос'} active={modifiers.doubleTransfer}
-            onToggle={() => { setModifiers(m => { const nm = { ...m, doubleTransfer: !m.doubleTransfer }; modifiersRef.current = nm; return nm }); setTransfersLeft(!modifiers.doubleTransfer ? 2 : 1) }} color="#9b59b6" />
-          <ModifierBadge label={en ? '⚡ Auto-pass' : '⚡ Авто-пас'} active={modifiers.blitz}
-            onToggle={() => setModifiers(m => { const nm = { ...m, blitz: !m.blitz }; modifiersRef.current = nm; return nm })} color="#ff9800" />
-        </div>
+        <GameDesktopControls
+          mode={mode} difficulty={difficulty} modifiers={modifiers}
+          tournament={tournament} humanPlayer={humanPlayer} en={en} t={t}
+          setTransfersLeft={setTransfersLeft}
+          onModeChange={(m) => newGame(humanPlayer, difficulty, m)}
+          onDifficultyChange={(d) => newGame(humanPlayer, d, mode)}
+          onStartTournament={startTournament}
+          toggleFog={toggleFog}
+          setModifiers={setModifiers}
+          modifiersRef={modifiersRef}
+        />
       )}
 
       <MobileGameBar
@@ -740,12 +697,22 @@ export default function Game() {
         fogPlayer={humanPlayer}
       />
 
-      <GameTimers
-        timerLimit={timerLimit} playerTime={playerTime}
-        currentPlayer={gs.currentPlayer}
-        timerSetting={userSettings.timer} blitz={modifiers.blitz}
-        isNative={isNative} gameOver={gs.gameOver}
-      />
+      {timerLimit > 0 && !gs.gameOver && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: isNative ? '2px 12px 4px' : '4px 16px 8px', fontSize: isNative ? 12 : 13, fontFamily: 'monospace' }}>
+          <div style={{ color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 0 ? 700 : 400,
+            opacity: playerTime[0] < 30 && gs.currentPlayer === 0 ? (playerTime[0] % 2 ? 1 : 0.5) : 1 }}>
+            {Math.floor(playerTime[0] / 60)}:{String(playerTime[0] % 60).padStart(2, '0')}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--ink3)', alignSelf: 'center' }}>
+            {userSettings.timer === 'blitz' ? '3+0' : userSettings.timer === 'rapid' ? '10+0' : '30+0'}
+            {modifiers.blitz && <span style={{ color: '#ff9800', marginLeft: 4 }}>⚡пас</span>}
+          </div>
+          <div style={{ color: gs.currentPlayer === 1 ? 'var(--p2)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 1 ? 700 : 400,
+            opacity: playerTime[1] < 30 && gs.currentPlayer === 1 ? (playerTime[1] % 2 ? 1 : 0.5) : 1 }}>
+            {Math.floor(playerTime[1] / 60)}:{String(playerTime[1] % 60).padStart(2, '0')}
+          </div>
+        </div>
+      )}
 
       <div style={{ textAlign: 'center', fontSize: isNative ? 10 : 11, color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px', minHeight: isNative ? 16 : 18 }}>
         {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
@@ -757,79 +724,83 @@ export default function Game() {
         )}
       </div>
 
-      <SwapPrompt
-        show={isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place'}
-        t={t}
-        onSwap={handleSwap}
-        onDecline={() => setInfo(t('game.swapDeclined'))}
+      {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
+        <div style={{ textAlign: 'center', margin: '8px 0' }}>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.swapQuestion')}</div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn" onClick={() => {
+              const action = { swap: true }
+              if (mode === 'online') MP.sendMove(action, playerTime)
+              recordMove(gs, action, gs.currentPlayer)
+              moveHistoryRef.current.push({ action, player: gs.currentPlayer })
+              addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
+              ss()
+              const ns = applyAction(gs, action)
+              setGs(ns); setPhase('place')
+              if (mode === 'online') { setHumanPlayer(0); onlineRef.current && (onlineRef.current.myColor = 0); setLocked(false); setInfo(t('game.swapOnlineDone')) }
+              else setInfo(t('game.swapDone'))
+            }} style={{ borderColor: 'var(--purple)', color: 'var(--purple)', padding: '10px 20px' }}>Swap</button>
+            <button className="btn" onClick={() => setInfo(t('game.swapDeclined'))} style={{ fontSize: 12, padding: '10px 16px' }}>{t('game.noContinue')}</button>
+          </div>
+        </div>
+      )}
+
+      {drawOffered && !gs.gameOver && mode === 'online' && (
+        <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
+          background: 'rgba(155,89,182,0.08)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.2)' }}>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.drawOfferReceived')}</div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button className="btn" onClick={() => { MP.send({ type: 'drawResponse', accepted: true }); setResult(-1); setPhase('done'); setLocked(false); setInfo(t('game.drawAgreed')); setDrawOffered(false) }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>{t('game.accept')}</button>
+            <button className="btn" onClick={() => { MP.send({ type: 'drawResponse', accepted: false }); setDrawOffered(false) }} style={{ fontSize: 12 }}>{t('game.decline')}</button>
+          </div>
+        </div>
+      )}
+
+      {rematchOffered && gs.gameOver && mode === 'online' && (
+        <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
+          background: 'rgba(61,214,140,0.08)', borderRadius: 10, border: '1px solid rgba(61,214,140,0.2)' }}>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.rematchOffer')}</div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button className="btn" onClick={() => { MP.sendRematchResponse(true); setRematchOffered(false) }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>{t('game.accept')}</button>
+            <button className="btn" onClick={() => { MP.sendRematchResponse(false); setRematchOffered(false) }} style={{ fontSize: 12 }}>{t('game.decline')}</button>
+          </div>
+        </div>
+      )}
+
+      <GameActions
+        isMyTurn={isMyTurn} phase={phase} inTransferMode={inTransferMode}
+        transfer={transfer} totalPlaced={totalPlaced} canConfirm={canConfirm}
+        modifiers={modifiers} transfersLeft={transfersLeft}
+        hasTransfers={hasTransfers} undoStack={undoStack} mode={mode}
+        gameOver={gs.gameOver}
+        soundOn={soundOn} hintLoading={hintLoading}
+        en={en} t={t}
+        onCancelAction={(kind) => { if (kind === 'transfer') cancelTransfer(); if (kind === 'placement') setPlacement({}) }}
+        onStartTransfer={startTransfer}
+        onConfirm={confirmTurn}
+        onNewGame={() => newGame()}
+        onUndo={undoMove}
+        onResign={resign}
+        onOfferDraw={() => { MP.send({ type: 'drawOffer' }); setInfo(t('game.drawOffered')) }}
+        onToggleSound={() => setSoundOnState(p => !p)}
+        onHint={requestHint}
       />
 
-      <GameOnlineOffers
-        drawOffered={drawOffered} rematchOffered={rematchOffered}
-        gs={gs} mode={mode} t={t}
-        onDrawAccept={() => { MP.send({ type: 'drawResponse', accepted: true }); setResult(-1); setPhase('done'); setLocked(false); setInfo(t('game.drawAgreed')); setDrawOffered(false) }}
-        onDrawDecline={() => { MP.send({ type: 'drawResponse', accepted: false }); setDrawOffered(false) }}
-        onRematchAccept={() => { MP.sendRematchResponse(true); setRematchOffered(false) }}
-        onRematchDecline={() => { MP.sendRematchResponse(false); setRematchOffered(false) }}
-      />
-
-      <div className="actions">
-        {(() => {
-          const transferActive = isMyTurn && (inTransferMode || !!transfer)
-          const hasPlacements = isMyTurn && phase === 'place' && totalPlaced > 0
-          const inCancelMode = transferActive || hasPlacements
-          if (inCancelMode) {
-            return (
-              <button key="slot1-cancel" className="btn action-slot action-slot--swap"
-                onClick={() => { if (transferActive) cancelTransfer(); if (hasPlacements) setPlacement({}) }}
-                title="Esc">
-                {t('game.cancelTransfer')}
-              </button>
-            )
-          }
-          return (
-            <button key="slot1-transfer" className="btn action-slot action-slot--swap"
-              disabled={!(isMyTurn && phase === 'place' && hasTransfers)}
-              onClick={startTransfer}>
-              {modifiers.doubleTransfer && transfersLeft > 1 && !transfer
-                ? (en ? '⇄⇄ Transfer' : '⇄⇄ Перенос')
-                : t('game.transfer')}
+      {mode === 'online' && !gs.gameOver && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 6 }}>
+          {['👍', '🔥', '😮', '😂', '💪', '🎉'].map(e => (
+            <button key={e} onClick={() => MP.send({ type: 'reaction', emoji: e })}
+              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8,
+                padding: '4px 6px', fontSize: 16, cursor: 'pointer', transition: 'transform 0.15s' }}
+              onMouseDown={ev => ev.currentTarget.style.transform = 'scale(1.3)'}
+              onMouseUp={ev => ev.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={ev => ev.currentTarget.style.transform = 'scale(1)'}
+              aria-label={`React ${e}`}>
+              {e}
             </button>
-          )
-        })()}
-
-        <button className="btn primary action-slot" disabled={!(isMyTurn && phase === 'place' && canConfirm)} onClick={confirmTurn} title="Enter">
-          {t('game.confirm')} ⏎
-        </button>
-
-        <button className="btn" onClick={() => newGame()} title="N">{t('game.newGame')}</button>
-        {mode === 'pvp' && undoStack.length > 0 && !gs.gameOver && (
-          <button className="btn" onClick={undoMove} style={{ fontSize: 11, color: 'var(--gold)', borderColor: '#ffc14540' }} aria-label="Undo move">↩ Undo</button>
-        )}
-        {!gs.gameOver && mode !== 'pvp' && mode !== 'spectate-online' && (
-          <button className="btn" onClick={resign} style={{ fontSize: 11, color: 'var(--p2)', borderColor: '#ff606640' }}>{t('game.resign')}</button>
-        )}
-        {!gs.gameOver && mode === 'online' && (
-          <button className="btn" onClick={() => { MP.send({ type: 'drawOffer' }); setInfo(t('game.drawOffered')) }} style={{ fontSize: 11, opacity: 0.6 }}>{t('game.offerDraw')}</button>
-        )}
-        <button className="btn" onClick={() => setSoundOnState(p => !p)}
-          style={{ fontSize: 13, opacity: 0.5, padding: '6px 8px', minWidth: 0 }}
-          aria-label={soundOn ? 'Mute' : 'Unmute'}>
-          {soundOn
-            ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
-            : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>}
-        </button>
-        {mode === 'ai' && isMyTurn && !gs.gameOver && (
-          <button className="btn" onClick={requestHint} disabled={hintLoading} style={{ borderColor: 'var(--gold)', color: 'var(--gold)', fontSize: 11, padding: '6px 8px', minWidth: 0 }} title="H">
-            {hintLoading ? '...' : '💡'}
-          </button>
-        )}
-      </div>
-
-      <GameEmojiReactions
-        show={mode === 'online' && !gs.gameOver}
-        floatingEmoji={floatingEmoji}
-      />
+          ))}
+        </div>
+      )}
 
       <HintPanel hint={hint} lang={lang} />
 
@@ -847,20 +818,11 @@ export default function Game() {
 
       <ConfettiOverlay show={confetti} />
 
-      {newAch && (
-        <div className="achievement-popup">
-          <Mascot pose="celebrate" size={40} animate={false} />
-          <div>
-            <div className="ach-label">{lang === 'en' ? 'Achievement unlocked!' : 'Ачивка разблокирована!'}</div>
-            <div className="ach-name">{lang === 'en' && newAch.nameEn ? newAch.nameEn : newAch.name}</div>
-          </div>
-        </div>
-      )}
-
-      <FirstWinCelebration
-        show={firstWinCelebration}
-        lang={lang}
-        onClose={() => setFirstWinCelebration(false)}
+      <GameOverlays
+        floatingEmoji={floatingEmoji}
+        newAch={newAch} lang={lang}
+        firstWinCelebration={firstWinCelebration}
+        onFirstWinClose={() => setFirstWinCelebration(false)}
       />
 
       {showReplay && moveHistoryRef.current.length > 0 && (
