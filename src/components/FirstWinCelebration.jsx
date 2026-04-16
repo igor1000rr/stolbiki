@@ -1,8 +1,7 @@
 import Mascot from './Mascot'
 
 /**
- * Оверлей первой победы — показывается один раз за сессию при первой победе.
- * Клик по фону или кнопке закрывает. Вынесено из Game.jsx.
+ * Модалка «Первая победа!» — показывается после первого выигранного в сессии AI-матча.
  */
 export default function FirstWinCelebration({ show, lang, onClose }) {
   if (!show) return null
