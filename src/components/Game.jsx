@@ -1,12 +1,11 @@
-import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import '../css/game.css'
 import MascotRunner from './MascotRunner'
 import {
   GameState, getValidTransfers, applyAction,
   MAX_PLACE, MAX_PLACE_STANDS, FIRST_TURN_MAX, GOLDEN_STAND
 } from '../engine/game'
-import { mctsSearch, preloadGpuNet } from '../engine/ai'
-import { isGpuReady } from '../engine/neuralnet'
+import { preloadGpuNet } from '../engine/ai'
 import { getHint } from '../engine/hints'
 import { startRecording, setGameMeta, recordMove, finishRecording, cancelRecording } from '../engine/collector'
 import * as MP from '../engine/multiplayer'
@@ -16,6 +15,7 @@ import { useI18n } from '../engine/i18n'
 import { useGameContext } from '../engine/GameContext'
 import { useAuth } from '../engine/AuthContext'
 import { useGameTimer } from '../engine/useGameTimer'
+import { useAiRunner } from '../engine/useAiRunner'
 import { soundPlace, soundTransfer, soundClose, soundWin, soundLose, soundSwap, soundClick, setMuted } from '../engine/sounds'
 import Board from './Board'
 import GameResultPanel from './GameResultPanel'
@@ -23,7 +23,7 @@ import ReplayViewer, { describeAction } from './ReplayViewer'
 import { useGameLog } from '../engine/useGameLog'
 import { useSessionStats } from '../engine/useSessionStats'
 import { useOnlineGameHandlers } from '../engine/useOnlineGameHandlers'
-import { startTitleBlink, sp, st, sc, setSoundOn, generateShareImage, showNotification, requestNotificationPermission } from './gameUtils'
+import { startTitleBlink, sp, st, sc, setSoundOn, showNotification, requestNotificationPermission } from './gameUtils'
 import { maybeShowInterstitial } from '../engine/admob'
 import GameTutorialModal from './GameTutorialModal'
 import GameShortcutsModal from './GameShortcutsModal'
@@ -95,7 +95,7 @@ export default function Game() {
   const [modifiers, setModifiers] = useState({ ...DEFAULT_MODIFIERS })
   const [transfersLeft, setTransfersLeft] = useState(1)
 
-  const { log, setLog, addLog, resetLog, logRef } = useGameLog(lang)
+  const { log, setLog, addLog, logRef } = useGameLog(lang)
   const [info, setInfo] = useState('')
   const [result, setResult] = useState(null)
   const [hint, setHint] = useState(null)
@@ -133,8 +133,43 @@ export default function Game() {
   const modifiersRef = useRef(modifiers)
   useEffect(() => { modifiersRef.current = modifiers }, [modifiers])
 
+  // saveBuildingOnWin определена перед useAiRunner, т.к. передаётся как зависимость
+  async function saveBuildingOnWin(ns) {
+    if (mode === 'pvp' || mode === 'spectate' || mode === 'spectate-online') return
+    if (!API.isLoggedIn()) return
+    const myColor = mode === 'online' ? (onlineRef.current?.myColor ?? humanPlayer) : humanPlayer
+    if (ns.winner !== myColor) return
+    const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+    const result = (s0 === s1) ? 'draw_won' : 'win'
+    const opponentName = mode === 'ai' ? 'Snappy' : (onlinePlayers?.[1 - myColor] || null)
+    try {
+      await fetch('/api/buildings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
+        body: JSON.stringify({
+          stands_snapshot: ns.stands.map((chips, idx) => ({ idx, chips, owner: ns.closed[idx] ?? null })),
+          result, is_ai: mode === 'ai', ai_difficulty: mode === 'ai' ? difficultyRef.current : null,
+          opponent_name: opponentName, player_skin_id: getActiveSkinId(), background_id: null,
+        }),
+      })
+    } catch {}
+  }
+
+  // AI-ход — MCTS-поиск, применение, конец партии (хук из engine/useAiRunner)
+  const runAi = useAiRunner({
+    aiRunning, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
+    setGs, setPhase, setResult, setInfo, setLocked,
+    setAiThinking, setTransfersLeft, setConfetti, setTournament,
+    setTransfer, setPlacement,
+    addLog,
+    humanPlayer, difficulty,
+    soundWin: sw, soundLose: sl,
+    gameCtx, tournament, t,
+    saveBuildingOnWin,
+  })
+
   // БАГ-ФИКСx: убран onTick — soundClick не должен играть каждую секунду таймера
-  const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers, TIMER_LIMITS: _TL } = useGameTimer({
+  const { timerLimit, playerTime, setPlayerTime, elapsed, startTime: timerStartTime, resetTimers } = useGameTimer({
     timerSetting: userSettings.timer,
     gameOver: gs.gameOver,
     currentPlayer: gs.currentPlayer,
@@ -209,7 +244,6 @@ export default function Game() {
     })
   }, [gameCtx]) // eslint-disable-line
 
-  // getDailySeed: ISO формат совпадает с сервером (server/helpers.js)
   function getDailySeed() {
     const d = new Date()
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
@@ -242,74 +276,6 @@ export default function Game() {
     if (s1 > prevScore.current[1]) { setScoreBump(1); setTimeout(() => setScoreBump(null), 700); sc() }
     prevScore.current = [s0, s1]
   }, [gs])
-
-  const runAi = useCallback((state) => {
-    if (aiRunning.current || state.gameOver) return
-    if (modeRef.current === 'online') return
-    aiRunning.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
-    const startTime = Date.now()
-    setTimeout(() => {
-      const gpu = isGpuReady()
-      const diff = difficultyRef.current
-      const action = mctsSearch(state, ...(
-        diff >= 1500 ? (gpu ? [5000, 0] : [3000, 15]) :
-        diff >= 800 ? (gpu ? [1500, 0] : [1200, 10]) :
-        diff >= 400 ? (gpu ? [600, 0] : [800, 8]) :
-        diff >= 150 ? (gpu ? [200, 1] : [500, 3]) :
-                       (gpu ? [80, 1]  : [200, 1])
-      ))
-      const remaining = Math.max(0, 1000 - (Date.now() - startTime))
-      setTimeout(() => {
-        setAiThinking(false)
-        addLog(describeAction(action, state.currentPlayer, t), state.currentPlayer)
-        setTimeout(() => {
-          recordMove(state, action, state.currentPlayer)
-          moveHistoryRef.current.push({ action: { ...action }, player: state.currentPlayer })
-          const ns = applyAction(state, action)
-          setGs(ns)
-          aiRunning.current = false
-          setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
-          if (ns.gameOver) {
-            setTimeout(() => {
-              setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
-              finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
-              saveBuildingOnWin(ns)
-              // БАГ-ФИКС: spectate — confetti не показываем, won только для реального игрока
-              const isSpectate = modeRef.current === 'spectate'
-              const won = isSpectate ? false : ns.winner === humanPlayer
-              setTimeout(() => {
-                if (!isSpectate) { won ? sw() : sl() }
-                if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
-              }, 300)
-              if (gameCtx && !isSpectate) {
-                const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
-                const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
-                const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
-                gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false, false, moveHistoryRef.current)
-                API.track('game_end', 'game', { won, score, difficulty: difficultyRef.current, mode: 'ai' })
-              }
-              if (tournament) {
-                const w = ns.winner === humanPlayer
-                const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
-                setTournament(prev => ({ ...prev, games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }] }))
-              }
-              // AdMob interstitial каждые 3 партии (только в AI режиме, не spectate)
-              if (!isSpectate) maybeShowInterstitial(3)
-            }, 800)
-            return
-          }
-          if (ns.currentPlayer !== humanPlayer || modeRef.current === 'spectate') {
-            setTimeout(() => runAi(ns), modeRef.current === 'spectate' ? 1200 : 600)
-            return
-          }
-          setTimeout(() => {
-            setLocked(false); setPhase('place'); setTransfer(null); setPlacement({})
-            setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.clickStands'))
-          }, 500)
-        }, 300)
-      }, remaining)
-    }, 50)
-  }, [difficulty, humanPlayer])
 
   function newGame(side, diff, gameMode) {
     cancelRecording()
@@ -451,7 +417,6 @@ export default function Game() {
 
     if (action.transfer) {
       const [src, dst] = action.transfer
-      // БАГ-ФИКС: guard от null если topGroup вернул пустой результат
       const [topColor, topCount] = gs.topGroup(src) || [0, 0]
       if (topCount > 0) {
         setMascotRun({ from: src, to: dst, color: topColor, count: topCount, key: Date.now().toString() })
@@ -504,7 +469,6 @@ export default function Game() {
           fetch('/api/daily/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` }, body: JSON.stringify({ turns: ns.turn, duration: Math.floor((Date.now() - timerStartTime) / 1000), won: w }) }).catch(() => {})
           setDailyMode(false)
         }
-        // AdMob interstitial каждые 3 партии (pvp/ai/online, кроме spectate)
         maybeShowInterstitial(3)
       }, 800)
       return
@@ -547,7 +511,6 @@ export default function Game() {
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
   }
 
-  // Хендлеры для <GameOffers>
   function handleSwapAccept() {
     const action = { swap: true }
     if (mode === 'online') MP.sendMove(action, playerTime)
@@ -601,28 +564,6 @@ export default function Game() {
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('stolbiki_tutorial_seen'))
   function dismissTutorial() { setShowTutorial(false); localStorage.setItem('stolbiki_tutorial_seen', '1') }
 
-  async function saveBuildingOnWin(ns) {
-    if (mode === 'pvp' || mode === 'spectate' || mode === 'spectate-online') return
-    if (!API.isLoggedIn()) return
-    const myColor = mode === 'online' ? (onlineRef.current?.myColor ?? humanPlayer) : humanPlayer
-    if (ns.winner !== myColor) return
-    const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
-    const result = (s0 === s1) ? 'draw_won' : 'win'
-    const opponentName = mode === 'ai' ? 'Snappy' : (onlinePlayers?.[1 - myColor] || null)
-    try {
-      await fetch('/api/buildings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('stolbiki_token')}` },
-        body: JSON.stringify({
-          stands_snapshot: ns.stands.map((chips, idx) => ({ idx, chips, owner: ns.closed[idx] ?? null })),
-          result, is_ai: mode === 'ai', ai_difficulty: mode === 'ai' ? difficultyRef.current : null,
-          opponent_name: opponentName, player_skin_id: getActiveSkinId(), background_id: null,
-        }),
-      })
-    } catch {}
-  }
-
-  // БАГ-ФИКС: fog toggle — используем useEffect чтобы newGame запустился ПОСЛЕ применения нового modifiers
   const fogTogglePendingRef = useRef(false)
   useEffect(() => {
     if (!fogTogglePendingRef.current) return
