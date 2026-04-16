@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
 import '../css/game.css'
-import Mascot from './Mascot'
 import MascotRunner from './MascotRunner'
 import {
   GameState, getValidTransfers, applyAction,
@@ -39,6 +38,9 @@ import GameOnlineBanners from './GameOnlineBanners'
 import GameActions from './GameActions'
 import GameOverlays from './GameOverlays'
 import GameDesktopControls from './GameDesktopControls'
+import GameStatusBar from './GameStatusBar'
+import GameOffers from './GameOffers'
+import GameReactions from './GameReactions'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -545,6 +547,32 @@ export default function Game() {
     setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
   }
 
+  // Хендлеры для <GameOffers>
+  function handleSwapAccept() {
+    const action = { swap: true }
+    if (mode === 'online') MP.sendMove(action, playerTime)
+    recordMove(gs, action, gs.currentPlayer)
+    moveHistoryRef.current.push({ action, player: gs.currentPlayer })
+    addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
+    ss()
+    const ns = applyAction(gs, action)
+    setGs(ns); setPhase('place')
+    if (mode === 'online') {
+      setHumanPlayer(0)
+      if (onlineRef.current) onlineRef.current.myColor = 0
+      setLocked(false)
+      setInfo(t('game.swapOnlineDone'))
+    } else {
+      setInfo(t('game.swapDone'))
+    }
+  }
+  function handleDrawAccept() {
+    MP.send({ type: 'drawResponse', accepted: true })
+    setResult(-1); setPhase('done'); setLocked(false)
+    setInfo(t('game.drawAgreed'))
+    setDrawOffered(false)
+  }
+
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
@@ -656,24 +684,16 @@ export default function Game() {
         humanPlayer={humanPlayer} onCancel={() => setTournament(null)}
       />
 
-      {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
-          <span>{lang === 'en' ? 'Wins' : 'Побед'}: <b style={{ color: 'var(--green)' }}>{sessionStats.wins}</b></span>
-          <span>{lang === 'en' ? 'Losses' : 'Поражений'}: <b style={{ color: 'var(--p2)' }}>{sessionStats.losses}</b></span>
-          {sessionStats.streak > 1 && <span>{lang === 'en' ? 'Streak' : 'Серия'}: <b style={{ color: 'var(--gold)' }}>{sessionStats.streak}</b></span>}
-        </div>
-      )}
-
-      {(mode === 'pvp' || mode === 'spectate' || mode === 'online' || mode === 'spectate-online') && !gs.gameOver && (
-        <div style={{ textAlign: 'center', padding: isNative ? '3px 10px' : '6px 12px', margin: isNative ? '0 auto 2px' : '0 auto 8px', fontSize: isNative ? 12 : 13, fontWeight: 600,
-          color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--p2)',
-          background: gs.currentPlayer === 0 ? 'rgba(74,158,255,0.1)' : 'rgba(255,107,107,0.1)',
-          borderRadius: 8, display: 'inline-block' }}>
-          {mode === 'spectate' || mode === 'spectate-online' ? `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}` :
-           mode === 'online' ? (gs.currentPlayer === humanPlayer ? (lang === 'en' ? 'Your turn' : 'Ваш ход') : (lang === 'en' ? "Opponent's turn" : 'Ходит противник')) :
-           `${gs.currentPlayer === 0 ? t('game.blue') : t('game.red')}`}
-        </div>
-      )}
+      <GameStatusBar
+        gs={gs} mode={mode} isNative={isNative} lang={lang} t={t} en={en}
+        sessionStats={sessionStats}
+        humanPlayer={humanPlayer}
+        timerLimit={timerLimit} playerTime={playerTime}
+        userSettings={userSettings} modifiers={modifiers}
+        elapsed={elapsed} phase={phase} isMyTurn={isMyTurn}
+        totalPlaced={totalPlaced} maxTotal={maxTotal}
+        transfer={transfer} transfersLeft={transfersLeft}
+      />
 
       <GameScoreboard
         gs={gs} mode={mode} humanPlayer={humanPlayer} scoreBump={scoreBump}
@@ -697,75 +717,18 @@ export default function Game() {
         fogPlayer={humanPlayer}
       />
 
-      {timerLimit > 0 && !gs.gameOver && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', margin: isNative ? '2px 12px 4px' : '4px 16px 8px', fontSize: isNative ? 12 : 13, fontFamily: 'monospace' }}>
-          <div style={{ color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 0 ? 700 : 400,
-            opacity: playerTime[0] < 30 && gs.currentPlayer === 0 ? (playerTime[0] % 2 ? 1 : 0.5) : 1 }}>
-            {Math.floor(playerTime[0] / 60)}:{String(playerTime[0] % 60).padStart(2, '0')}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--ink3)', alignSelf: 'center' }}>
-            {userSettings.timer === 'blitz' ? '3+0' : userSettings.timer === 'rapid' ? '10+0' : '30+0'}
-            {modifiers.blitz && <span style={{ color: '#ff9800', marginLeft: 4 }}>⚡пас</span>}
-          </div>
-          <div style={{ color: gs.currentPlayer === 1 ? 'var(--p2)' : 'var(--ink3)', fontWeight: gs.currentPlayer === 1 ? 700 : 400,
-            opacity: playerTime[1] < 30 && gs.currentPlayer === 1 ? (playerTime[1] % 2 ? 1 : 0.5) : 1 }}>
-            {Math.floor(playerTime[1] / 60)}:{String(playerTime[1] % 60).padStart(2, '0')}
-          </div>
-        </div>
-      )}
-
-      <div style={{ textAlign: 'center', fontSize: isNative ? 10 : 11, color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px', minHeight: isNative ? 16 : 18 }}>
-        {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
-        {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
-          <> · {totalPlaced}/{maxTotal}{transfer ? ` · ✓` : ''}
-          {modifiers.doubleTransfer && transfersLeft === 2 && !gs.isFirstTurn() && <span style={{ color: '#9b59b6', marginLeft: 4 }}>⇄×2</span>}
-          {modifiers.doubleTransfer && transfersLeft === 1 && transfer && <span style={{ color: '#9b59b6', marginLeft: 4 }}>⇄×1</span>}
-          </>
-        )}
-      </div>
-
-      {isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place' && (
-        <div style={{ textAlign: 'center', margin: '8px 0' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.swapQuestion')}</div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn" onClick={() => {
-              const action = { swap: true }
-              if (mode === 'online') MP.sendMove(action, playerTime)
-              recordMove(gs, action, gs.currentPlayer)
-              moveHistoryRef.current.push({ action, player: gs.currentPlayer })
-              addLog(lang === 'en' ? 'Swap — colors swapped!' : 'Swap — цвета поменялись!', gs.currentPlayer)
-              ss()
-              const ns = applyAction(gs, action)
-              setGs(ns); setPhase('place')
-              if (mode === 'online') { setHumanPlayer(0); onlineRef.current && (onlineRef.current.myColor = 0); setLocked(false); setInfo(t('game.swapOnlineDone')) }
-              else setInfo(t('game.swapDone'))
-            }} style={{ borderColor: 'var(--purple)', color: 'var(--purple)', padding: '10px 20px' }}>Swap</button>
-            <button className="btn" onClick={() => setInfo(t('game.swapDeclined'))} style={{ fontSize: 12, padding: '10px 16px' }}>{t('game.noContinue')}</button>
-          </div>
-        </div>
-      )}
-
-      {drawOffered && !gs.gameOver && mode === 'online' && (
-        <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
-          background: 'rgba(155,89,182,0.08)', borderRadius: 10, border: '1px solid rgba(155,89,182,0.2)' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.drawOfferReceived')}</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button className="btn" onClick={() => { MP.send({ type: 'drawResponse', accepted: true }); setResult(-1); setPhase('done'); setLocked(false); setInfo(t('game.drawAgreed')); setDrawOffered(false) }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>{t('game.accept')}</button>
-            <button className="btn" onClick={() => { MP.send({ type: 'drawResponse', accepted: false }); setDrawOffered(false) }} style={{ fontSize: 12 }}>{t('game.decline')}</button>
-          </div>
-        </div>
-      )}
-
-      {rematchOffered && gs.gameOver && mode === 'online' && (
-        <div style={{ textAlign: 'center', margin: '8px 0', padding: '10px 16px',
-          background: 'rgba(61,214,140,0.08)', borderRadius: 10, border: '1px solid rgba(61,214,140,0.2)' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink2)', marginBottom: 8 }}>{t('game.rematchOffer')}</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button className="btn" onClick={() => { MP.sendRematchResponse(true); setRematchOffered(false) }} style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>{t('game.accept')}</button>
-            <button className="btn" onClick={() => { MP.sendRematchResponse(false); setRematchOffered(false) }} style={{ fontSize: 12 }}>{t('game.decline')}</button>
-          </div>
-        </div>
-      )}
+      <GameOffers
+        t={t}
+        showSwap={isMyTurn && gs.turn === 1 && gs.swapAvailable && phase === 'place'}
+        onSwapAccept={handleSwapAccept}
+        onSwapDecline={() => setInfo(t('game.swapDeclined'))}
+        drawOffered={drawOffered && !gs.gameOver && mode === 'online'}
+        onDrawAccept={handleDrawAccept}
+        onDrawDecline={() => { MP.send({ type: 'drawResponse', accepted: false }); setDrawOffered(false) }}
+        rematchOffered={rematchOffered && gs.gameOver && mode === 'online'}
+        onRematchAccept={() => { MP.sendRematchResponse(true); setRematchOffered(false) }}
+        onRematchDecline={() => { MP.sendRematchResponse(false); setRematchOffered(false) }}
+      />
 
       <GameActions
         isMyTurn={isMyTurn} phase={phase} inTransferMode={inTransferMode}
@@ -787,19 +750,7 @@ export default function Game() {
       />
 
       {mode === 'online' && !gs.gameOver && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 6 }}>
-          {['👍', '🔥', '😮', '😂', '💪', '🎉'].map(e => (
-            <button key={e} onClick={() => MP.send({ type: 'reaction', emoji: e })}
-              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8,
-                padding: '4px 6px', fontSize: 16, cursor: 'pointer', transition: 'transform 0.15s' }}
-              onMouseDown={ev => ev.currentTarget.style.transform = 'scale(1.3)'}
-              onMouseUp={ev => ev.currentTarget.style.transform = 'scale(1)'}
-              onMouseLeave={ev => ev.currentTarget.style.transform = 'scale(1)'}
-              aria-label={`React ${e}`}>
-              {e}
-            </button>
-          ))}
-        </div>
+        <GameReactions onSendReaction={(e) => MP.send({ type: 'reaction', emoji: e })} />
       )}
 
       <HintPanel hint={hint} lang={lang} />
