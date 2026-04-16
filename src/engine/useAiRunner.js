@@ -1,0 +1,100 @@
+import { useCallback } from 'react'
+import { mctsSearch } from '../engine/ai'
+import { isGpuReady } from '../engine/neuralnet'
+import { applyAction } from '../engine/game'
+import { recordMove, finishRecording } from '../engine/collector'
+import { describeAction } from '../components/ReplayViewer'
+import * as API from '../engine/api'
+import { maybeShowInterstitial } from '../engine/admob'
+
+/**
+ * Хук, инкапсулирующий всю логику хода AI: MCTS-поиск, применение хода,
+ * обновление состояния игры и обработку конца партии.
+ * Вынесено из Game.jsx ради распила.
+ *
+ * Возвращает стабильный runAi(state) callback.
+ */
+export function useAiRunner({
+  // ref'ы
+  aiRunning, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
+  // setter'ы
+  setGs, setPhase, setResult, setInfo, setLocked,
+  setAiThinking, setTransfersLeft, setConfetti, setTournament,
+  addLog,
+  // значения (попадают в deps useCallback)
+  humanPlayer, difficulty,
+  // звуки
+  soundWin: sw, soundLose: sl,
+  // контекст
+  gameCtx, tournament, t,
+  // внешние функции
+  saveBuildingOnWin,
+}) {
+  const runAi = useCallback((state) => {
+    if (aiRunning.current || state.gameOver) return
+    if (modeRef.current === 'online') return
+    aiRunning.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
+    const startTime = Date.now()
+    setTimeout(() => {
+      const gpu = isGpuReady()
+      const diff = difficultyRef.current
+      const action = mctsSearch(state, ...(
+        diff >= 1500 ? (gpu ? [5000, 0] : [3000, 15]) :
+        diff >= 800 ? (gpu ? [1500, 0] : [1200, 10]) :
+        diff >= 400 ? (gpu ? [600, 0] : [800, 8]) :
+        diff >= 150 ? (gpu ? [200, 1] : [500, 3]) :
+                       (gpu ? [80, 1]  : [200, 1])
+      ))
+      const remaining = Math.max(0, 1000 - (Date.now() - startTime))
+      setTimeout(() => {
+        setAiThinking(false)
+        addLog(describeAction(action, state.currentPlayer, t), state.currentPlayer)
+        setTimeout(() => {
+          recordMove(state, action, state.currentPlayer)
+          moveHistoryRef.current.push({ action: { ...action }, player: state.currentPlayer })
+          const ns = applyAction(state, action)
+          setGs(ns)
+          aiRunning.current = false
+          setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
+          if (ns.gameOver) {
+            setTimeout(() => {
+              setResult(ns.winner); setPhase('done'); setInfo(t('game.gameOver')); setLocked(false)
+              finishRecording(ns.winner, [ns.countClosed(0), ns.countClosed(1)])
+              saveBuildingOnWin(ns)
+              const isSpectate = modeRef.current === 'spectate'
+              const won = isSpectate ? false : ns.winner === humanPlayer
+              setTimeout(() => {
+                if (!isSpectate) { won ? sw() : sl() }
+                if (won) { setConfetti(true); setTimeout(() => setConfetti(false), 3000) }
+              }, 300)
+              if (gameCtx && !isSpectate) {
+                const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+                const score = `${Math.max(s0,s1)}:${Math.min(s0,s1)}`
+                const closedGolden = (0 in ns.closed) && ns.closed[0] === humanPlayer
+                gameCtx.emit('recordGame', won, score, difficultyRef.current >= 400, closedGolden, false, false, moveHistoryRef.current)
+                API.track('game_end', 'game', { won, score, difficulty: difficultyRef.current, mode: 'ai' })
+              }
+              if (tournament) {
+                const w = ns.winner === humanPlayer
+                const s0 = ns.countClosed(0), s1 = ns.countClosed(1)
+                setTournament(prev => ({ ...prev, games: [...prev.games, { won: w, score: `${s0}:${s1}`, side: humanPlayer }] }))
+              }
+              if (!isSpectate) maybeShowInterstitial(3)
+            }, 800)
+            return
+          }
+          if (ns.currentPlayer !== humanPlayer || modeRef.current === 'spectate') {
+            setTimeout(() => runAi(ns), modeRef.current === 'spectate' ? 1200 : 600)
+            return
+          }
+          setTimeout(() => {
+            setLocked(false); setPhase('place'); setTransfer(null); setPlacement({})
+            setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.clickStands'))
+          }, 500)
+        }, 300)
+      }, remaining)
+    }, 50)
+  }, [difficulty, humanPlayer]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return runAi
+}
