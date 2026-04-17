@@ -51,7 +51,38 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       try { ws.ping() } catch {}
     })
   }, 30000)
-  wss.on('close', () => clearInterval(heartbeat))
+
+  // ─── Global timer tick ───
+  // SECURITY/UX-ФИКС: раньше таймер декрементировался ТОЛЬКО при ходе — если
+  // оппонент ушёл offline и не ходит, его время не тикает, и игрок висел 90 сек
+  // deleteTimer — не fair. Теперь тик раз в секунду проверяет все комнаты: если
+  // у текущего игрока вышло время — автоматическая победа оппонента.
+  const timerTick = setInterval(() => {
+    const now = Date.now()
+    for (const room of rooms.values()) {
+      if (!room.playerTime || !room.lastMoveTime) continue
+      const gs = room.gameState
+      if (!gs || gs.gameOver) continue
+      const currentRoomPlayer = gameToRoomPlayer(room, gs.currentPlayer)
+      const elapsed = (now - room.lastMoveTime) / 1000
+      const remaining = room.playerTime[currentRoomPlayer] - elapsed
+      if (remaining > 0) continue
+
+      // Время вышло — победа оппонента по времени
+      room.playerTime[currentRoomPlayer] = 0
+      room.lastMoveTime = now
+      gs.gameOver = true
+      gs.winner = 1 - gs.currentPlayer
+      const timeMsg = JSON.stringify({ type: 'timeUp', loser: currentRoomPlayer, time: room.playerTime })
+      try {
+        room.players.forEach(p => p?.ws?.readyState === 1 && p.ws.send(timeMsg))
+        broadcastToSpectators(room, { type: 'timeUp', loser: currentRoomPlayer })
+      } catch {}
+      try { handleServerGameOver(room) } catch (e) { console.error('[ws] timer gameOver error:', e.message) }
+    }
+  }, 1000)
+
+  wss.on('close', () => { clearInterval(heartbeat); clearInterval(timerTick) })
 
   function wsAuth(token) {
     if (!token) return null
@@ -103,12 +134,13 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       draw: `${fromName || 'Соперник'} предлагает ничью`,
       rematch: `${fromName || 'Соперник'} предлагает рематч`,
     }
+    // SECURITY-ФИКС: ошибки push'а теперь логируются (раньше .catch(() => {}) съедал)
     sendPushTo(opponent.userId, {
       title: titles[kind] || 'Highrise Heist',
       body: bodies[kind] || '',
       url: `https://highriseheist.com/online?room=${room.id}`,
       tag: `room-${room.id}-${kind}`,
-    }).catch(() => {})
+    }).catch(err => console.warn('[ws] push failed:', err?.message || err))
   }
 
   function handleServerGameOver(room) {
@@ -124,15 +156,22 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       // isOnline=true — читер мог слать AI-моды с флагом online и получать
       // по 5 кирпичей вместо 1-3. Теперь сервер САМ начисляет в момент
       // завершения online-матча — здесь известно что это реальный PvP.
+      //
+      // SECURITY-ФИКС v2: UPDATE баланса + INSERT brick_transactions в одной
+      // транзакции — раньше могли разъехаться при ошибке (обновлённый баланс
+      // без записи в history или наоборот).
       try {
         const winPlayer = room.players[roomWinner]
         if (winPlayer?.userId) {
-          db.prepare('UPDATE users SET bricks = COALESCE(bricks, 0) + 5 WHERE id = ?')
-            .run(winPlayer.userId)
-          db.prepare('INSERT INTO brick_transactions (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)')
-            .run(winPlayer.userId, 5, 'win:pvp_verified', Date.now())
+          const tx = db.transaction(() => {
+            db.prepare('UPDATE users SET bricks = COALESCE(bricks, 0) + 5 WHERE id = ?')
+              .run(winPlayer.userId)
+            db.prepare('INSERT INTO brick_transactions (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)')
+              .run(winPlayer.userId, 5, 'win:pvp_verified', Date.now())
+          })
+          tx()
         }
-      } catch {}
+      } catch (e) { console.warn('[ws] award bricks error:', e.message) }
     }
     if (room.moveHistory && room.moveHistory.length >= 5) {
       try {
@@ -159,11 +198,17 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       room.firstPlayer = room.currentGame % 2 === 1 ? 0 : 1
       room.gameState = new GameState()
       room.moveHistory = []
+      // SECURITY-ФИКС: сброс таймеров для новой партии турнира
+      if (room.playerTime && room.timer) {
+        room.playerTime = [room.timer * 60, room.timer * 60]
+        room.lastMoveTime = Date.now()
+      }
       const nextMsg = JSON.stringify({
         type: 'nextGame',
         currentGame: room.currentGame, totalGames: room.totalGames,
         scores: room.scores,
         firstPlayer: room.firstPlayer,
+        playerTime: room.playerTime || null,
       })
       room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(nextMsg))
     } else {
@@ -320,9 +365,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       // ─── MATCHMAKING ───
       if (msg.type === 'findMatch') {
         // SECURITY-ФИКС: только авторизованные могут искать ранговый матч.
-        // Раньше любой гость мог подсесть в очередь с rating=1000 → играл
-        // против реальных рейтинговых игроков без аккаунта. Рейтинг теряется
-        // корректно (/api/games требует auth), но UX и справедливость страдают.
         if (!wsUser) {
           ws.send(JSON.stringify({ type: 'error', msg: 'Для рангового матча нужна авторизация' }))
           return
@@ -410,6 +452,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.gameState = new GameState()
           room.moveHistory = []
           room.firstPlayer = 0
+          room.lastMoveTime = Date.now()
           const startMsg = JSON.stringify({
             type: 'start',
             players: room.players.map(p => p.name),
@@ -501,9 +544,13 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
                 const elapsed = (Date.now() - room.lastMoveTime) / 1000
                 room.playerTime[playerIdx] = Math.max(0, room.playerTime[playerIdx] - elapsed)
                 if (room.playerTime[playerIdx] <= 0) {
+                  // Совершенно time-up при ходе — объявляем победу оппонента
+                  gs.gameOver = true
+                  gs.winner = 1 - gs.currentPlayer
                   const timeMsg = JSON.stringify({ type: 'timeUp', loser: playerIdx, time: room.playerTime })
                   room.players.forEach(p => p?.ws?.readyState === 1 && p.ws.send(timeMsg))
                   broadcastToSpectators(room, { type: 'timeUp', loser: playerIdx })
+                  try { handleServerGameOver(room) } catch (e) { console.error('[ws] move timeUp error:', e.message) }
                   return
                 }
               }
@@ -605,7 +652,12 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.firstPlayer = room.firstPlayer === 0 ? 1 : 0
           room.gameState = new GameState()
           room.moveHistory = []
-          const startMsg = JSON.stringify({ type: 'rematchStart', players: room.players.map(p => p.name), firstPlayer: room.firstPlayer, scores: room.scores })
+          // SECURITY-ФИКС: сброс таймеров для новой партии (rematch)
+          if (room.playerTime && room.timer) {
+            room.playerTime = [room.timer * 60, room.timer * 60]
+            room.lastMoveTime = Date.now()
+          }
+          const startMsg = JSON.stringify({ type: 'rematchStart', players: room.players.map(p => p.name), firstPlayer: room.firstPlayer, scores: room.scores, playerTime: room.playerTime || null })
           room.players.forEach(p => p.ws?.readyState === 1 && p.ws.send(startMsg))
         } else {
           if (opponent?.ws?.readyState === 1) opponent.ws.send(JSON.stringify({ type: 'rematchDeclined' }))

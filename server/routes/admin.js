@@ -3,6 +3,7 @@ import { db, bcrypt } from '../db.js'
 import { auth, adminOnly, rateLimits } from '../middleware.js'
 import { formatUser } from '../helpers.js'
 import { muteUser, unmuteUser, listMuted } from '../chat-limits.js'
+import { logAdminAction, getRecentAudit } from '../admin-audit.js'
 
 export default function createAdminRouter(rooms, matchQueue) {
   const router = Router()
@@ -62,41 +63,64 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ user: formatUser(user), achievements, recentGames, ratingHistory })
   })
 
-  router.put('/users/:id', auth, adminOnly, (req, res) => {
-    const { rating, is_admin, username, reset_password, revoke_tokens } = req.body
-    const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)
-    if (!user) return res.status(404).json({ error: 'Не найден' })
-    if (rating !== undefined) db.prepare('UPDATE users SET rating=? WHERE id=?').run(Math.max(100, Math.min(2500, +rating)), user.id)
-    if (is_admin !== undefined) db.prepare('UPDATE users SET is_admin=? WHERE id=?').run(is_admin ? 1 : 0, user.id)
-    if (username) db.prepare('UPDATE users SET username=? WHERE id=?').run(username, user.id)
-    if (reset_password) {
-      const hash = bcrypt.hashSync(reset_password, 10)
-      db.prepare('UPDATE users SET password_hash=?, token_version = COALESCE(token_version, 0) + 1 WHERE id=?').run(hash, user.id)
+  // PERF-ФИКС: bcrypt.hash (async) вместо hashSync — не блокирует event loop на ~70ms.
+  // AUDIT: все критичные изменения (rating/is_admin/username/password/revoke) логируются
+  // в таблицу admin_audit для трейса действий.
+  router.put('/users/:id', auth, adminOnly, async (req, res) => {
+    try {
+      const { rating, is_admin, username, reset_password, revoke_tokens } = req.body
+      const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)
+      if (!user) return res.status(404).json({ error: 'Не найден' })
+      const changes = {}
+
+      if (rating !== undefined) {
+        const clamped = Math.max(100, Math.min(2500, +rating))
+        db.prepare('UPDATE users SET rating=? WHERE id=?').run(clamped, user.id)
+        changes.rating = { from: user.rating, to: clamped }
+      }
+      if (is_admin !== undefined) {
+        const v = is_admin ? 1 : 0
+        db.prepare('UPDATE users SET is_admin=? WHERE id=?').run(v, user.id)
+        changes.is_admin = { from: !!user.is_admin, to: !!v }
+      }
+      if (username) {
+        const clean = String(username).trim().slice(0, 20).replace(/[<>&"']/g, '')
+        if (clean.length >= 2) {
+          try {
+            db.prepare('UPDATE users SET username=? WHERE id=?').run(clean, user.id)
+            changes.username = { from: user.username, to: clean }
+          } catch (e) {
+            return res.status(409).json({ error: 'Username занят' })
+          }
+        }
+      }
+      if (reset_password) {
+        const hash = await bcrypt.hash(String(reset_password), 10)
+        db.prepare('UPDATE users SET password_hash=?, token_version = COALESCE(token_version, 0) + 1 WHERE id=?').run(hash, user.id)
+        changes.password_reset = true
+      }
+      if (revoke_tokens) {
+        db.prepare('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id=?').run(user.id)
+        changes.tokens_revoked = true
+      }
+
+      logAdminAction(req, 'user_update', {
+        targetType: 'user', targetId: user.id,
+        metadata: { username: user.username, changes },
+      })
+      res.json({ ok: true })
+    } catch (e) {
+      console.error('[admin] PUT /users/:id error:', e)
+      res.status(500).json({ error: 'Ошибка обновления' })
     }
-    if (revoke_tokens) {
-      db.prepare('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id=?').run(user.id)
-    }
-    res.json({ ok: true })
   })
 
-  // БАГ-ФИКС: раньше цикл удалял только 8 таблиц из ~20, оставляя orphan-записи
-  // (daily_missions, replays, push_tokens, puzzle_rush_scores, arena_participants,
-  // chat_messages, analytics_events, referrals, brick_transactions, ...).
-  //
-  // Сейчас удаляем из всех таблиц, где есть user_id. Часть таблиц (victory_buildings,
-  // club_members, user_bp_progress, clubs.owner_id, user_skins) имеют ON DELETE
-  // CASCADE и чистятся автоматически при DELETE FROM users.
-  //
-  // Обёрнуто в транзакцию — либо всё удалится, либо ничего, иначе при ошибке
-  // юзер мог остаться с orphan-ачивками.
   router.delete('/users/:id', auth, adminOnly, (req, res) => {
     const id = +req.params.id
     if (id === req.user.id) return res.status(400).json({ error: 'Нельзя удалить себя' })
-    if (!db.prepare('SELECT id FROM users WHERE id=?').get(id)) {
-      return res.status(404).json({ error: 'Не найден' })
-    }
+    const targetUser = db.prepare('SELECT id, username, rating FROM users WHERE id=?').get(id)
+    if (!targetUser) return res.status(404).json({ error: 'Не найден' })
 
-    // Таблицы с user_id колонкой без FK CASCADE — чистим явно.
     const tablesWithUserId = [
       'achievements', 'games', 'friends', 'training_data', 'rating_history',
       'season_ratings', 'daily_results', 'puzzle_results',
@@ -109,7 +133,6 @@ export default function createAdminRouter(rooms, matchQueue) {
       for (const t of tablesWithUserId) {
         try { db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(id) } catch {}
       }
-      // Обратные ссылки — таблицы, где юзер может быть упомянут не как user_id
       try { db.prepare('DELETE FROM friends WHERE friend_id=?').run(id) } catch {}
       try { db.prepare('DELETE FROM referrals WHERE referrer_id=? OR referred_id=?').run(id, id) } catch {}
       try { db.prepare('DELETE FROM challenges WHERE from_id=? OR to_id=?').run(id, id) } catch {}
@@ -117,12 +140,13 @@ export default function createAdminRouter(rooms, matchQueue) {
       try { db.prepare('DELETE FROM user_skins WHERE user_id=?').run(id) } catch {}
       try { db.prepare('UPDATE arena_matches SET winner_id=NULL WHERE winner_id=?').run(id) } catch {}
       try { db.prepare('UPDATE error_reports SET user_id=NULL WHERE user_id=?').run(id) } catch {}
-
-      // users DELETE в конце — триггерит ON DELETE CASCADE для victory_buildings,
-      // club_members, user_bp_progress, clubs (owner_id).
       db.prepare('DELETE FROM users WHERE id=?').run(id)
     })
     tx()
+    logAdminAction(req, 'user_delete', {
+      targetType: 'user', targetId: id,
+      metadata: { username: targetUser.username, rating: targetUser.rating },
+    })
     res.json({ ok: true })
   })
 
@@ -136,13 +160,27 @@ export default function createAdminRouter(rooms, matchQueue) {
   })
 
   router.get('/blog', auth, adminOnly, (req, res) => { res.json(db.prepare('SELECT * FROM blog_posts ORDER BY created_at DESC').all()) })
-  router.delete('/blog/:slug', auth, adminOnly, (req, res) => { db.prepare('DELETE FROM blog_posts WHERE slug=?').run(req.params.slug); res.json({ ok: true }) })
+  router.delete('/blog/:slug', auth, adminOnly, (req, res) => {
+    const slug = req.params.slug
+    const post = db.prepare('SELECT id, title FROM blog_posts WHERE slug=?').get(slug)
+    db.prepare('DELETE FROM blog_posts WHERE slug=?').run(slug)
+    logAdminAction(req, 'blog_delete', { targetType: 'blog_post', metadata: { slug, title: post?.title } })
+    res.json({ ok: true })
+  })
 
   router.get('/seasons', auth, adminOnly, (req, res) => { res.json(db.prepare('SELECT * FROM seasons ORDER BY start_date DESC').all()) })
   router.put('/seasons/:id', auth, adminOnly, (req, res) => {
     const { active, name } = req.body
-    if (active !== undefined) db.prepare('UPDATE seasons SET active=? WHERE id=?').run(active ? 1 : 0, req.params.id)
-    if (name) db.prepare('UPDATE seasons SET name=? WHERE id=?').run(name, req.params.id)
+    const changes = {}
+    if (active !== undefined) {
+      db.prepare('UPDATE seasons SET active=? WHERE id=?').run(active ? 1 : 0, req.params.id)
+      changes.active = !!active
+    }
+    if (name) {
+      db.prepare('UPDATE seasons SET name=? WHERE id=?').run(name, req.params.id)
+      changes.name = name
+    }
+    logAdminAction(req, 'season_update', { targetType: 'season', targetId: req.params.id, metadata: changes })
     res.json({ ok: true })
   })
 
@@ -161,18 +199,36 @@ export default function createAdminRouter(rooms, matchQueue) {
   router.delete('/training', auth, adminOnly, (req, res) => {
     const days = Math.max(1, Math.min(365, Math.floor(+req.query.olderThan || 90)))
     const cutoff = new Date(Date.now() - days * 86400000).toISOString()
-    res.json({ deleted: db.prepare('DELETE FROM training_data WHERE created_at < ?').run(cutoff).changes })
+    const result = db.prepare('DELETE FROM training_data WHERE created_at < ?').run(cutoff).changes
+    logAdminAction(req, 'training_cleanup', { metadata: { olderThanDays: days, deleted: result } })
+    res.json({ deleted: result })
   })
 
+  // PERF-ФИКС: лимит по байтам ответа (default 50MB, max 200MB) — раньше могло
+  // вернуть 500MB JSON и загрузить память сервера. maxBytes в query позволяет кастомизацию.
   router.get('/training/export-gpu', auth, adminOnly, (req, res) => {
     const limit = Math.min(+req.query.limit || 5000, 50000)
     const minMoves = +req.query.minMoves || 5
+    const maxBytesReq = +req.query.maxBytes || 50 * 1024 * 1024
+    const MAX_BYTES = Math.min(200 * 1024 * 1024, Math.max(1 * 1024 * 1024, maxBytesReq))
+
     const rows = db.prepare('SELECT game_data, winner, mode, difficulty FROM training_data WHERE total_moves >= ? ORDER BY created_at DESC LIMIT ?').all(minMoves, limit)
     const games = []
+    let bytes = 0
+    let truncated = false
     for (const row of rows) {
-      try { const data = JSON.parse(row.game_data); if (!data.moves || row.winner < 0) continue; games.push({ moves: data.moves, winner: row.winner, mode: row.mode, difficulty: row.difficulty }) } catch {}
+      try {
+        const data = JSON.parse(row.game_data)
+        if (!data.moves || row.winner < 0) continue
+        const entry = { moves: data.moves, winner: row.winner, mode: row.mode, difficulty: row.difficulty }
+        const entryBytes = JSON.stringify(entry).length + 2
+        if (bytes + entryBytes > MAX_BYTES) { truncated = true; break }
+        games.push(entry)
+        bytes += entryBytes
+      } catch {}
     }
-    res.json({ total: games.length, format: 'raw_moves', games })
+    logAdminAction(req, 'training_export', { metadata: { total: games.length, bytes, truncated, limit, minMoves } })
+    res.json({ total: games.length, bytes, truncated, maxBytes: MAX_BYTES, format: 'raw_moves', games })
   })
 
   router.get('/rooms', auth, adminOnly, (req, res) => {
@@ -200,21 +256,30 @@ export default function createAdminRouter(rooms, matchQueue) {
     const { value_ru, value_en } = req.body
     if (!db.prepare('SELECT key FROM site_content WHERE key=?').get(req.params.key)) return res.status(404).json({ error: 'Ключ не найден' })
     db.prepare("UPDATE site_content SET value_ru=?, value_en=?, updated_at=datetime('now') WHERE key=?").run(value_ru ?? '', value_en ?? '', req.params.key)
+    logAdminAction(req, 'content_update', { targetType: 'content', metadata: { key: req.params.key } })
     res.json({ ok: true })
   })
   router.post('/content', auth, adminOnly, (req, res) => {
     const { key, section, value_ru, value_en, label } = req.body
     if (!key) return res.status(400).json({ error: 'key обязателен' })
-    try { db.prepare('INSERT INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)').run(key, section || 'general', value_ru || '', value_en || '', label || ''); res.json({ ok: true }) }
-    catch (e) { res.status(409).json({ error: 'Ключ уже существует' }) }
+    try {
+      db.prepare('INSERT INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)').run(key, section || 'general', value_ru || '', value_en || '', label || '')
+      logAdminAction(req, 'content_create', { targetType: 'content', metadata: { key, section } })
+      res.json({ ok: true })
+    } catch (e) { res.status(409).json({ error: 'Ключ уже существует' }) }
   })
-  router.delete('/content/:key', auth, adminOnly, (req, res) => { db.prepare('DELETE FROM site_content WHERE key=?').run(req.params.key); res.json({ ok: true }) })
+  router.delete('/content/:key', auth, adminOnly, (req, res) => {
+    db.prepare('DELETE FROM site_content WHERE key=?').run(req.params.key)
+    logAdminAction(req, 'content_delete', { targetType: 'content', metadata: { key: req.params.key } })
+    res.json({ ok: true })
+  })
   router.post('/content/bulk', auth, adminOnly, (req, res) => {
     const { items } = req.body
     if (!items || !Array.isArray(items)) return res.status(400).json({ error: 'items обязателен' })
     const ins = db.prepare('INSERT OR IGNORE INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)')
     let added = 0
     for (const item of items) { const r = ins.run(item.key, item.section || 'i18n', item.value_ru || '', item.value_en || '', item.label || ''); if (r.changes > 0) added++ }
+    logAdminAction(req, 'content_bulk', { metadata: { total: items.length, added } })
     res.json({ ok: true, added, total: items.length })
   })
 
@@ -229,7 +294,9 @@ export default function createAdminRouter(rooms, matchQueue) {
   })
 
   router.delete('/errors', auth, adminOnly, (req, res) => {
+    const count = db.prepare('SELECT COUNT(*) as c FROM error_reports').get()?.c || 0
     db.prepare('DELETE FROM error_reports').run()
+    logAdminAction(req, 'errors_clear', { metadata: { deleted: count } })
     res.json({ ok: true })
   })
 
@@ -334,10 +401,6 @@ export default function createAdminRouter(rooms, matchQueue) {
   })
 
   // ═══ Chat moderation ═══
-  /**
-   * POST /api/admin/chat/mute   { user_id, minutes }
-   * minutes <= 0 → permanent (~100 лет)
-   */
   router.post('/chat/mute', auth, adminOnly, (req, res) => {
     const userId = +req.body.user_id
     const minutes = +req.body.minutes || 60
@@ -346,6 +409,10 @@ export default function createAdminRouter(rooms, matchQueue) {
     const user = db.prepare('SELECT id, username FROM users WHERE id=?').get(userId)
     if (!user) return res.status(404).json({ error: 'Не найден' })
     const until = muteUser(userId, minutes)
+    logAdminAction(req, 'chat_mute', {
+      targetType: 'user', targetId: userId,
+      metadata: { username: user.username, minutes, until },
+    })
     res.json({ ok: true, user_id: userId, username: user.username, until })
   })
 
@@ -353,11 +420,20 @@ export default function createAdminRouter(rooms, matchQueue) {
     const userId = +req.body.user_id
     if (!userId) return res.status(400).json({ error: 'user_id обязателен' })
     unmuteUser(userId)
+    logAdminAction(req, 'chat_unmute', { targetType: 'user', targetId: userId })
     res.json({ ok: true })
   })
 
   router.get('/chat/muted', auth, adminOnly, (req, res) => {
     res.json({ muted: listMuted() })
+  })
+
+  // ═══ Admin Audit Log ═══
+  // GET /api/admin/audit?limit=100&offset=0&action=user_update&adminId=1
+  router.get('/audit', auth, adminOnly, (req, res) => {
+    const { limit, offset, action, adminId } = req.query
+    const data = getRecentAudit({ limit, offset, action, adminId })
+    res.json(data)
   })
 
   return router
