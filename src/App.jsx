@@ -38,7 +38,7 @@ export default function App() {
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
-  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog','goldenrush','goldenrush-online']
+  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog','goldenrush','goldenrush-online','goldenrush-top']
 
   function getTabFromPath() {
     const path = location.pathname.replace(/^\/en\/?/, '/').replace(/^\/+/, '')
@@ -158,7 +158,7 @@ export default function App() {
     const base = lang === 'en' ? '/en/' : '/'
     const target = tab === 'landing' ? base : base + tab
     if (location.pathname !== target) history.pushState(null, '', target)
-    const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика', goldenrush: 'Golden Rush', 'goldenrush-online': 'Golden Rush Online' }
+    const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика', goldenrush: 'Golden Rush', 'goldenrush-online': 'Golden Rush Online', 'goldenrush-top': en ? 'Golden Rush Top' : 'Golden Rush Топ' }
     document.title = titles[tab] ? `${titles[tab]} — Highrise Heist` : 'Highrise Heist — Strategy Board Game'
   }, [tab, lang])
 
@@ -290,13 +290,14 @@ export default function App() {
   ]
 
   const secondaryNav = [
-    { id: 'goldenrush',        icon: 'star',  label: 'Golden Rush', badge: 'NEW' },
-    { id: 'goldenrush-online', icon: 'online',label: 'GR Online',   badge: 'NEW' },
-    { id: 'settings',   icon: 'theme',     label: en ? 'Settings'  : 'Настройки' },
-    { id: 'profile',    icon: 'profile',   label: en ? 'Profile'   : 'Профиль' },
-    { id: 'openings',   icon: 'chart',     label: en ? 'Analytics' : 'Аналитика' },
-    { id: 'blog',       icon: 'blog',      label: en ? 'Blog'      : 'Блог' },
-    { id: 'changelog',  icon: 'star',      label: 'Changelog' },
+    { id: 'goldenrush',        icon: 'star',   label: 'Golden Rush', badge: 'NEW' },
+    { id: 'goldenrush-online', icon: 'online', label: 'GR Online',   badge: 'NEW' },
+    { id: 'goldenrush-top',    icon: 'chart',  label: 'GR Top' },
+    { id: 'settings',          icon: 'theme',     label: en ? 'Settings'  : 'Настройки' },
+    { id: 'profile',           icon: 'profile',   label: en ? 'Profile'   : 'Профиль' },
+    { id: 'openings',          icon: 'chart',     label: en ? 'Analytics' : 'Аналитика' },
+    { id: 'blog',              icon: 'blog',      label: en ? 'Blog'      : 'Блог' },
+    { id: 'changelog',         icon: 'star',      label: 'Changelog' },
   ]
   if (isAdmin) {
     secondaryNav.push(

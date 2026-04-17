@@ -3,11 +3,6 @@
  *
  * Единое соединение /ws с токеном из URL (тот же механизм что у 2p).
  * Обрабатывает gr.* сообщения, игнорирует остальные (они прилетают от 2p-игры).
- *
- * Использование:
- *   const { status, roomId, state, players, yourSlot, winner, error, send, ... } = useGoldenRushWS()
- *   send({ type: 'gr.findMatch', mode: '2v2' })
- *   send({ type: 'gr.move', action: {...} })
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
@@ -29,8 +24,41 @@ function buildWsUrl() {
   return `${proto}//${host}/ws${q}`
 }
 
+/**
+ * Вычисляет начисление бриксов именно мне по тем же правилам что на сервере.
+ * rewards из gr.gameOver — константы GR_REWARDS сервера.
+ */
+function computeMyReward({ state, winner, resignedBy, rewards, yourSlot }) {
+  if (!rewards || yourSlot == null) return null
+  const { participation = 0, win: winBonus = 0, centerCapture = 0 } = rewards
+  const resigned = resignedBy === yourSlot
+
+  let total = 0
+  const parts = []
+
+  if (!resigned) {
+    total += participation
+    parts.push({ key: 'participation', amount: participation })
+  }
+
+  const won = (state?.mode === 'ffa' && winner === yourSlot)
+    || (state?.mode === '2v2' && winner >= 0 && state.teams?.[winner]?.includes(yourSlot))
+  if (won) {
+    total += winBonus
+    parts.push({ key: 'win', amount: winBonus })
+  }
+
+  const centerOwner = state?.closed?.[0]
+  if (centerOwner === yourSlot && !resigned) {
+    total += centerCapture
+    parts.push({ key: 'center', amount: centerCapture })
+  }
+
+  return { total, parts, resigned }
+}
+
 export function useGoldenRushWS() {
-  const [status, setStatus] = useState('idle')     // idle | connecting | queued | playing | gameover | error
+  const [status, setStatus] = useState('idle')
   const [roomId, setRoomId] = useState(null)
   const [state, setState] = useState(null)
   const [players, setPlayers] = useState([])
@@ -43,9 +71,14 @@ export function useGoldenRushWS() {
   const [teamChat, setTeamChat] = useState([])
   const [reactions, setReactions] = useState([])
   const [playerLeftSlot, setPlayerLeftSlot] = useState(null)
+  const [resignedBy, setResignedBy] = useState(null)
+  const [myReward, setMyReward] = useState(null)
   const wsRef = useRef(null)
   const reconnectTimerRef = useRef(null)
   const savedRoomRef = useRef(null)
+  // Текущий yourSlot храним в ref'е чтобы в handler'е message видеть актуальное
+  // значение (handler замыкает старый state из-за единого connect вызова).
+  const yourSlotRef = useRef(null)
 
   const send = useCallback((obj) => {
     const ws = wsRef.current
@@ -86,12 +119,15 @@ export function useGoldenRushWS() {
             savedRoomRef.current = msg.roomId
             setPlayers(msg.players || [])
             setYourSlot(msg.yourSlot)
+            yourSlotRef.current = msg.yourSlot
             setState(msg.state)
             setQueuePos(null)
             setStatus('playing')
             setWinner(null)
             setError(null)
             setTeamChat([])
+            setResignedBy(null)
+            setMyReward(null)
             break
           case 'gr.state':
             setState(msg.state)
@@ -100,9 +136,15 @@ export function useGoldenRushWS() {
             setState(msg.state)
             setWinner(msg.winner)
             setScores(msg.scores || msg.state?.scores || null)
+            setResignedBy(msg.resignedBy != null ? msg.resignedBy : null)
+            setMyReward(computeMyReward({
+              state: msg.state,
+              winner: msg.winner,
+              resignedBy: msg.resignedBy,
+              rewards: msg.rewards,
+              yourSlot: yourSlotRef.current,
+            }))
             setStatus('gameover')
-            // ФИКС: после gameOver — не пытаться reconnect'иться (сервер удалит
-            // комнату через 5 мин, получим no_room и ложный error-баннер).
             savedRoomRef.current = null
             break
           case 'gr.reconnected':
@@ -110,6 +152,7 @@ export function useGoldenRushWS() {
             savedRoomRef.current = msg.roomId
             setPlayers(msg.players || [])
             setYourSlot(msg.slot)
+            yourSlotRef.current = msg.slot
             setState(msg.state)
             setStatus(msg.state?.gameOver ? 'gameover' : 'playing')
             break
@@ -129,7 +172,6 @@ export function useGoldenRushWS() {
             setTimeout(() => setPlayerLeftSlot(null), 3000)
             break
           case 'gr.error':
-            // Если no_room после gameOver — молча игнорим (мы уже показали gameover экран)
             if (msg.reason === 'no_room' && !savedRoomRef.current) break
             setError(msg.reason || 'unknown')
             setTimeout(() => setError(null), 4000)
@@ -139,7 +181,6 @@ export function useGoldenRushWS() {
 
       ws.addEventListener('close', () => {
         wsRef.current = null
-        // Авто-реконнект ТОЛЬКО если были в активной игре (savedRoomRef не сброшен)
         if (savedRoomRef.current && (status === 'playing' || status === 'queued')) {
           if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
           reconnectTimerRef.current = setTimeout(() => connect(), 2000)
@@ -165,11 +206,14 @@ export function useGoldenRushWS() {
     setState(null)
     setPlayers([])
     setYourSlot(null)
+    yourSlotRef.current = null
     setWinner(null)
     setScores(null)
     setQueuePos(null)
     setTeamChat([])
     setError(null)
+    setResignedBy(null)
+    setMyReward(null)
   }, [])
 
   useEffect(() => {
@@ -208,6 +252,7 @@ export function useGoldenRushWS() {
   return {
     status, roomId, state, players, yourSlot, winner, scores,
     queuePos, queueMode, error, teamChat, reactions, playerLeftSlot,
+    resignedBy, myReward,
     connect, disconnect,
     findMatch, cancelMatch, sendMove, resign, sendTeamChat, sendReaction,
     isConnected: !!wsRef.current && wsRef.current.readyState === 1,
