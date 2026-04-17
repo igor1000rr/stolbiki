@@ -5,17 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    'Большая уборка безопасности: закрыты все известные дыры через которые можно было накрутить лидерборд',
-    'Таймер в онлайн-матчах теперь тикает в реальном времени: если оппонент ушёл — автопобеда по времени',
-    'Фильтр мата в чате второго поколения: ловит латинские подмены, zero-width символы и склонения',
-    'Бриксы за рекламу теперь через AdMob SSV — Google сам подписывает callback, фармить curlом больше нельзя',
-    'Админские действия логируются в audit-таблицу — видно кто что менял, когда и с какого IP',
+    'Анонс Golden Rush — новый режим для 4 игроков: крест из 9 стоек, race to the center',
+    'Два варианта: 4-FFA (каждый за себя) и 2v2 (команды по диагонали), центральная золотая башня как king-maker',
+    'Физическая версия — флажки 4 цветов и сменная картонка, помещается в текущую коробку',
+    'Цифровая версия — roadmap из 4 фаз, начинаем с hot-seat на одном устройстве',
+    'Предыдущий релиз: закрыты все известные security-дыры, бриксы через AdMob SSV, WS-таймер тикает в реальном времени',
   ],
   en: [
-    'Big security sweep: all known leaderboard-inflation exploits are closed',
-    'The online match timer now ticks in real time: if the opponent leaves — auto-win on timeout',
-    'Chat profanity filter v2: catches Latin look-alikes, zero-width characters and word forms',
-    'Rewarded-ad bricks now go through AdMob SSV — Google signs the callback itself, curl farming is blocked',
-    'Admin actions are logged to an audit table — you can see who changed what, when, and from which IP',
+    'Announcing Golden Rush — new 4-player mode: a cross of 9 stands, race to the center',
+    'Two variants: 4-FFA (free-for-all) and 2v2 (teams across the diagonal), central golden tower as king-maker',
+    'Physical version — 4 colored flag sets and a swappable cardboard field, fits the current box',
+    'Digital version — 4-phase roadmap, starting with hot-seat on a single device',
+    'Previous release: all known security holes closed, bricks via AdMob SSV, WS timer ticks in real time',
   ],
 }
