@@ -11,6 +11,9 @@ const KNOWN_TYPES = new Set([
   'rematchOffer', 'rematchResponse',
   // Глобальный чат (обрабатываются в ws.js)
   'globalChat', 'joinGlobalChat', 'leaveGlobalChat',
+  // Golden Rush online 2v2 (отдельный пространств имён)
+  'gr.findMatch', 'gr.cancelMatch', 'gr.move', 'gr.resign',
+  'gr.teamChat', 'gr.reaction', 'gr.reconnect',
 ])
 
 const ALLOWED_EMOJI = ['👍', '🔥', '😮', '😂', '💪', '🎉']
