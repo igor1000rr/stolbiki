@@ -1,0 +1,26 @@
+export default {
+  version: '5.9.2',
+  date: '2026-04-17',
+  title_ru: 'Golden Rush — hot-seat играемая версия',
+  title_en: 'Golden Rush — playable hot-seat version',
+  changes_ru: [
+    { type: 'new', text: 'Golden Rush играбелен! Hot-seat на одном устройстве: 4 игрока ходят по очереди, режим 4-FFA или 2v2. Вкладка /goldenrush' },
+    { type: 'new', text: 'Новый движок goldenRushEngine.js с генерик N-player доской, FIFO-очередью на центр, валидацией transfer/placement с cap-правилами' },
+    { type: 'new', text: '20+ unit-тестов на движок: topology, effective cap, order=1/2 closure gates, eligibleForCenter FIFO, scoring (+1 block, +5/+8 order, +15 center, 2v2 командный бонус), game over, turn rotation' },
+    { type: 'new', text: 'SVG-UI креста: метки slot-владельца, order 1/2 номера, chips снизу вверх, флажки на закрытых, золотое сияние вокруг центра когда есть eligible игроки' },
+    { type: 'new', text: 'Lobby с выбором режима и редактируемыми именами игроков. Scoreboard с подсветкой текущего игрока и eligible-queue позицией для центра' },
+    { type: 'new', text: 'Панель действий: counter-режим для placement (тап по стойке — 1→2→3→0 блока), двухфазный transfer (pick-src → pick-dst), reset и commit-кнопки' },
+    { type: 'improve', text: 'GameOver экран: имя победителя или команды в FFA/2v2, итоговые счета, кнопка новой игры' },
+    { type: 'improve', text: 'Hot-seat код полностью декуплирован: базовый server/game-engine.js и AlphaZero AI v7 не затронуты, 2p-игра работает как была' },
+  ],
+  changes_en: [
+    { type: 'new', text: 'Golden Rush is playable! Hot-seat on a single device: 4 players take turns, 4-FFA or 2v2 modes. Tab /goldenrush' },
+    { type: 'new', text: 'New goldenRushEngine.js with generic N-player board, FIFO queue for the center, transfer/placement validation with cap rules' },
+    { type: 'new', text: '20+ unit tests for the engine: topology, effective cap, order=1/2 closure gates, eligibleForCenter FIFO, scoring (+1 block, +5/+8 order, +15 center, 2v2 team bonus), game over, turn rotation' },
+    { type: 'new', text: 'SVG cross UI: slot-owner markers, order 1/2 numbers, chips stacked bottom-up, flags on closed stands, golden glow around the center when there are eligible players' },
+    { type: 'new', text: 'Lobby with mode selector and editable player names. Scoreboard highlights the current player and shows eligible-queue position for the center' },
+    { type: 'new', text: 'Action panel: counter mode for placement (tap a stand — 1→2→3→0 blocks), two-phase transfer (pick-src → pick-dst), reset and commit buttons' },
+    { type: 'improve', text: 'GameOver screen: winner name or team for FFA/2v2, final scores, new game button' },
+    { type: 'improve', text: 'Hot-seat code is fully decoupled: base server/game-engine.js and AlphaZero AI v7 untouched, 2p play works exactly as before' },
+  ],
+}

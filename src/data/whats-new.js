@@ -5,17 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    'Анонс Golden Rush — новый режим для 4 игроков: крест из 9 стоек, race to the center',
-    'Два варианта: 4-FFA (каждый за себя) и 2v2 (команды по диагонали), центральная золотая башня как king-maker',
-    'Физическая версия — флажки 4 цветов и сменная картонка, помещается в текущую коробку',
-    'Цифровая версия — roadmap из 4 фаз, начинаем с hot-seat на одном устройстве',
-    'Предыдущий релиз: закрыты все известные security-дыры, бриксы через AdMob SSV, WS-таймер тикает в реальном времени',
+    'Golden Rush играбелен! Вкладка /goldenrush, hot-seat на одном устройстве для 4 игроков',
+    'Два режима: 4-FFA или 2v2 (команды по диагонали 0+2 vs 1+3)',
+    '9 стоек крестом: замкни линию (order 1 → 2), потом забери золотой центр за +15',
+    'Transfer и placement — те же механики что в базовой игре, но с order-gate: stand 2 закроется только после stand 1',
+    'Базовая 2-игровая игра с AlphaZero AI не затронута — новый режим живёт отдельно',
   ],
   en: [
-    'Announcing Golden Rush — new 4-player mode: a cross of 9 stands, race to the center',
-    'Two variants: 4-FFA (free-for-all) and 2v2 (teams across the diagonal), central golden tower as king-maker',
-    'Physical version — 4 colored flag sets and a swappable cardboard field, fits the current box',
-    'Digital version — 4-phase roadmap, starting with hot-seat on a single device',
-    'Previous release: all known security holes closed, bricks via AdMob SSV, WS timer ticks in real time',
+    'Golden Rush is playable! Tab /goldenrush, hot-seat on a single device for 4 players',
+    'Two modes: 4-FFA or 2v2 (teams across the diagonal 0+2 vs 1+3)',
+    '9 stands in a cross: close your line (order 1 → 2), then claim the golden center for +15',
+    'Transfer and placement — same mechanics as the base game, but with an order-gate: stand 2 closes only after stand 1',
+    'The base 2-player game with AlphaZero AI is untouched — the new mode lives alongside it',
   ],
 }
