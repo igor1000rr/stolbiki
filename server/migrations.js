@@ -104,5 +104,32 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN onboarding_done INTEGER DEFAULT 0') } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 10')
+  // Golden Rush матчи + per-user счётчики.
+  // Храним компактно: по одной строке на матч, участники/итог в JSON.
+  // Это принципиально отличается от games (там строка per-user): GR-матч
+  // содержит 4 игрока, делать 4 строки неоправданно — агрегаты (wins/losses)
+  // дешевле считать на лету из one-row-per-match при объёмах < 100k матчей.
+  migrate(11, () => {
+    db.exec(`CREATE TABLE IF NOT EXISTS gr_matches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_id TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      players TEXT NOT NULL,
+      teams TEXT,
+      winner INTEGER,
+      scores TEXT NOT NULL,
+      turns INTEGER NOT NULL,
+      duration_sec INTEGER NOT NULL,
+      resigned_by INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`)
+    db.exec('CREATE INDEX IF NOT EXISTS idx_gr_matches_created ON gr_matches(created_at)')
+    db.exec('CREATE INDEX IF NOT EXISTS idx_gr_matches_mode ON gr_matches(mode, created_at)')
+
+    try { db.exec('ALTER TABLE users ADD COLUMN gr_games INTEGER DEFAULT 0') } catch {}
+    try { db.exec('ALTER TABLE users ADD COLUMN gr_wins INTEGER DEFAULT 0') } catch {}
+    try { db.exec('ALTER TABLE users ADD COLUMN gr_center_captures INTEGER DEFAULT 0') } catch {}
+  })
+
+  console.log('Schema version: ' + getVersion() + ', миграций: 11')
 }
