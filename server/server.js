@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url'
 import { db, JWT_SECRET, PORT } from './db.js'
 import { rateLimit, rateLimits, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
+import { getGoldenRushStats } from './golden-rush-ws.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 let APP_VERSION = '0.0.0'
@@ -56,13 +57,6 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : [...DEFAULT_ORIGINS, ...DEV_ORIGINS]
 
-// ═══ CSP script-src ═══
-// Логика подбора:
-//   1) Ищем csp-hashes.json (генерится vite-плагином cspHashes() при сборке)
-//   2) Если найден и непустой → используем sha256-хеши без unsafe-inline
-//   3) Если не найден:
-//        - в dev (!isProd) или с флагом CSP_ALLOW_UNSAFE_INLINE=1 → fallback на unsafe-inline
-//        - в prod без флага → ЖИРНЫЙ warning в логи (скрипты будут блокироваться, но сервер не падает)
 const isProd = process.env.NODE_ENV === 'production'
 const allowUnsafeInline = process.env.CSP_ALLOW_UNSAFE_INLINE === '1'
 
@@ -99,8 +93,6 @@ if (!cspHashesFound) {
   console.log(`[CSP] ✅ Using ${scriptSrcDirective.length - 2} script hashes from ${cspHashesPath}`)
 }
 
-// Helmet навешиваем на /api/* и всё остальное КРОМЕ /embed/* —
-// embed-страница сама ставит свои CSP/X-Frame-Options чтобы работать в iframe.
 const helmetMw = helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], scriptSrc: scriptSrcDirective, styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], fontSrc: ["'self'", 'https://fonts.gstatic.com'], imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru', 'https://api.qrserver.com'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://mc.yandex.ru'] } }, permissionsPolicy: { features: { camera: [], microphone: [], geolocation: [] } } })
 app.use((req, res, next) => {
   if (req.path.startsWith('/embed/')) return next()
@@ -119,7 +111,6 @@ app.use('/api/', (req, res, next) => { apiStats.requests++; const start = Date.n
 app.use('/api/auth', rateLimit(60000, 20))
 app.use('/api/games', rateLimit(60000, 60))
 app.use('/api/', rateLimit(60000, 120))
-// embed: 60 запросов/мин с IP — валидное для iframe превью
 app.use('/embed/', rateLimit(60000, 60))
 
 const rooms = new Map()
@@ -161,13 +152,14 @@ app.get('/api/stats', (req, res) => {
   const activeRooms = [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length
   const onlinePlayers = [...rooms.values()].reduce((s, r) => s + r.players.filter(p => p.ws?.readyState === 1).length, 0) + matchQueue.length
   const todayGames = db.prepare("SELECT COUNT(*) as c FROM games WHERE played_at > date('now')").get().c
+  const grStats = getGoldenRushStats()
   res.set('Cache-Control', 'public, max-age=15')
-  res.json({ totalUsers, totalGames, avgRating: Math.round(avgRating), activeRooms, matchQueue: matchQueue.length, onlinePlayers, todayGames })
+  res.json({ totalUsers, totalGames, avgRating: Math.round(avgRating), activeRooms, matchQueue: matchQueue.length, onlinePlayers, todayGames, goldenRush: grStats })
 })
 
 app.get('/api/health', (req, res) => {
   const mem = process.memoryUsage()
-  res.json({ status: 'ok', version: APP_VERSION, node: process.version, uptime: Math.round(process.uptime()), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c, rooms: rooms.size, activeRooms: [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length, matchQueue: matchQueue.length, memoryMB: Math.round(mem.heapUsed / 1024 / 1024), schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0, api: { requests: apiStats.requests, errors: apiStats.errors, uptimeHours: Math.round((Date.now() - apiStats.startedAt) / 3600000 * 10) / 10 }, rateLimits: rateLimits.size, csp: { hashesFound: cspHashesFound, hashCount: cspHashesFound ? scriptSrcDirective.length - 2 : 0, unsafeInline: scriptSrcDirective.includes("'unsafe-inline'") } })
+  res.json({ status: 'ok', version: APP_VERSION, node: process.version, uptime: Math.round(process.uptime()), users: db.prepare('SELECT COUNT(*) as c FROM users').get().c, rooms: rooms.size, activeRooms: [...rooms.values()].filter(r => r.state === 'playing' && r.players.length === 2).length, matchQueue: matchQueue.length, goldenRush: getGoldenRushStats(), memoryMB: Math.round(mem.heapUsed / 1024 / 1024), schemaVersion: db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0, api: { requests: apiStats.requests, errors: apiStats.errors, uptimeHours: Math.round((Date.now() - apiStats.startedAt) / 3600000 * 10) / 10 }, rateLimits: rateLimits.size, csp: { hashesFound: cspHashesFound, hashCount: cspHashesFound ? scriptSrcDirective.length - 2 : 0, unsafeInline: scriptSrcDirective.includes("'unsafe-inline'") } })
 })
 
 const trackStmt = db.prepare('INSERT INTO analytics_events (event, page, user_id, session_id, meta, ip, ua) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -222,7 +214,6 @@ app.post('/api/daily/submit', auth, (req, res) => {
   res.json({ ok: true })
 })
 
-// ═══ Mount Routes ═══
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
 app.use('/api', gamesRouter)
@@ -240,7 +231,6 @@ app.use('/api/clubs', clubsRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/achievements', achievementsRouter)
 app.use('/api/onboarding', onboardingRouter)
-// ═══ Embed: отдаёт HTML, не JSON — монтируется под /embed а не /api ═══
 app.use('/embed', embedRouter)
 
 app.use('/api/', (req, res) => { res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` }) })
