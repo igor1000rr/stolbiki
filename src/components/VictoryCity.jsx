@@ -4,6 +4,9 @@
  * Утилиты, константы и текстурные фабрики вынесены в:
  *   victoryCityUtils.js — SKIN_HEX, TIME_PRESETS, WEATHER_PARAMS, helpers
  *   victoryCityTextures.js — makeStarTexture, makeRoadTexture, makeSoftDotTexture
+ * UI-подкомпоненты:
+ *   VictoryCityStats.jsx — стат-бар + прогресс + легенда
+ *   VictoryCityTowerDetail.jsx — панель деталей выбранной башни
  *
  * Fallback: WebGL error → VictoryCity2D с теми же towers данными.
  */
@@ -17,10 +20,12 @@ import {
   WEATHER_COUNT_HIGH, WEATHER_COUNT_LOW, TIME_PRESETS, WEATHER_PARAMS,
   pieceColor, pieceEmissive, getDiffLabel, hasWebGL, prefersReducedMotion,
   hasLowPower, getSeason, easeOutCubic, lerp, pickVideoMimeType,
-  towerMatchesFilter, uniqueWinsInTower, snapshotSceneTimeState,
+  towerMatchesFilter, snapshotSceneTimeState,
   loadSavedViews, persistSavedViews,
 } from './victoryCityUtils'
 import { makeStarTexture, makeRoadTexture, makeSoftDotTexture } from './victoryCityTextures'
+import VictoryCityStats from './VictoryCityStats'
+import VictoryCityTowerDetail from './VictoryCityTowerDetail'
 
 const VictoryCity2D = lazy(() => import('./VictoryCity2D'))
 const HallOfFame = lazy(() => import('./HallOfFame'))
@@ -1279,33 +1284,7 @@ export default function VictoryCity({ userId }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {[
-          [cityData.total_wins,    en ? 'Wins'      : 'Побед',     'var(--green)'],
-          [cityData.total_bricks,  en ? 'Bricks'    : 'Кирпичей',  'var(--accent)'],
-          [towers.filter(t => t.is_closed).length, en ? 'Closed' : 'Высоток',  'var(--ink)'],
-          [towers.filter(t => t.golden_top).length, '★ ' + (en ? 'Crowned' : 'С короной'), 'var(--gold)'],
-        ].map(([v, l, c]) => (
-          <div key={l} style={{ textAlign: 'center', padding: '8px 14px', background: 'var(--surface2)', borderRadius: 8, minWidth: 60 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: c }}>{v}</div>
-            <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{l}</div>
-          </div>
-        ))}
-      </div>
-
-      {cityData.next_tower_progress > 0 && (
-        <div style={{ textAlign: 'center', marginBottom: 10, fontSize: 11, color: 'var(--ink3)' }}>
-          {en ? 'Next highrise: ' : 'Следующая высотка: '}
-          <strong style={{ color: 'var(--accent)' }}>{cityData.next_tower_progress}/{TOWER_HEIGHT}</strong>
-          <span> {en ? 'bricks laid' : 'кирпичей'}</span>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 12, marginBottom: 10, justifyContent: 'center', flexWrap: 'wrap', fontSize: 10, color: 'var(--ink3)' }}>
-        <div><span style={{ color: 'var(--accent)' }}>■</span> {en ? 'Regular brick' : 'Обычный кирпич'}</div>
-        <div><span style={{ color: 'var(--gold)' }}>■</span> {en ? 'Special (Imposs/Golden)' : 'Особый (Imp/Золотая)'}</div>
-        <div><span style={{ color: 'var(--gold)' }}>★</span> {en ? 'Crowned tower' : 'Высотка с короной'}</div>
-      </div>
+      <VictoryCityStats cityData={cityData} towers={towers} en={en} />
 
       {useFallback ? (
         <Suspense fallback={
@@ -1701,62 +1680,7 @@ export default function VictoryCity({ userId }) {
         </div>
       )}
 
-      {selTower && (() => {
-        const wins = uniqueWinsInTower(selTower)
-        return (
-          <div style={{
-            marginTop: 10, padding: '14px 16px',
-            background: 'var(--surface)', borderRadius: 10,
-            border: '1px solid rgba(255,193,69,0.22)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: selTower.golden_top ? 'var(--gold)' : 'var(--ink)' }}>
-                  {selTower.golden_top ? '★ ' : '🏢 '}
-                  {en ? 'Highrise' : 'Высотка'} #{selTowerIdx + 1} <span style={{ color: 'var(--ink3)', fontSize: 12, fontWeight: 400 }}>({selTower.height}/{TOWER_HEIGHT})</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>
-                  {selTower.is_closed
-                    ? (en ? 'Closed' : 'Закрыта') + (selTower.golden_top ? ' · ' + (en ? 'Crowned' : 'С короной') : '')
-                    : (en ? `Building... ${TOWER_HEIGHT - selTower.height} bricks to go` : `Строится... ещё ${TOWER_HEIGHT - selTower.height} кирпичей`)}
-                </div>
-              </div>
-              <button onClick={() => setSelTowerIdx(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}>✕</button>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>
-              {en ? 'Built from' : 'Построено из'} <strong style={{ color: 'var(--accent)' }}>{wins.length}</strong> {en ? 'wins' : 'побед'}
-              {' · '}{new Date(selTower.period_from * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
-              {selTower.period_to !== selTower.period_from && ' — ' +
-                new Date(selTower.period_to * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
-            </div>
-            <div style={{ maxHeight: 160, overflowY: 'auto', paddingRight: 4 }}>
-              {wins.map(w => (
-                <div key={w.source_id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 11,
-                }}>
-                  <div>
-                    <span style={{ color: 'var(--ink)' }}>vs {w.opponent || (w.is_ai ? 'Snappy' : (en ? 'Player' : 'Игрок'))}</span>
-                    {w.golden && <span style={{ color: 'var(--gold)', marginLeft: 4 }}>★</span>}
-                    {w.is_ai && w.ai_difficulty && (
-                      <span style={{ color: 'var(--ink3)', marginLeft: 6, fontSize: 10 }}>
-                        {getDiffLabel(w.ai_difficulty, en)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 700 }}>+{w.bricks}🧱</span>
-                    <span style={{ color: 'var(--ink3)', fontSize: 10 }}>
-                      {new Date(w.date * 1000).toLocaleDateString(en ? 'en-US' : 'ru', { day: 'numeric', month: 'short' })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      })()}
+      <VictoryCityTowerDetail selTower={selTower} selTowerIdx={selTowerIdx} setSelTowerIdx={setSelTowerIdx} en={en} />
 
       <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, opacity: 0.6 }}>
         {useFallback
