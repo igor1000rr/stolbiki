@@ -3,6 +3,20 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
+  # Ручной ре-деплой из Actions UI (без push) — полезно при откате, hotfix infra,
+  # или если прошлый deploy упал на SCP/SSH стадии (не кодовая ошибка).
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Пропустить тесты (быстрый ре-деплой)'
+        required: false
+        type: boolean
+        default: false
+      reason:
+        description: 'Причина ручного деплоя (для аудита)'
+        required: false
+        type: string
+        default: 'manual rerun'
 
 concurrency:
   group: deploy
@@ -15,6 +29,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Log dispatch context
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "⚡️ Manual deploy by ${{ github.actor }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Skip tests: ${{ github.event.inputs.skip_tests }}"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -57,6 +78,7 @@ jobs:
         run: cd server && npm ci
 
       - name: Run Tests
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true'
         run: npx vitest run
 
       - name: Build Frontend
