@@ -79,14 +79,25 @@ const seedSkins = [
 const insertSkin = db.prepare('INSERT OR IGNORE INTO skins (id, type, name_ru, name_en, price_bricks, rarity) VALUES (?,?,?,?,?,?)')
 for (const s of seedSkins) insertSkin.run(s.id, s.type, s.ru, s.en, s.price, s.rarity)
 
+/**
+ * Атомарное начисление/списание кирпичей + запись в brick_transactions.
+ * Обёрнута в транзакцию — если INSERT упадёт, UPDATE откатится.
+ * Возвращает новый баланс или null.
+ *
+ * ВАЖНО: Math.max(0, ...) клампит баланс в ноль — нельзя уйти в минус
+ * даже при amount меньше текущего баланса. Это защищает от read-then-write race.
+ */
 export function awardBricks(userId, amount, reason, refId = null) {
   try {
-    const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(userId)
-    if (!user) return null
-    const newBalance = Math.max(0, user.bricks + amount)
-    db.prepare('UPDATE users SET bricks=? WHERE id=?').run(newBalance, userId)
-    db.prepare('INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)').run(userId, amount, newBalance, reason, refId)
-    return newBalance
+    const tx = db.transaction(() => {
+      const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(userId)
+      if (!user) return null
+      const newBalance = Math.max(0, user.bricks + amount)
+      db.prepare('UPDATE users SET bricks=? WHERE id=?').run(newBalance, userId)
+      db.prepare('INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)').run(userId, amount, newBalance, reason, refId)
+      return newBalance
+    })
+    return tx()
   } catch { return null }
 }
 
@@ -98,7 +109,10 @@ router.get('/balance', auth, (req, res) => {
 })
 
 router.get('/history', auth, (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100)
+  // БАГ-ФИКС: clamp limit снизу тоже. Раньше limit=-1 проходило (truthy) и
+  // SQLite LIMIT -1 = без лимита → возвращал всю историю юзера одним запросом.
+  const rawLimit = parseInt(req.query.limit, 10) || 50
+  const limit = Math.max(1, Math.min(100, rawLimit))
   const rows = db.prepare(`
     SELECT id, amount, balance_after, reason, ref_id, created_at
     FROM brick_transactions WHERE user_id=?
@@ -135,13 +149,31 @@ router.post('/equip', auth, (req, res) => {
 })
 
 // ─── POST /api/bricks/award-rewarded — +10 кирпичей за просмотр рекламы (Rewarded AdMob) ───
-// Rate limit: не более 10 просмотров в сутки
+// SECURITY: без AdMob Server-Side Verification (SSV) клиент может звать этот
+// endpoint напрямую через curl без реального показа рекламы. Частичная
+// защита — daily limit + rate limit + ADMOB_SSV_ENABLED:
+//   - Если env ADMOB_SSV_ENABLED=1, требуем подписанный callback от Google.
+//   - Если ADMOB_SSV_ENABLED не установлен — старое поведение (клиентский
+//     trust), daily_limit=10 ограничивает эксплуатацию.
+// TODO: внедрить полноценный SSV с Google public key verification.
 router.post('/award-rewarded', auth, (req, res) => {
   const REWARD_AMOUNT = 10
   const DAILY_LIMIT = 10
   try {
+    if (process.env.ADMOB_SSV_ENABLED === '1') {
+      const { signature, timestamp } = req.body || {}
+      if (!signature || !timestamp) {
+        return res.status(403).json({ error: 'SSV signature required' })
+      }
+      const age = Math.abs(Date.now() - parseInt(timestamp, 10))
+      if (age > 5 * 60 * 1000) {
+        return res.status(403).json({ error: 'SSV signature expired' })
+      }
+      // TODO: реальная проверка подписи через AdMob public key
+    }
+
     const now = Math.floor(Date.now() / 1000)
-    const dayStart = now - (now % 86400) // начало текущих суток UTC
+    const dayStart = now - (now % 86400)
     const todayCount = db.prepare(
       `SELECT COUNT(*) as c FROM brick_transactions
        WHERE user_id=? AND reason='rewarded_ad' AND created_at >= ?`
@@ -150,7 +182,6 @@ router.post('/award-rewarded', auth, (req, res) => {
       return res.status(429).json({ error: 'Лимит просмотров рекламы на сегодня исчерпан (10/10)' })
     }
     const newBalance = awardBricks(req.user.id, REWARD_AMOUNT, 'rewarded_ad')
-    // БАГ-ФИКС: добавлено поле rewarded (тест ожидал res.body.rewarded)
     res.json({ ok: true, bricks: newBalance, rewarded: REWARD_AMOUNT, amount: REWARD_AMOUNT, todayCount: todayCount + 1, dailyLimit: DAILY_LIMIT })
   } catch {
     res.status(500).json({ error: 'Ошибка начисления' })
@@ -167,7 +198,6 @@ router.post('/award', auth, (req, res) => {
   res.json({ ok: true, userId: target.id, username: target.username, bricks: newBalance })
 })
 
-// ─── GET /api/bricks/skins — каталог + owned + active + bricks ───
 router.get('/skins', auth, (req, res) => {
   const allSkins = db.prepare('SELECT * FROM skins WHERE is_active=1 ORDER BY type, price_bricks').all()
   const ownedRows = db.prepare('SELECT skin_id FROM user_skins WHERE user_id=?').all(req.user.id)
@@ -200,24 +230,54 @@ router.get('/owned', auth, (req, res) => {
   res.json({ skins: [...rows, ...freeMissing.map(s => ({ ...s, acquired_via: 'free', acquired_at: 0 }))] })
 })
 
+// SECURITY-ФИКС: вся покупка атомарно в одной транзакции.
+// Раньше последовательность была:
+//   1) SELECT skin    2) SELECT alreadyOwned    3) SELECT bricks
+//   4) UPDATE bricks-=price    5) INSERT user_skins
+// Между (3) и (5) — окно для race condition. Два параллельных запроса могли
+// пройти проверку баланса, оба списать бриксы, а INSERT падал у второго
+// с PK constraint → клиент получал 500 и терял бриксы без скина.
+//
+// Теперь: INSERT OR IGNORE первым (атомарно блокирует повторку через PK),
+// дальше SELECT+UPDATE баланса — всё внутри db.transaction() → либо всё
+// коммитится, либо всё откатывается.
 router.post('/purchase', auth, (req, res) => {
   const { skinId } = req.body
   if (!skinId) return res.status(400).json({ error: 'skinId обязателен' })
+
   const skin = db.prepare('SELECT * FROM skins WHERE id=? AND is_active=1').get(skinId)
   if (!skin) return res.status(404).json({ error: 'Скин не найден' })
-  const alreadyOwned = db.prepare('SELECT 1 FROM user_skins WHERE user_id=? AND skin_id=?').get(req.user.id, skinId)
-  if (alreadyOwned) return res.status(409).json({ error: 'Скин уже есть' })
-  if (skin.price_bricks === 0) {
-    db.prepare('INSERT OR IGNORE INTO user_skins (user_id, skin_id, acquired_via) VALUES (?,?,?)').run(req.user.id, skinId, 'free')
-    return res.json({ ok: true, bricks: null })
+
+  try {
+    const tx = db.transaction(() => {
+      const via = skin.price_bricks === 0 ? 'free' : 'bricks'
+      const ins = db.prepare('INSERT OR IGNORE INTO user_skins (user_id, skin_id, acquired_via) VALUES (?,?,?)').run(req.user.id, skinId, via)
+      if (ins.changes === 0) {
+        throw { _status: 409, _error: 'Скин уже есть' }
+      }
+
+      if (skin.price_bricks === 0) return { bricks: null }
+
+      const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(req.user.id)
+      const current = user?.bricks ?? 0
+      if (current < skin.price_bricks) {
+        throw { _status: 400, _error: 'Недостаточно кирпичей', _payload: { required: skin.price_bricks, current } }
+      }
+
+      const newBalance = current - skin.price_bricks
+      db.prepare('UPDATE users SET bricks=? WHERE id=?').run(newBalance, req.user.id)
+      db.prepare('INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)').run(req.user.id, -skin.price_bricks, newBalance, `purchase_skin:${skinId}`, null)
+      return { bricks: newBalance }
+    })
+    const result = tx()
+    res.json({ ok: true, bricks: result.bricks, skinId })
+  } catch (e) {
+    if (e?._status) {
+      return res.status(e._status).json({ error: e._error, ...(e._payload || {}) })
+    }
+    console.error('[bricks/purchase] error:', e)
+    res.status(500).json({ error: 'Ошибка покупки' })
   }
-  const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(req.user.id)
-  if (!user || user.bricks < skin.price_bricks) {
-    return res.status(400).json({ error: 'Недостаточно кирпичей', required: skin.price_bricks, current: user?.bricks ?? 0 })
-  }
-  const newBalance = awardBricks(req.user.id, -skin.price_bricks, `purchase_skin:${skinId}`)
-  db.prepare('INSERT INTO user_skins (user_id, skin_id, acquired_via) VALUES (?,?,?)').run(req.user.id, skinId, 'bricks')
-  res.json({ ok: true, bricks: newBalance, skinId })
 })
 
 export default router
