@@ -5,17 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    'Город побед перерождён: 1 победа = 1-5 кирпичей, 11 кирпичей = высотка',
-    'Поделиться городом в Telegram или блоге — превью с картинкой',
-    'Сравнить свой город с другом бок-о-бок, сразу видно лидера',
-    'Запись 8-сек облёта города в видео — сразу в TikTok или Stories',
-    'Холл оф фейм: топ-20 игроков по размеру города, кирпичам, коронам',
+    'Большая уборка безопасности: закрыты все известные дыры через которые можно было накрутить лидерборд',
+    'Таймер в онлайн-матчах теперь тикает в реальном времени: если оппонент ушёл — автопобеда по времени',
+    'Фильтр мата в чате второго поколения: ловит латинские подмены, zero-width символы и склонения',
+    'Бриксы за рекламу теперь через AdMob SSV — Google сам подписывает callback, фармить curlом больше нельзя',
+    'Админские действия логируются в audit-таблицу — видно кто что менял, когда и с какого IP',
   ],
   en: [
-    'Victory City reborn: 1 win = 1-5 bricks, 11 bricks close a highrise',
-    'Share city to Telegram or blogs — with image preview card',
-    'Compare your city with a friend side-by-side, leader is shown',
-    '8-sec city flythrough video recording — straight to TikTok or Stories',
-    'Hall of Fame: top 20 players by city size, bricks and crowns',
+    'Big security sweep: all known leaderboard-inflation exploits are closed',
+    'The online match timer now ticks in real time: if the opponent leaves — auto-win on timeout',
+    'Chat profanity filter v2: catches Latin look-alikes, zero-width characters and word forms',
+    'Rewarded-ad bricks now go through AdMob SSV — Google signs the callback itself, curl farming is blocked',
+    'Admin actions are logged to an audit table — you can see who changed what, when, and from which IP',
   ],
 }
