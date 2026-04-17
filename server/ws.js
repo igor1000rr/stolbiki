@@ -12,6 +12,11 @@ import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } 
 import { filterText } from './routes/globalchat.js'
 import { canChatNow } from './chat-limits.js'
 import { sendPushTo, isPushConfigured } from './push-helpers.js'
+import {
+  handleGoldenRushMessage,
+  handleGoldenRushDisconnect,
+  cleanupGoldenRush,
+} from './golden-rush-ws.js'
 
 // ═══ Per-IP connection limit ═══
 // Защита от amplification DoS через множественные WS коннекты с одного IP.
@@ -82,7 +87,10 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     }
   }, 1000)
 
-  wss.on('close', () => { clearInterval(heartbeat); clearInterval(timerTick) })
+  // ─── Golden Rush cleanup ───
+  const grCleanupIv = setInterval(() => { try { cleanupGoldenRush() } catch {} }, 120000)
+
+  wss.on('close', () => { clearInterval(heartbeat); clearInterval(timerTick); clearInterval(grCleanupIv) })
 
   function wsAuth(token) {
     if (!token) return null
@@ -134,7 +142,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       draw: `${fromName || 'Соперник'} предлагает ничью`,
       rematch: `${fromName || 'Соперник'} предлагает рематч`,
     }
-    // SECURITY-ФИКС: ошибки push'а теперь логируются (раньше .catch(() => {}) съедал)
     sendPushTo(opponent.userId, {
       title: titles[kind] || 'Highrise Heist',
       body: bodies[kind] || '',
@@ -151,15 +158,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       const roomWinner = gameToRoomPlayer(room, winner)
       room.scores[roomWinner]++
 
-      // SECURITY-ФИКС: server-verified начисление кирпичей за online-победу.
-      // Раньше бриксы начислялись ТОЛЬКО через /api/games с клиентским
-      // isOnline=true — читер мог слать AI-моды с флагом online и получать
-      // по 5 кирпичей вместо 1-3. Теперь сервер САМ начисляет в момент
-      // завершения online-матча — здесь известно что это реальный PvP.
-      //
-      // SECURITY-ФИКС v2: UPDATE баланса + INSERT brick_transactions в одной
-      // транзакции — раньше могли разъехаться при ошибке (обновлённый баланс
-      // без записи в history или наоборот).
       try {
         const winPlayer = room.players[roomWinner]
         if (winPlayer?.userId) {
@@ -198,7 +196,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
       room.firstPlayer = room.currentGame % 2 === 1 ? 0 : 1
       room.gameState = new GameState()
       room.moveHistory = []
-      // SECURITY-ФИКС: сброс таймеров для новой партии турнира
       if (room.playerTime && room.timer) {
         room.playerTime = [room.timer * 60, room.timer * 60]
         room.lastMoveTime = Date.now()
@@ -258,7 +255,7 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
     let wsGameplayCount = 0
     let wsChatCount = 0
     let wsRateReset = Date.now()
-    const CHAT_TYPES = new Set(['chat', 'reaction', 'drawOffer', 'drawResponse', 'rematchOffer', 'globalChat', 'joinGlobalChat', 'leaveGlobalChat'])
+    const CHAT_TYPES = new Set(['chat', 'reaction', 'drawOffer', 'drawResponse', 'rematchOffer', 'globalChat', 'joinGlobalChat', 'leaveGlobalChat', 'gr.teamChat', 'gr.reaction'])
 
     ws.on('message', (raw) => {
       const now = Date.now()
@@ -276,7 +273,25 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       if (msg.type === 'auth') {
         wsUser = wsAuth(msg.token)
+        if (wsUser?.id && db) {
+          try {
+            const u = db.prepare('SELECT rating FROM users WHERE id=?').get(wsUser.id)
+            if (u) wsUser.rating = u.rating
+          } catch {}
+        }
         ws.send(JSON.stringify({ type: 'authResult', ok: !!wsUser, username: wsUser?.username }))
+        return
+      }
+
+      // ─── Golden Rush online: обрабатывается отдельным модулем ───
+      // Если тип начинается с gr.* — делегируем в golden-rush-ws и выходим.
+      if (msg.type.startsWith('gr.')) {
+        try {
+          handleGoldenRushMessage({ ws, msg, wsUser })
+        } catch (e) {
+          console.error('[gr] handler error:', e.message)
+          try { ws.send(JSON.stringify({ type: 'gr.error', reason: 'server_error' })) } catch {}
+        }
         return
       }
 
@@ -288,14 +303,12 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           userId: wsUser?.id || null,
           channel,
         })
-        // Отправляем последние 50 сообщений
         try {
           const history = db.prepare(
             'SELECT id, username, text, created_at FROM chat_messages WHERE channel=? ORDER BY id DESC LIMIT 50'
           ).all(channel).reverse()
           ws.send(JSON.stringify({ type: 'chatHistory', channel, messages: history }))
         } catch {}
-        // Рассылаем onlineCount
         const onlineCount = [...chatSubscribers.values()].filter(m => m.channel === channel).length
         broadcastGlobalChat(channel, { type: 'chatOnline', channel, count: onlineCount })
         return
@@ -308,13 +321,12 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       if (msg.type === 'globalChat') {
         const meta = chatSubscribers.get(ws)
-        if (!meta) return // не подписан
-        if (!wsUser) return // только авторизованные
+        if (!meta) return
+        if (!wsUser) return
 
         const rawText = (msg.text || '').slice(0, 300)
         if (!rawText.trim()) return
 
-        // Per-user rate limit + admin mute check
         const check = canChatNow(wsUser.id)
         if (!check.allowed) {
           try {
@@ -332,7 +344,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         const ts = Date.now()
         const channel = meta.channel
 
-        // Сохраняем в БД
         let msgId = null
         try {
           const r = db.prepare(
@@ -341,7 +352,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           msgId = r.lastInsertRowid
         } catch {}
 
-        // Рассылаем всем подписчикам
         const outMsg = JSON.stringify({
           type: 'globalChat',
           id: msgId,
@@ -352,7 +362,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         })
         broadcastGlobalChat(channel, outMsg)
 
-        // Ограничиваем историю: удаляем старые сообщения старше 7 дней
         if (msgId && msgId % 100 === 0) {
           try {
             db.prepare("DELETE FROM chat_messages WHERE channel=? AND created_at < ?")
@@ -364,7 +373,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // ─── MATCHMAKING ───
       if (msg.type === 'findMatch') {
-        // SECURITY-ФИКС: только авторизованные могут искать ранговый матч.
         if (!wsUser) {
           ws.send(JSON.stringify({ type: 'error', msg: 'Для рангового матча нужна авторизация' }))
           return
@@ -372,7 +380,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         const name = wsUser.username
         const skins = msg.skins || {}
         const rating = wsUser.rating || 1000
-        // SECURITY-ФИКС: sanitizeTimer против больших/отрицательных значений
         const safeTimer = sanitizeTimer(msg.timer)
 
         for (let i = matchQueue.length - 1; i >= 0; i--) {
@@ -544,7 +551,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
                 const elapsed = (Date.now() - room.lastMoveTime) / 1000
                 room.playerTime[playerIdx] = Math.max(0, room.playerTime[playerIdx] - elapsed)
                 if (room.playerTime[playerIdx] <= 0) {
-                  // Совершенно time-up при ходе — объявляем победу оппонента
                   gs.gameOver = true
                   gs.winner = 1 - gs.currentPlayer
                   const timeMsg = JSON.stringify({ type: 'timeUp', loser: playerIdx, time: room.playerTime })
@@ -565,7 +571,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
               if (opponent?.ws?.readyState === 1) {
                 opponent.ws.send(JSON.stringify(moveMsg))
               } else {
-                // Оппонент offline — push fallback "Ваш ход!"
                 pushIfOffline(opponent, me?.name, 'move', room)
               }
               broadcastToSpectators(room, moveMsg)
@@ -633,11 +638,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
         }
       }
 
-      // SECURITY-ФИКС: удалён handler msg.type === 'gameOver'.
-      // Раньше при playerRoom.gameState === null доверяли клиенту
-      // (msg.winner) и меняли scores. Сервер должен быть авторитативным —
-      // если gameState пропал, это баг сервера, а не повод верить клиенту.
-
       // ─── REMATCH ───
       if (msg.type === 'rematchOffer' && playerRoom) {
         const opponent = playerRoom.players[1 - playerIdx]
@@ -652,7 +652,6 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.firstPlayer = room.firstPlayer === 0 ? 1 : 0
           room.gameState = new GameState()
           room.moveHistory = []
-          // SECURITY-ФИКС: сброс таймеров для новой партии (rematch)
           if (room.playerTime && room.timer) {
             room.playerTime = [room.timer * 60, room.timer * 60]
             room.lastMoveTime = Date.now()
@@ -677,6 +676,9 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
 
       // Убираем из чата
       chatSubscribers.delete(ws)
+
+      // Golden Rush: помечаем игрока disconnected в grRooms + убираем из grMatchQueue
+      try { handleGoldenRushDisconnect(ws) } catch (e) { console.error('[gr] disconnect error:', e.message) }
 
       if (playerRoom) {
         const room = playerRoom
