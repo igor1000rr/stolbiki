@@ -3,9 +3,6 @@
  *
  * Использует useGoldenRushWS для общения с сервером.
  * Server authority: клиент шлёт action, сервер валидирует и рассылает новый state.
- *
- * Переиспользует visual-логику Board из GoldenRushDemo через инлайн-реализацию
- * (компонент Demo делает hot-seat с локальным state, а тут state приходит с сервера).
  */
 
 import { useState, useMemo, useEffect } from 'react'
@@ -27,7 +24,6 @@ function standXY(i) {
   return { cx: SVG_C + c.x * SVG_R, cy: SVG_C + c.y * SVG_R }
 }
 
-// Восстанавливает полноценный GoldenRushState из serialized объекта (для вызова методов)
 function rehydrate(s) {
   if (!s) return null
   const st = new GoldenRushState({ numPlayers: s.numPlayers, mode: s.mode, teams: s.teams })
@@ -188,8 +184,8 @@ function Lobby({ onFind, hasToken, lang }) {
 
       <div style={{ marginTop: 18, padding: 10, background: 'var(--bg)', borderRadius: 6, fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5 }}>
         {en
-          ? 'Matchmaking waits for 4 players of the same mode. 2v2: teams sit diagonally (slots 0+2 vs 1+3).'
-          : 'Матчмейкинг ждёт 4 игрока одного режима. 2v2: команды по диагонали (слоты 0+2 vs 1+3).'}
+          ? 'Rewards: +2 participation, +10 win, +3 center capture. Matchmaking waits for 4 players of the same mode.'
+          : 'Награды: +2 за участие, +10 за победу, +3 за центр. Матчмейкинг ждёт 4 игрока одного режима.'}
       </div>
     </div>
   )
@@ -254,6 +250,58 @@ function Scoreboard({ state, players, yourSlot, lang }) {
   )
 }
 
+function RewardCard({ reward, lang }) {
+  const en = lang === 'en'
+  if (!reward) return null
+  const { total, parts, resigned } = reward
+
+  if (resigned && total === 0) {
+    return (
+      <div style={{
+        padding: 10,
+        background: 'var(--card)',
+        border: '1px dashed var(--ink4)',
+        borderRadius: 6,
+        marginTop: 8,
+        textAlign: 'center',
+        fontSize: 12,
+        color: 'var(--ink3)',
+      }}>
+        {en ? 'You resigned — no bricks earned.' : 'Ты сдался — бриксы не начислены.'}
+      </div>
+    )
+  }
+
+  const labels = {
+    participation: en ? 'Participation' : 'Участие',
+    win: en ? 'Win' : 'Победа',
+    center: en ? 'Center capture' : 'Центр',
+  }
+
+  return (
+    <div style={{
+      padding: 10,
+      background: 'linear-gradient(135deg, #3dd68c20, #3dd68c35)',
+      border: '1px solid #3dd68c',
+      borderRadius: 6,
+      marginTop: 8,
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+        {en ? 'You earned' : 'Начислено'}
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: '#3dd68c' }}>
+        +{total} 🧱
+      </div>
+      {parts.length > 1 && (
+        <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3 }}>
+          {parts.map(p => `${labels[p.key] || p.key} +${p.amount}`).join(' · ')}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TeamChat({ messages, onSend, lang, disabled }) {
   const en = lang === 'en'
   const [text, setText] = useState('')
@@ -301,7 +349,6 @@ export default function GoldenRushOnline() {
   const [pending, setPending] = useState({ transfer: null, placement: {} })
   const [transferPhase, setTransferPhase] = useState(null)
 
-  // Очищаем pending при новом state'е
   useEffect(() => {
     if (gr.state) setPending({ transfer: null, placement: {} })
     setTransferPhase(null)
@@ -336,7 +383,6 @@ export default function GoldenRushOnline() {
       return
     }
 
-    // Placement
     const cur = pending.placement[i] || 0
     const total = Object.values(pending.placement).reduce((a, b) => a + b, 0)
     const stands = Object.keys(pending.placement).length
@@ -377,8 +423,6 @@ export default function GoldenRushOnline() {
     setTransferPhase(null)
   }
 
-  // ─── RENDER ───
-
   if (gr.status === 'idle' || gr.status === 'connecting' || gr.status === 'error') {
     return <Lobby onFind={gr.findMatch} hasToken={gr.hasToken} lang={lang} />
   }
@@ -393,11 +437,10 @@ export default function GoldenRushOnline() {
 
   const finalScores = gr.scores || gr.state.scores
   const winnerName = gr.status === 'gameover'
-    ? (gr.state.mode === 'ffa' && gr.winner >= 0
+    ? (gr.winner < 0 ? (en ? 'Draw' : 'Ничья')
+      : gr.state.mode === 'ffa'
         ? (gr.players.find(p => p.slot === gr.winner)?.name || PLAYER_NAMES_RU[gr.winner])
-        : gr.state.mode === '2v2' && gr.winner >= 0
-          ? (en ? `Team ${gr.winner + 1}` : `Команда ${gr.winner + 1}`)
-          : (en ? 'Draw' : 'Ничья'))
+        : (en ? `Team ${gr.winner + 1}` : `Команда ${gr.winner + 1}`))
     : null
 
   const placeTotal = Object.values(pending.placement).reduce((a, b) => a + b, 0)
@@ -466,6 +509,12 @@ export default function GoldenRushOnline() {
             {en ? 'Winner' : 'Победитель'}
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#ffc145' }}>{winnerName}</div>
+          {gr.resignedBy != null && (
+            <div style={{ fontSize: 11, color: '#ff6b6b', marginTop: 2 }}>
+              {en ? 'Resigned: ' : 'Сдался: '}
+              {gr.players.find(p => p.slot === gr.resignedBy)?.name || `slot ${gr.resignedBy}`}
+            </div>
+          )}
           {finalScores && (
             <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 4 }}>
               {finalScores.map((s, i) => {
@@ -474,12 +523,12 @@ export default function GoldenRushOnline() {
               }).join(' · ')}
             </div>
           )}
+          <RewardCard reward={gr.myReward} lang={lang} />
         </div>
       )}
 
       <Board state={gr.state} pending={pending} onStandClick={isMyTurn ? handleStandClick : null} yourSlot={gr.yourSlot} />
 
-      {/* Ephemeral reactions */}
       {gr.reactions.length > 0 && (
         <div style={{ textAlign: 'center', minHeight: 24, marginTop: 4 }}>
           {gr.reactions.map(r => (
