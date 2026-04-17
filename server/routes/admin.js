@@ -4,6 +4,7 @@ import { auth, adminOnly, rateLimits } from '../middleware.js'
 import { formatUser } from '../helpers.js'
 import { muteUser, unmuteUser, listMuted } from '../chat-limits.js'
 import { logAdminAction, getRecentAudit } from '../admin-audit.js'
+import { grRooms, grMatchQueue, getGoldenRushStats } from '../golden-rush-ws.js'
 
 export default function createAdminRouter(rooms, matchQueue) {
   const router = Router()
@@ -26,12 +27,14 @@ export default function createAdminRouter(rooms, matchQueue) {
     const regByDay = db.prepare(`SELECT date(created_at) as day, COUNT(*) as count FROM users WHERE created_at > datetime('now', '-30 days') GROUP BY day ORDER BY day`).all()
     const gamesByDay = db.prepare(`SELECT date(played_at) as day, COUNT(*) as count FROM games WHERE played_at > datetime('now', '-30 days') GROUP BY day ORDER BY day`).all()
     const topPlayers = db.prepare('SELECT username, rating, games_played, wins FROM users ORDER BY rating DESC LIMIT 5').all()
+    const grStats = getGoldenRushStats()
     res.json({
       users: { total: totalUsers, active7d: activeUsers, today: todayUsers },
       games: { total: totalGames, today: todayGames, week: weekGames, online: onlineGames },
       rating: { avg: avgRating, max: maxRating }, training: totalTraining,
       puzzles: { total: totalPuzzles, solved: solvedPuzzles }, blog: blogPosts,
       achievements: totalAchievements, rooms: rooms.size, matchQueue: matchQueue.length,
+      goldenRush: grStats,
       uptime: process.uptime(), memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
       errors: db.prepare('SELECT COUNT(*) as c FROM error_reports').get()?.c || 0,
       replays: db.prepare('SELECT COUNT(*) as c FROM replays').get()?.c || 0,
@@ -63,9 +66,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ user: formatUser(user), achievements, recentGames, ratingHistory })
   })
 
-  // PERF-ФИКС: bcrypt.hash (async) вместо hashSync — не блокирует event loop на ~70ms.
-  // AUDIT: все критичные изменения (rating/is_admin/username/password/revoke) логируются
-  // в таблицу admin_audit для трейса действий.
   router.put('/users/:id', auth, adminOnly, async (req, res) => {
     try {
       const { rating, is_admin, username, reset_password, revoke_tokens } = req.body
@@ -204,8 +204,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ deleted: result })
   })
 
-  // PERF-ФИКС: лимит по байтам ответа (default 50MB, max 200MB) — раньше могло
-  // вернуть 500MB JSON и загрузить память сервера. maxBytes в query позволяет кастомизацию.
   router.get('/training/export-gpu', auth, adminOnly, (req, res) => {
     const limit = Math.min(+req.query.limit || 5000, 50000)
     const minMoves = +req.query.minMoves || 5
@@ -239,6 +237,39 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ rooms: active, queueLength: matchQueue.length })
   })
 
+  // ═══ Golden Rush admin: список активных комнат и очередь ═══
+  router.get('/golden-rush', auth, adminOnly, (req, res) => {
+    const roomList = []
+    for (const [id, room] of grRooms) {
+      roomList.push({
+        id,
+        mode: room.mode,
+        turn: room.state?.turn || 0,
+        currentPlayer: room.state?.currentPlayer,
+        gameOver: !!room.state?.gameOver,
+        winner: room.state?.winner,
+        scores: room.state?.scores,
+        ageMin: Math.round((Date.now() - room.created) / 60000),
+        lastActivityMin: Math.round((Date.now() - (room.lastActivity || room.created)) / 60000),
+        players: room.players.map(p => ({
+          slot: p.slot,
+          name: p.name,
+          rating: p.rating,
+          online: p.ws?.readyState === 1,
+          disconnectedAt: p.disconnectedAt,
+        })),
+      })
+    }
+    const queue = grMatchQueue.map((q, i) => ({
+      position: i + 1,
+      name: q.name,
+      mode: q.mode,
+      rating: q.rating,
+      waitMin: Math.round((Date.now() - q.joinedAt) / 60000),
+    }))
+    res.json({ rooms: roomList, queue, stats: getGoldenRushStats() })
+  })
+
   router.get('/server', auth, adminOnly, (req, res) => {
     const mem = process.memoryUsage()
     const dbSize = db.prepare("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()").get()
@@ -246,7 +277,9 @@ export default function createAdminRouter(rooms, matchQueue) {
       nodeVersion: process.version, platform: process.platform, uptime: process.uptime(),
       memory: { heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024), heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024), rssMB: Math.round(mem.rss / 1024 / 1024) },
       db: { sizeMB: Math.round((dbSize?.size || 0) / 1024 / 1024 * 100) / 100, walMode: db.pragma('journal_mode')[0]?.journal_mode },
-      rooms: rooms.size, matchQueue: matchQueue.length, rateLimitEntries: rateLimits.size, pid: process.pid,
+      rooms: rooms.size, matchQueue: matchQueue.length,
+      goldenRush: getGoldenRushStats(),
+      rateLimitEntries: rateLimits.size, pid: process.pid,
     })
   })
 
@@ -283,7 +316,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ ok: true, added, total: items.length })
   })
 
-  // ═══ Error reports ═══
   router.get('/errors', auth, adminOnly, (req, res) => {
     const errors = db.prepare(`
       SELECT e.*, u.username FROM error_reports e
@@ -300,7 +332,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ ok: true })
   })
 
-  // ═══ Рефералы — статистика ═══
   router.get('/referrals', auth, adminOnly, (req, res) => {
     const total = db.prepare('SELECT COUNT(*) as c FROM referrals').get()?.c || 0
     const totalXP = db.prepare('SELECT SUM(xp_rewarded) as s FROM referrals').get()?.s || 0
@@ -322,7 +353,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ total, totalXP, byDay, topReferrers, recent })
   })
 
-  // ═══ Challenges — статистика ═══
   router.get('/challenges', auth, adminOnly, (req, res) => {
     try {
       const total = db.prepare('SELECT COUNT(*) as c FROM challenges').get()?.c || 0
@@ -343,7 +373,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     }
   })
 
-  // ═══ Аналитика поведения ═══
   router.get('/analytics', auth, adminOnly, (req, res) => {
     const days = Math.min(+req.query.days || 7, 90)
     const sinceParam = `-${days} days`
@@ -400,7 +429,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ pageViews, topEvents, byDay, activeUsers, devices, avgSession, totalEvents, totalSessions, days })
   })
 
-  // ═══ Chat moderation ═══
   router.post('/chat/mute', auth, adminOnly, (req, res) => {
     const userId = +req.body.user_id
     const minutes = +req.body.minutes || 60
@@ -428,8 +456,6 @@ export default function createAdminRouter(rooms, matchQueue) {
     res.json({ muted: listMuted() })
   })
 
-  // ═══ Admin Audit Log ═══
-  // GET /api/admin/audit?limit=100&offset=0&action=user_update&adminId=1
   router.get('/audit', auth, adminOnly, (req, res) => {
     const { limit, offset, action, adminId } = req.query
     const data = getRecentAudit({ limit, offset, action, adminId })
