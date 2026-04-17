@@ -7,11 +7,12 @@ import { verifyGameFromMoves, walkMoves } from '../anticheat.js'
 import { awardBricks } from './bricks.js'
 import { updateBPProgress } from './battlepass.js'
 import { awardBricksToReferrer, REFERRAL_BRICKS_GAMES } from './auth.js'
+import { createBuildingFromGame } from './buildings.js'
 
 const router = Router()
 
 router.post('/games', auth, (req, res) => {
-  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves, humanColor } = req.body
+  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves, humanColor, playerSkinId, backgroundId } = req.body
 
   if (!score || typeof score !== 'string') return res.status(400).json({ error: 'Некорректный счёт' })
   const scoreParts = score.split(':')
@@ -26,9 +27,6 @@ router.post('/games', auth, (req, res) => {
   const safeDifficulty = Math.max(0, Math.min(1500, Math.floor(+difficulty || 150)))
 
   // SECURITY-ФИКС: moves обязательны для ВСЕХ партий (включая online).
-  // Раньше isOnline=true пропускало верификацию через верификацию ходов —
-  // читер мог слать любой счёт без проверки. Клиент отправляет moveHistoryRef
-  // во всех режимах (AI и online), так что requirement не ломает legitimate поток.
   if (!moves || !Array.isArray(moves) || moves.length < 5) {
     return res.status(400).json({ error: 'Требуется история ходов (минимум 5)' })
   }
@@ -39,9 +37,6 @@ router.post('/games', auth, (req, res) => {
   const verifiedTurns = v.turns
   let verifiedWon
 
-  // humanColor: если клиент передал 0|1 — строгая проверка winner.
-  // Legacy fallback для старых клиентов, которые не передают humanColor.
-  // TODO: сделать required через 30 дней (отслеживать % клиентов через лог).
   const hc = (humanColor === 0 || humanColor === 1) ? humanColor : null
   if (hc !== null) {
     verifiedWon = v.winner === hc
@@ -111,13 +106,32 @@ router.post('/games', auth, (req, res) => {
   // ─── Кирпичи за победу ───
   // SECURITY-ФИКС: бриксы за online-победу теперь начисляются в ws.js
   // handleServerGameOver (server-verified реальный PvP). Здесь только AI.
-  // Раньше клиент с isOnline=true получал 5 бриксов без проверки что это
-  // реальный онлайн-матч — можно было фармить по 5 за фейковые PvP.
   let bricksDelta = 0
   let bricksAfter = null
   if (verifiedWon && !isOnline) {
     bricksDelta = safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
     bricksAfter = awardBricks(req.user.id, bricksDelta, `win:ai_${safeDifficulty}`, gameResult.lastInsertRowid)
+  }
+
+  // ─── Victory Building ───
+  // SECURITY-ФИКС: сервер сам создаёт здание для победы по верифицированной
+  // игре (moves прошли античит). Раньше клиент звал POST /api/buildings с
+  // произвольными is_ai/ai_difficulty/result — накрутка лидерборда в 1 curl.
+  // Теперь здание привязано к game_id, UNIQUE INDEX гарантирует one-to-one.
+  let buildingId = null
+  if (verifiedWon) {
+    const gameForBuilding = {
+      id: gameResult.lastInsertRowid,
+      user_id: req.user.id,
+      won: 1,
+      is_online: isOnline ? 1 : 0,
+      difficulty: safeDifficulty,
+      closed_golden: closedGolden ? 1 : 0,
+    }
+    buildingId = createBuildingFromGame(gameForBuilding, {
+      player_skin_id: playerSkinId || null,
+      background_id: backgroundId || null,
+    })
   }
 
   // ─── Реферальная программа: +30 кирпичей рефереру при 10 партиях ───
@@ -149,7 +163,7 @@ router.post('/games', auth, (req, res) => {
   const xpGain = verifiedWon ? 20 : 5
   addXP(req.user.id, xpGain)
 
-  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain, bricksDelta, bricksAfter })
+  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain, bricksDelta, bricksAfter, buildingId })
 })
 
 router.get('/games', auth, (req, res) => {
@@ -237,8 +251,6 @@ router.get('/replays/:id', (req, res) => {
   res.json({ ...replay, moves: JSON.parse(replay.moves) })
 })
 
-// БАГ-ФИКС: safeDifficulty была undefined — переменная объявляется внутри POST /games,
-// здесь нужен свой Math.max(0, Math.min(...))
 router.post('/training', auth, rateLimit(3600000, 10), (req, res) => {
   const { moves, winner, mode, difficulty } = req.body
   if (!moves || !Array.isArray(moves) || moves.length < 5) return res.status(400).json({ error: 'Минимум 5 ходов' })
