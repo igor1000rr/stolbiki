@@ -5,17 +5,17 @@
  */
 export const WHATS_NEW = {
   ru: [
-    'Golden Rush играбелен! Вкладка /goldenrush, hot-seat на одном устройстве для 4 игроков',
-    'Два режима: 4-FFA или 2v2 (команды по диагонали 0+2 vs 1+3)',
-    '9 стоек крестом: замкни линию (order 1 → 2), потом забери золотой центр за +15',
-    'Transfer и placement — те же механики что в базовой игре, но с order-gate: stand 2 закроется только после stand 1',
-    'Базовая 2-игровая игра с AlphaZero AI не затронута — новый режим живёт отдельно',
+    'Golden Rush Online! Вкладка /goldenrush-online, онлайн матчи для 4 игроков',
+    'Два режима: 2v2 (команды по диагонали) и 4-FFA (каждый за себя)',
+    'Матчмейкинг на 4 игроков с рандомной рассадкой + auto-reconnect при обрыве',
+    'Командный чат в 2v2 + эмодзи-реакции для всех',
+    'Сервер валидирует каждый ход — читеров нет',
   ],
   en: [
-    'Golden Rush is playable! Tab /goldenrush, hot-seat on a single device for 4 players',
-    'Two modes: 4-FFA or 2v2 (teams across the diagonal 0+2 vs 1+3)',
-    '9 stands in a cross: close your line (order 1 → 2), then claim the golden center for +15',
-    'Transfer and placement — same mechanics as the base game, but with an order-gate: stand 2 closes only after stand 1',
-    'The base 2-player game with AlphaZero AI is untouched — the new mode lives alongside it',
+    'Golden Rush Online! Tab /goldenrush-online, online matches for 4 players',
+    'Two modes: 2v2 (teams across the diagonal) and 4-FFA (free for all)',
+    '4-player matchmaking with random seating + auto-reconnect on disconnect',
+    'Team chat in 2v2 + emoji reactions visible to everyone',
+    'Server validates every move — no cheaters',
   ],
 }

@@ -23,19 +23,12 @@ import './css/themes.css'
 import './css/native.css'
 import './css/mobile-ui.css'
 
-// Lazy: только модалки этого файла. Роуты lazy'изированы в AppRoutes.jsx.
 const Tutorial = lazy(() => import('./components/Tutorial'))
 const Lessons = lazy(() => import('./components/Lessons'))
 const Arena = lazy(() => import('./components/Arena'))
 const SkinShop = lazy(() => import('./components/SkinShop'))
-// Сценарная обучающая партия — показывается при первом заходе на 'game'.
 const OnboardingGame = lazy(() => import('./components/OnboardingGame'))
 import SplashScreen from './components/SplashScreen'
-
-// РЕФАКТОР: embed/compare роуты вынесены в src/components/EmbedRoot.jsx,
-// рендерятся в main.jsx ДО App.
-// РЕФАКТОР: header/footer вынесены в SiteHeader/SiteFooter.
-// РЕФАКТОР: свитч роутов и их lazy imports в AppRoutes.
 
 export default function App() {
   const i18n = useI18nProvider()
@@ -45,7 +38,7 @@ export default function App() {
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
-  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog','goldenrush']
+  const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog','goldenrush','goldenrush-online']
 
   function getTabFromPath() {
     const path = location.pathname.replace(/^\/en\/?/, '/').replace(/^\/+/, '')
@@ -79,14 +72,10 @@ export default function App() {
   })
   const [mobileMenu, setMobileMenu] = useState(false)
   const [viewProfile, setViewProfile] = useState(null)
-  // Открыть Profile сразу на нужной вкладке (используется онбордингом → 'city')
   const [profileInitialTab, setProfileInitialTab] = useState(null)
   const [installPrompt, setInstallPrompt] = useState(null)
   const [cookieOk, setCookieOk] = useState(() => !!localStorage.getItem('stolbiki_cookies'))
 
-  // Сценарная обучающая партия. Показывается всем (не только native) при
-  // первом заходе на 'game'. На native — сразу после splash, чтобы новый
-  // пользователь начал не с пустой доски, а с управляемой победы.
   const [showOnboardingGame, setShowOnboardingGame] = useState(() => isNative && !localStorage.getItem('stolbiki_onboarding_done'))
   const [showSplash, setShowSplash] = useState(() => isNative && !!localStorage.getItem('stolbiki_onboarding_done'))
   const [showRatePopup, setShowRatePopup] = useState(false)
@@ -125,7 +114,6 @@ export default function App() {
 
   function doLogout() { logout(); setAuthOpen(false) }
 
-  // ФИКС race condition: _bricksUpdatedAt timestamp предотвращает перезапись через background refresh
   function updateBricks(newBricks) {
     if (!authUser) return
     const updated = { ...authUser, bricks: newBricks, _bricksUpdatedAt: Date.now() }
@@ -133,16 +121,13 @@ export default function App() {
     setAuthUser(updated)
   }
 
-  // Завершение онбординга: localStorage флаг + награды через API + переход.
   async function handleOnboardingComplete({ goToCity }) {
     localStorage.setItem('stolbiki_onboarding_done', '1')
     if (authUser) {
       try {
         const r = await API.completeOnboarding()
         if (r?.bricks != null) updateBricks(r.bricks)
-      } catch {
-        /* 409 alreadyDone — игнорим, флаг уже стоит */
-      }
+      } catch {}
     }
     setShowOnboardingGame(false)
     if (goToCity) {
@@ -173,7 +158,7 @@ export default function App() {
     const base = lang === 'en' ? '/en/' : '/'
     const target = tab === 'landing' ? base : base + tab
     if (location.pathname !== target) history.pushState(null, '', target)
-    const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика', goldenrush: 'Golden Rush' }
+    const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика', goldenrush: 'Golden Rush', 'goldenrush-online': 'Golden Rush Online' }
     document.title = titles[tab] ? `${titles[tab]} — Highrise Heist` : 'Highrise Heist — Strategy Board Game'
   }, [tab, lang])
 
@@ -240,11 +225,6 @@ export default function App() {
     return () => window.removeEventListener('stolbiki-go-tab', handler)
   }, [])
 
-  // ─── HallOfFame модалка диспатчит CustomEvent('open-profile', { detail: { userId } })
-  // когда юзер кликает по строке топа. Без этого слушателя клик ничего не делал —
-  // событие летело в пустоту. Теперь переключаемся на вкладку profile с нужным id.
-  // Profile.jsx принимает viewUsername — передаём через setViewProfile.
-  // Для подгрузки имени по userId фетчим /api/profile/by-id/:id (добавлен в коммите 941504a).
   useEffect(() => {
     const handler = async (e) => {
       const userId = e?.detail?.userId
@@ -262,7 +242,6 @@ export default function App() {
           }
         }
       } catch {}
-      // Fallback: для своего id — на свой профиль; для чужого без имени — мягкий no-op
       if (authUser && authUser.id === userId) {
         setViewProfile(null)
         setProfileInitialTab('city')
@@ -282,9 +261,6 @@ export default function App() {
 
   function go(id) {
     if (isNative && id === 'landing') id = 'game'
-    // При первом заходе на игру для всех платформ — показываем сценарную
-    // обучающую партию вместо пустой доски. На native триггер уже
-    // отработал через initial state showOnboardingGame.
     if (id === 'game' && !isNative && !localStorage.getItem('stolbiki_onboarding_done')) {
       setShowOnboardingGame(true)
       return
@@ -314,7 +290,8 @@ export default function App() {
   ]
 
   const secondaryNav = [
-    { id: 'goldenrush', icon: 'star',      label: 'Golden Rush', badge: 'NEW' },
+    { id: 'goldenrush',        icon: 'star',  label: 'Golden Rush', badge: 'NEW' },
+    { id: 'goldenrush-online', icon: 'online',label: 'GR Online',   badge: 'NEW' },
     { id: 'settings',   icon: 'theme',     label: en ? 'Settings'  : 'Настройки' },
     { id: 'profile',    icon: 'profile',   label: en ? 'Profile'   : 'Профиль' },
     { id: 'openings',   icon: 'chart',     label: en ? 'Analytics' : 'Аналитика' },
