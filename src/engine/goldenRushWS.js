@@ -32,16 +32,16 @@ function buildWsUrl() {
 export function useGoldenRushWS() {
   const [status, setStatus] = useState('idle')     // idle | connecting | queued | playing | gameover | error
   const [roomId, setRoomId] = useState(null)
-  const [state, setState] = useState(null)         // serialized GoldenRushState
-  const [players, setPlayers] = useState([])       // [{ slot, name, rating }]
+  const [state, setState] = useState(null)
+  const [players, setPlayers] = useState([])
   const [yourSlot, setYourSlot] = useState(null)
   const [winner, setWinner] = useState(null)
   const [scores, setScores] = useState(null)
   const [queuePos, setQueuePos] = useState(null)
   const [queueMode, setQueueMode] = useState(null)
   const [error, setError] = useState(null)
-  const [teamChat, setTeamChat] = useState([])     // [{ from, slot, text, ts }]
-  const [reactions, setReactions] = useState([])   // ephemeral
+  const [teamChat, setTeamChat] = useState([])
+  const [reactions, setReactions] = useState([])
   const [playerLeftSlot, setPlayerLeftSlot] = useState(null)
   const wsRef = useRef(null)
   const reconnectTimerRef = useRef(null)
@@ -65,7 +65,6 @@ export function useGoldenRushWS() {
       wsRef.current = ws
 
       ws.addEventListener('open', () => {
-        // Если была комната — пробуем reconnect
         if (savedRoomRef.current) {
           try { ws.send(JSON.stringify({ type: 'gr.reconnect', roomId: savedRoomRef.current })) } catch {}
         }
@@ -75,7 +74,7 @@ export function useGoldenRushWS() {
         let msg
         try { msg = JSON.parse(ev.data) } catch { return }
         if (!msg?.type) return
-        if (!msg.type.startsWith('gr.')) return // не наше
+        if (!msg.type.startsWith('gr.')) return
 
         switch (msg.type) {
           case 'gr.queued':
@@ -102,6 +101,9 @@ export function useGoldenRushWS() {
             setWinner(msg.winner)
             setScores(msg.scores || msg.state?.scores || null)
             setStatus('gameover')
+            // ФИКС: после gameOver — не пытаться reconnect'иться (сервер удалит
+            // комнату через 5 мин, получим no_room и ложный error-баннер).
+            savedRoomRef.current = null
             break
           case 'gr.reconnected':
             setRoomId(msg.roomId)
@@ -127,6 +129,8 @@ export function useGoldenRushWS() {
             setTimeout(() => setPlayerLeftSlot(null), 3000)
             break
           case 'gr.error':
+            // Если no_room после gameOver — молча игнорим (мы уже показали gameover экран)
+            if (msg.reason === 'no_room' && !savedRoomRef.current) break
             setError(msg.reason || 'unknown')
             setTimeout(() => setError(null), 4000)
             break
@@ -135,8 +139,8 @@ export function useGoldenRushWS() {
 
       ws.addEventListener('close', () => {
         wsRef.current = null
-        // Авто-реконнект если были в игре
-        if (savedRoomRef.current && status !== 'idle') {
+        // Авто-реконнект ТОЛЬКО если были в активной игре (savedRoomRef не сброшен)
+        if (savedRoomRef.current && (status === 'playing' || status === 'queued')) {
           if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
           reconnectTimerRef.current = setTimeout(() => connect(), 2000)
         }
@@ -165,6 +169,7 @@ export function useGoldenRushWS() {
     setScores(null)
     setQueuePos(null)
     setTeamChat([])
+    setError(null)
   }, [])
 
   useEffect(() => {
@@ -175,11 +180,9 @@ export function useGoldenRushWS() {
     }
   }, [])
 
-  // Высокоуровневые actions
   const findMatch = useCallback((mode = '2v2') => {
     if (!wsRef.current || wsRef.current.readyState !== 1) connect()
     setQueueMode(mode)
-    // Ждём open и посылаем
     const trySend = () => {
       if (wsRef.current?.readyState === 1) {
         send({ type: 'gr.findMatch', mode })
