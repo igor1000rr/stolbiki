@@ -46,6 +46,7 @@ import pushRouter from './routes/push.js'
 import achievementsRouter from './routes/achievements.js'
 import onboardingRouter from './routes/onboarding.js'
 import embedRouter from './routes/embed.js'
+import goldenRushRouter from './routes/golden-rush.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -231,6 +232,7 @@ app.use('/api/clubs', clubsRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/achievements', achievementsRouter)
 app.use('/api/onboarding', onboardingRouter)
+app.use('/api/gr', goldenRushRouter)
 app.use('/embed', embedRouter)
 
 app.use('/api/', (req, res) => { res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` }) })
