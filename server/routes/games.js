@@ -12,7 +12,12 @@ import { createBuildingFromGame } from './buildings.js'
 const router = Router()
 
 router.post('/games', auth, (req, res) => {
-  const { won, score, difficulty, closedGolden, isComeback, turns, duration, isOnline, moves, humanColor, playerSkinId, backgroundId } = req.body
+  const {
+    won, score, difficulty, closedGolden, isComeback, turns, duration,
+    isOnline, moves, humanColor,
+    // Cosmetic поля для victory_building (опционально от клиента)
+    opponentName, playerSkinId, backgroundId, standsSnapshot,
+  } = req.body
 
   if (!score || typeof score !== 'string') return res.status(400).json({ error: 'Некорректный счёт' })
   const scoreParts = score.split(':')
@@ -92,8 +97,9 @@ router.post('/games', auth, (req, res) => {
   const gameResult = db.prepare(`INSERT INTO games (user_id, won, score, rating_before, rating_after, rating_delta, difficulty, closed_golden, is_comeback, turns, duration, is_online)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(req.user.id, verifiedWon ? 1 : 0, verifiedScore, ratingBefore, ratingAfter, ratingDelta, safeDifficulty, closedGolden ? 1 : 0, isComeback ? 1 : 0, verifiedTurns, safeDuration, isOnline ? 1 : 0)
+  const gameId = gameResult.lastInsertRowid
 
-  db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameResult.lastInsertRowid)
+  db.prepare('INSERT INTO rating_history (user_id, rating, delta, game_id) VALUES (?, ?, ?, ?)').run(req.user.id, ratingAfter, ratingDelta, gameId)
 
   try {
     const gameData = JSON.stringify(moves)
@@ -110,28 +116,33 @@ router.post('/games', auth, (req, res) => {
   let bricksAfter = null
   if (verifiedWon && !isOnline) {
     bricksDelta = safeDifficulty >= 400 ? 3 : safeDifficulty >= 150 ? 2 : 1
-    bricksAfter = awardBricks(req.user.id, bricksDelta, `win:ai_${safeDifficulty}`, gameResult.lastInsertRowid)
+    bricksAfter = awardBricks(req.user.id, bricksDelta, `win:ai_${safeDifficulty}`, gameId)
   }
 
-  // ─── Victory Building ───
-  // SECURITY-ФИКС: сервер сам создаёт здание для победы по верифицированной
-  // игре (moves прошли античит). Раньше клиент звал POST /api/buildings с
-  // произвольными is_ai/ai_difficulty/result — накрутка лидерборда в 1 curl.
-  // Теперь здание привязано к game_id, UNIQUE INDEX гарантирует one-to-one.
+  // ─── Victory Building (SECURITY-КРИТИЧНО) ───
+  // Создаётся СЕРВЕРОМ на основе verified данных, а не доверием клиенту.
+  // Клиент передаёт только косметику (skin, opponent_name, snapshot).
+  // Защита от дублей — UNIQUE INDEX на game_id в victory_buildings.
   let buildingId = null
   if (verifiedWon) {
-    const gameForBuilding = {
-      id: gameResult.lastInsertRowid,
-      user_id: req.user.id,
-      won: 1,
-      is_online: isOnline ? 1 : 0,
-      difficulty: safeDifficulty,
-      closed_golden: closedGolden ? 1 : 0,
+    try {
+      const [maxS, minS] = verifiedScore.split(':').map(Number)
+      const isGoldenDraw = (maxS === minS) && !!closedGolden
+      const result = isGoldenDraw ? 'draw_won' : 'win'
+      buildingId = createBuildingFromGame({
+        userId: req.user.id,
+        gameId,
+        isAi: !isOnline,
+        aiDifficulty: !isOnline ? safeDifficulty : null,
+        result,
+        opponentName: opponentName ? String(opponentName).slice(0, 50) : (!isOnline ? 'Snappy' : null),
+        playerSkinId: playerSkinId ? String(playerSkinId).slice(0, 50) : null,
+        backgroundId: backgroundId ? String(backgroundId).slice(0, 50) : null,
+        standsSnapshot: Array.isArray(standsSnapshot) ? standsSnapshot : [],
+      })
+    } catch (e) {
+      console.error('[games] createBuildingFromGame error:', e.message)
     }
-    buildingId = createBuildingFromGame(gameForBuilding, {
-      player_skin_id: playerSkinId || null,
-      background_id: backgroundId || null,
-    })
   }
 
   // ─── Реферальная программа: +30 кирпичей рефереру при 10 партиях ───
@@ -163,7 +174,7 @@ router.post('/games', auth, (req, res) => {
   const xpGain = verifiedWon ? 20 : 5
   addXP(req.user.id, xpGain)
 
-  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain, bricksDelta, bricksAfter, buildingId })
+  res.json({ ratingBefore, ratingAfter, ratingDelta, newAchievements: newAch, xpGain, bricksDelta, bricksAfter, gameId, buildingId })
 })
 
 router.get('/games', auth, (req, res) => {

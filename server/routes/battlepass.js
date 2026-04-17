@@ -1,12 +1,26 @@
 /**
  * Battle Pass — 30 квестов на сезон с наградами в кирпичах
  * Issue #4
+ *
+ * Таблицы (bootstrap при импорте):
+ *   bp_seasons     — активный сезон (≠ ELO-сезоны из seasons)
+ *   bp_quests      — список квестов сезона
+ *   user_bp_progress — прогресс каждого юзера
+ *
+ * Экспортирует updateBPProgress(userId, eventType, payload)
+ *   — вызывается из games.js после каждой партии
+ *
+ * API:
+ *   GET  /api/bp/current            — сезон + квесты + прогресс юзера
+ *   POST /api/bp/quests/:id/claim   — забрать награду
  */
 
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
+import { awardBricks } from './bricks.js'
 
+// ─── Bootstrap ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS bp_seasons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,19 +58,24 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_user_bp_user ON user_bp_progress(user_id, quest_id);
 `)
 
+// ─── Seed: создаём сезон на текущий месяц если нет ───
+// SECURITY-ФИКС: UTC-даты — раньше использовали локальную TZ сервера, из-за чего
+// BP-сезон начинался/заканчивался в разное время для клиентов разных часовых поясов.
 function ensureBPSeason() {
+  const now = Math.floor(Date.now() / 1000)
   let season = db.prepare('SELECT * FROM bp_seasons WHERE is_active=1').get()
   if (season) return season
 
-  // UTC — единый глобальный день для всех часовых поясов
+  // Параметры текущего месяца UTC
   const d = new Date()
   const y = d.getUTCFullYear()
-  const m = d.getUTCMonth()
+  const m = d.getUTCMonth() // 0-based
   const startsAt = Math.floor(Date.UTC(y, m, 1) / 1000)
   const endsAt = Math.floor(Date.UTC(y, m + 1, 0, 23, 59, 59) / 1000)
   const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
   const monthNamesEn = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
+  // Деактивируем старые сезоны
   db.prepare('UPDATE bp_seasons SET is_active=0').run()
 
   const result = db.prepare(
@@ -64,7 +83,9 @@ function ensureBPSeason() {
   ).run(`${monthNames[m]} ${y}`, `${monthNamesEn[m]} ${y}`, startsAt, endsAt)
   const seasonId = result.lastInsertRowid
 
+  // Seed: 30 квестов с нарастающей сложностью и наградами
   const quests = [
+    // Неделя 1 — начальные
     { day: 1,  type: 'win_n',       target: 1,  bricks: 5,  ru: 'Одержите 1 победу',               en: 'Win 1 game' },
     { day: 2,  type: 'play_n',      target: 3,  bricks: 5,  ru: 'Сыграйте 3 партии',               en: 'Play 3 games' },
     { day: 3,  type: 'win_n',       target: 2,  bricks: 8,  ru: 'Одержите 2 победы',               en: 'Win 2 games' },
@@ -72,6 +93,7 @@ function ensureBPSeason() {
     { day: 5,  type: 'win_n',       target: 3,  bricks: 10, ru: 'Одержите 3 победы',               en: 'Win 3 games' },
     { day: 6,  type: 'play_n',      target: 5,  bricks: 8,  ru: 'Сыграйте 5 партий',               en: 'Play 5 games' },
     { day: 7,  type: 'win_n',       target: 5,  bricks: 15, ru: 'Одержите 5 побед',                en: 'Win 5 games' },
+    // Неделя 2 — сложнее
     { day: 8,  type: 'win_ai_hard', target: 1,  bricks: 15, ru: 'Победите сложного AI',            en: 'Beat Hard AI' },
     { day: 9,  type: 'close_golden',target: 2,  bricks: 15, ru: 'Закройте золотую 2 раза',         en: 'Close golden stand 2 times' },
     { day: 10, type: 'win_n',       target: 7,  bricks: 15, ru: 'Одержите 7 побед',                en: 'Win 7 games' },
@@ -79,6 +101,7 @@ function ensureBPSeason() {
     { day: 12, type: 'win_ai_hard', target: 2,  bricks: 20, ru: 'Победите сложного AI 2 раза',     en: 'Beat Hard AI 2 times' },
     { day: 13, type: 'win_n',       target: 10, bricks: 20, ru: 'Одержите 10 побед',               en: 'Win 10 games' },
     { day: 14, type: 'close_golden',target: 3,  bricks: 25, ru: 'Закройте золотую 3 раза',         en: 'Close golden stand 3 times' },
+    // Неделя 3 — онлайн и продвинутые
     { day: 15, type: 'win_online',  target: 1,  bricks: 20, ru: 'Победите в онлайн-матче',         en: 'Win an online match' },
     { day: 16, type: 'win_ai_hard', target: 3,  bricks: 20, ru: 'Победите сложного AI 3 раза',     en: 'Beat Hard AI 3 times' },
     { day: 17, type: 'win_n',       target: 12, bricks: 20, ru: 'Одержите 12 побед',               en: 'Win 12 games' },
@@ -86,6 +109,7 @@ function ensureBPSeason() {
     { day: 19, type: 'win_online',  target: 2,  bricks: 25, ru: 'Победите в 2 онлайн-матчах',      en: 'Win 2 online matches' },
     { day: 20, type: 'close_golden',target: 5,  bricks: 30, ru: 'Закройте золотую 5 раз',          en: 'Close golden stand 5 times' },
     { day: 21, type: 'win_n',       target: 15, bricks: 25, ru: 'Одержите 15 побед',               en: 'Win 15 games' },
+    // Неделя 4 — финальные
     { day: 22, type: 'win_ai_hard', target: 5,  bricks: 25, ru: 'Победите сложного AI 5 раз',      en: 'Beat Hard AI 5 times' },
     { day: 23, type: 'win_online',  target: 3,  bricks: 30, ru: 'Победите в 3 онлайн-матчах',      en: 'Win 3 online matches' },
     { day: 24, type: 'play_n',      target: 20, bricks: 20, ru: 'Сыграйте 20 партий',              en: 'Play 20 games' },
@@ -94,6 +118,7 @@ function ensureBPSeason() {
     { day: 27, type: 'win_ai_hard', target: 7,  bricks: 35, ru: 'Победите сложного AI 7 раз',      en: 'Beat Hard AI 7 times' },
     { day: 28, type: 'win_online',  target: 5,  bricks: 40, ru: 'Победите в 5 онлайн-матчах',      en: 'Win 5 online matches' },
     { day: 29, type: 'play_n',      target: 25, bricks: 30, ru: 'Сыграйте 25 партий',              en: 'Play 25 games' },
+    // Финальный квест — максимальная награда
     { day: 30, type: 'win_n',       target: 25, bricks: 75, ru: 'Легенда: одержите 25 побед',      en: 'Legend: Win 25 games' },
   ]
 
@@ -107,13 +132,18 @@ function ensureBPSeason() {
   return db.prepare('SELECT * FROM bp_seasons WHERE id=?').get(seasonId)
 }
 
-try { ensureBPSeason() } catch (e) { console.error('[BP] seed error:', e.message) }
+// Инициализируем при старте сервера
+let _activeSeason = null
+try { _activeSeason = ensureBPSeason() } catch (e) { console.error('[BP] seed error:', e.message) }
 
+// ─── updateBPProgress — вызывается из games.js ───
+// eventType: 'win', 'win_ai_hard', 'win_online', 'close_golden', 'play'
 export function updateBPProgress(userId, eventType, payload = {}) {
   try {
     const season = db.prepare('SELECT * FROM bp_seasons WHERE is_active=1').get()
     if (!season) return
 
+    // Маппинг eventType → типы квестов которые инкрементируем
     const relevantTypes = {
       win:          ['win_n'],
       win_ai_hard:  ['win_n', 'win_ai_hard'],
@@ -124,6 +154,7 @@ export function updateBPProgress(userId, eventType, payload = {}) {
     const types = relevantTypes[eventType] || []
     if (types.length === 0) return
 
+    // Находим незавершённые квесты текущего сезона нужных типов
     const quests = db.prepare(
       `SELECT q.* FROM bp_quests q
        LEFT JOIN user_bp_progress p ON p.quest_id=q.id AND p.user_id=?
@@ -133,6 +164,7 @@ export function updateBPProgress(userId, eventType, payload = {}) {
 
     const now = Math.floor(Date.now() / 1000)
     for (const quest of quests) {
+      // Upsert прогресса
       const existing = db.prepare(
         'SELECT progress FROM user_bp_progress WHERE user_id=? AND quest_id=?'
       ).get(userId, quest.id)
@@ -158,10 +190,12 @@ export function updateBPProgress(userId, eventType, payload = {}) {
 
 const router = Router()
 
+// ─── GET /api/bp/current ───
 router.get('/current', auth, (req, res) => {
   try {
     const season = db.prepare('SELECT * FROM bp_seasons WHERE is_active=1').get()
     if (!season) {
+      // Пробуем создать
       try { ensureBPSeason() } catch {}
       const retried = db.prepare('SELECT * FROM bp_seasons WHERE is_active=1').get()
       if (!retried) return res.json({ season: null, quests: [] })
@@ -182,6 +216,7 @@ router.get('/current', auth, (req, res) => {
       ORDER BY q.day_index
     `).all(req.user.id, activeSeason.id)
 
+    // Считаем суммарную статистику
     const totalQuests = quests.length
     const completedCount = quests.filter(q => q.completed_at).length
     const claimedCount = quests.filter(q => q.reward_claimed).length
@@ -200,10 +235,12 @@ router.get('/current', auth, (req, res) => {
   }
 })
 
-// POST /api/bp/quests/:id/claim
-// БАГ-ФИКС v2: claim + начисление кирпичей в одной транзакции.
-// Ранее: UPDATE reward_claimed=1 (атомарный check) → awardBricks() вне tx.
-// Если сервер падал между этими двумя шагами — юзер терял награду навсегда.
+// ─── POST /api/bp/quests/:id/claim ───
+// SECURITY-ФИКС: вся операция (UPDATE reward_claimed + начисление кирпичей +
+// INSERT brick_transactions) обёрнута в db.transaction(). Раньше UPDATE и
+// awardBricks были раздельными — при крахе между ними reward_claimed=1 но
+// бриксы не начислены → игрок терял награду навсегда.
+// Атомарный UPDATE ... WHERE reward_claimed=0 защищает от двойного клика.
 router.post('/quests/:id/claim', auth, (req, res) => {
   const questId = parseInt(req.params.id, 10)
   if (!questId) return res.status(400).json({ error: 'invalid questId' })
@@ -214,40 +251,48 @@ router.post('/quests/:id/claim', auth, (req, res) => {
   if (!quest) return res.status(404).json({ error: 'Квест не найден' })
 
   try {
-    const tx = db.transaction(() => {
+    const result = db.transaction(() => {
       const progress = db.prepare(
         'SELECT * FROM user_bp_progress WHERE user_id=? AND quest_id=?'
       ).get(req.user.id, questId)
 
       if (!progress?.completed_at) {
-        throw { _status: 400, _error: 'Квест не выполнен' }
+        const err = new Error('not_complete')
+        err.code = 'NOT_COMPLETE'
+        throw err
       }
       if (progress.reward_claimed) {
-        throw { _status: 409, _error: 'Награда уже получена' }
+        const err = new Error('already_claimed')
+        err.code = 'ALREADY_CLAIMED'
+        throw err
       }
 
+      // Атомарный claim
       const claim = db.prepare(
         'UPDATE user_bp_progress SET reward_claimed=1 WHERE user_id=? AND quest_id=? AND reward_claimed=0'
       ).run(req.user.id, questId)
-
       if (claim.changes === 0) {
-        throw { _status: 409, _error: 'Награда уже получена' }
+        const err = new Error('already_claimed')
+        err.code = 'ALREADY_CLAIMED'
+        throw err
       }
 
+      // Начисление кирпичей внутри той же транзакции
       const user = db.prepare('SELECT bricks FROM users WHERE id=?').get(req.user.id)
-      const newBalance = Math.max(0, (user?.bricks ?? 0) + quest.reward_bricks)
+      if (!user) throw new Error('no_user')
+      const newBalance = Math.max(0, user.bricks + quest.reward_bricks)
       db.prepare('UPDATE users SET bricks=? WHERE id=?').run(newBalance, req.user.id)
-      db.prepare('INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)').run(req.user.id, quest.reward_bricks, newBalance, `bp_quest:${questId}`, null)
+      db.prepare('INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)')
+        .run(req.user.id, quest.reward_bricks, newBalance, `bp_quest:${questId}`, null)
 
-      return newBalance
-    })
-    const newBalance = tx()
-    res.json({ ok: true, bricksEarned: quest.reward_bricks, bricks: newBalance })
+      return { bricksEarned: quest.reward_bricks, bricks: newBalance }
+    })()
+
+    res.json({ ok: true, ...result })
   } catch (e) {
-    if (e?._status) {
-      return res.status(e._status).json({ error: e._error })
-    }
-    console.error('[BP] claim error:', e)
+    if (e.code === 'NOT_COMPLETE') return res.status(400).json({ error: 'Квест не выполнен' })
+    if (e.code === 'ALREADY_CLAIMED') return res.status(409).json({ error: 'Награда уже получена' })
+    console.error('[BP] claim error:', e.message)
     res.status(500).json({ error: 'Ошибка получения награды' })
   }
 })

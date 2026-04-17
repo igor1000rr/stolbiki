@@ -55,6 +55,9 @@ export function addXP(userId, amount) {
 }
 
 // ═══ Сезоны (месячные, автосоздание) ═══
+// SECURITY-ФИКС: используем UTC вместо локальной TZ сервера — раньше на VPS с
+// TZ=Europe/Minsk смена сезона происходила в 00:00 местного, а клиенты в других
+// часовых поясах видели "старый" сезон. Теперь сезон = календарный месяц UTC.
 export function ensureCurrentSeason() {
   const now = new Date()
   const y = now.getUTCFullYear(), m = now.getUTCMonth()
@@ -72,11 +75,8 @@ export function ensureCurrentSeason() {
 }
 
 // ═══ Seeded Random ═══
-// БАГ-ФИКС: был getFullYear/getMonth/getDate — зависит от локальной TZ сервера.
-// На VPS с TZ!=UTC (например Europe/Minsk) "сегодня" менялось не в полночь UTC,
-// а клиент всегда считал в своей TZ → рассинхрон: клиент видит один seed,
-// сервер отдаёт другой, /api/daily возвращает "позавчерашнюю" головоломку.
-// Теперь обе стороны используют UTC — единый глобальный день.
+// SECURITY-ФИКС: UTC-дата — иначе клиент и сервер в разных TZ получают разные
+// daily-сиды в полночь UTC (у клиента уже "завтра", у сервера ещё "сегодня").
 export function getDailySeed() {
   const d = new Date()
   return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`

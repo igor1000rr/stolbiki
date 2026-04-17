@@ -4,13 +4,6 @@
  * Концепция: 1 победа = N кирпичей (brickValue). Кирпичи укладываются
  * хронологически в стойки по 11 — как в самой игре Highrise Heist.
  * Закрытая стойка (11 кирпичей) = небоскрёб.
- *
- * SECURITY v2: POST /api/buildings больше не принимает произвольные данные от
- * клиента. Раньше любой curl с валидным токеном мог создавать здания с
- * максимальным весом (is_ai=true + ai_difficulty=1500 + result=draw_won = 5
- * "кирпичей" за одну запись), забивая лидерборд за минуты. Теперь endpoint
- * требует game_id существующей победы и сервер сам derive'ит is_ai/difficulty/
- * result из таблицы games. Одна игра = одно здание (UNIQUE INDEX на game_id).
  */
 
 import { Router } from 'express'
@@ -37,12 +30,19 @@ db.exec(`
     ON victory_buildings(user_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_victory_buildings_recent
     ON victory_buildings(created_at DESC);
-  -- SECURITY: запрещаем 2 здания по одному game_id (idempotent анти-фарм).
-  -- Уникален только когда game_id IS NOT NULL — сохраняем backward-compat
-  -- с историческими записями без game_id (мигрировать вручную если нужно).
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_victory_buildings_game_unique
-    ON victory_buildings(game_id) WHERE game_id IS NOT NULL;
 `)
+
+// SECURITY-ФИКС: UNIQUE индекс на game_id — одна победа = одно здание.
+// Раньше клиент мог курлом создать сколько угодно зданий для одной partiji
+// и накрутить Hall of Fame. NULL разрешён для legacy-записей без game_id.
+try {
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_victory_buildings_game_unique
+           ON victory_buildings(game_id) WHERE game_id IS NOT NULL`)
+} catch (e) {
+  // Если уже были дубликаты в legacy-данных — индекс не создастся.
+  // Не валим старт сервера, просто логируем.
+  console.warn('[buildings] UNIQUE index on game_id not created:', e.message)
+}
 
 const TOWER_HEIGHT = 11
 
@@ -144,106 +144,6 @@ function safeSelectUsers(ids) {
   }
 }
 
-/**
- * Helper для внутреннего вызова из games.js / ws.js при завершении реальной
- * партии. Используется внутри той же транзакции что и INSERT INTO games —
- * гарантирует что для каждой победы существует ровно одно здание.
- */
-export function createBuildingFromGame(game, opts = {}) {
-  if (!game || !game.won) return null
-  const isAi = !game.is_online
-  // Golden (draw_won) — только если реально закрыта золотая стойка (closed_golden=1)
-  const result = game.closed_golden ? 'draw_won' : 'win'
-  const oppName = opts.opponent_name ? String(opts.opponent_name).slice(0, 50) : null
-  const skin = opts.player_skin_id ? String(opts.player_skin_id).slice(0, 50) : null
-  const bg = opts.background_id ? String(opts.background_id).slice(0, 50) : null
-  const snapshotJson = opts.stands_snapshot
-    ? JSON.stringify(opts.stands_snapshot).slice(0, 4000)
-    : '[]'
-  try {
-    const info = db.prepare(`
-      INSERT OR IGNORE INTO victory_buildings
-        (user_id, game_id, opponent_name, is_ai, ai_difficulty,
-         stands_snapshot, player_skin_id, background_id, result, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))
-    `).run(
-      game.user_id, game.id, oppName,
-      isAi ? 1 : 0, isAi ? String(game.difficulty || 0) : null,
-      snapshotJson, skin, bg, result
-    )
-    if (info.changes === 0) return null // уже есть здание по этому game_id
-    try { invalidateOgCache(game.user_id) } catch {}
-    feedCache = null
-    leaderboardCache = null
-    return info.lastInsertRowid
-  } catch (e) {
-    console.error('[buildings] createBuildingFromGame error:', e.message)
-    return null
-  }
-}
-
-const router = Router()
-
-// ─── POST /api/buildings ───
-// SECURITY-ФИКС v2: принимаем только game_id — сервер сам derive'ит атрибуты.
-// Раньше клиент мог прислать is_ai=true + ai_difficulty=1500 + result=draw_won
-// без ЛЮБОЙ проверки что такая игра вообще была → кирпичи за воздух, топ-20
-// лидерборда забивался фейками. Теперь:
-//   1) game_id обязателен
-//   2) игра должна принадлежать текущему юзеру
-//   3) игра должна быть выигранной (won=1)
-//   4) для каждой игры можно создать максимум одно здание (UNIQUE INDEX)
-// Опциональные player_skin_id/background_id — чисто косметика, не влияют на
-// вес кирпича, так что их можно оставить пользовательскими.
-router.post('/', auth, (req, res) => {
-  try {
-    const { game_id, player_skin_id = null, background_id = null, stands_snapshot = null } = req.body || {}
-
-    const gameId = parseInt(game_id, 10)
-    if (!gameId) {
-      return res.status(400).json({ error: 'game_id обязателен' })
-    }
-
-    const game = db.prepare('SELECT id, user_id, won, is_online, difficulty, closed_golden FROM games WHERE id = ?').get(gameId)
-    if (!game) {
-      return res.status(404).json({ error: 'Игра не найдена' })
-    }
-    if (game.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Чужая игра' })
-    }
-    if (!game.won) {
-      return res.status(400).json({ error: 'Здание создаётся только за победу' })
-    }
-
-    // Проверяем что здание по этой игре ещё не создавалось
-    const existing = db.prepare('SELECT id FROM victory_buildings WHERE game_id = ?').get(gameId)
-    if (existing) {
-      return res.status(409).json({ error: 'Здание для этой игры уже создано', id: existing.id })
-    }
-
-    const id = createBuildingFromGame(game, {
-      opponent_name: null, // online-оппоненты не известны здесь; сервер пишет их в ws.js
-      player_skin_id,
-      background_id,
-      stands_snapshot: Array.isArray(stands_snapshot) ? stands_snapshot : [],
-    })
-
-    if (!id) {
-      return res.status(500).json({ error: 'Не удалось создать здание' })
-    }
-
-    let city = null
-    try { city = compileCity(req.user.id) } catch (e) {
-      console.error('POST /buildings compileCity error:', e)
-    }
-
-    res.json({ ok: true, id, city })
-  } catch (e) {
-    console.error('POST /buildings error:', e)
-    res.status(500).json({ error: 'Не удалось сохранить здание' })
-  }
-})
-
 // ═══ Кэши ленты/топов ═══
 let feedCache = null
 let feedCacheAt = 0
@@ -252,6 +152,145 @@ const FEED_TTL_MS = 30 * 1000
 let leaderboardCache = null
 let leaderboardCacheAt = 0
 const LEADERBOARD_TTL_MS = 5 * 60 * 1000
+
+// Экспорт для games.js / ws.js — сбросить кэш после server-side создания здания
+export function invalidateBuildingsCache() {
+  feedCache = null
+  leaderboardCache = null
+}
+
+/**
+ * SECURITY-КРИТИЧНОЕ: создание здания ТОЛЬКО через верифицированную game row.
+ * Вызывается из routes/games.js после verifyGameFromMoves + INSERT INTO games.
+ *
+ * @param {Object} opts
+ * @param {number} opts.userId          — trusted server-side
+ * @param {number} opts.gameId          — trusted server-side (lastInsertRowid)
+ * @param {boolean} opts.isAi           — trusted (берётся из games.is_online)
+ * @param {number|null} opts.aiDifficulty — trusted (games.difficulty)
+ * @param {'win'|'draw_won'} opts.result — trusted (вычислен из games.won/closed_golden)
+ * @param {string|null} opts.opponentName — cosmetic (до 50 символов)
+ * @param {string|null} opts.playerSkinId — cosmetic
+ * @param {string|null} opts.backgroundId — cosmetic
+ * @param {Array} opts.standsSnapshot    — cosmetic (до 4000 байт JSON)
+ * @returns {number|null} id созданной записи или null если уже есть (UNIQUE game_id)
+ */
+export function createBuildingFromGame(opts) {
+  const {
+    userId, gameId, isAi, aiDifficulty, result,
+    opponentName = null, playerSkinId = null, backgroundId = null,
+    standsSnapshot = [],
+  } = opts
+  if (!userId || !gameId) return null
+  if (result !== 'win' && result !== 'draw_won') return null
+
+  const snapshotJson = Array.isArray(standsSnapshot) ? JSON.stringify(standsSnapshot).slice(0, 4000) : '[]'
+  const oppName = opponentName ? String(opponentName).slice(0, 50) : null
+  const aiDiff = aiDifficulty !== null && aiDifficulty !== undefined ? String(aiDifficulty).slice(0, 20) : null
+  const skin = playerSkinId ? String(playerSkinId).slice(0, 50) : null
+  const bg = backgroundId ? String(backgroundId).slice(0, 50) : null
+
+  try {
+    const info = db.prepare(`
+      INSERT INTO victory_buildings
+        (user_id, game_id, opponent_name, is_ai, ai_difficulty,
+         stands_snapshot, player_skin_id, background_id, result, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))
+    `).run(userId, gameId, oppName, isAi ? 1 : 0, aiDiff, snapshotJson, skin, bg, result)
+    invalidateBuildingsCache()
+    try { invalidateOgCache(userId) } catch {}
+    return info.lastInsertRowid
+  } catch (e) {
+    // UNIQUE на game_id — значит уже создано (повторный вызов)
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE' || e.message?.includes('UNIQUE')) {
+      const existing = db.prepare('SELECT id FROM victory_buildings WHERE game_id=?').get(gameId)
+      return existing?.id || null
+    }
+    console.error('[buildings] createBuildingFromGame error:', e)
+    return null
+  }
+}
+
+const router = Router()
+
+// ─── POST /api/buildings ───
+// SECURITY-КРИТИЧНЫЙ ФИКС: раньше endpoint доверял клиенту в is_ai/ai_difficulty/
+// result — любой curl создавал здание максимального веса и накручивал Hall of Fame.
+//
+// Теперь: сервер находит последнюю верифицированную победную партию юзера за
+// последние 120 секунд (games row со стороны POST /api/games, которая прошла
+// verifyGameFromMoves) и берёт trusted-значения ОТТУДА. От клиента принимаем
+// только косметику: stands_snapshot, player_skin_id, background_id, opponent_name.
+//
+// Защита от дублей — UNIQUE INDEX на game_id: повторный POST возвращает
+// existing building вместо ошибки.
+router.post('/', auth, (req, res) => {
+  try {
+    const {
+      stands_snapshot = [],
+      opponent_name = null,
+      player_skin_id = null,
+      background_id = null,
+    } = req.body || {}
+
+    // Ищем последнюю победную партию юзера (won=1 ИЛИ closed_golden=1 для draw_won)
+    // за последние 120 секунд — это window между gameOver на клиенте и POST /api/buildings.
+    const recentGame = db.prepare(`
+      SELECT id, is_online, difficulty, closed_golden, won
+      FROM games
+      WHERE user_id = ?
+        AND played_at >= datetime('now', '-120 seconds')
+        AND (won = 1 OR closed_golden = 1)
+      ORDER BY played_at DESC
+      LIMIT 1
+    `).get(req.user.id)
+
+    if (!recentGame) {
+      return res.status(403).json({
+        error: 'Недавней верифицированной победы не найдено. Сначала POST /api/games.',
+      })
+    }
+
+    // Если здание для этой game уже создано — возвращаем existing
+    const existing = db.prepare('SELECT id FROM victory_buildings WHERE game_id=?').get(recentGame.id)
+    if (existing) {
+      let city = null
+      try { city = compileCity(req.user.id) } catch {}
+      return res.json({ ok: true, id: existing.id, city, duplicate: true })
+    }
+
+    // Trusted server-side values из games row
+    const isAi = !recentGame.is_online
+    const aiDifficulty = isAi ? recentGame.difficulty : null
+    const result = (recentGame.closed_golden && !recentGame.won) ? 'draw_won' : 'win'
+
+    const buildingId = createBuildingFromGame({
+      userId: req.user.id,
+      gameId: recentGame.id,
+      isAi,
+      aiDifficulty,
+      result,
+      opponentName: opponent_name,
+      playerSkinId: player_skin_id,
+      backgroundId: background_id,
+      standsSnapshot: stands_snapshot,
+    })
+
+    if (!buildingId) {
+      return res.status(500).json({ error: 'Не удалось сохранить здание' })
+    }
+
+    let city = null
+    try { city = compileCity(req.user.id) } catch (e) {
+      console.error('POST /buildings compileCity error:', e)
+    }
+
+    res.json({ ok: true, id: buildingId, city })
+  } catch (e) {
+    console.error('POST /buildings error:', e)
+    res.status(500).json({ error: 'Не удалось сохранить здание' })
+  }
+})
 
 // ─── GET /api/buildings/leaderboard ───
 router.get('/leaderboard', (req, res) => {
@@ -433,12 +472,6 @@ router.get('/feed/recent', (req, res) => {
   }
 })
 
-// Экспортируем для вызова из games.js / ws.js
-export function invalidateBuildingsCache() {
-  feedCache = null
-  leaderboardCache = null
-}
-
 // ─── GET /api/buildings/stats/:userId ───
 router.get('/stats/:userId', (req, res) => {
   const userId = parseInt(req.params.userId, 10)
@@ -504,8 +537,7 @@ router.delete('/:id', auth, (req, res) => {
   if (row.user_id !== req.user.id) return res.status(403).json({ error: 'forbidden' })
   db.prepare('DELETE FROM victory_buildings WHERE id = ?').run(id)
   try { invalidateOgCache(req.user.id) } catch {}
-  feedCache = null
-  leaderboardCache = null
+  invalidateBuildingsCache()
   res.json({ ok: true })
 })
 

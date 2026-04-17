@@ -1,6 +1,9 @@
 /**
  * Глобальный чат — REST API
  * Issue #6: Социальный слой
+ *
+ * Таблица chat_messages создаётся здесь при импорте.
+ * WS-рассылка реализована в ws.js (chatSubscribers).
  */
 
 import { Router } from 'express'
@@ -10,6 +13,7 @@ import { canChatNow } from '../chat-limits.js'
 
 const router = Router()
 
+// ─── Миграция БД ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS chat_messages (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,60 +27,71 @@ db.exec(`
     ON chat_messages(channel, created_at DESC);
 `)
 
-// ═══ filterText v2 ═══
-// Наивный blacklist + нормализация — закрывает простейшие обходы:
-//   - homoglyph substitution (а→a, е→e, о→o, х→x, р→p, у→y)
-//   - zero-width & control characters
-//   - combining diacritics (NFKC раскладывает)
-//   - whitespace/пунктуация между буквами (х_у_й, х.у.й)
-// Для игрового чата этого достаточно. "Умные" обходы всё равно
-// ловятся user-report + admin /api/admin/chat/mute.
-
+// ─── filterText v2 ───
+// SECURITY-ФИКС: раньше простой .replace(BAD_WORD) тривиально обходился:
+//   хyй (y-латинская), х.у.й, х\u200bу\u200bй (zero-width), мудaк (a-латинская)
+// Теперь:
+//   1) NFKC-нормализация
+//   2) удаление zero-width символов
+//   3) маппинг латинских confusables в кириллицу
+//   4) stem-based matching (ловит склонения: хуевый, пиздатый, ебать, ...)
+const ZERO_WIDTH_RE = /[\u200B-\u200D\uFEFF\u180E\u2060-\u206F]/g
 const HOMOGLYPH_MAP = {
-  'a': 'а', 'b': 'в', 'c': 'с', 'e': 'е', 'h': 'н', 'k': 'к',
-  'm': 'м', 'o': 'о', 'p': 'р', 't': 'т', 'x': 'х', 'y': 'у',
-  '0': 'о', '3': 'з', '6': 'б',
+  'a': 'а', 'e': 'е', 'o': 'о', 'p': 'р', 'c': 'с', 'y': 'у', 'x': 'х',
+  'b': 'в', 'h': 'н', 'k': 'к', 'm': 'м', 't': 'т', 'i': 'і',
+  '0': 'о', '3': 'з', '4': 'ч', '6': 'б',
 }
+const BAD_STEMS = [
+  'мудак', 'мудил',
+  'пидор', 'пидар', 'пидрил',
+  'бляд', 'блядс',
+  'ублюд',
+  'сука',
+  'хуй', 'хуе', 'хуё', 'хуи', 'хуя', 'хуит',
+  'пизд',
+  'еба', 'ёба', 'ебат', 'ёбат', 'ебан', 'ёбан',
+  'гандон', 'гондон',
+  'nigger', 'faggot', 'fuck', 'shit', 'cunt',
+]
 
-function normalizeForMatch(text) {
-  let t = text.normalize('NFKC').toLowerCase()
-  // U+200B..U+200D (ZWSP, ZWNJ, ZWJ), U+FEFF (BOM), U+180E (MVS)
-  // U+2060..U+206F (word joiners, invisible ops)
-  t = t.replace(/[\u200B-\u200D\uFEFF\u180E\u2060-\u206F]/g, '')
-  t = t.replace(/[^\p{L}]/gu, c => HOMOGLYPH_MAP[c] || '')
-  t = t.split('').map(c => HOMOGLYPH_MAP[c] || c).join('')
-  return t
+function normalizeForFilter(text) {
+  return text
+    .normalize('NFKC')
+    .replace(ZERO_WIDTH_RE, '')
+    .toLowerCase()
+    .split('')
+    .map(c => HOMOGLYPH_MAP[c] || c)
+    .join('')
 }
-
-const BAD_WORDS = ['мудак', 'пидор', 'блядь', 'ублюдок', 'сука', 'хуй', 'пизда', 'ебаный', 'nigger', 'faggot']
-const BAD_STEMS = ['хуй', 'пизд', 'ебан', 'ебал', 'ебат', 'пидор', 'мудак', 'сук', 'блядь']
 
 function filterText(text) {
-  if (!text) return ''
-  const normalized = normalizeForMatch(text)
+  const original = String(text || '').trim()
+  if (!original) return original
+  const normalized = normalizeForFilter(original)
 
-  let hasBad = false
+  // Проверка на наличие любого стема — если есть, возвращаем нормализованную
+  // версию с заменёнными бранными словами. Оригинальные индексы символов могут
+  // не совпадать с нормализованными (NFKC разворачивает лигатуры), поэтому
+  // проще работать с нормализованной строкой целиком.
+  let needsFilter = false
   for (const stem of BAD_STEMS) {
-    if (normalized.includes(stem)) { hasBad = true; break }
+    if (normalized.includes(stem)) { needsFilter = true; break }
   }
-  if (!hasBad) return text.trim()
+  if (!needsFilter) return original
 
-  let t = text.trim()
-  for (const w of BAD_WORDS) {
-    t = t.replace(new RegExp(w, 'gi'), m => '*'.repeat(m.length))
+  let out = normalized
+  for (const stem of BAD_STEMS) {
+    // Расширяем до границы слова (любые буквы/цифры после стема)
+    const re = new RegExp(stem + '[\\p{L}\\p{N}]*', 'gu')
+    out = out.replace(re, m => '*'.repeat(m.length))
   }
-  t = t.split(/(\s+)/).map(word => {
-    if (!word.trim()) return word
-    const normWord = normalizeForMatch(word)
-    for (const stem of BAD_STEMS) {
-      if (normWord.includes(stem)) return '*'.repeat(Math.min(word.length, 10))
-    }
-    return word
-  }).join('')
-
-  return t
+  return out
 }
 
+/**
+ * GET /api/chat?channel=global&before=<id>&limit=50
+ * Возвращает до 50 сообщений, опционально постранично (cursor by id)
+ */
 router.get('/', (req, res) => {
   const channel = (req.query.channel || 'global').slice(0, 20)
   const limit = Math.min(50, parseInt(req.query.limit) || 50)
@@ -97,6 +112,14 @@ router.get('/', (req, res) => {
   res.json(rows.reverse())
 })
 
+/**
+ * POST /api/chat   { channel, text }
+ * Сохраняет сообщение в БД (WS-рассылка делается через ws.js)
+ * Используется как fallback если WS недоступен.
+ *
+ * Rate limit: 1 сообщение / 3 секунды на юзера.
+ * Mute check: если users.chat_muted_until > now → 403.
+ */
 router.post('/', auth, (req, res) => {
   const channel = (req.body.channel || 'global').slice(0, 20)
   const rawText = (req.body.text || '').slice(0, 300)
