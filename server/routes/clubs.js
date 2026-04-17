@@ -1,24 +1,12 @@
 /**
  * Клубы / гильдии — REST API
  * Issue #8: Sprint 5 — Клубы
- *
- * Таблицы: clubs, club_members
- *
- * Эндпоинты:
- *   GET    /api/clubs              — список клубов (топ по wins)
- *   POST   /api/clubs              — создать клуб
- *   GET    /api/clubs/my           — мой клуб
- *   GET    /api/clubs/:id          — детали клуба + члены
- *   POST   /api/clubs/:id/join     — вступить
- *   POST   /api/clubs/:id/leave    — выйти
- *   DELETE /api/clubs/:id/kick/:uid — кикнуть (owner/officer)
  */
 
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
 
-// ─── Миграция ───
 db.exec(`
   CREATE TABLE IF NOT EXISTS clubs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,11 +30,17 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
   CREATE INDEX IF NOT EXISTS idx_club_members_user ON club_members(user_id);
+  -- SECURITY: юзер может быть только в ОДНОМ клубе.
+  -- Раньше PRIMARY KEY (club_id, user_id) допускал членство сразу в N клубах
+  -- при race condition (параллельные /create с разными именами проходили
+  -- проверку существующего членства одновременно). UNIQUE на user_id закрывает.
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_club_members_user_unique ON club_members(user_id);
 `)
+
+const MAX_CLUB_MEMBERS = 50
 
 const router = Router()
 
-// ─── GET /api/clubs — топ клубов ───
 router.get('/', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 50)
   const clubs = db.prepare(`
@@ -59,7 +53,6 @@ router.get('/', (req, res) => {
   res.json(clubs)
 })
 
-// ─── GET /api/clubs/my — мой клуб ───
 router.get('/my', auth, (req, res) => {
   const membership = db.prepare('SELECT club_id, role FROM club_members WHERE user_id=?').get(req.user.id)
   if (!membership) return res.json({ club: null })
@@ -71,7 +64,9 @@ router.get('/my', auth, (req, res) => {
   res.json({ club, role: membership.role })
 })
 
-// ─── POST /api/clubs — создать клуб ───
+// POST /api/clubs — создать клуб
+// SECURITY-ФИКС: вся операция (CHECK + INSERT clubs + INSERT membership) в одной
+// транзакции. Раньше при race двух параллельных POST юзер оказывался в 2 клубах.
 router.post('/', auth, (req, res) => {
   const { name, tag, description, emblem_id } = req.body
   if (!name || !tag) return res.status(400).json({ error: 'name и tag обязательны' })
@@ -80,25 +75,30 @@ router.post('/', auth, (req, res) => {
   if (cleanName.length < 3) return res.status(400).json({ error: 'Название от 3 символов' })
   if (cleanTag.length < 2) return res.status(400).json({ error: 'Тег от 2 символов' })
 
-  // Проверяем что игрок не в другом клубе
-  const existing = db.prepare('SELECT 1 FROM club_members WHERE user_id=?').get(req.user.id)
-  if (existing) return res.status(409).json({ error: 'Вы уже состоите в клубе' })
-
   try {
-    const result = db.prepare(`
-      INSERT INTO clubs (name, tag, description, emblem_id, owner_id)
-      VALUES (?,?,?,?,?)
-    `).run(cleanName, cleanTag, (description || '').slice(0, 200), emblem_id || 'raccoon', req.user.id)
+    const tx = db.transaction(() => {
+      const existing = db.prepare('SELECT 1 FROM club_members WHERE user_id=?').get(req.user.id)
+      if (existing) {
+        throw { _status: 409, _error: 'Вы уже состоите в клубе' }
+      }
+      const result = db.prepare(`
+        INSERT INTO clubs (name, tag, description, emblem_id, owner_id)
+        VALUES (?,?,?,?,?)
+      `).run(cleanName, cleanTag, (description || '').slice(0, 200), emblem_id || 'raccoon', req.user.id)
 
-    db.prepare('INSERT INTO club_members (club_id, user_id, role) VALUES (?,?,?)').run(result.lastInsertRowid, req.user.id, 'owner')
-    res.json({ ok: true, id: result.lastInsertRowid, name: cleanName, tag: cleanTag })
+      db.prepare('INSERT INTO club_members (club_id, user_id, role) VALUES (?,?,?)').run(result.lastInsertRowid, req.user.id, 'owner')
+      return { id: result.lastInsertRowid, name: cleanName, tag: cleanTag }
+    })
+    const created = tx()
+    res.json({ ok: true, ...created })
   } catch (e) {
-    if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Название или тег уже заняты' })
+    if (e?._status) return res.status(e._status).json({ error: e._error })
+    if (e?.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Название или тег уже заняты, либо вы уже в клубе' })
+    console.error('[clubs] create error:', e)
     res.status(500).json({ error: 'Ошибка создания клуба' })
   }
 })
 
-// ─── GET /api/clubs/:id — детали ───
 router.get('/:id', (req, res) => {
   const club = db.prepare(`
     SELECT c.*, u.username as owner_name
@@ -117,72 +117,122 @@ router.get('/:id', (req, res) => {
   res.json({ ...club, members })
 })
 
-// ─── POST /api/clubs/:id/join — вступить ───
 router.post('/:id/join', auth, (req, res) => {
-  const club = db.prepare('SELECT * FROM clubs WHERE id=?').get(req.params.id)
-  if (!club) return res.status(404).json({ error: 'Клуб не найден' })
+  const clubId = parseInt(req.params.id, 10)
+  if (!clubId) return res.status(400).json({ error: 'invalid id' })
 
-  const existing = db.prepare('SELECT 1 FROM club_members WHERE user_id=?').get(req.user.id)
-  if (existing) return res.status(409).json({ error: 'Вы уже состоите в клубе' })
+  try {
+    const tx = db.transaction(() => {
+      const club = db.prepare('SELECT id, member_count FROM clubs WHERE id=?').get(clubId)
+      if (!club) throw { _status: 404, _error: 'Клуб не найден' }
 
-  if (club.member_count >= 50) return res.status(400).json({ error: 'Клуб заполнен (макс. 50)' })
+      const existing = db.prepare('SELECT 1 FROM club_members WHERE user_id=?').get(req.user.id)
+      if (existing) throw { _status: 409, _error: 'Вы уже состоите в клубе' }
 
-  db.prepare('INSERT INTO club_members (club_id, user_id, role) VALUES (?,?,?)').run(club.id, req.user.id, 'member')
-  db.prepare('UPDATE clubs SET member_count=member_count+1 WHERE id=?').run(club.id)
-  res.json({ ok: true })
+      // Пересчитываем реальное количество внутри транзакции — member_count может
+      // дрейфовать из-за старых bugs, COUNT(*) — истина.
+      const realCount = db.prepare('SELECT COUNT(*) as c FROM club_members WHERE club_id=?').get(clubId).c
+      if (realCount >= MAX_CLUB_MEMBERS) throw { _status: 400, _error: `Клуб заполнен (макс. ${MAX_CLUB_MEMBERS})` }
+
+      db.prepare('INSERT INTO club_members (club_id, user_id, role) VALUES (?,?,?)').run(clubId, req.user.id, 'member')
+      db.prepare('UPDATE clubs SET member_count=? WHERE id=?').run(realCount + 1, clubId)
+    })
+    tx()
+    res.json({ ok: true })
+  } catch (e) {
+    if (e?._status) return res.status(e._status).json({ error: e._error })
+    if (e?.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Вы уже состоите в клубе' })
+    console.error('[clubs] join error:', e)
+    res.status(500).json({ error: 'Ошибка вступления' })
+  }
 })
 
-// ─── POST /api/clubs/:id/leave — выйти ───
 router.post('/:id/leave', auth, (req, res) => {
-  const membership = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(req.params.id, req.user.id)
-  if (!membership) return res.status(404).json({ error: 'Вы не в этом клубе' })
+  const clubId = parseInt(req.params.id, 10)
+  if (!clubId) return res.status(400).json({ error: 'invalid id' })
 
-  if (membership.role === 'owner') {
-    // Передаём владение первому офицеру или члену
-    const nextMember = db.prepare(`
-      SELECT user_id FROM club_members
-      WHERE club_id=? AND user_id!=?
-      ORDER BY CASE role WHEN 'officer' THEN 0 ELSE 1 END LIMIT 1
-    `).get(req.params.id, req.user.id)
+  try {
+    const tx = db.transaction(() => {
+      const membership = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(clubId, req.user.id)
+      if (!membership) throw { _status: 404, _error: 'Вы не в этом клубе' }
 
-    if (nextMember) {
-      db.prepare('UPDATE club_members SET role=? WHERE club_id=? AND user_id=?').run('owner', req.params.id, nextMember.user_id)
-      db.prepare('UPDATE clubs SET owner_id=? WHERE id=?').run(nextMember.user_id, req.params.id)
-    } else {
-      // Последний участник — удаляем клуб
-      db.prepare('DELETE FROM clubs WHERE id=?').run(req.params.id)
-      return res.json({ ok: true, disbanded: true })
-    }
+      let disbanded = false
+
+      if (membership.role === 'owner') {
+        const nextMember = db.prepare(`
+          SELECT user_id FROM club_members
+          WHERE club_id=? AND user_id!=?
+          ORDER BY CASE role WHEN 'officer' THEN 0 ELSE 1 END, joined_at ASC LIMIT 1
+        `).get(clubId, req.user.id)
+
+        if (nextMember) {
+          db.prepare('UPDATE club_members SET role=? WHERE club_id=? AND user_id=?').run('owner', clubId, nextMember.user_id)
+          db.prepare('UPDATE clubs SET owner_id=? WHERE id=?').run(nextMember.user_id, clubId)
+        } else {
+          db.prepare('DELETE FROM clubs WHERE id=?').run(clubId)
+          disbanded = true
+          return { disbanded }
+        }
+      }
+
+      db.prepare('DELETE FROM club_members WHERE club_id=? AND user_id=?').run(clubId, req.user.id)
+      const realCount = db.prepare('SELECT COUNT(*) as c FROM club_members WHERE club_id=?').get(clubId).c
+      db.prepare('UPDATE clubs SET member_count=? WHERE id=?').run(realCount, clubId)
+      return { disbanded }
+    })
+    const result = tx()
+    res.json({ ok: true, ...(result.disbanded ? { disbanded: true } : {}) })
+  } catch (e) {
+    if (e?._status) return res.status(e._status).json({ error: e._error })
+    console.error('[clubs] leave error:', e)
+    res.status(500).json({ error: 'Ошибка выхода' })
   }
-
-  db.prepare('DELETE FROM club_members WHERE club_id=? AND user_id=?').run(req.params.id, req.user.id)
-  db.prepare('UPDATE clubs SET member_count=MAX(0, member_count-1) WHERE id=?').run(req.params.id)
-  res.json({ ok: true })
 })
 
-// ─── DELETE /api/clubs/:id/kick/:uid — кикнуть ───
 router.delete('/:id/kick/:uid', auth, (req, res) => {
-  const myRole = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(req.params.id, req.user.id)
-  if (!myRole || !['owner', 'officer'].includes(myRole.role)) {
-    return res.status(403).json({ error: 'Недостаточно прав' })
-  }
-  const targetRole = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(req.params.id, req.params.uid)
-  if (!targetRole) return res.status(404).json({ error: 'Участник не найден' })
-  if (targetRole.role === 'owner') return res.status(403).json({ error: 'Нельзя кикнуть владельца' })
-  if (myRole.role === 'officer' && targetRole.role === 'officer') return res.status(403).json({ error: 'Офицер не может кикнуть офицера' })
+  const clubId = parseInt(req.params.id, 10)
+  const targetId = parseInt(req.params.uid, 10)
+  if (!clubId || !targetId) return res.status(400).json({ error: 'invalid ids' })
+  if (targetId === req.user.id) return res.status(400).json({ error: 'Нельзя кикнуть себя (используйте /leave)' })
 
-  db.prepare('DELETE FROM club_members WHERE club_id=? AND user_id=?').run(req.params.id, req.params.uid)
-  db.prepare('UPDATE clubs SET member_count=MAX(0, member_count-1) WHERE id=?').run(req.params.id)
-  res.json({ ok: true })
+  try {
+    const tx = db.transaction(() => {
+      const myRole = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(clubId, req.user.id)
+      if (!myRole || !['owner', 'officer'].includes(myRole.role)) {
+        throw { _status: 403, _error: 'Недостаточно прав' }
+      }
+      const targetRole = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(clubId, targetId)
+      if (!targetRole) throw { _status: 404, _error: 'Участник не найден' }
+      if (targetRole.role === 'owner') throw { _status: 403, _error: 'Нельзя кикнуть владельца' }
+      if (myRole.role === 'officer' && targetRole.role === 'officer') {
+        throw { _status: 403, _error: 'Офицер не может кикнуть офицера' }
+      }
+
+      db.prepare('DELETE FROM club_members WHERE club_id=? AND user_id=?').run(clubId, targetId)
+      const realCount = db.prepare('SELECT COUNT(*) as c FROM club_members WHERE club_id=?').get(clubId).c
+      db.prepare('UPDATE clubs SET member_count=? WHERE id=?').run(realCount, clubId)
+    })
+    tx()
+    res.json({ ok: true })
+  } catch (e) {
+    if (e?._status) return res.status(e._status).json({ error: e._error })
+    console.error('[clubs] kick error:', e)
+    res.status(500).json({ error: 'Ошибка кика' })
+  }
 })
 
-// ─── PUT /api/clubs/:id/role/:uid — изменить роль ───
 router.put('/:id/role/:uid', auth, (req, res) => {
-  const myRole = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(req.params.id, req.user.id)
+  const clubId = parseInt(req.params.id, 10)
+  const targetId = parseInt(req.params.uid, 10)
+  if (!clubId || !targetId) return res.status(400).json({ error: 'invalid ids' })
+  if (targetId === req.user.id) return res.status(400).json({ error: 'Нельзя менять свою роль' })
+
+  const myRole = db.prepare('SELECT role FROM club_members WHERE club_id=? AND user_id=?').get(clubId, req.user.id)
   if (!myRole || myRole.role !== 'owner') return res.status(403).json({ error: 'Только владелец' })
   const { role } = req.body
   if (!['officer', 'member'].includes(role)) return res.status(400).json({ error: 'role: officer | member' })
-  db.prepare('UPDATE club_members SET role=? WHERE club_id=? AND user_id=?').run(role, req.params.id, req.params.uid)
+  const upd = db.prepare('UPDATE club_members SET role=? WHERE club_id=? AND user_id=? AND role != ?').run(role, clubId, targetId, 'owner')
+  if (upd.changes === 0) return res.status(404).json({ error: 'Участник не найден или роль не изменилась' })
   res.json({ ok: true })
 })
 
