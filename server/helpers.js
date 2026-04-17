@@ -57,9 +57,9 @@ export function addXP(userId, amount) {
 // ═══ Сезоны (месячные, автосоздание) ═══
 export function ensureCurrentSeason() {
   const now = new Date()
-  const y = now.getFullYear(), m = now.getMonth()
-  const start = new Date(y, m, 1).toISOString().slice(0, 10)
-  const end = new Date(y, m + 1, 0).toISOString().slice(0, 10)
+  const y = now.getUTCFullYear(), m = now.getUTCMonth()
+  const start = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10)
+  const end = new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10)
   const name = `${y}-${String(m + 1).padStart(2, '0')}`
 
   let season = db.prepare('SELECT * FROM seasons WHERE name=?').get(name)
@@ -72,9 +72,14 @@ export function ensureCurrentSeason() {
 }
 
 // ═══ Seeded Random ═══
+// БАГ-ФИКС: был getFullYear/getMonth/getDate — зависит от локальной TZ сервера.
+// На VPS с TZ!=UTC (например Europe/Minsk) "сегодня" менялось не в полночь UTC,
+// а клиент всегда считал в своей TZ → рассинхрон: клиент видит один seed,
+// сервер отдаёт другой, /api/daily возвращает "позавчерашнюю" головоломку.
+// Теперь обе стороны используют UTC — единый глобальный день.
 export function getDailySeed() {
   const d = new Date()
-  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`
 }
 
 export function seededRandom(seed) {
