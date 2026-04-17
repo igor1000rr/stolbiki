@@ -42,6 +42,7 @@ export default function AppRoutes({
           <Landing
             onPlay={() => go('game')}
             onTutorial={onShowLessons}
+            go={go}
             publicStats={publicStats}
             installPrompt={installPrompt}
           />
