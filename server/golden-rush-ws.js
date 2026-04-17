@@ -2,39 +2,36 @@
  * Golden Rush Online WebSocket handlers.
  *
  * Отдельный модуль, подключается в ws.js. Содержит:
- *  - grMatchQueue: очередь поиска матча (ждёт 4 игрока, разбивает на 2 команды)
- *  - grRooms: активные online-комнаты Golden Rush (отдельно от rooms основной 2p-игры)
- *  - setupGoldenRushHandlers(ctx) — регистрирует gr.* хендлеры на WS connection
+ *  - grMatchQueue: очередь поиска матча (ждёт 4 игрока)
+ *  - grRooms: активные online-комнаты Golden Rush
+ *  - handleGoldenRushMessage / handleGoldenRushDisconnect / cleanupGoldenRush / getGoldenRushStats
  *
- * Протокол сообщений (клиент → сервер):
- *  gr.findMatch  { mode: 'ffa' | '2v2', teamPartner?: userId }
- *  gr.cancelMatch
- *  gr.move       { action: { transfer?, placement? } }
- *  gr.resign
- *  gr.teamChat   { text }
- *  gr.reaction   { emoji }
- *  gr.reconnect  { roomId }
+ * При старте модуля ожидает setDatabase(db) от ws.js чтобы persistGameResult имел доступ к БД.
  *
- * Протокол сообщений (сервер → клиент):
- *  gr.queued       { position }
- *  gr.matchFound   { roomId, mode, slot, state }
- *  gr.state        { state, lastMove? }
- *  gr.gameOver     { state, winner }
- *  gr.error        { reason }
- *  gr.teamChat     { text, from, slot }
- *  gr.reaction     { emoji, from, slot }
- *  gr.playerLeft   { slot }
- *  gr.reconnected  { roomId, slot, state }
+ * Протокол: см. docstring в предыдущей версии — не изменился.
  */
 
-import jwt from 'jsonwebtoken'
 import {
   GoldenRushState, applyAction, validateAction, computeScores,
+  CENTER_IDX,
 } from './golden-rush-engine.js'
 
-// Глобальные структуры (существуют в рамках процесса сервера)
-export const grRooms = new Map()     // roomId → room
-export const grMatchQueue = []       // { ws, userId, name, rating, mode, joinedAt }
+// Глобальные структуры
+export const grRooms = new Map()
+export const grMatchQueue = []
+
+// Ссылка на БД (инжектится из ws.js при setup)
+let _db = null
+export function setDatabase(db) { _db = db }
+
+// ═══ Константы наград ═══
+// В 2p PvP за победу даём 5 бриксов (см. ws.js handleServerGameOver).
+// В GR 4-player матч длиннее и сложнее — даём больше за участие и победу.
+const GR_REWARDS = {
+  win: 10,           // Победитель FFA или оба в выигравшей команде 2v2
+  participation: 2,  // Каждому сыгравшему (не resign'нувшему)
+  centerCapture: 3,  // Бонус тому кто замкнул центр
+}
 
 // ═══ Генерация id ═══
 function generateGrRoomId() {
@@ -86,24 +83,120 @@ function findPlayerRoomByUserId(userId) {
 }
 
 /**
- * Создаёт комнату из 4 записей очереди. Размешивает порядок рассаживания
- * чтобы команды сидели по диагонали (0 & 2 — команда 0, 1 & 3 — команда 1).
+ * Пишет результат матча в БД + начисляет бриксы + обновляет счётчики пользователей.
+ * Идемпотентна через флаг room.persisted.
+ * Никогда не кидает — логирует и отдаёт дальше, чтобы не сломать gr.gameOver broadcast.
+ */
+function persistGameResult(room, opts = {}) {
+  if (!_db || room.persisted) return
+  room.persisted = true
+
+  const { resignedBy = null } = opts
+  const state = room.state
+  const scores = state.scores || computeScores(state)
+  const durationSec = Math.round((Date.now() - room.created) / 1000)
+
+  // Определяем кто замкнул центр — за бонус
+  const centerOwner = state.closed?.[CENTER_IDX]
+
+  try {
+    const tx = _db.transaction(() => {
+      // 1. Запись матча
+      const playersJson = JSON.stringify(room.players.map(p => ({
+        slot: p.slot,
+        userId: p.userId || null,
+        name: p.name,
+        rating: p.rating,
+      })))
+      const teamsJson = state.teams ? JSON.stringify(state.teams) : null
+      const scoresJson = JSON.stringify(scores)
+
+      _db.prepare(`
+        INSERT INTO gr_matches (room_id, mode, players, teams, winner, scores, turns, duration_sec, resigned_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        room.id, room.mode, playersJson, teamsJson,
+        state.winner, scoresJson, state.turn, durationSec, resignedBy
+      )
+
+      // 2. Определяем победителей per-user
+      const winners = new Set()
+      if (state.mode === 'ffa' && state.winner >= 0) {
+        winners.add(state.winner)
+      } else if (state.mode === '2v2' && state.winner >= 0 && state.teams) {
+        for (const slot of state.teams[state.winner]) winners.add(slot)
+      }
+
+      // 3. Награды и счётчики per-player
+      for (const p of room.players) {
+        if (!p.userId) continue // анонимы пропускаются
+
+        let bricks = 0
+        const reasons = []
+
+        // Участие (кроме resigner'а — он не получает)
+        if (p.slot !== resignedBy) {
+          bricks += GR_REWARDS.participation
+          reasons.push('participation')
+        }
+
+        // Победа
+        if (winners.has(p.slot)) {
+          bricks += GR_REWARDS.win
+          reasons.push('win')
+        }
+
+        // Бонус за центр
+        if (p.slot === centerOwner && p.slot !== resignedBy) {
+          bricks += GR_REWARDS.centerCapture
+          reasons.push('center')
+        }
+
+        // Счётчики
+        const isWinner = winners.has(p.slot) ? 1 : 0
+        const isCenterCapture = p.slot === centerOwner ? 1 : 0
+
+        _db.prepare(`
+          UPDATE users SET
+            gr_games = COALESCE(gr_games, 0) + 1,
+            gr_wins = COALESCE(gr_wins, 0) + ?,
+            gr_center_captures = COALESCE(gr_center_captures, 0) + ?,
+            bricks = COALESCE(bricks, 0) + ?
+          WHERE id = ?
+        `).run(isWinner, isCenterCapture, bricks, p.userId)
+
+        // Транзакция бриксов (если были)
+        if (bricks > 0) {
+          const reason = `gr:${room.mode}:${reasons.join('+')}`
+          _db.prepare(`
+            INSERT INTO brick_transactions (user_id, amount, reason, created_at)
+            VALUES (?, ?, ?, ?)
+          `).run(p.userId, bricks, reason.slice(0, 50), Date.now())
+        }
+      }
+    })
+    tx()
+  } catch (e) {
+    console.error('[gr] persistGameResult error:', e.message)
+    // Флаг оставляем true — не пытаемся повторно при другой ошибке
+  }
+}
+
+/**
+ * Создаёт комнату из 4 записей очереди. В 2v2 команды по диагонали: 0+2 vs 1+3.
  */
 function createRoomFromQueue(entries, mode) {
-  // Простое сопоставление: первая пара — team0, вторая — team1.
-  // Слоты: team0 получает slot 0 и 2 (диагональ), team1 — slot 1 и 3.
   const shuffled = [...entries].sort(() => Math.random() - 0.5)
   const players = []
-  if (mode === '2v2') {
-    players.push({ ws: shuffled[0].ws, userId: shuffled[0].userId, name: shuffled[0].name, rating: shuffled[0].rating, slot: 0, disconnectedAt: null })
-    players.push({ ws: shuffled[1].ws, userId: shuffled[1].userId, name: shuffled[1].name, rating: shuffled[1].rating, slot: 1, disconnectedAt: null })
-    players.push({ ws: shuffled[2].ws, userId: shuffled[2].userId, name: shuffled[2].name, rating: shuffled[2].rating, slot: 2, disconnectedAt: null })
-    players.push({ ws: shuffled[3].ws, userId: shuffled[3].userId, name: shuffled[3].name, rating: shuffled[3].rating, slot: 3, disconnectedAt: null })
-  } else {
-    // FFA: произвольный порядок
-    for (let i = 0; i < 4; i++) {
-      players.push({ ws: shuffled[i].ws, userId: shuffled[i].userId, name: shuffled[i].name, rating: shuffled[i].rating, slot: i, disconnectedAt: null })
-    }
+  for (let i = 0; i < 4; i++) {
+    players.push({
+      ws: shuffled[i].ws,
+      userId: shuffled[i].userId,
+      name: shuffled[i].name,
+      rating: shuffled[i].rating,
+      slot: i,
+      disconnectedAt: null,
+    })
   }
 
   let roomId = generateGrRoomId()
@@ -118,14 +211,12 @@ function createRoomFromQueue(entries, mode) {
     created: Date.now(),
     lastActivity: Date.now(),
     deleteTimer: null,
+    persisted: false, // флаг идемпотентности persistGameResult
   }
   grRooms.set(roomId, room)
   return room
 }
 
-/**
- * Отправляет всем игрокам в комнате стартовое сообщение matchFound.
- */
 function notifyMatchFound(room) {
   const playersView = room.players.map(p => ({ slot: p.slot, name: p.name, rating: p.rating }))
   for (const p of room.players) {
@@ -145,7 +236,6 @@ function notifyMatchFound(room) {
 
 // ═══ Matchmaking ═══
 function tryMatch() {
-  // Группируем по mode. Для MVP: как только собралось 4 игрока одного mode — создаём комнату.
   const byMode = { 'ffa': [], '2v2': [] }
   for (const entry of grMatchQueue) {
     if (entry.ws.readyState !== 1) continue
@@ -156,7 +246,6 @@ function tryMatch() {
   for (const mode of ['ffa', '2v2']) {
     while (byMode[mode].length >= 4) {
       const four = byMode[mode].splice(0, 4)
-      // Удаляем из основной очереди
       for (const e of four) {
         const idx = grMatchQueue.indexOf(e)
         if (idx >= 0) grMatchQueue.splice(idx, 1)
@@ -166,7 +255,6 @@ function tryMatch() {
     }
   }
 
-  // Обновляем position для тех кто остался в очереди
   for (let i = 0; i < grMatchQueue.length; i++) {
     const entry = grMatchQueue[i]
     if (entry.ws?.readyState === 1) {
@@ -183,16 +271,6 @@ function tryMatch() {
 
 // ═══ Публичный API для ws.js ═══
 
-/**
- * Пытаемся обработать gr.* сообщение. Возвращает true если сообщение обработано
- * (или отклонено с ошибкой), false если тип не наш (пускаем дальше по цепочке).
- *
- * @param {Object} ctx
- * @param {WebSocket} ctx.ws — WS соединение
- * @param {Object} ctx.msg — распарсенное сообщение
- * @param {Object|null} ctx.wsUser — { id, username, rating? } или null
- * @returns {boolean}
- */
 export function handleGoldenRushMessage({ ws, msg, wsUser }) {
   const type = msg.type
   if (!type.startsWith('gr.')) return false
@@ -202,13 +280,11 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
     if (!wsUser) { sendErr(ws, 'auth_required'); return true }
     const mode = msg.mode === '2v2' ? '2v2' : 'ffa'
 
-    // Удаляем старые записи этого юзера
     for (let i = grMatchQueue.length - 1; i >= 0; i--) {
       if (grMatchQueue[i].userId === wsUser.id || grMatchQueue[i].ws === ws) {
         grMatchQueue.splice(i, 1)
       }
     }
-    // Проверяем что юзер не в активной комнате
     const existing = findPlayerRoomByUserId(wsUser.id)
     if (existing && !existing.room.state.gameOver) {
       sendErr(ws, 'already_in_room')
@@ -267,14 +343,14 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
     })
 
     if (room.state.gameOver) {
-      // Пишем в training_data на будущее + бриксы (TODO: Phase 3 вознаграждения)
+      persistGameResult(room)
       broadcast(room, {
         type: 'gr.gameOver',
         state: room.state.serialize(),
         winner: room.state.winner,
         scores: room.state.scores || computeScores(room.state),
+        rewards: GR_REWARDS, // клиент покажет "+10 бриксов"
       })
-      // Комнату удалим через 5 минут (чтобы клиенты могли показать экран)
       setTimeout(() => { if (grRooms.has(room.id)) grRooms.delete(room.id) }, 5 * 60 * 1000)
     }
     return true
@@ -287,12 +363,9 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
     const { room, slot } = found
     if (room.state.gameOver) return true
 
-    // Resign = игрок автоматически проигрывает. В FFA — его очки обнуляются.
-    // В 2v2 — команда проигрывает целиком. Для простоты прерываем игру.
     room.state.gameOver = true
     room.state.scores = computeScores(room.state)
     if (room.mode === 'ffa') {
-      // Победитель — любой другой с макс.очками
       let best = -1, bestScore = -Infinity
       for (let p = 0; p < 4; p++) {
         if (p === slot) continue
@@ -300,23 +373,24 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
       }
       room.state.winner = best
     } else {
-      // 2v2 — победа команды оппонентов
       const resignerTeam = room.state.teams.findIndex(t => t.includes(slot))
       room.state.winner = 1 - resignerTeam
     }
 
+    persistGameResult(room, { resignedBy: slot })
     broadcast(room, {
       type: 'gr.gameOver',
       state: room.state.serialize(),
       winner: room.state.winner,
       scores: room.state.scores,
       resignedBy: slot,
+      rewards: GR_REWARDS,
     })
     setTimeout(() => { if (grRooms.has(room.id)) grRooms.delete(room.id) }, 5 * 60 * 1000)
     return true
   }
 
-  // ─── gr.teamChat (только 2v2, между союзниками) ───
+  // ─── gr.teamChat ───
   if (type === 'gr.teamChat') {
     const found = findPlayerRoom(ws)
     if (!found) { sendErr(ws, 'not_in_room'); return true }
@@ -378,30 +452,21 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
     return true
   }
 
-  // Тип начинается с gr. но не совпал — возвращаем true чтобы не пытались обработать как обычный ход.
   sendErr(ws, 'unknown_gr_type')
   return true
 }
 
-/**
- * Вызывается при разрыве WS соединения. Ищет комнату и помечает игрока как disconnected.
- * Если все disconnected — удаляет комнату через 2 минуты.
- */
 export function handleGoldenRushDisconnect(ws) {
-  // Убираем из очереди
   for (let i = grMatchQueue.length - 1; i >= 0; i--) {
     if (grMatchQueue[i].ws === ws) grMatchQueue.splice(i, 1)
   }
-  // Ищем комнату
   const found = findPlayerRoom(ws)
   if (!found) return
   const { room, slot } = found
 
   room.players[slot].disconnectedAt = Date.now()
-
   broadcast(room, { type: 'gr.playerLeft', slot, name: room.players[slot].name })
 
-  // Если все disconnected — удаляем комнату через 2 мин
   const anyAlive = room.players.some(p => p.ws?.readyState === 1 && !p.disconnectedAt)
   if (!anyAlive && !room.deleteTimer) {
     room.deleteTimer = setTimeout(() => {
@@ -410,27 +475,19 @@ export function handleGoldenRushDisconnect(ws) {
   }
 }
 
-/**
- * Периодическая очистка. Вызывать из ws.js каждые 2 мин.
- */
 export function cleanupGoldenRush() {
   const now = Date.now()
-  // Удаляем комнаты старше 30 мин без активности
   for (const [id, room] of grRooms) {
     if (now - (room.lastActivity || room.created) > 30 * 60 * 1000) {
       const anyAlive = room.players.some(p => p.ws?.readyState === 1)
       if (!anyAlive) grRooms.delete(id)
     }
   }
-  // Убираем мёртвые коннекты из очереди
   for (let i = grMatchQueue.length - 1; i >= 0; i--) {
     if (grMatchQueue[i].ws.readyState !== 1) grMatchQueue.splice(i, 1)
   }
 }
 
-/**
- * Для /api/health и админки.
- */
 export function getGoldenRushStats() {
   return {
     rooms: grRooms.size,
