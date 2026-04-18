@@ -106,11 +106,17 @@ describe('applyAction — order=1 closure', () => {
 })
 
 describe('applyAction — order=2 blocked until order=1', () => {
-  it('stand 2 at 10 blocks CANNOT gain 11th while stand 1 open', () => {
+  it('pure-placement on stand 2 at 10 blocks is BLOCKED (would require 11th chip while stand 1 open)', () => {
+    // Прямое placement на stand 2 — getValidPlacements должен его отсечь
+    // независимо от того, разрешает ли getLegalActions combo transfer+placement
+    // (которое сначала уводит блоки со stand 2 — это легитимная ветка игры).
+    // Проверяем именно cap-правило стойки.
     const s = new GoldenRushState()
     forceFill(s, 2, 10, 0)
-    const legal = getLegalActions(s)
-    expect(legal.every(a => !(a.placement && a.placement[2]))).toBe(true)
+    const pls = getValidPlacements(s)
+    // Ни одна placement-опция не должна добавлять блоки на stand 2,
+    // потому что standSpace(2) = effectiveCap(2) - 10 = 10 - 10 = 0.
+    expect(pls.every(p => !(2 in p))).toBe(true)
   })
 
   it('once stand 1 closes, paired stand 2 can reach 11 and close', () => {
