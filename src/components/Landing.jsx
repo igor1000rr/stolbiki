@@ -8,7 +8,6 @@ import { APP_VERSION } from '../version'
 
 const LandingCity3D = lazy(() => import('./LandingCity3D'))
 
-// Scroll-triggered animation hook
 function useReveal(threshold = 0.15) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)
@@ -22,7 +21,7 @@ function useReveal(threshold = 0.15) {
   return [ref, visible]
 }
 
-export default function Landing({ onPlay, onTutorial, publicStats, installPrompt }) {
+export default function Landing({ onPlay, onTutorial, publicStats, installPrompt, go }) {
   const { lang } = useI18n()
   const en = lang === 'en'
   const { c } = useContent(lang)
@@ -30,6 +29,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
   const [heroRef, heroVis] = useReveal(0.1)
   const [cityRef, cityVis] = useReveal(0.1)
   const [stepRef, stepVis] = useReveal()
+  const [grRef, grVis] = useReveal(0.1)
   const [featRef, featVis] = useReveal(0.1)
   const [screensRef, screensVis] = useReveal()
   const [dlRef, dlVis] = useReveal()
@@ -144,6 +144,109 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ═══ GOLDEN RUSH ═══ */}
+      <section className={`l-section ${grVis ? 'in' : ''}`} ref={grRef}>
+        <div style={{
+          padding: 'clamp(28px, 5vw, 48px)',
+          background: 'linear-gradient(135deg, rgba(255,193,69,0.06) 0%, rgba(255,193,69,0.02) 100%)',
+          border: '1px solid rgba(255,193,69,0.2)',
+          borderRadius: 20,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+          gap: 'clamp(20px, 4vw, 36px)',
+          alignItems: 'center',
+        }}>
+          <div>
+            <div style={{
+              display: 'inline-block', fontSize: 10, fontWeight: 700,
+              color: '#ffc145', textTransform: 'uppercase', letterSpacing: 2,
+              marginBottom: 8,
+              padding: '3px 10px', borderRadius: 999,
+              background: 'rgba(255,193,69,0.12)',
+              border: '1px solid rgba(255,193,69,0.25)',
+            }}>
+              NEW · 4 {en ? 'players' : 'игрока'}
+            </div>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, margin: '0 0 12px', color: 'var(--ink)', lineHeight: 1.15 }}>
+              {en ? 'Golden Rush' : 'Golden Rush'}
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.65, marginBottom: 16 }}>
+              {en
+                ? '9 stands in a cross. 4 players, each owns two — near and far. Close both to qualify for the golden center (+15 points, FIFO).'
+                : '9 стоек крестом. 4 игрока, у каждого две — ближняя и дальняя. Замкни обе — встаёшь в очередь на золотой центр (+15 очков, первым пришёл — первым забрал).'}
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+              {(en
+                ? ['2v2 teams', '4-FFA', 'Matchmaking', 'Team chat', 'Bricks reward']
+                : ['2v2 команды', '4-FFA', 'Матчмейкинг', 'Тим-чат', 'Кирпичи за матч']
+              ).map((tag, i) => (
+                <span key={i} style={{
+                  fontSize: 11, padding: '4px 10px', borderRadius: 6,
+                  background: 'rgba(255,193,69,0.08)',
+                  color: '#ffc145',
+                  border: '1px solid rgba(255,193,69,0.2)',
+                  fontWeight: 500,
+                }}>{tag}</span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                className="btn primary"
+                onClick={() => go?.('goldenrush-online')}
+                style={{
+                  padding: '10px 20px', fontSize: 14, fontWeight: 700,
+                  background: '#ffc145', color: '#1a1a2e', border: 'none',
+                  borderRadius: 10, cursor: 'pointer',
+                  boxShadow: '0 0 24px rgba(255,193,69,0.3)',
+                }}
+              >
+                {en ? 'Play online' : 'Играть онлайн'}
+              </button>
+              <button
+                className="btn"
+                onClick={() => go?.('goldenrush')}
+                style={{ padding: '10px 20px', fontSize: 14 }}
+              >
+                {en ? 'Hot-seat (4 friends)' : 'Hot-seat (4 друга)'}
+              </button>
+            </div>
+          </div>
+
+          {/* SVG — схема креста 9 стоек */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <svg viewBox="0 0 240 240" style={{ width: '100%', maxWidth: 260, aspectRatio: '1/1' }}>
+              {/* Диагональные линии */}
+              <line x1="60" y1="60" x2="180" y2="180" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+              <line x1="180" y1="60" x2="60" y2="180" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+
+              {/* Center glow */}
+              <circle cx="120" cy="120" r="40" fill="rgba(255,193,69,0.12)" />
+
+              {/* Arms — 4 игрока × 2 стойки */}
+              {[
+                { x: 60,  y: 60,  color: '#4a9eff', order: 1 },  // P0 top-left
+                { x: 30,  y: 120, color: '#4a9eff', order: 2 },
+                { x: 180, y: 60,  color: '#ff6066', order: 1 },  // P1 top-right
+                { x: 210, y: 120, color: '#ff6066', order: 2 },
+                { x: 180, y: 180, color: '#3dd68c', order: 1 },  // P2 bottom-right
+                { x: 120, y: 210, color: '#3dd68c', order: 2 },
+                { x: 60,  y: 180, color: '#e040fb', order: 1 },  // P3 bottom-left
+                { x: 120, y: 30,  color: '#e040fb', order: 2 },
+              ].map((s, i) => (
+                <g key={i} className="l-skin-dot" style={{ animationDelay: `${i * 0.12}s` }}>
+                  <circle cx={s.x} cy={s.y} r="18" fill="#0a0a18" stroke={s.color} strokeWidth="1.5" opacity="0.9" />
+                  <text x={s.x} y={s.y + 4} textAnchor="middle" fontSize="11" fontWeight="700" fill={s.color}>{s.order}</text>
+                </g>
+              ))}
+
+              {/* Центр — золотая */}
+              <circle cx="120" cy="120" r="24" fill="#2a2420" stroke="#ffc145" strokeWidth="2" />
+              <text x="120" y="128" textAnchor="middle" fontSize="22" fontWeight="800" fill="#ffc145">★</text>
+            </svg>
+          </div>
         </div>
       </section>
 
@@ -326,6 +429,8 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
              en ? '5-15 minutes depending on skill. Blitz mode, modifiers (Fog, Double transfer, Auto-pass) available.' : '5-15 минут в зависимости от уровня. Есть блиц-режим и геймплейные моды: туман войны, ×2 перенос, авто-пас.'],
             [en ? 'What is the golden stand?' : 'Зачем золотая стойка?',
              en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при счёте 5:5. Контроль над ней — ключевая стратегия.'],
+            [en ? 'What is Golden Rush?' : 'Что такое Golden Rush?',
+             en ? 'A 4-player mode on a 9-stand cross. Hot-seat (one device, 4 players) or online with matchmaking in 2v2 or 4-FFA. Each match gives you bricks: +2 for participating, +10 for winning, +3 for capturing the center.' : 'Режим на 4 игроков — крест из 9 стоек. Hot-seat (одно устройство, 4 игрока) или онлайн с матчмейкингом в 2v2 или 4-FFA. Каждый матч даёт кирпичи: +2 за участие, +10 за победу, +3 за взятие центра.'],
             [en ? 'What is Victory City?' : 'Что такое Город побед?',
              en ? 'Every win adds a building to your profile. Building color reflects the block skin you used in that game. Visit your profile to see your city grow in 3D.' : 'Каждая победа добавляет здание в профиль. Цвет здания = скин блоков в той партии. Смотри как растёт твой город в 3D прямо в профиле.'],
           ].map(([q, a], i) => (
