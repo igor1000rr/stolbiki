@@ -56,7 +56,6 @@ function CloseSchema({ lang }) {
         {en ? 'Completion example' : 'Пример достройки'}
       </div>
       <svg viewBox="0 0 360 155" style={{ width: '100%', maxWidth: 400, display: 'block', margin: '0 auto' }}>
-        {/* Левая стойка — До (8 фишек: 5 синих + 3 красных) */}
         <rect x={20} y={15} width={50} height={112} rx={6} fill="none" stroke="var(--surface3)" strokeWidth={1.5} />
         <text x={45} y={10} textAnchor="middle" fontSize={10} fill="var(--ink3)">{en ? 'Before' : 'До'}</text>
         {[0,1,2,3,4].map(i => <rect key={`b${i}`} x={28} y={110 - i*12} width={34} height={9} rx={3} fill="var(--p1)" opacity={0.7} />)}
@@ -67,7 +66,6 @@ function CloseSchema({ lang }) {
         <line x1={120} y1={80} x2={190} y2={80} stroke="var(--gold)" strokeWidth={1.5} strokeDasharray="4,3" />
         <polygon points="190,75 200,80 190,85" fill="var(--gold)" />
 
-        {/* Правая стойка — Закрыта (11 фишек) */}
         <rect x={210} y={15} width={50} height={112} rx={6} fill="rgba(61,214,140,0.08)" stroke="var(--green)" strokeWidth={1.5} />
         <text x={235} y={10} textAnchor="middle" fontSize={10} fill="var(--green)">{en ? 'Complete' : 'Достроена'}</text>
         {Array.from({length: 11}).map((_, i) => <rect key={`f${i}`} x={218} y={113 - i*9} width={34} height={6} rx={2} fill={i >= 8 ? 'var(--p2)' : 'var(--p1)'} opacity={0.5} />)}
@@ -81,9 +79,54 @@ function CloseSchema({ lang }) {
   )
 }
 
+// SVG-схема Golden Rush: 9 стоек крестом
+function GoldenRushSchema({ lang }) {
+  const en = lang === 'en'
+  return (
+    <div style={{ padding: 16, background: 'rgba(255,193,69,0.04)', borderRadius: 12, border: '1px solid rgba(255,193,69,0.2)', marginTop: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#ffc145', marginBottom: 10 }}>
+        {en ? 'Board layout — 4 players on a cross' : 'Поле — 4 игрока на кресте'}
+      </div>
+      <svg viewBox="0 0 240 240" style={{ width: '100%', maxWidth: 280, display: 'block', margin: '0 auto' }}>
+        <line x1="60" y1="60" x2="180" y2="180" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        <line x1="180" y1="60" x2="60" y2="180" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+
+        <circle cx="120" cy="120" r="40" fill="rgba(255,193,69,0.1)" />
+
+        {[
+          { x: 60,  y: 60,  color: '#4a9eff', order: 1, label: 'P1' },
+          { x: 30,  y: 120, color: '#4a9eff', order: 2 },
+          { x: 180, y: 60,  color: '#ff6066', order: 1, label: 'P2' },
+          { x: 210, y: 120, color: '#ff6066', order: 2 },
+          { x: 180, y: 180, color: '#3dd68c', order: 1, label: 'P3' },
+          { x: 120, y: 210, color: '#3dd68c', order: 2 },
+          { x: 60,  y: 180, color: '#e040fb', order: 1, label: 'P4' },
+          { x: 120, y: 30,  color: '#e040fb', order: 2 },
+        ].map((s, i) => (
+          <g key={i}>
+            <circle cx={s.x} cy={s.y} r="18" fill="#0a0a18" stroke={s.color} strokeWidth="1.5" opacity="0.9" />
+            <text x={s.x} y={s.y + 4} textAnchor="middle" fontSize="11" fontWeight="700" fill={s.color}>{s.order}</text>
+            {s.label && <text x={s.x + (s.x < 120 ? -24 : 24)} y={s.y - 20} textAnchor="middle" fontSize="9" fill={s.color} fontWeight="700">{s.label}</text>}
+          </g>
+        ))}
+
+        <circle cx="120" cy="120" r="24" fill="#2a2420" stroke="#ffc145" strokeWidth="2" />
+        <text x="120" y="128" textAnchor="middle" fontSize="22" fontWeight="800" fill="#ffc145">★</text>
+      </svg>
+      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink3)', marginTop: 8, lineHeight: 1.6 }}>
+        {en
+          ? 'Each player owns stand «1» (near) and «2» (far). Close «1» first, then «2». The center is shared.'
+          : 'У каждого игрока своя стойка «1» (ближняя) и «2» (дальняя). Сначала замыкается «1», потом «2». Центр — общий.'}
+      </div>
+    </div>
+  )
+}
+
 export default function Rules() {
   const { lang } = useI18n()
   const en = lang === 'en'
+
+  const goTab = (id) => window.dispatchEvent(new CustomEvent('stolbiki-go-tab', { detail: id }))
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
@@ -168,6 +211,80 @@ export default function Rules() {
               <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{d}</span>
             </div>
           ))}
+        </div>
+      </Section>
+
+      {/* ═══ Golden Rush — отдельный режим на 4 игрока ═══ */}
+      <Section title={en ? 'Golden Rush — 4-player mode' : 'Golden Rush — режим на 4 игрока'}>
+        <Bullet>{en ? '9 stands in a cross layout (1 center + 8 arms, two per player)' : '9 стоек крестом (1 центральная + 8 «рук», по две у каждого игрока)'}</Bullet>
+        <Bullet>{en ? 'Each player owns stand «order=1» (near) and «order=2» (far) of their color' : 'У каждого игрока своя стойка «order=1» (ближняя) и «order=2» (дальняя) своего цвета'}</Bullet>
+        <Bullet color="#ffc145">{en ? 'Key rule: you cannot close «order=2» while «order=1» is still open' : 'Ключевое правило: дальнюю нельзя замкнуть пока ближняя открыта'}</Bullet>
+        <Bullet>{en ? 'Close both your stands → you join the queue for the golden center' : 'Замкнул обе свои стойки → встаёшь в очередь на золотой центр'}</Bullet>
+        <Bullet color="#ffc145">{en ? 'First in queue captures the center (+15 points, FIFO)' : 'Первый в очереди замыкает центр (+15 очков, FIFO)'}</Bullet>
+
+        <GoldenRushSchema lang={lang} />
+
+        <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface3)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
+            {en ? 'Scoring' : 'Очки'}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
+            {[
+              { v: '+1', l: en ? 'per block' : 'за блок', c: 'var(--ink2)' },
+              { v: '+5', l: en ? 'order=1 close' : 'закрытие «1»', c: 'var(--p1)' },
+              { v: '+8', l: en ? 'order=2 close' : 'закрытие «2»', c: 'var(--p2)' },
+              { v: '+15', l: en ? 'center' : 'центр', c: '#ffc145' },
+              { v: '+5', l: en ? '2v2 team bonus' : 'тимбонус 2v2', c: 'var(--green)' },
+            ].map((x, i) => (
+              <div key={i} style={{ textAlign: 'center', padding: '8px 4px', background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: x.c }}>{x.v}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>{x.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface3)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
+            {en ? 'Rewards (online only)' : 'Награды (только онлайн)'}
+          </div>
+          <Bullet color="var(--green)">{en ? '+2 🧱 for participating' : '+2 🧱 за участие'}</Bullet>
+          <Bullet color="var(--green)">{en ? '+10 🧱 for winning' : '+10 🧱 за победу'}</Bullet>
+          <Bullet color="var(--green)">{en ? '+3 🧱 for capturing the center' : '+3 🧱 за взятие центра'}</Bullet>
+          <Bullet color="var(--coral)">{en ? 'Resign mid-game = 0 bricks' : 'Сдался — 0 кирпичей'}</Bullet>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+          <button
+            onClick={() => goTab('goldenrush-online')}
+            style={{
+              padding: '10px 18px', fontSize: 13, fontWeight: 700,
+              background: '#ffc145', color: '#1a1a2e', border: 'none',
+              borderRadius: 8, cursor: 'pointer',
+            }}
+          >
+            {en ? 'Play online (2v2 / 4-FFA)' : 'Играть онлайн (2v2 / 4-FFA)'}
+          </button>
+          <button
+            onClick={() => goTab('goldenrush')}
+            style={{
+              padding: '10px 18px', fontSize: 13,
+              background: 'transparent', color: 'var(--ink)',
+              border: '1px solid var(--ink4)', borderRadius: 8, cursor: 'pointer',
+            }}
+          >
+            {en ? 'Hot-seat demo' : 'Hot-seat демо'}
+          </button>
+          <button
+            onClick={() => goTab('goldenrush-top')}
+            style={{
+              padding: '10px 18px', fontSize: 13,
+              background: 'transparent', color: 'var(--ink)',
+              border: '1px solid var(--ink4)', borderRadius: 8, cursor: 'pointer',
+            }}
+          >
+            {en ? 'Leaderboard' : 'Лидерборд'}
+          </button>
         </div>
       </Section>
     </div>
