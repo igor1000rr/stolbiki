@@ -29,13 +29,16 @@ import v530 from './blog-posts/v530.js'
 import v561 from './blog-posts/v561.js'
 import v570 from './blog-posts/v570.js'
 import v572 from './blog-posts/v572.js'
+import v595 from './blog-posts/v595.js'
+import v600 from './blog-posts/v600.js'
 
-export const PINNED_SLUG = 'v572-arena-races'
+export const PINNED_SLUG = 'v595-golden-rush'
 
 export const BLOG_POSTS = [
   v34, v35,
   v450, v451, v460, v461, v462, v470,
   v530, v561, v570, v572,
+  v595, v600,
 ]
 
 export function seedBlogPosts(db) {
