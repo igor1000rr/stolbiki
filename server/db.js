@@ -33,10 +33,6 @@ export const JWT_SECRET = process.env.JWT_SECRET || (() => {
     console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
     process.exit(1)
   }
-  // В VITEST-режиме не пишем secret на диск — каждый тест получает свежий
-  // эфемерный secret, persist не нужен. Без этого .jwt-secret (mode 0o600)
-  // создавался при прогоне тестов в CI и ломал appleboy/scp-action "Permission denied"
-  // потому что docker контейнер scp'а работает от другого юзера.
   if (process.env.VITEST) {
     return 'stolbiki_test_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
   }
@@ -62,10 +58,10 @@ db.pragma('synchronous = NORMAL')
 // Базовая схема. Новые колонки — через migrations.js, а не здесь.
 //
 // ВАЖНО: все CREATE TABLE должны быть ДО CREATE INDEX ссылающихся на них.
-// Table season_rewards создаётся в migrate(5), но индекс на неё был в базовой
-// схеме → в :memory: (тесты) падало "no such table: main.season_rewards". В проде
-// работало потому что таблица уже существовала с предыдущих запусков. Добавляем CREATE TABLE
-// здесь чтобы fresh-init работал.
+//
+// brick_transactions — включаем ref_id в базовую схему. На проде она добавлена исторически
+// через ALTER (вне runMigrations), в тестовой :memory: БД её не было → awardBricksToReferrer()
+// в auth.js падал в транзакции регистрации → 500 Internal Server Error.
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -263,6 +259,7 @@ db.exec(`
     user_id INTEGER NOT NULL,
     amount INTEGER NOT NULL,
     reason TEXT NOT NULL,
+    ref_id INTEGER,
     created_at INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
@@ -296,12 +293,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id);
 `)
 
+// На проде brick_transactions могла быть создана без ref_id — добавляем колонку через ALTER
+// если её нет (идемпотентно). Для fresh :memory: и fresh прод она уже в CREATE TABLE.
+try {
+  const cols = db.prepare('PRAGMA table_info(brick_transactions)').all().map(c => c.name)
+  if (!cols.includes('ref_id')) db.exec('ALTER TABLE brick_transactions ADD COLUMN ref_id INTEGER')
+} catch {}
+
 runMigrations(db)
 seedCms(db)
 seedBlogPosts(db)
 initAchievements(db)
 
-console.log('База данных готова:', DB_PATH)
+if (!process.env.VITEST) console.log('База данных готова:', DB_PATH)
 
 export { bcrypt, checkAchievements }
 export { __dirname as serverDir }

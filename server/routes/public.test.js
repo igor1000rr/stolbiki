@@ -1,11 +1,5 @@
 /**
  * Integration тесты для публичных API endpoints через supertest.
- *
- * Покрывает: /api/health, /api/stats, /api/content, /api/daily, /api/daily/leaderboard,
- * /api/blog, /api/blog/:slug, /api/rooms (GET + POST), /api/rooms/active, /api/rooms/:id.
- *
- * Все эндпоинты НЕ требуют auth — это чистая проверка что роуты живы, схема ответа
- * стабильна, и коды статусов правильные.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -56,7 +50,6 @@ describe('GET /api/content', () => {
     const res = await request(app).get('/api/content')
     expect(res.status).toBe(200)
     expect(typeof res.body).toBe('object')
-    // Каждое значение — { ru, en }
     const keys = Object.keys(res.body)
     expect(keys.length).toBeGreaterThan(0)
     for (const k of keys.slice(0, 5)) {
@@ -145,18 +138,18 @@ describe('GET /api/blog/:slug', () => {
 })
 
 describe('POST /api/blog (admin-only)', () => {
-  it('403 без auth token', async () => {
+  it('401 без auth token (middleware auth)', async () => {
     const res = await request(app).post('/api/blog').send({
       slug: 'test-post', title_ru: 'Тест', body_ru: 'Тело',
     })
-    // middleware auth вернёт 401 (нет токена)
-    expect([401, 403]).toContain(res.status)
+    // middleware auth стоит ПЕРЕД проверкой isAdmin — без токена отдаёт 401
+    expect(res.status).toBe(401)
   })
 
   it('403 при auth обычным юзером (не admin)', async () => {
-    // Регистрируем обычного юзера
     const username = 'blog_user_' + Date.now()
     const reg = await request(app).post('/api/auth/register').send({ username, password: 'password123' })
+    expect(reg.status).toBe(200)
     const token = reg.body.token
     const res = await request(app).post('/api/blog').set('Authorization', `Bearer ${token}`).send({
       slug: 'should-not-create', title_ru: 'Nope', body_ru: 'Nope',
