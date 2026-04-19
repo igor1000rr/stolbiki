@@ -6,6 +6,12 @@ import { describe, it, expect } from 'vitest'
 import request from 'supertest'
 import { app } from '../server.js'
 
+function expectStatus(res, expected) {
+  if (res.status !== expected) {
+    throw new Error(`Expected ${expected}, got ${res.status}. Body: ${JSON.stringify(res.body)}`)
+  }
+}
+
 describe('GET /api/health', () => {
   it('возвращает 200 и корректную схему', async () => {
     const res = await request(app).get('/api/health')
@@ -138,18 +144,18 @@ describe('GET /api/blog/:slug', () => {
 })
 
 describe('POST /api/blog (admin-only)', () => {
-  it('401 без auth token (middleware auth)', async () => {
+  it('401 без auth token', async () => {
     const res = await request(app).post('/api/blog').send({
       slug: 'test-post', title_ru: 'Тест', body_ru: 'Тело',
     })
-    // middleware auth стоит ПЕРЕД проверкой isAdmin — без токена отдаёт 401
     expect(res.status).toBe(401)
   })
 
   it('403 при auth обычным юзером (не admin)', async () => {
-    const username = 'blog_user_' + Date.now()
+    // Короткое имя — важно быть под 20 символов
+    const username = 'bu_' + Date.now().toString(36).slice(-6)
     const reg = await request(app).post('/api/auth/register').send({ username, password: 'password123' })
-    expect(reg.status).toBe(200)
+    expectStatus(reg, 200)
     const token = reg.body.token
     const res = await request(app).post('/api/blog').set('Authorization', `Bearer ${token}`).send({
       slug: 'should-not-create', title_ru: 'Nope', body_ru: 'Nope',
@@ -169,7 +175,6 @@ describe('POST /api/rooms', () => {
   it('поддерживает tournament3/tournament5 режимы', async () => {
     const res3 = await request(app).post('/api/rooms').send({ mode: 'tournament3' })
     expect(res3.status).toBe(200)
-
     const res5 = await request(app).post('/api/rooms').send({ mode: 'tournament5' })
     expect(res5.status).toBe(200)
   })
@@ -193,7 +198,6 @@ describe('GET /api/rooms/:id', () => {
   it('возвращает 200 для существующей комнаты', async () => {
     const create = await request(app).post('/api/rooms').send({ mode: 'single' })
     const roomId = create.body.roomId
-
     const res = await request(app).get(`/api/rooms/${roomId}`)
     expect(res.status).toBe(200)
     expect(res.body.id).toBe(roomId)
@@ -207,10 +211,9 @@ describe('GET /api/rooms/:id', () => {
     expect(res.status).toBe(404)
   })
 
-  it('case-insensitive для roomId (приводится к uppercase)', async () => {
+  it('case-insensitive для roomId', async () => {
     const create = await request(app).post('/api/rooms').send({})
     const roomId = create.body.roomId
-
     const res = await request(app).get(`/api/rooms/${roomId.toLowerCase()}`)
     expect(res.status).toBe(200)
     expect(res.body.id).toBe(roomId)

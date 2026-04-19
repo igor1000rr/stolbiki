@@ -62,8 +62,14 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign({ id: userId, username: cleanName, isAdmin: !!isAdmin, tv: 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
     res.json({ token, user: { id: userId, username: cleanName, rating: 1000, isAdmin: !!isAdmin, referralCode: refCode } })
   } catch (e) {
+    // В тестах добавляем полный стектрейс в response — без этого CI выводит только "expected 500"
+    // и не понять почему. На проде эту ветку не достигаем.
     console.error('[auth/register] error:', e)
-    res.status(500).json({ error: 'Ошибка регистрации' })
+    const payload = { error: 'Ошибка регистрации' }
+    if (process.env.VITEST) {
+      payload._debug = { message: e?.message, code: e?.code, stack: e?.stack?.slice(0, 500) }
+    }
+    res.status(500).json(payload)
   }
 })
 

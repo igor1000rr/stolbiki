@@ -1,13 +1,5 @@
 /**
  * Real HTTP тесты для auth-роутов через supertest.
- *
- * Используем реальный Express app (импортируется из server.js), но в VITEST-режиме:
- * - server.js не слушает порт (isTest = true)
- * - db.js использует :memory: вместо файла
- * - JWT_SECRET — эфемерный, генерируется в памяти
- *
- * Это настоящие integration тесты — проходят через роутер, middleware (cors, helmet,
- * rate-limit, json-parser), bcrypt, jwt, БД. Только сеть заменена на in-process.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -16,7 +8,16 @@ import { app } from '../server.js'
 
 let counter = 0
 function uniqueName(prefix = 'u') {
-  return `${prefix}_${Date.now().toString(36)}_${counter++}`
+  // Максимум 20 символов — это username лимит в auth. prefix(1-2) + '_' + base36(6) + '_' + counter(1-3)
+  return `${prefix}_${Date.now().toString(36).slice(-6)}_${counter++}`
+}
+
+// Helper: если response не ожидаемый status — дампим body в error message.
+// В auth.js при VITEST=1 в body прилетает _debug с реальным стектрейсом.
+function expectStatus(res, expected) {
+  if (res.status !== expected) {
+    throw new Error(`Expected ${expected}, got ${res.status}. Body: ${JSON.stringify(res.body)}`)
+  }
 }
 
 describe('POST /api/auth/register', () => {
@@ -25,7 +26,7 @@ describe('POST /api/auth/register', () => {
     const res = await request(app).post('/api/auth/register').send({
       username, password: 'password123',
     })
-    expect(res.status).toBe(200)
+    expectStatus(res, 200)
     expect(res.body.token).toBeTruthy()
     expect(typeof res.body.token).toBe('string')
     expect(res.body.user.username).toBe(username)
@@ -65,14 +66,15 @@ describe('POST /api/auth/register', () => {
   it('409 если username уже занят', async () => {
     const username = uniqueName()
     const first = await request(app).post('/api/auth/register').send({ username, password: 'password123' })
-    expect(first.status).toBe(200)
+    expectStatus(first, 200)
     const second = await request(app).post('/api/auth/register').send({ username, password: 'different_password' })
     expect(second.status).toBe(409)
     expect(second.body.error).toMatch(/taken/i)
   })
 
   it('санитизирует опасные символы в username', async () => {
-    const raw = 'user<>&"\'' + Date.now()
+    // Короткий suffix из-за лимита 20 символов
+    const raw = `u<>&"'_${Date.now().toString(36).slice(-4)}`
     const res = await request(app).post('/api/auth/register').send({
       username: raw, password: 'password123',
     })
@@ -86,36 +88,37 @@ describe('POST /api/auth/register', () => {
   })
 
   it('referralCode — реферер получает бонус при регистрации реферала', async () => {
-    const referrerName = uniqueName('ref')
+    const referrerName = uniqueName('r')
     const reg1 = await request(app).post('/api/auth/register').send({
       username: referrerName, password: 'password123',
     })
-    expect(reg1.status).toBe(200)
+    expectStatus(reg1, 200)
     const refCode = reg1.body.user.referralCode
     expect(refCode).toBeTruthy()
     expect(refCode).toMatch(/^[A-Z0-9]+$/)
 
-    const refereeName = uniqueName('referee')
+    const refereeName = uniqueName('re')
     const reg2 = await request(app).post('/api/auth/register').send({
       username: refereeName, password: 'password123', referralCode: refCode,
     })
-    expect(reg2.status).toBe(200)
+    expectStatus(reg2, 200)
   })
 
   it('некорректный referralCode не мешает регистрации', async () => {
     const res = await request(app).post('/api/auth/register').send({
       username: uniqueName(), password: 'password123', referralCode: 'NONEXISTENT12345',
     })
-    expect(res.status).toBe(200)
+    expectStatus(res, 200)
   })
 })
 
 describe('POST /api/auth/login', () => {
   it('успешный логин с правильными credentials', async () => {
     const username = uniqueName()
-    await request(app).post('/api/auth/register').send({ username, password: 'password123' })
+    const reg = await request(app).post('/api/auth/register').send({ username, password: 'password123' })
+    expectStatus(reg, 200)
     const res = await request(app).post('/api/auth/login').send({ username, password: 'password123' })
-    expect(res.status).toBe(200)
+    expectStatus(res, 200)
     expect(res.body.token).toBeTruthy()
     expect(res.body.user.username).toBe(username)
   })
@@ -129,7 +132,7 @@ describe('POST /api/auth/login', () => {
 
   it('401 для несуществующего юзера', async () => {
     const res = await request(app).post('/api/auth/login').send({
-      username: 'nonexistent_' + Date.now(), password: 'anything',
+      username: uniqueName('nope'), password: 'anything',
     })
     expect(res.status).toBe(401)
   })
@@ -144,12 +147,11 @@ describe('POST /api/auth/refresh', () => {
   it('обновляет token по валидному свежему токену', async () => {
     const username = uniqueName()
     const reg = await request(app).post('/api/auth/register').send({ username, password: 'password123' })
-    expect(reg.status).toBe(200)
+    expectStatus(reg, 200)
     const oldToken = reg.body.token
     const res = await request(app).post('/api/auth/refresh').set('Authorization', `Bearer ${oldToken}`)
-    expect(res.status).toBe(200)
+    expectStatus(res, 200)
     expect(res.body.token).toBeTruthy()
-    expect(typeof res.body.token).toBe('string')
   })
 
   it('401 если нет Authorization header', async () => {
@@ -162,28 +164,24 @@ describe('POST /api/auth/refresh', () => {
     const res = await request(app).post('/api/auth/refresh').set('Authorization', 'Bearer invalid.token.here')
     expect(res.status).toBe(401)
   })
-
-  // Тест на "юзер удалён" убран — он требовал динамического импорта db внутри
-  // теста что давало разные экземпляры БД в разных модулях.
 })
 
 describe('flow: register → login → refresh', () => {
   it('полный auth flow работает end-to-end', async () => {
-    const username = uniqueName('flow')
+    const username = uniqueName('fl')
 
     const reg = await request(app).post('/api/auth/register').send({ username, password: 'password123' })
-    expect(reg.status).toBe(200)
+    expectStatus(reg, 200)
     const regToken = reg.body.token
 
     const login = await request(app).post('/api/auth/login').send({ username, password: 'password123' })
-    expect(login.status).toBe(200)
+    expectStatus(login, 200)
     const loginToken = login.body.token
-    expect(loginToken).toBeTruthy()
 
     const refresh1 = await request(app).post('/api/auth/refresh').set('Authorization', `Bearer ${regToken}`)
-    expect(refresh1.status).toBe(200)
+    expectStatus(refresh1, 200)
 
     const refresh2 = await request(app).post('/api/auth/refresh').set('Authorization', `Bearer ${loginToken}`)
-    expect(refresh2.status).toBe(200)
+    expectStatus(refresh2, 200)
   })
 })
