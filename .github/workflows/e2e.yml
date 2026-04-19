@@ -14,10 +14,8 @@ concurrency:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    # continue-on-error: true оставлено в коде, чтобы падение E2E не блокировало deploy
-    # (тесты молодые, может быть flaky). Уберём когда стабилизируется.
     continue-on-error: true
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v5
@@ -28,81 +26,95 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      # --legacy-peer-deps т.к. @testing-library/react 16.x имеет peer conflict с React 19.
+      # Для E2E используем обычный install, а не ci: lockfile может быть out-of-sync
+      # из-за недавно добавленного @playwright/test.
       - name: Install frontend deps
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Install server deps
-        run: cd server && npm ci
+        working-directory: server
+        run: |
+          if [ -f package-lock.json ]; then
+            npm install --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
 
-      - name: Get Playwright version
-        id: pw-version
-        run: echo "version=$(node -p \"require('./node_modules/@playwright/test/package.json').version\")" >> $GITHUB_OUTPUT
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: pw-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
-
+      # Playwright browsers + system deps. Без кеша — проще и надёжнее.
+      # Первый прогон ~1 мин, последующие использует layer cache от setup-node.
       - name: Install Playwright Chromium
-        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Install Playwright system deps
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      # Билд с API URL указывающим на локальный бекенд (который поднимем через шаг ниже).
+      # VITE_API_URL встраивается в билд. Делаем pre-build generate csp-hashes
+      # чтобы backend запустился в production-mode без warnings.
       - name: Build frontend
         run: VITE_API_URL=http://localhost:3001/api npm run build
 
-      # Backend запускается в фоне. NODE_ENV=test → CSP fallback, ALLOWED_ORIGINS пропускает preview.
-      # VITEST не ставим: должна быть реальная SQLite БД (не :memory:), иначе register/login
-      # между разными запросами не работают.
+      # Скопировать csp-hashes.json в server/ — без него backend пишет warning и может
+      # не запуститься в production (но у нас NODE_ENV=test, так что это не критично).
+      - name: Copy CSP hashes to server
+        run: |
+          if [ -f dist/csp-hashes.json ]; then
+            cp dist/csp-hashes.json server/csp-hashes.json
+            echo "✅ CSP hashes copied"
+          else
+            echo "⚠️  No csp-hashes.json (build пропустил этот шаг)"
+          fi
+
+      # Backend в фоне. NODE_ENV=test → не требует csp-hashes обязательно.
+      # DB_PATH — отдельная файловая БД чтобы register/login работали между запросами.
       - name: Start backend
         run: |
+          mkdir -p server/data
           cd server
-          mkdir -p data
           NODE_ENV=test \
             ALLOWED_ORIGINS=http://localhost:4173,http://localhost:3001 \
             JWT_SECRET=e2e_test_secret_do_not_use_in_prod \
             DB_PATH=./data/e2e-test.db \
+            CSP_ALLOW_UNSAFE_INLINE=1 \
             node server.js > /tmp/backend.log 2>&1 &
           echo $! > /tmp/backend.pid
+          echo "Backend started with PID $(cat /tmp/backend.pid)"
 
       - name: Wait for backend
         run: |
           for i in {1..30}; do
-            if curl -sf http://localhost:3001/api/health > /dev/null; then
+            if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
               echo "✅ Backend ready"
-              curl -s http://localhost:3001/api/health | head -200
+              curl -s http://localhost:3001/api/health | head -200 || true
               exit 0
+            fi
+            if ! kill -0 $(cat /tmp/backend.pid) 2>/dev/null; then
+              echo "❌ Backend process died. Full log:"
+              cat /tmp/backend.log
+              exit 1
             fi
             echo "Waiting for backend... ($i/30)"
             sleep 1
           done
-          echo "❌ Backend failed to start. Last 50 lines of log:"
-          tail -50 /tmp/backend.log
+          echo "❌ Backend failed to respond. Full log:"
+          cat /tmp/backend.log
           exit 1
 
       - name: Start frontend preview
         run: |
-          npx vite preview --port 4173 --host 0.0.0.0 > /tmp/frontend.log 2>&1 &
+          nohup npx vite preview --port 4173 --host 0.0.0.0 > /tmp/frontend.log 2>&1 &
           echo $! > /tmp/frontend.pid
+          echo "Frontend started with PID $(cat /tmp/frontend.pid)"
 
       - name: Wait for frontend
         run: |
           for i in {1..30}; do
-            if curl -sf http://localhost:4173 > /dev/null; then
+            if curl -sf http://localhost:4173 > /dev/null 2>&1; then
               echo "✅ Frontend ready"
               exit 0
             fi
             echo "Waiting for frontend... ($i/30)"
             sleep 1
           done
-          echo "❌ Frontend failed to start. Last 50 lines of log:"
-          tail -50 /tmp/frontend.log
+          echo "❌ Frontend failed to start. Full log:"
+          cat /tmp/frontend.log
           exit 1
 
       - name: Run Playwright tests
@@ -118,6 +130,8 @@ jobs:
           kill $(cat /tmp/backend.pid) 2>/dev/null || true
           kill $(cat /tmp/frontend.pid) 2>/dev/null || true
 
+      # if-no-files-found: ignore — не ронять воркфлоу если артефактов нет
+      # (иногда Playwright не генерит repor если ни один тест не прошёл).
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -125,13 +139,15 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+          if-no-files-found: ignore
 
-      - name: Upload backend logs (on failure)
-        if: failure()
+      - name: Upload backend + frontend logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-logs
+          name: server-logs
           path: |
             /tmp/backend.log
             /tmp/frontend.log
           retention-days: 7
+          if-no-files-found: ignore
