@@ -147,7 +147,7 @@ export function PaintIcon({ size = 20, color = 'currentColor' }) {
   )
 }
 
-export default function SkinShop({ onClose, userLevel = 1, currentTheme = 'default', onThemeChange, bricks = 0, onBricksChange }) {
+export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'default', onThemeChange, bricks = 0, onBricksChange }) {
   const { lang } = useI18n()
   const en = lang === 'en'
   const gameCtx = useGameContext()

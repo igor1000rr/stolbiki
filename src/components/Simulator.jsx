@@ -102,7 +102,7 @@ function Histogram({ data, bins = 15, title, color = 'var(--p1-light)' }) {
 
 function WinrateTimeline({ snapshots }) {
   if (snapshots.length < 2) return null
-  const h = 60, w = '100%'
+  const h = 60
   const points = snapshots.map((s, i) => {
     const x = i / (snapshots.length - 1) * 100
     const y = (1 - (s.p1Wr - 40) / 20) * h  // 40-60% range
@@ -354,7 +354,7 @@ export default function Simulator() {
             <div className="dash-card">
               <h3>Финальные счета</h3>
               <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 65, marginTop: 8 }}>
-                {scoreEntries.map(([k, v], i) => {
+                {scoreEntries.map(([k, v], _i) => {
                   const max = Math.max(...scoreEntries.map(e => e[1]), 1)
                   return (
                     <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
