@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:full": "cd server && npm install && cd .. && vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "server:install": "cd server && npm install",
     "cap:sync": "vite build && npx cap sync",
     "cap:android": "npx cap open android",
@@ -35,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.48.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^19.2.14",

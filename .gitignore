@@ -1,18 +1,28 @@
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/e2e/.auth/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Logs
-logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,52 +32,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-__pycache__/
 
-# Большие файлы (модели, чекпоинты)
-gpu_train/gpu_checkpoint/
-*.pt
-*.pth
+# Tests
+coverage/
+.nyc_output/
 
-# Аналитика (отчёты)
-analysis/report.pdf
-
-# Базы данных
-*.db
-*.db-shm
-*.db-wal
-server/data/
-
-# Переменные окружения (секреты!)
-.env
-server/.env
+# Build artifacts
 server/.jwt-secret
-
-# CSP hashes — генерируется при билде vite плагином
-server/csp-hashes.json
-dist/csp-hashes.json
-
-# Бэкапы
-*-backups/
-
-# Capacitor build artifacts
-android/.gradle/
-android/app/build/
-android/build/
-android/capacitor-cordova-android-plugins/build/
-android/.idea/
-android/local.properties
-ios/App/Pods/
-ios/DerivedData/
-
-# Отчёты (генерятся, не хранить в git)
-public/report.pdf
-public/stolbiki-report.docx
-stolbiki-report.docx
-# Signing
-android/keystore.properties
-*.keystore
-*.jks
-
-# Мёртвый JSON формат весов (используется только .bin)
-src/engine/gpu_weights.json
+server/data/
+server/logs/
+server/backups/
+server/*.db
+server/*.db-*
