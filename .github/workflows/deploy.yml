@@ -144,4 +144,5 @@ jobs:
             pm2 set pm2-logrotate:max_size 10M 2>/dev/null || true
             pm2 set pm2-logrotate:retain 7 2>/dev/null || true
             nginx -t && systemctl reload nginx
-            echo "✅ $(date): deploy done, v$(node -e \"console.log(require('./package.json').version || '?')\" 2>/dev/null || echo '?')"
+            VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "?")
+            echo "✅ $(date): deploy done, v$VERSION"
