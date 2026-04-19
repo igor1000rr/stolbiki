@@ -1,11 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useI18n } from '../engine/i18n'
 
-// Данные дебютов (из анализа 239K партий)
 const OPENINGS = [
   {
     name: { ru: 'Центральная', en: 'Central' },
-    moves: '5', // первый ход на стойку 5
+    moves: '5',
     frequency: 18.2, swap: 12,
     winP1: 50.3,
     desc: { ru: 'Ставка на центральную стойку. Гибкий дебют, позволяющий развивать обе стороны.', en: 'Central stand play. Flexible opening for both sides.' },
@@ -65,17 +64,11 @@ const OPENINGS = [
   },
 ]
 
-// Тепловая карта активности стоек (из 239K+ партий)
 const HEATMAP_DATA = {
-  // Средняя частота закрытия каждой стойки
   closeFreq: [7.2, 10.8, 11.5, 10.1, 9.8, 12.1, 10.4, 9.9, 9.3, 8.9],
-  // Процент владения P1
   p1Ownership: [48.2, 50.8, 50.6, 50.1, 49.5, 50.4, 50.8, 49.2, 49.8, 47.1],
-  // Средний ход закрытия
   avgCloseTurn: [14.2, 11.8, 10.5, 12.1, 12.8, 10.2, 11.4, 12.6, 13.1, 13.8],
-  // Частота первого хода на каждую стойку
   firstMoveFreq: [14.7, 8.9, 7.2, 8.1, 10.8, 18.2, 9.5, 7.8, 3.5, 11.3],
-  // Частота переносов на стойку
   transferFreq: [5.1, 9.2, 12.4, 11.8, 8.6, 7.3, 11.2, 12.8, 10.1, 6.5],
 }
 
@@ -112,7 +105,7 @@ function HeatmapBar({ values, labels, colorFn, title }) {
 
 export default function Openings() {
   const { t, lang } = useI18n()
-  const [tab, setTab] = useState('openings') // openings | heatmap
+  const [tab, setTab] = useState('openings')
 
   const labels = ['★', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
@@ -165,7 +158,6 @@ export default function Openings() {
               <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.6 }}>
                 {o.desc[lang] || o.desc.ru}
               </div>
-              {/* Визуализация winrate bar */}
               <div style={{ display: 'flex', height: 4, borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
                 <div style={{ width: `${o.winP1}%`, background: 'var(--p1)', transition: 'width 0.5s' }} />
                 <div style={{ flex: 1, background: 'var(--p2)' }} />
@@ -194,8 +186,6 @@ export default function Openings() {
           <HeatmapBar
             values={HEATMAP_DATA.p1Ownership} labels={labels}
             colorFn={i => {
-              const diff = (HEATMAP_DATA.p1Ownership[HEATMAP_DATA.p1Ownership.indexOf(Math.max(...HEATMAP_DATA.p1Ownership))] - 47) / 7
-              const norm = (HEATMAP_DATA.p1Ownership[labels.indexOf(labels[HEATMAP_DATA.p1Ownership.indexOf(i * Math.max(...HEATMAP_DATA.p1Ownership))])] || i * 53) / 53
               return i > 0.52 ? `rgba(74,158,255,${0.2 + (i - 0.5) * 1.5})` : `rgba(255,96,102,${0.2 + (0.5 - i) * 1.5})`
             }}
             title={t('openings.p1Ownership')}
