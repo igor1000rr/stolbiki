@@ -10,7 +10,7 @@
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
 
-function StatRow({ label, leftValue, rightValue, format = (v) => v, en }) {
+function StatRow({ label, leftValue, rightValue, format = (v) => v, _en }) {
   const leftWins = leftValue > rightValue
   const rightWins = rightValue > leftValue
   return (
@@ -153,12 +153,10 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
   const [rightPlayer, setRightPlayer] = useState(null)
   const [loadingLb, setLoadingLb] = useState(true)
 
-  // Загружаем топ для выбора игроков
   useEffect(() => {
     fetch('/api/buildings/leaderboard')
       .then(r => r.json())
       .then(d => {
-        // Объединяем все топы в один плоский список без дубликатов
         const seen = new Map()
         for (const arr of [d.by_score || [], d.by_bricks || [], d.by_towers || [], d.by_crowned || []]) {
           for (const p of arr) {
@@ -168,7 +166,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
         const all = [...seen.values()].sort((a, b) => (b.score || 0) - (a.score || 0))
         setLeaderboard(all)
 
-        // Авто-выбор если переданы ID
         if (initialLeftId) {
           const p = all.find(x => x.user_id === initialLeftId)
           if (p) setLeftPlayer(p)
@@ -182,7 +179,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
       .finally(() => setLoadingLb(false))
   }, [initialLeftId, initialRightId])
 
-  // ESC закрывает
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', onKey)
@@ -209,7 +205,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
         boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
         overflow: 'hidden',
       }}>
-        {/* Header */}
         <div style={{
           padding: '16px 22px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -231,7 +226,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
             }} aria-label="close">✕</button>
         </div>
 
-        {/* Player slots */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
           padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -258,7 +252,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
 
         {leftPlayer && rightPlayer && (
           <>
-            {/* Два iframe рядом — изолированные WebGL контексты */}
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
               padding: '8px 12px', background: '#06060f',
@@ -283,7 +276,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
               />
             </div>
 
-            {/* Статки бок-о-бок, золотым подсвечен победивший */}
             <div style={{ padding: '14px 22px' }}>
               <StatRow en={en} format={fmt}
                 label={en ? 'Wins' : 'Побед'}
@@ -306,7 +298,6 @@ export default function CityCompare({ initialLeftId = null, initialRightId = nul
                 leftValue={leftPlayer.score}
                 rightValue={rightPlayer.score} />
 
-              {/* Вердикт */}
               <div style={{
                 marginTop: 14, padding: '12px 16px', borderRadius: 10,
                 background: 'linear-gradient(90deg, rgba(255,193,69,0.08) 0%, rgba(255,193,69,0.04) 100%)',
