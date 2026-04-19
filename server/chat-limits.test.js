@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { canChatNow, muteUser, unmuteUser, listMuted, RATE_LIMIT_WINDOW_MS } from './chat-limits.js'
 import { db } from './db.js'
 
