@@ -20,6 +20,7 @@ const SVG_SIZE = 480
 const SVG_C = SVG_SIZE / 2
 const SVG_R = SVG_SIZE * 0.38
 const TUTORIAL_KEY = 'stolbiki_gr_tutorial_seen'
+const GR_URL = 'https://snatch-highrise.com/goldenrush-online'
 
 function standXY(i) {
   const c = STAND_COORDS[i]
@@ -52,6 +53,36 @@ function btnStyle({ active = false, disabled = false, primary = false, color = n
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
   }
+}
+
+/**
+ * Универсальный share-хук.
+ * Пытается navigator.share (iOS/Android/modern desktop), fallback — clipboard.
+ */
+function useShare() {
+  const [hint, setHint] = useState(null)
+  async function share({ title, text, url }) {
+    const fallback = async () => {
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`)
+        setHint('copied')
+      } catch {
+        setHint('failed')
+      }
+      setTimeout(() => setHint(null), 2000)
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url })
+        return
+      }
+      await fallback()
+    } catch (e) {
+      if (e?.name === 'AbortError') return
+      await fallback()
+    }
+  }
+  return { share, hint }
 }
 
 function Board({ state, pending, onStandClick, yourSlot }) {
@@ -148,6 +179,7 @@ function Board({ state, pending, onStandClick, yourSlot }) {
 function Lobby({ onFind, hasToken, lang, onShowTutorial }) {
   const en = lang === 'en'
   const [mode, setMode] = useState('2v2')
+  const { share, hint } = useShare()
 
   if (!hasToken) {
     return (
@@ -184,17 +216,39 @@ function Lobby({ onFind, hasToken, lang, onShowTutorial }) {
         {en ? 'Find match' : 'Найти матч'}
       </button>
 
-      <button
-        onClick={onShowTutorial}
-        style={{
-          width: '100%', padding: '8px 14px', marginTop: 8,
-          background: 'transparent', color: 'var(--ink2)',
-          border: '1px solid var(--ink4)', borderRadius: 8,
-          fontWeight: 500, fontSize: 12, cursor: 'pointer',
-        }}
-      >
-        {en ? 'How to play (30s)' : 'Как играть (30 сек)'}
-      </button>
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <button
+          onClick={onShowTutorial}
+          style={{
+            flex: 1, padding: '8px 14px',
+            background: 'transparent', color: 'var(--ink2)',
+            border: '1px solid var(--ink4)', borderRadius: 8,
+            fontWeight: 500, fontSize: 12, cursor: 'pointer',
+          }}
+        >
+          {en ? 'How to play (30s)' : 'Как играть (30 сек)'}
+        </button>
+        <button
+          onClick={() => share({
+            title: 'Golden Rush — Highrise Heist',
+            text: en
+              ? 'Looking for 3 players to play Golden Rush — 4-player strategy board game. Join me!'
+              : 'Ищу 3 игроков в Golden Rush — стратегия на 4 человек. Заходи!',
+            url: GR_URL,
+          })}
+          style={{
+            flex: 1, padding: '8px 14px',
+            background: 'rgba(255,193,69,0.1)',
+            color: '#ffc145',
+            border: '1px solid rgba(255,193,69,0.3)',
+            borderRadius: 8, fontWeight: 500, fontSize: 12, cursor: 'pointer',
+          }}
+        >
+          {hint === 'copied' ? (en ? 'Link copied ✓' : 'Скопировано ✓')
+           : hint === 'failed' ? (en ? 'Share failed' : 'Ошибка')
+           : (en ? 'Invite friends' : 'Позвать друзей')}
+        </button>
+      </div>
 
       <div style={{ marginTop: 18, padding: 10, background: 'var(--bg)', borderRadius: 6, fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5 }}>
         {en
@@ -207,6 +261,7 @@ function Lobby({ onFind, hasToken, lang, onShowTutorial }) {
 
 function Queue({ pos, mode, onCancel, lang }) {
   const en = lang === 'en'
+  const { share, hint } = useShare()
   return (
     <div style={{ maxWidth: 480, margin: '24px auto', padding: 20, background: 'var(--card)', borderRadius: 10, border: '1px solid var(--ink4)', textAlign: 'center' }}>
       <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
@@ -218,9 +273,31 @@ function Queue({ pos, mode, onCancel, lang }) {
       <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
         {en ? 'In queue:' : 'В очереди:'} {pos || '…'}
       </div>
-      <button onClick={onCancel} style={{ ...btnStyle(), marginTop: 16 }}>
-        {en ? 'Cancel' : 'Отмена'}
-      </button>
+      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>
+        {en ? 'Need 4 players of the same mode to start' : 'Нужно 4 игрока одного режима чтобы начать'}
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center' }}>
+        <button onClick={onCancel} style={btnStyle()}>
+          {en ? 'Cancel' : 'Отмена'}
+        </button>
+        <button
+          onClick={() => share({
+            title: 'Golden Rush',
+            text: en
+              ? `I'm in queue for Golden Rush (${mode}). Join me!`
+              : `Я в очереди Golden Rush (${mode}). Присоединяйся!`,
+            url: GR_URL,
+          })}
+          style={{
+            padding: '7px 14px',
+            background: '#ffc145', color: '#1a1a2e',
+            border: 'none', borderRadius: 6,
+            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          {hint === 'copied' ? (en ? 'Copied ✓' : 'Скопировано ✓') : (en ? 'Invite friends' : 'Позвать друзей')}
+        </button>
+      </div>
     </div>
   )
 }
@@ -358,6 +435,7 @@ export default function GoldenRushOnline() {
   const [showTutorial, setShowTutorial] = useState(() => {
     try { return !localStorage.getItem(TUTORIAL_KEY) } catch { return false }
   })
+  const { share: shareResult, hint: shareHint } = useShare()
 
   function closeTutorial() {
     try { localStorage.setItem(TUTORIAL_KEY, '1') } catch {}
@@ -463,6 +541,19 @@ export default function GoldenRushOnline() {
         : (en ? `Team ${gr.winner + 1}` : `Команда ${gr.winner + 1}`))
     : null
 
+  // Текст для share-кнопки на gameover
+  const myScore = finalScores && gr.yourSlot != null ? finalScores[gr.yourSlot] : null
+  const iWon = gr.status === 'gameover' && gr.yourSlot != null && (
+    gr.state.mode === 'ffa'
+      ? gr.winner === gr.yourSlot
+      : gr.state.teams && gr.winner >= 0 && gr.state.teams[gr.winner]?.includes(gr.yourSlot)
+  )
+  const shareText = gr.status === 'gameover'
+    ? (en
+        ? `${iWon ? 'Won' : 'Played'} a Golden Rush ${gr.state.mode === 'ffa' ? '4-FFA' : '2v2'} match${myScore != null ? ` with ${myScore} pts` : ''}. 4-player strategy board game.`
+        : `${iWon ? 'Выиграл' : 'Сыграл'} матч Golden Rush ${gr.state.mode === 'ffa' ? '4-FFA' : '2v2'}${myScore != null ? ` с ${myScore} очками` : ''}. Стратегия на 4 человек.`)
+    : ''
+
   const placeTotal = Object.values(pending.placement).reduce((a, b) => a + b, 0)
   const placeStands = Object.keys(pending.placement).length
   const hasAnyTransfer = rehydrated ? getValidTransfers(rehydrated).length > 0 : false
@@ -544,6 +635,25 @@ export default function GoldenRushOnline() {
             </div>
           )}
           <RewardCard reward={gr.myReward} lang={lang} />
+
+          <button
+            onClick={() => shareResult({
+              title: 'Golden Rush — Highrise Heist',
+              text: shareText,
+              url: GR_URL,
+            })}
+            style={{
+              marginTop: 12,
+              padding: '8px 16px',
+              background: '#ffc145', color: '#1a1a2e',
+              border: 'none', borderRadius: 6,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            {shareHint === 'copied' ? (en ? 'Link copied ✓' : 'Скопировано ✓')
+             : shareHint === 'failed' ? (en ? 'Share failed' : 'Не удалось')
+             : (en ? '📤 Share result' : '📤 Поделиться результатом')}
+          </button>
         </div>
       )}
 
