@@ -4,7 +4,7 @@
  * Использует @testing-library/react + happy-dom через per-file pragma.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import GoldenRushTutorial from './GoldenRushTutorial.jsx'
 
@@ -24,7 +24,6 @@ describe('GoldenRushTutorial — базовый рендер', () => {
   it('shows «next» button (RU label) but no «back» on first step', () => {
     render(<GoldenRushTutorial lang="ru" onClose={() => {}} />)
     expect(screen.getByText('Дальше')).toBeTruthy()
-    // Back button (←) отсутствует на первом шаге
     expect(screen.queryByText('←')).toBe(null)
   })
 
@@ -47,7 +46,8 @@ describe('GoldenRushTutorial — навигация', () => {
     render(<GoldenRushTutorial lang="ru" onClose={() => {}} />)
     fireEvent.click(screen.getByText('Дальше'))
     fireEvent.click(screen.getByText('Дальше'))
-    expect(screen.getByText(/Вставай в очередь/)).toBeTruthy()
+    // Заголовок: "Замкнул обе — вставай в очередь на центр"
+    expect(screen.getByText(/Замкнул обе/)).toBeTruthy()
   })
 
   it('Back button (←) appears from step 2+', () => {
@@ -68,9 +68,7 @@ describe('GoldenRushTutorial — навигация', () => {
 
   it('step indices stay in bounds — no underflow past step 1', () => {
     render(<GoldenRushTutorial lang="ru" onClose={() => {}} />)
-    // На первом шаге нет back button → нельзя уйти в минус.
     expect(screen.queryByText('←')).toBe(null)
-    // Всё равно показывается первый степ.
     expect(screen.getByText(/1.*\/.*4/)).toBeTruthy()
   })
 })
@@ -108,7 +106,6 @@ describe('GoldenRushTutorial — последний шаг и onClose', () => {
   it('backdrop click fires onClose', () => {
     const onClose = vi.fn()
     const { container } = render(<GoldenRushTutorial lang="ru" onClose={onClose} />)
-    // Первый контейнер — backdrop (fixed, inset:0)
     const backdrop = container.firstChild
     fireEvent.click(backdrop)
     expect(onClose).toHaveBeenCalledTimes(1)
@@ -117,7 +114,6 @@ describe('GoldenRushTutorial — последний шаг и onClose', () => {
   it('modal body click does NOT fire onClose (stopPropagation)', () => {
     const onClose = vi.fn()
     render(<GoldenRushTutorial lang="ru" onClose={onClose} />)
-    // Клик по заголовку внутри модалки не должен закрывать
     fireEvent.click(screen.getByText(/Твоё поле/))
     expect(onClose).not.toHaveBeenCalled()
   })
@@ -126,7 +122,6 @@ describe('GoldenRushTutorial — последний шаг и onClose', () => {
 describe('GoldenRushTutorial — SVG схема', () => {
   it('step 1 (без schema) — схема не рендерится', () => {
     const { container } = render(<GoldenRushTutorial lang="ru" onClose={() => {}} />)
-    // На первом шаге schema=null → нет <svg>
     expect(container.querySelector('svg')).toBe(null)
   })
 
