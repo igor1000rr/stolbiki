@@ -26,47 +26,40 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      # --legacy-peer-deps т.к. @testing-library/react 16.x имеет peer conflict с React 19.
-      # Для E2E используем обычный install, а не ci: lockfile может быть out-of-sync
-      # из-за недавно добавленного @playwright/test.
       - name: Install frontend deps
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Install server deps
         working-directory: server
-        run: |
-          if [ -f package-lock.json ]; then
-            npm install --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+        run: npm install --no-audit --no-fund
 
-      # Playwright browsers + system deps. Без кеша — проще и надёжнее.
-      # Первый прогон ~1 мин, последующие использует layer cache от setup-node.
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      # VITE_API_URL встраивается в билд. Делаем pre-build generate csp-hashes
-      # чтобы backend запустился в production-mode без warnings.
       - name: Build frontend
         run: VITE_API_URL=http://localhost:3001/api npm run build
 
-      # Скопировать csp-hashes.json в server/ — без него backend пишет warning и может
-      # не запуститься в production (но у нас NODE_ENV=test, так что это не критично).
       - name: Copy CSP hashes to server
         run: |
           if [ -f dist/csp-hashes.json ]; then
             cp dist/csp-hashes.json server/csp-hashes.json
             echo "✅ CSP hashes copied"
           else
-            echo "⚠️  No csp-hashes.json (build пропустил этот шаг)"
+            echo "⚠️ No csp-hashes.json (build пропустил этот шаг)"
           fi
 
-      # Backend в фоне. NODE_ENV=test → не требует csp-hashes обязательно.
-      # DB_PATH — отдельная файловая БД чтобы register/login работали между запросами.
+      # ВАЖНО: удаляем любые остатки DB из прошлых прогонов. CREATE TABLE IF NOT EXISTS
+      # не обновляет схему существующей таблицы → если в старой БД нет колонки ref_id
+      # (добавленной в недавнем коммите), register падает с 500. runner-ы в CI чистые,
+      # но есть actions/cache на некоторые пути — чистим явно.
+      - name: Clean DB from previous run
+        run: |
+          rm -rf server/data
+          rm -f server/*.db server/*.db-*
+          mkdir -p server/data
+
       - name: Start backend
         run: |
-          mkdir -p server/data
           cd server
           NODE_ENV=test \
             ALLOWED_ORIGINS=http://localhost:4173,http://localhost:3001 \
@@ -130,8 +123,6 @@ jobs:
           kill $(cat /tmp/backend.pid) 2>/dev/null || true
           kill $(cat /tmp/frontend.pid) 2>/dev/null || true
 
-      # if-no-files-found: ignore — не ронять воркфлоу если артефактов нет
-      # (иногда Playwright не генерит repor если ни один тест не прошёл).
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4

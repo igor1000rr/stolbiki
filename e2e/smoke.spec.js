@@ -1,21 +1,11 @@
 /**
  * Smoke E2E тесты: проверяем что главные страницы рендерятся без JS ошибок.
- *
- * Философия: НЕ ловим конкретные тексты кнопок (они меняются), ловим:
- *   - корректный HTTP статус
- *   - правильный title (для landing)
- *   - отсутствие runtime JS ошибок на страницах
- *   - что страница отрендерилась (body не пустой, есть #root с детьми)
  */
 
 import { test, expect } from '@playwright/test'
 
 const API = process.env.API_URL || 'http://localhost:3001'
 
-/**
- * Helper: навигация на путь + сбор всех JS ошибок в массив.
- * Возвращает { errors, response } для ассертов.
- */
 async function visitPage(page, path) {
   const errors = []
   const consoleErrors = []
@@ -23,8 +13,6 @@ async function visitPage(page, path) {
   page.on('console', msg => {
     if (msg.type() === 'error') {
       const text = msg.text()
-      // Игнорируем некритичные ошибки: Yandex Metrika, Service Worker regsitration в dev,
-      // CORS preflight для внешних ресурсов, и WS connection errors (у нас WS в preview отключён).
       if (text.includes('mc.yandex.ru')) return
       if (text.includes('sw.js') || text.includes('ServiceWorker')) return
       if (text.includes('WebSocket')) return
@@ -33,9 +21,24 @@ async function visitPage(page, path) {
     }
   })
   const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
-  // Даём React смонтироваться
   await page.waitForTimeout(500)
   return { errors, consoleErrors, response }
+}
+
+/**
+ * SPA-safe navigation: использует domcontentloaded и ждёт settle.
+ * Обычный page.goto ждёт 'load' — но в SPA React Router может сделать
+ * вторую навигацию (например /game → /login при отсутствии auth) до завершения load,
+ * и Playwright выдаёт "Navigation interrupted". domcontentloaded проще.
+ */
+async function safeGoto(page, path) {
+  try {
+    await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 10000 })
+  } catch (e) {
+    // Navigation interrupted — это нормально для SPA с редиректами. Игнорируем.
+    if (!String(e.message).includes('interrupted')) throw e
+  }
+  await page.waitForTimeout(300)
 }
 
 test.describe('smoke: главные страницы рендерятся', () => {
@@ -43,7 +46,6 @@ test.describe('smoke: главные страницы рендерятся', () 
     const { errors, response } = await visitPage(page, '/')
     expect(response.status()).toBeLessThan(400)
     await expect(page).toHaveTitle(/Highrise/i)
-    // SPA: #root должен быть не пустой после гидрации
     const rootHasChildren = await page.evaluate(() => document.getElementById('root')?.children.length > 0)
     expect(rootHasChildren).toBe(true)
     expect(errors).toEqual([])
@@ -150,26 +152,26 @@ test.describe('E2E: auth flow через API', () => {
     const username = 'e2e_' + Date.now()
     const password = 'testpass123'
 
-    // Register
     const reg = await request.post(`${API}/api/auth/register`, {
       data: { username, password },
     })
-    expect(reg.ok()).toBeTruthy()
+    // Если register не ok — дампим body для диагностики
+    if (!reg.ok()) {
+      const body = await reg.text()
+      throw new Error(`register failed: ${reg.status()} ${body}`)
+    }
     const { token, user } = await reg.json()
     expect(token).toBeTruthy()
     expect(user.username).toBe(username)
 
-    // Login с теми же credentials
     const login = await request.post(`${API}/api/auth/login`, {
       data: { username, password },
     })
     expect(login.ok()).toBeTruthy()
 
-    // Profile с токеном
     const profile = await request.get(`${API}/api/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    // /api/profile может вернуть 200 или 404/другое в зависимости от роута
     expect([200, 401, 404]).toContain(profile.status())
   })
 
@@ -178,7 +180,10 @@ test.describe('E2E: auth flow через API', () => {
     const first = await request.post(`${API}/api/auth/register`, {
       data: { username, password: 'pass123456' },
     })
-    expect(first.ok()).toBeTruthy()
+    if (!first.ok()) {
+      const body = await first.text()
+      throw new Error(`first register failed: ${first.status()} ${body}`)
+    }
 
     const second = await request.post(`${API}/api/auth/register`, {
       data: { username, password: 'differentpass' },
@@ -199,12 +204,10 @@ test.describe('UI integration: critical flows', () => {
     const errors = []
     page.on('pageerror', err => errors.push(err.message))
 
-    await page.goto('/')
+    await safeGoto(page, '/')
     await expect(page).toHaveTitle(/Highrise/i)
 
-    // Переход на /rules — либо клик по ссылке, либо прямая навигация (SPA)
-    await page.goto('/rules')
-    await page.waitForTimeout(500)
+    await safeGoto(page, '/rules')
     expect(errors).toEqual([])
   })
 
@@ -212,13 +215,13 @@ test.describe('UI integration: critical flows', () => {
     const errors = []
     page.on('pageerror', err => errors.push(err.message))
 
-    await page.goto('/')
-    await page.goto('/game')
-    await page.goto('/rules')
-    await page.goto('/blog')
-    await page.goto('/')
+    // safeGoto выдерживает SPA-редиректы (например /game → /login при отсутствии auth).
+    await safeGoto(page, '/')
+    await safeGoto(page, '/game')
+    await safeGoto(page, '/rules')
+    await safeGoto(page, '/blog')
+    await safeGoto(page, '/')
 
-    // Между всеми переключениями — никаких JS ошибок
     expect(errors).toEqual([])
   })
 
@@ -226,10 +229,8 @@ test.describe('UI integration: critical flows', () => {
     const errors = []
     page.on('pageerror', err => errors.push(err.message))
 
-    await page.goto('/этот-роут-точно-не-существует-' + Date.now())
-    await page.waitForTimeout(500)
+    await safeGoto(page, '/этот-роут-точно-не-существует-' + Date.now())
 
-    // React Router должен обработать 404 в SPA, а не крашнуть
     expect(errors).toEqual([])
     const rootHasChildren = await page.evaluate(() => document.getElementById('root')?.children.length > 0)
     expect(rootHasChildren).toBe(true)
