@@ -55,13 +55,18 @@ db.pragma('foreign_keys = ON')
 db.pragma('busy_timeout = 5000')
 db.pragma('synchronous = NORMAL')
 
-// Базовая схема. Новые колонки — через migrations.js, а не здесь.
+// Базовая схема.
 //
-// ВАЖНО: все CREATE TABLE должны быть ДО CREATE INDEX ссылающихся на них.
+// ВАЖНО: все колонки которые миграции 1-11 пытаются добавить через ALTER TABLE включены
+// прямо в CREATE TABLE users. Причина: SQLite не поддерживает `ALTER TABLE ADD COLUMN ... UNIQUE`
+// (документированное ограничение) — миграция 4 (referral_code TEXT UNIQUE) молча падала в
+// try/catch, помечалась выполненной, и register крашился с "no such column: referral_code".
 //
-// brick_transactions — включаем ref_id в базовую схему. На проде она добавлена исторически
-// через ALTER (вне runMigrations), в тестовой :memory: БД её не было → awardBricksToReferrer()
-// в auth.js падал в транзакции регистрации → 500 Internal Server Error.
+// На проде это работало потому что БД создана с древних версий где схема миграций накатывалась
+// успешно (возможно более старый better-sqlite3 был мягче). В :memory: и на fresh install
+// падало. CREATE TABLE IF NOT EXISTS не тронет существующую таблицу на проде, так что безопасно.
+//
+// ВАЖНО 2: все CREATE TABLE ДО CREATE INDEX ссылающихся на них.
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +85,37 @@ db.exec(`
     beat_hard_ai INTEGER DEFAULT 0,
     is_admin INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')),
-    last_seen TEXT DEFAULT (datetime('now'))
+    last_seen TEXT DEFAULT (datetime('now')),
+    -- migration 1
+    fast_wins INTEGER DEFAULT 0,
+    online_wins INTEGER DEFAULT 0,
+    puzzles_solved INTEGER DEFAULT 0,
+    avatar TEXT DEFAULT 'default',
+    -- migration 2
+    login_streak INTEGER DEFAULT 0,
+    best_login_streak INTEGER DEFAULT 0,
+    last_login_date TEXT,
+    streak_freeze INTEGER DEFAULT 1,
+    -- migration 3
+    xp INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 1,
+    -- migration 4 (UNIQUE не работает через ALTER — только здесь)
+    referral_code TEXT UNIQUE,
+    referred_by INTEGER,
+    -- migration 7
+    token_version INTEGER DEFAULT 0,
+    -- migration 8
+    bricks INTEGER NOT NULL DEFAULT 50,
+    active_skin_blocks TEXT NOT NULL DEFAULT 'blocks_classic',
+    active_skin_stands TEXT NOT NULL DEFAULT 'stands_classic',
+    -- migration 9
+    rush_best INTEGER DEFAULT 0,
+    -- migration 10
+    onboarding_done INTEGER DEFAULT 0,
+    -- migration 11
+    gr_games INTEGER DEFAULT 0,
+    gr_wins INTEGER DEFAULT 0,
+    gr_center_captures INTEGER DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS achievements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,6 +138,7 @@ db.exec(`
     turns INTEGER DEFAULT 0,
     duration INTEGER DEFAULT 0,
     played_at TEXT DEFAULT (datetime('now')),
+    is_online INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
   CREATE TABLE IF NOT EXISTS friends (
@@ -132,6 +168,16 @@ db.exec(`
     user_id INTEGER, game_data TEXT NOT NULL,
     winner INTEGER, total_moves INTEGER, mode TEXT, difficulty INTEGER,
     created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS referrals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    referrer_id INTEGER NOT NULL,
+    referred_id INTEGER NOT NULL,
+    xp_rewarded INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(referred_id),
+    FOREIGN KEY (referrer_id) REFERENCES users(id),
+    FOREIGN KEY (referred_id) REFERENCES users(id)
   );
   CREATE TABLE IF NOT EXISTS blog_posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -271,6 +317,19 @@ db.exec(`
     UNIQUE(user_id, skin_id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+  CREATE TABLE IF NOT EXISTS gr_matches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    players TEXT NOT NULL,
+    teams TEXT,
+    winner INTEGER,
+    scores TEXT NOT NULL,
+    turns INTEGER NOT NULL,
+    duration_sec INTEGER NOT NULL,
+    resigned_by INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
   CREATE INDEX IF NOT EXISTS idx_users_rating ON users(rating DESC);
   CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_id, played_at DESC);
   CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id, status);
@@ -291,6 +350,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event, created_at);
   CREATE INDEX IF NOT EXISTS idx_analytics_page ON analytics_events(page, created_at);
   CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id);
+  CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+  CREATE INDEX IF NOT EXISTS idx_brick_tx_reason ON brick_transactions(user_id, reason, created_at);
+  CREATE INDEX IF NOT EXISTS idx_gr_matches_created ON gr_matches(created_at);
+  CREATE INDEX IF NOT EXISTS idx_gr_matches_mode ON gr_matches(mode, created_at);
 `)
 
 // На проде brick_transactions могла быть создана без ref_id — добавляем колонку через ALTER
