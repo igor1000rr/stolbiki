@@ -1,10 +1,5 @@
 /**
  * GoldenRushDemo — hot-seat UI для режима Golden Rush.
- * Движок: ../game/goldenRushEngine.js
- * Спека: docs/modes/golden-rush.md
- *
- * Минимально рабочий прототип для первого playtest. Без анимаций, без 3D,
- * без zoom/pan — только SVG-крест и tappable контролы.
  */
 
 import { useState, useMemo } from 'react'
@@ -95,7 +90,7 @@ function Lobby({ onStart, lang }) {
   )
 }
 
-function Board({ state, pending, transferPhase, onStandClick }) {
+function Board({ state, pending, _transferPhase, onStandClick }) {
   return (
     <svg viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`} width="100%" style={{ maxWidth: SVG_SIZE, aspectRatio: '1/1', display: 'block', margin: '0 auto' }}>
       <line x1={standXY(3).cx} y1={standXY(3).cy} x2={standXY(7).cx} y2={standXY(7).cy} stroke="var(--ink4)" strokeWidth={1} opacity={0.5} />
@@ -280,12 +275,12 @@ function ActionPanel({ state, pending, setPending, transferPhase, setTransferPha
 export default function GoldenRushDemo() {
   const { lang } = useI18n()
   const en = lang === 'en'
-  const [phase, setPhase] = useState('lobby') // lobby | playing | gameover
+  const [phase, setPhase] = useState('lobby')
   const [mode, setMode] = useState('ffa')
   const [names, setNames] = useState(PLAYER_NAMES_RU)
   const [state, setState] = useState(null)
   const [pending, setPending] = useState({ transfer: null, placement: {} })
-  const [transferPhase, setTransferPhase] = useState(null) // null | 'pick-src' | 'pick-dst'
+  const [transferPhase, setTransferPhase] = useState(null)
 
   function startGame({ mode: m, names: ns }) {
     setMode(m)
@@ -300,7 +295,6 @@ export default function GoldenRushDemo() {
     if (!state || state.gameOver) return
     if (i in state.closed) return
 
-    // Transfer mode
     if (transferPhase === 'pick-src') {
       const transfers = getValidTransfers(state)
       if (!transfers.some(([src]) => src === i)) return
@@ -323,17 +317,14 @@ export default function GoldenRushDemo() {
       return
     }
 
-    // Placement mode
     const cur = pending.placement[i] || 0
     const total = Object.values(pending.placement).reduce((a, b) => a + b, 0)
     const stands = Object.keys(pending.placement).length
     const cap = Math.min(state.standSpace(i), MAX_PLACE - (total - cur))
     if (cap <= 0 && cur === 0) return
-    // Циклим 0 → 1 → 2 → 3 → 0 с учётом cap
     const maxForThis = cur === 0 ? Math.min(cap, MAX_PLACE - total) : Math.min(cap + cur, MAX_PLACE - (total - cur))
     let next
     if (cur === 0 && stands >= 2) {
-      // уже 2 стойки — не можем добавить 3-ю
       return
     }
     if (cur >= maxForThis) next = 0
