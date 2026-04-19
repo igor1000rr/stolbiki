@@ -89,7 +89,7 @@ export default function createAdminRouter(rooms, matchQueue) {
           try {
             db.prepare('UPDATE users SET username=? WHERE id=?').run(clean, user.id)
             changes.username = { from: user.username, to: clean }
-          } catch (e) {
+          } catch {
             return res.status(409).json({ error: 'Username занят' })
           }
         }
@@ -299,7 +299,7 @@ export default function createAdminRouter(rooms, matchQueue) {
       db.prepare('INSERT INTO site_content (key, section, value_ru, value_en, label) VALUES (?, ?, ?, ?, ?)').run(key, section || 'general', value_ru || '', value_en || '', label || '')
       logAdminAction(req, 'content_create', { targetType: 'content', metadata: { key, section } })
       res.json({ ok: true })
-    } catch (e) { res.status(409).json({ error: 'Ключ уже существует' }) }
+    } catch { res.status(409).json({ error: 'Ключ уже существует' }) }
   })
   router.delete('/content/:key', auth, adminOnly, (req, res) => {
     db.prepare('DELETE FROM site_content WHERE key=?').run(req.params.key)
