@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  NUM_STANDS, MAX_CHIPS, STAND_META, CENTER_IDX,
+  NUM_STANDS, MAX_CHIPS, STAND_META, CENTER_IDX, MAX_PLACE,
   GoldenRushState, applyAction, getLegalActions, getPlayerStands,
   getPairedStand, getValidTransfers, getValidPlacements, computeScores,
 } from './goldenRushEngine.js'
@@ -30,6 +30,11 @@ describe('GoldenRushState init', () => {
     const s = new GoldenRushState({ mode: '2v2' })
     expect(s.teams).toEqual([[0, 2], [1, 3]])
   })
+
+  it('2v2 custom teams preserved', () => {
+    const s = new GoldenRushState({ mode: '2v2', teams: [[0, 1], [2, 3]] })
+    expect(s.teams).toEqual([[0, 1], [2, 3]])
+  })
 })
 
 describe('STAND_META topology', () => {
@@ -51,6 +56,14 @@ describe('STAND_META topology', () => {
     expect(getPairedStand(2)).toBe(1)
     expect(getPairedStand(3)).toBe(4)
     expect(getPairedStand(0)).toBe(-1)
+  })
+
+  it('each player has distinct arm pair', () => {
+    const slots = new Set()
+    for (const meta of STAND_META) {
+      if (meta.type === 'arm') slots.add(meta.slot)
+    }
+    expect(slots.size).toBe(4)
   })
 })
 
@@ -77,6 +90,25 @@ describe('effectiveCap', () => {
     s.eligibleForCenter.push(0)
     expect(s.effectiveCap(CENTER_IDX)).toBe(MAX_CHIPS)
   })
+
+  it('closed stand has cap 0', () => {
+    const s = new GoldenRushState()
+    s.closed[1] = 0
+    expect(s.effectiveCap(1)).toBe(0)
+  })
+})
+
+describe('standSpace', () => {
+  it('equals cap - current chips for open stand', () => {
+    const s = new GoldenRushState()
+    forceFill(s, 1, 4, 0)
+    expect(s.standSpace(1)).toBe(MAX_CHIPS - 4)
+  })
+  it('zero when at or above cap', () => {
+    const s = new GoldenRushState()
+    forceFill(s, 2, 10, 0)
+    expect(s.standSpace(2)).toBe(0) // order=2 cap=10 while 1 open
+  })
 })
 
 describe('placements validation', () => {
@@ -94,6 +126,15 @@ describe('placements validation', () => {
     const pls = getValidPlacements(s)
     expect(pls.every(p => !(1 in p))).toBe(true)
   })
+
+  it('each placement entry respects MAX_PLACE', () => {
+    const s = new GoldenRushState()
+    const pls = getValidPlacements(s)
+    for (const p of pls) {
+      const total = Object.values(p).reduce((a, b) => a + b, 0)
+      expect(total).toBeLessThanOrEqual(MAX_PLACE)
+    }
+  })
 })
 
 describe('applyAction — order=1 closure', () => {
@@ -106,16 +147,10 @@ describe('applyAction — order=1 closure', () => {
 })
 
 describe('applyAction — order=2 blocked until order=1', () => {
-  it('pure-placement on stand 2 at 10 blocks is BLOCKED (would require 11th chip while stand 1 open)', () => {
-    // Прямое placement на stand 2 — getValidPlacements должен его отсечь
-    // независимо от того, разрешает ли getLegalActions combo transfer+placement
-    // (которое сначала уводит блоки со stand 2 — это легитимная ветка игры).
-    // Проверяем именно cap-правило стойки.
+  it('pure-placement on stand 2 at 10 blocks is BLOCKED', () => {
     const s = new GoldenRushState()
     forceFill(s, 2, 10, 0)
     const pls = getValidPlacements(s)
-    // Ни одна placement-опция не должна добавлять блоки на stand 2,
-    // потому что standSpace(2) = effectiveCap(2) - 10 = 10 - 10 = 0.
     expect(pls.every(p => !(2 in p))).toBe(true)
   })
 
@@ -149,6 +184,16 @@ describe('eligibleForCenter queue', () => {
     const s2 = applyAction(s, { placement: { [CENTER_IDX]: 1 } })
     expect(s2.closed[CENTER_IDX]).toBe(0)
   })
+
+  it('eligibleForCenter stays deduplicated', () => {
+    const s = new GoldenRushState()
+    s.closed[1] = 0; s.closed[2] = 0
+    s.eligibleForCenter = [0] // уже там
+    s.currentPlayer = 1
+    // P1 делает ход — processClosures должен увидеть что 0 уже eligible и не добавлять.
+    const s2 = applyAction(s, { placement: { 3: 1 } })
+    expect(s2.eligibleForCenter.filter(p => p === 0).length).toBe(1)
+  })
 })
 
 describe('transfer mechanics', () => {
@@ -166,6 +211,25 @@ describe('transfer mechanics', () => {
     s.currentPlayer = 1
     const t = getValidTransfers(s)
     expect(t.some(([src, dst]) => src === 3 && dst === 4)).toBe(false)
+  })
+
+  it('transfer with mismatched top colors blocked', () => {
+    const s = new GoldenRushState()
+    forceFill(s, 1, 2, 0) // blue top
+    forceFill(s, 3, 2, 1) // red top
+    const t = getValidTransfers(s)
+    expect(t.some(([src, dst]) => src === 1 && dst === 3)).toBe(false)
+    expect(t.some(([src, dst]) => src === 3 && dst === 1)).toBe(false)
+  })
+
+  it('transfer to empty stand always allowed (respecting caps)', () => {
+    const s = new GoldenRushState()
+    forceFill(s, 1, 2, 0)
+    const t = getValidTransfers(s)
+    // 1→3, 1→5, 1→7 — все пустые order=1
+    expect(t.some(([src, dst]) => src === 1 && dst === 3)).toBe(true)
+    expect(t.some(([src, dst]) => src === 1 && dst === 5)).toBe(true)
+    expect(t.some(([src, dst]) => src === 1 && dst === 7)).toBe(true)
   })
 })
 
@@ -199,6 +263,12 @@ describe('computeScores', () => {
     expect(sc[1]).toBe(0)
     expect(sc[3]).toBe(0)
   })
+
+  it('scores array length always equals numPlayers', () => {
+    const s = new GoldenRushState()
+    const sc = computeScores(s)
+    expect(sc.length).toBe(s.numPlayers)
+  })
 })
 
 describe('game over detection', () => {
@@ -209,6 +279,14 @@ describe('game over detection', () => {
     const s2 = applyAction(s, {})
     expect(s2.gameOver).toBe(true)
     expect(s2.winner).toBe(0)
+  })
+
+  it('does not game-over before all stands closed', () => {
+    const s = new GoldenRushState()
+    for (let i = 0; i < 5; i++) s.closed[i] = 0
+    s.currentPlayer = 0
+    const s2 = applyAction(s, { placement: { 5: 1 } })
+    expect(s2.gameOver).toBe(false)
   })
 })
 
@@ -225,6 +303,15 @@ describe('turn rotation', () => {
     s = applyAction(s, { placement: { 7: 1 } })
     expect(s.currentPlayer).toBe(0)
   })
+
+  it('turn counter increments with each action', () => {
+    let s = new GoldenRushState()
+    expect(s.turn).toBe(0)
+    s = applyAction(s, { placement: { 1: 1 } })
+    expect(s.turn).toBe(1)
+    s = applyAction(s, { placement: { 3: 1 } })
+    expect(s.turn).toBe(2)
+  })
 })
 
 describe('getLegalActions', () => {
@@ -238,5 +325,28 @@ describe('getLegalActions', () => {
     const s = new GoldenRushState()
     s.gameOver = true
     expect(getLegalActions(s)).toEqual([])
+  })
+
+  it('every legal action can be applied without error', () => {
+    const s = new GoldenRushState()
+    const legal = getLegalActions(s)
+    // Проверяем первые 20 — полный перебор длинный
+    for (const action of legal.slice(0, 20)) {
+      expect(() => applyAction(s, action)).not.toThrow()
+    }
+  })
+})
+
+describe('integration — simulated short game', () => {
+  it('random legal moves eventually terminate with gameOver', () => {
+    let s = new GoldenRushState()
+    let safety = 100
+    while (!s.gameOver && safety-- > 0) {
+      const legal = getLegalActions(s)
+      if (!legal.length) break
+      const action = legal[Math.floor(Math.random() * legal.length)]
+      s = applyAction(s, action)
+    }
+    expect(safety).toBeGreaterThan(0)
   })
 })

@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { computeMyReward } from './goldenRushReward.js'
 
 function getToken() {
   try {
@@ -22,39 +23,6 @@ function buildWsUrl() {
   const host = location.host
   const q = token ? `?token=${encodeURIComponent(token)}` : ''
   return `${proto}//${host}/ws${q}`
-}
-
-/**
- * Вычисляет начисление бриксов именно мне по тем же правилам что на сервере.
- * rewards из gr.gameOver — константы GR_REWARDS сервера.
- */
-function computeMyReward({ state, winner, resignedBy, rewards, yourSlot }) {
-  if (!rewards || yourSlot == null) return null
-  const { participation = 0, win: winBonus = 0, centerCapture = 0 } = rewards
-  const resigned = resignedBy === yourSlot
-
-  let total = 0
-  const parts = []
-
-  if (!resigned) {
-    total += participation
-    parts.push({ key: 'participation', amount: participation })
-  }
-
-  const won = (state?.mode === 'ffa' && winner === yourSlot)
-    || (state?.mode === '2v2' && winner >= 0 && state.teams?.[winner]?.includes(yourSlot))
-  if (won) {
-    total += winBonus
-    parts.push({ key: 'win', amount: winBonus })
-  }
-
-  const centerOwner = state?.closed?.[0]
-  if (centerOwner === yourSlot && !resigned) {
-    total += centerCapture
-    parts.push({ key: 'center', amount: centerCapture })
-  }
-
-  return { total, parts, resigned }
 }
 
 export function useGoldenRushWS() {
