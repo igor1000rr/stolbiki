@@ -166,7 +166,6 @@ export default function Dashboard() {
 
   const d = dashData
   const totalIter = d.selfplay.versions.length
-  const avgWr = d.selfplay.vs_random.slice(-20).reduce((a,b) => a+b, 0) / 20
 
   return (
     <div>
