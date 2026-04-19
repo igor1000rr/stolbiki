@@ -13,7 +13,7 @@ export function runMigrations(db) {
 
   function migrate(version, fn) {
     if (getVersion() >= version) return
-    try { fn() } catch (e) { /* ALTER's catch their own errors */ }
+    try { fn() } catch { /* ALTER's catch their own errors */ }
     markDone(version)
   }
 
@@ -107,7 +107,7 @@ export function runMigrations(db) {
   // Golden Rush матчи + per-user счётчики.
   // Храним компактно: по одной строке на матч, участники/итог в JSON.
   // Это принципиально отличается от games (там строка per-user): GR-матч
-  // содержит 4 игрока, делать 4 строки неоправданно — агрегаты (wins/losses)
+  // содержит 4 игроков, делать 4 строки неоправданно — агрегаты (wins/losses)
   // дешевле считать на лету из one-row-per-match при объёмах < 100k матчей.
   migrate(11, () => {
     db.exec(`CREATE TABLE IF NOT EXISTS gr_matches (

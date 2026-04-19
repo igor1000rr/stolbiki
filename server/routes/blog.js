@@ -36,7 +36,7 @@ router.post('/', auth, (req, res) => {
   try {
     db.prepare('INSERT INTO blog_posts (slug, title_ru, title_en, body_ru, body_en, tag, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)').run(slug, title_ru, title_en || '', body_ru, body_en || '', tag || 'update', pinned ? 1 : 0)
     res.json({ ok: true })
-  } catch (e) { res.status(409).json({ error: 'Slug уже существует' }) }
+  } catch { res.status(409).json({ error: 'Slug уже существует' }) }
 })
 
 router.put('/:slug', auth, (req, res) => {

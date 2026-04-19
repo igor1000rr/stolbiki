@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { db } from '../db.js'
-import { auth, rateLimit, adminOnly } from '../middleware.js'
+import { auth, rateLimit } from '../middleware.js'
 import { addXP } from '../helpers.js'
 
 const router = Router()
