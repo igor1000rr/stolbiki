@@ -1,18 +1,17 @@
 /**
  * Админ-панель Highrise Heist — контейнер.
  * Каждый таб — отдельный файл в components/admin/, lazy-loaded.
- * До рефакторинга: 1348 строк в одном файле. После: ~100 строк + 13 табов по 40-140 строк.
  */
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { S } from './admin/_utils'
 
-// Lazy-loaded табы — каждый в отдельном чанке, грузится только при клике
 const OverviewTab = lazy(() => import('./admin/OverviewTab').then(m => ({ default: m.OverviewTab })))
 const ContentTab = lazy(() => import('./admin/ContentTab').then(m => ({ default: m.ContentTab })))
 const UsersTab = lazy(() => import('./admin/UsersTab').then(m => ({ default: m.UsersTab })))
 const GamesTab = lazy(() => import('./admin/GamesTab').then(m => ({ default: m.GamesTab })))
 const BlogTab = lazy(() => import('./admin/BlogTab').then(m => ({ default: m.BlogTab })))
 const RoomsTab = lazy(() => import('./admin/RoomsTab').then(m => ({ default: m.RoomsTab })))
+const GoldenRushTab = lazy(() => import('./admin/GoldenRushTab').then(m => ({ default: m.GoldenRushTab })))
 const AchievementsTab = lazy(() => import('./admin/AchievementsTab').then(m => ({ default: m.AchievementsTab })))
 const SeasonsTab = lazy(() => import('./admin/SeasonsTab').then(m => ({ default: m.SeasonsTab })))
 const TrainingTab = lazy(() => import('./admin/TrainingTab').then(m => ({ default: m.TrainingTab })))
@@ -28,6 +27,7 @@ const TABS = [
   { id: 'games', label: 'Партии', icon: '♟', Component: GamesTab },
   { id: 'blog', label: 'Блог', icon: '✎', Component: BlogTab },
   { id: 'rooms', label: 'Комнаты', icon: '⊞', Component: RoomsTab },
+  { id: 'goldenrush', label: 'Golden Rush', icon: '★', Component: GoldenRushTab },
   { id: 'achievements', label: 'Ачивки', icon: '★', Component: AchievementsTab },
   { id: 'seasons', label: 'Сезоны', icon: '☾', Component: SeasonsTab },
   { id: 'training', label: 'Обуч. данные', icon: '⟁', Component: TrainingTab },
