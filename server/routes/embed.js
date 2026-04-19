@@ -202,8 +202,6 @@ function buildOgSvg({ name, wins, bricks, closed, crowned, towers }) {
 function buildCompareSvg({ name1, score1, wins1, bricks1, closed1, crowned1, towers1,
                            name2, score2, wins2, bricks2, closed2, crowned2, towers2 }) {
   const W = 1200, H = 630
-  const safeName1 = esc(name1).slice(0, 18)
-  const safeName2 = esc(name2).slice(0, 18)
 
   const leader = score1 > score2 ? 1 : score2 > score1 ? 2 : 0
 
