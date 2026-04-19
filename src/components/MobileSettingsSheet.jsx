@@ -5,7 +5,7 @@ import ModifierBadge from './ModifierBadge'
  * серии. Открывается по клику шестерни в MobileGameBar.
  */
 export default function MobileSettingsSheet({
-  show, isNative, mode, difficulty, modifiers, tournament, lang, en, humanPlayer,
+  show, isNative, mode, difficulty, modifiers, tournament, lang, en, _humanPlayer,
   onClose, onModeChange, onDifficultyChange,
   toggleFog, setModifiers, modifiersRef,
   onStartTournament,

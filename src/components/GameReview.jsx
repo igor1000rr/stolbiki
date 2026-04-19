@@ -9,7 +9,7 @@ import Board from './Board'
 import { useI18n } from '../engine/i18n'
 
 export default function GameReview({ moveHistory, humanPlayer = 0, onClose }) {
-  const { t, lang } = useI18n()
+  const { lang } = useI18n()
   const en = lang === 'en'
   const [analysis, setAnalysis] = useState(null)
   const [progress, setProgress] = useState(0)

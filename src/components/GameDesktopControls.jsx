@@ -10,7 +10,7 @@ import { isGpuReady } from '../engine/neuralnet'
  */
 export default function GameDesktopControls({
   mode, difficulty, modifiers, tournament,
-  humanPlayer, en, t,
+  _humanPlayer, en, t,
   setTransfersLeft,
   onModeChange, onDifficultyChange,
   onStartTournament,

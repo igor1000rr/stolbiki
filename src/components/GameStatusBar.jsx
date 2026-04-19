@@ -9,7 +9,7 @@
  */
 export default function GameStatusBar({
   // общее
-  gs, mode, isNative, lang, t, en,
+  gs, mode, isNative, _lang, t, en,
   // сессия
   sessionStats,
   // статус хода (баннер над доской)
