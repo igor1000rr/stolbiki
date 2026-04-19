@@ -32,6 +32,10 @@ function ChartWrap({ children, title }) {
 
 function useChart(ref, chartRef, config) {
   useEffect(() => {
+    // Безопасный ранний выход: без config график не строим.
+    // Хук всё равно вызывается безусловно — чтобы вызывающие компоненты
+    // могли делать early return ПОСЛЕ useChart, не нарушая rules-of-hooks.
+    if (!config || !ref.current) return
     if (chartRef.current) chartRef.current.destroy()
     chartRef.current = new Chart(ref.current.getContext('2d'), config)
     return () => chartRef.current?.destroy()
@@ -88,8 +92,9 @@ function BalanceChart() {
 function GpuChart() {
   const ref = useRef(null), cr = useRef(null)
   const gpu = dashData.gpu_run3
-  if (!gpu) return null
-  useChart(ref, cr, {
+  // useChart зовётся безусловно (rules-of-hooks); при отсутствии gpu передаём null
+  // и внутри useEffect будет безопасный ранний выход.
+  useChart(ref, cr, gpu ? {
     type: 'line',
     data: {
       labels: gpu.versions,
@@ -107,7 +112,8 @@ function GpuChart() {
         y1: { position: 'right', title: { display: true, text: 'LR ×1000' }, grid: { drawOnChartArea: false } },
       },
     },
-  })
+  } : null)
+  if (!gpu) return null
   return <div className="chart-wrap"><canvas ref={ref} /></div>
 }
 

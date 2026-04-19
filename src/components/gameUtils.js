@@ -13,7 +13,8 @@ export function startTitleBlink(msg = 'Your turn!') {
   const original = document.title
   let on = false
   _titleBlinkInterval = setInterval(() => {
-    document.title = (on = !on) ? `🔴 ${msg}` : original
+    on = !on
+    document.title = on ? `🔴 ${msg}` : original
   }, 800)
   const stop = () => { clearInterval(_titleBlinkInterval); _titleBlinkInterval = null; document.title = original }
   window.addEventListener('focus', stop, { once: true })
