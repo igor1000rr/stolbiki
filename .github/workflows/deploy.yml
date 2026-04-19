@@ -3,8 +3,6 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
-  # Ручной ре-деплой из Actions UI (без push) — полезно при откате, hotfix infra,
-  # или если прошлый deploy упал на SCP/SSH стадии (не кодовая ошибка).
   workflow_dispatch:
     inputs:
       skip_tests:
@@ -47,9 +45,6 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      # Если в server/package.json появилась новая dependency без обновления lockfile —
-      # регенерируем lock и коммитим обратно. [skip ci] предотвращает infinite loop
-      # (GITHUB_TOKEN не триггерит другие workflows, но дополнительная защита).
       - name: Sync server lockfile (auto-regenerate if out of sync)
         run: |
           cd server
@@ -92,12 +87,13 @@ jobs:
           ROOT_VERSION=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('server/package.json','utf8')); p.version='$ROOT_VERSION'; fs.writeFileSync('server/package.json', JSON.stringify(p, null, 2) + '\n')"
 
-      # Защита от Permission denied в scp: удаляем возможные артефакты тестов
-      # (например .jwt-secret с mode 0o600 создавался раньше при импорте db.js в тестах).
-      # Теперь db.js не пишет его при VITEST=1, но оставляем rm -f как double-safety.
+      # Защита от Permission denied в scp: удаляем артефакты тестов с mode 0o600
+      # (.jwt-secret, .vapid создавались раньше при импорте в тестах). Теперь db.js
+      # и push-helpers.js не пишут их при VITEST=1, но rm оставляем как double-safety.
       - name: Clean server test artifacts before upload
         run: |
           rm -f server/.jwt-secret
+          rm -f server/.vapid
           rm -rf server/data
           rm -f server/*.db server/*.db-*
 

@@ -4,6 +4,9 @@
  * VAPID keys:
  *   - production: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY в .env (обязательно)
  *   - dev: автогенерация в server/.vapid (как .jwt-secret)
+ *   - test (VITEST=1): эфемерные ключи в памяти, без записи на диск — чтобы
+ *     .vapid (mode 0o600) не создавался при импорте в тестах и не ломал
+ *     appleboy/scp-action в CI ("Permission denied").
  *
  * Subject: VAPID_SUBJECT (mailto: или https://) — default https://highriseheist.com
  *
@@ -39,7 +42,9 @@ try {
   const mod = await import('web-push')
   webpush = mod.default || mod
 } catch {
-  console.warn('[push] web-push не установлен — push в no-op режиме. Запустите: cd server && npm install')
+  if (!process.env.VITEST) {
+    console.warn('[push] web-push не установлен — push в no-op режиме. Запустите: cd server && npm install')
+  }
 }
 
 // ─── VAPID keys ───
@@ -50,6 +55,15 @@ const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'https://highriseheist.com'
 if (webpush && (!VAPID_PUBLIC || !VAPID_PRIVATE)) {
   if (process.env.NODE_ENV === 'production') {
     console.error('[push] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY не заданы в проде — push отключён')
+  } else if (process.env.VITEST) {
+    // В тестах генерируем эфемерные ключи в памяти, БЕЗ записи на диск.
+    // Без этого .vapid (mode 0o600) создавался при импорте push-helpers в тестах
+    // и ломал appleboy/scp-action в deploy.yml (Permission denied).
+    try {
+      const keys = webpush.generateVAPIDKeys()
+      VAPID_PUBLIC = keys.publicKey
+      VAPID_PRIVATE = keys.privateKey
+    } catch {}
   } else {
     // Dev: автогенерация в .vapid файл
     const vapidPath = resolve(__dirname, '.vapid')
@@ -78,7 +92,7 @@ if (webpush && VAPID_PUBLIC && VAPID_PRIVATE) {
   try {
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
   } catch (e) {
-    console.error('[push] setVapidDetails ошибка:', e.message)
+    if (!process.env.VITEST) console.error('[push] setVapidDetails ошибка:', e.message)
   }
 }
 
