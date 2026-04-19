@@ -13,12 +13,12 @@
  */
 
 import {
-  GameState, getValidTransfers, getValidPlacements,
+  GameState, getValidTransfers,
   applyAction, MAX_CHIPS, MAX_PLACE, FIRST_TURN_MAX
 } from './game.js'
 import {
   evaluate as nnEvaluate, evaluateFull, isReady as nnReady,
-  isGpuReady, hasPolicyHead, loadWeights, loadGpuWeights, encodeAction
+  isGpuReady, hasPolicyHead, loadWeights, loadGpuWeights
 } from './neuralnet.js'
 
 // Автозагрузка CPU-весов
@@ -263,7 +263,7 @@ export function mctsSearch(state, numSimulations = 150, rolloutDepth = 3) {
     const [gc, gs] = state.topGroup(src)
     const dstTotal = state.stands[dst].length
     if (dstTotal + gs >= MAX_CHIPS) continue
-    const [dtc] = state.topGroup(dst)
+    const [_dtc] = state.topGroup(dst)
     if (gc === player && (dstTotal + gs >= 7)) {
       actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })
       actions.push({ transfer: [src, dst], placement: smartPlacement(state, [src, dst]) })

@@ -2,8 +2,6 @@
  * Симулятор партий в браузере с настраиваемыми параметрами
  */
 
-import { applyAction } from './game.js'
-import { sampleRandomAction, mctsSearch } from './ai.js'
 
 // GameState с кастомными параметрами
 class CustomGameState {
@@ -59,7 +57,6 @@ function fastRandomAction(state) {
   if (state.gameOver) return {}
   if (state.turn === 1 && state.swapAvailable && Math.random() < 0.3) return { swap: true }
 
-  const player = state.currentPlayer
   const opens = state.openStands()
   let transfer = null
 
