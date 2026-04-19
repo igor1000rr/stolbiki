@@ -34,7 +34,7 @@ function Countdown({ label, targetDate }) {
   )
 }
 
-function PuzzleLeaderboard({ data, lang }) {
+function PuzzleLeaderboard({ data, _lang }) {
   const { t } = useI18n()
   if (!data?.length) return null
   return (
@@ -85,12 +85,11 @@ function PuzzleCard({ puzzle, lang, onPlay, userSolved }) {
   )
 }
 
-// ═══ Игровой экран головоломки ═══
 function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
   const { t } = useI18n()
   const [gs, setGs] = useState(null)
   const [movesUsed, setMovesUsed] = useState(0)
-  const [status, setStatus] = useState(null) // null | 'solved' | 'failed'
+  const [status, setStatus] = useState(null)
   const [phase, setPhase] = useState('place')
   const [transfer, setTransfer] = useState(null)
   const [placement, setPlacement] = useState({})
@@ -198,7 +197,6 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
-      {/* Шапка */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isNative ? 4 : 12, padding: '0 4px' }}>
         <button className="btn" onClick={onBack} style={{ fontSize: 11, padding: '5px 12px' }} aria-label="Back">←</button>
         <div style={{ textAlign: 'center', flex: 1 }}>
@@ -215,7 +213,6 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
 
       <Board state={gs} pending={placement} selected={selectedStand} phase={phase} humanPlayer={0} onStandClick={onStandClick} aiThinking={false} />
 
-      {/* Результат */}
       {status && (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <Mascot pose={status === 'solved' ? 'celebrate' : 'shock'} size={80} className="mascot-enter" />
@@ -229,7 +226,6 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
         </div>
       )}
 
-      {/* Управление */}
       {!status && (
         <div className="actions" style={{ marginTop: 10 }}>
           {hasTransfers && !transfer && phase === 'place' && (
@@ -248,10 +244,9 @@ function PuzzleGame({ puzzle, lang, onBack, onSolved }) {
   )
 }
 
-// ═══ Главный компонент ═══
 export default function Puzzles() {
   const { t, lang } = useI18n()
-  const [tab, setTab] = useState('featured') // featured | bank
+  const [tab, setTab] = useState('featured')
   const [showRush, setShowRush] = useState(false)
   const [daily, setDaily] = useState(null)
   const [weekly, setWeekly] = useState(null)
@@ -278,7 +273,6 @@ export default function Puzzles() {
     const newSet = new Set(solvedSet); newSet.add(key)
     setSolvedSet(newSet)
     localStorage.setItem('stolbiki_puzzles_solved', JSON.stringify([...newSet]))
-    // Отправляем на сервер
     if (API.isLoggedIn()) {
       const [type, id] = key.split(':')
       fetch('/api/puzzles/submit', {
@@ -288,15 +282,12 @@ export default function Puzzles() {
     }
   }
 
-  // Таймер до следующего дня/недели
   const now = new Date()
   const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  // Следующий понедельник 00:00 (ISO weeks, пн=1..вс=7)
-  const dayOfWeek = now.getDay() || 7 // пн=1..вс=7
+  const dayOfWeek = now.getDay() || 7
   const daysUntilMon = dayOfWeek === 1 ? 7 : (8 - dayOfWeek)
   const nextMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilMon)
 
-  // ═══ Активная головоломка ═══
   if (activePuzzle) {
     const key = `${activePuzzle.type}:${activePuzzle.id}`
     return (
@@ -305,10 +296,8 @@ export default function Puzzles() {
     )
   }
 
-  // ═══ Список ═══
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      {/* Заголовок + статы */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 22, color: 'var(--ink)', fontWeight: 700, margin: 0 }}>
@@ -324,7 +313,6 @@ export default function Puzzles() {
         </div>
       </div>
 
-      {/* Табы */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
         {[
           ['featured', ' ' + t('puzzle.featured')],
@@ -342,10 +330,8 @@ export default function Puzzles() {
         </button>
       </div>
 
-      {/* ═══ FEATURED: daily + weekly ═══ */}
       {tab === 'featured' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
-          {/* Daily */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -382,7 +368,6 @@ export default function Puzzles() {
             )}
           </div>
 
-          {/* Weekly */}
           <div className="dash-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" strokeWidth="1.5"><path d="M8 21h8M12 17v4"/><path d="M7 4V2h10v2"/><path d="M7 4h10v4a5 5 0 01-10 0V4z"/><path d="M7 4H4v2a3 3 0 003 3M17 4h3v2a3 3 0 01-3 3"/></svg>
@@ -418,10 +403,8 @@ export default function Puzzles() {
         </div>
       )}
 
-      {/* ═══ BANK ═══ */}
       {tab === 'bank' && (
         <div>
-          {/* Фильтр сложности */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
             {[
               [0, t('puzzle.filterAll')],
@@ -437,7 +420,6 @@ export default function Puzzles() {
             ))}
           </div>
 
-          {/* Список */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 10 }}>
             {bank?.puzzles?.map(p => (
               <PuzzleCard key={p.id} puzzle={p} lang={lang}
@@ -451,7 +433,6 @@ export default function Puzzles() {
             </div>
           )}
 
-          {/* Пагинация */}
           {bank && bank.pages > 1 && (
             <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 20 }}>
               {Array.from({ length: bank.pages }, (_, i) => (
