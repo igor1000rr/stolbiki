@@ -331,7 +331,7 @@ describe('Game Over', () => {
     stands[8] = [1, 1, 1] // группа для переноса
 
     const gs = makeState(stands, { closed, currentPlayer: 1 })
-    const ns = applyAction(gs, { transfer: [8, 9], placement: {} })
+    const _ns = applyAction(gs, { transfer: [8, 9], placement: {} })
     // 9: закрывается за 1 → closed[9]=1. Но 8 уже закрыта... 
     // Пересоздадим проще:
 
