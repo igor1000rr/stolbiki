@@ -6,6 +6,15 @@ import { test, expect } from '@playwright/test'
 
 const API = process.env.API_URL || 'http://localhost:3001'
 
+/**
+ * Короткий уникальный username ≤ 20 символов для /api/auth/register.
+ * Берём base36 от Date.now() (8 символов) + суффикс — это уникально даже в параллельных тестах.
+ */
+let counter = 0
+function uniqueUser(prefix = 'u') {
+  return `${prefix}_${Date.now().toString(36).slice(-6)}_${counter++}`
+}
+
 async function visitPage(page, path) {
   const errors = []
   const consoleErrors = []
@@ -25,17 +34,10 @@ async function visitPage(page, path) {
   return { errors, consoleErrors, response }
 }
 
-/**
- * SPA-safe navigation: использует domcontentloaded и ждёт settle.
- * Обычный page.goto ждёт 'load' — но в SPA React Router может сделать
- * вторую навигацию (например /game → /login при отсутствии auth) до завершения load,
- * и Playwright выдаёт "Navigation interrupted". domcontentloaded проще.
- */
 async function safeGoto(page, path) {
   try {
     await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 10000 })
   } catch (e) {
-    // Navigation interrupted — это нормально для SPA с редиректами. Игнорируем.
     if (!String(e.message).includes('interrupted')) throw e
   }
   await page.waitForTimeout(300)
@@ -149,13 +151,12 @@ test.describe('API smoke: backend отвечает на критичные endpo
 
 test.describe('E2E: auth flow через API', () => {
   test('register → login → profile', async ({ request }) => {
-    const username = 'e2e_' + Date.now()
+    const username = uniqueUser('e2e')
     const password = 'testpass123'
 
     const reg = await request.post(`${API}/api/auth/register`, {
       data: { username, password },
     })
-    // Если register не ok — дампим body для диагностики
     if (!reg.ok()) {
       const body = await reg.text()
       throw new Error(`register failed: ${reg.status()} ${body}`)
@@ -176,7 +177,8 @@ test.describe('E2E: auth flow через API', () => {
   })
 
   test('duplicate username → 409', async ({ request }) => {
-    const username = 'e2e_dup_' + Date.now()
+    // Короткий username (до 20 символов) — важно, иначе register вернёт 400
+    const username = uniqueUser('dup')
     const first = await request.post(`${API}/api/auth/register`, {
       data: { username, password: 'pass123456' },
     })
@@ -193,7 +195,7 @@ test.describe('E2E: auth flow через API', () => {
 
   test('invalid credentials → 401', async ({ request }) => {
     const res = await request.post(`${API}/api/auth/login`, {
-      data: { username: 'nonexistent_xyz_' + Date.now(), password: 'whatever' },
+      data: { username: uniqueUser('no'), password: 'whatever' },
     })
     expect(res.status()).toBe(401)
   })
@@ -215,7 +217,6 @@ test.describe('UI integration: critical flows', () => {
     const errors = []
     page.on('pageerror', err => errors.push(err.message))
 
-    // safeGoto выдерживает SPA-редиректы (например /game → /login при отсутствии auth).
     await safeGoto(page, '/')
     await safeGoto(page, '/game')
     await safeGoto(page, '/rules')
