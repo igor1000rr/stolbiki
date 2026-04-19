@@ -38,23 +38,22 @@ export default function Replay() {
       .catch(() => setReplaysData([]))
   }, [])
 
-  if (!replaysData) {
-    return <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--ink3)' }}>Загрузка реплеев…</div>
-  }
-  if (!replaysData.length) {
-    return <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--ink3)' }}>Нет доступных реплеев</div>
-  }
+  // Производные значения считаем безопасно, ещё до ранних return.
+  // Нужны для useEffect'ов ниже, которые должны вызываться в одном и том же порядке
+  // независимо от состояния загрузки (rules-of-hooks).
+  const game = replaysData?.[gi] || null
+  const state = game?.states?.[si] || null
+  const totalStates = game?.states?.length || 0
 
-  const game = replaysData[gi]
-  const state = game.states[si]
-  const totalStates = game.states.length
-
+  // Сброс позиции при смене игры
   useEffect(() => {
     setSi(0)
     setPlaying(false)
   }, [gi])
 
+  // Автопроигрывание
   useEffect(() => {
+    if (!totalStates) return
     if (playing) {
       timerRef.current = setInterval(() => {
         setSi(prev => {
@@ -70,6 +69,7 @@ export default function Replay() {
 
   // Клавиатура
   useEffect(() => {
+    if (!totalStates) return
     function handleKey(e) {
       if (e.key === 'ArrowLeft') goTo(si - 1)
       if (e.key === 'ArrowRight') goTo(si + 1)
@@ -80,6 +80,14 @@ export default function Replay() {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   })
+
+  // Early returns — теперь ПОСЛЕ всех хуков
+  if (!replaysData) {
+    return <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--ink3)' }}>Загрузка реплеев…</div>
+  }
+  if (!replaysData.length || !game || !state) {
+    return <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--ink3)' }}>Нет доступных реплеев</div>
+  }
 
   const move = si > 0 && si <= game.moves.length ? game.moves[si - 1] : null
   const sc = state.sc || [0, 0]

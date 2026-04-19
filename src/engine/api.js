@@ -17,32 +17,28 @@ async function api(path, options = {}, _retried = false) {
   const headers = { 'Content-Type': 'application/json' }
   if (_token) headers['Authorization'] = `Bearer ${_token}`
 
-  try {
-    const res = await fetch(`${API_URL}${path}`, { ...options, headers: { ...headers, ...options.headers } })
-    if (res.status === 401 && _token && !_retried) {
-      // Попробуем обновить токен перед тем как сдаться
-      try {
-        if (!_refreshing) _refreshing = refreshToken()
-        await _refreshing
-        _refreshing = null
-        return api(path, options, true) // Retry с новым токеном
-      } catch {
-        _refreshing = null
-        setToken(null)
-        localStorage.removeItem('stolbiki_profile')
-        window.dispatchEvent(new CustomEvent('stolbiki-auth-expired'))
-      }
-    }
-    if (res.status === 401 && _retried) {
+  const res = await fetch(`${API_URL}${path}`, { ...options, headers: { ...headers, ...options.headers } })
+  if (res.status === 401 && _token && !_retried) {
+    // Попробуем обновить токен перед тем как сдаться
+    try {
+      if (!_refreshing) _refreshing = refreshToken()
+      await _refreshing
+      _refreshing = null
+      return api(path, options, true) // Retry с новым токеном
+    } catch {
+      _refreshing = null
       setToken(null)
       localStorage.removeItem('stolbiki_profile')
+      window.dispatchEvent(new CustomEvent('stolbiki-auth-expired'))
     }
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-    return data
-  } catch (err) {
-    throw err
   }
+  if (res.status === 401 && _retried) {
+    setToken(null)
+    localStorage.removeItem('stolbiki_profile')
+  }
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
 }
 
 // ═══ Auth ═══

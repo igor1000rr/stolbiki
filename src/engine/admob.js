@@ -42,10 +42,10 @@ let interstitialReady = false
 let gamesAfterAd = 0
 
 const isNative = () => !!window.Capacitor?.isNativePlatform?.()
-const useTestAds = () => window.ADMOB_TEST === true || import.meta.env.DEV
+const isTestAdsEnabled = () => window.ADMOB_TEST === true || import.meta.env.DEV
 
 function getAdUnit(type) {
-  if (useTestAds()) return ADS_CONFIG.test[type]
+  if (isTestAdsEnabled()) return ADS_CONFIG.test[type]
   const platform = window.Capacitor?.getPlatform?.() || 'android'
   return ADS_CONFIG[platform]?.[type] || ADS_CONFIG.android[type]
 }
@@ -57,7 +57,7 @@ export async function initAdMob() {
     AdMob = mod.AdMob
     await AdMob.initialize({
       requestTrackingAuthorization: true,
-      initializeForTesting: useTestAds(),
+      initializeForTesting: isTestAdsEnabled(),
     })
     initialized = true
     await loadInterstitial()
@@ -71,7 +71,7 @@ export async function loadInterstitial() {
   try {
     await AdMob.prepareInterstitial({
       adId: getAdUnit('interstitial'),
-      isTesting: useTestAds(),
+      isTesting: isTestAdsEnabled(),
     })
     interstitialReady = true
   } catch (e) {
@@ -115,7 +115,7 @@ export async function showRewarded(onRewarded) {
   try {
     await AdMob.prepareRewardVideoAd({
       adId: getAdUnit('rewarded'),
-      isTesting: useTestAds(),
+      isTesting: isTestAdsEnabled(),
     })
     const result = await AdMob.showRewardVideoAd()
     if (result?.rewardAmount > 0 || result?.type === 'ad') {
@@ -136,7 +136,7 @@ export async function showBanner() {
       adId: getAdUnit('banner'),
       adSize: 'SMART_BANNER',
       position: 'BOTTOM_CENTER',
-      isTesting: useTestAds(),
+      isTesting: isTestAdsEnabled(),
     })
   } catch {}
 }

@@ -72,6 +72,12 @@ jobs:
       - name: Install (server)
         run: cd server && npm ci
 
+      - name: Lint
+        # Блокирует на errors (rules-of-hooks, no-undef, no-empty без catch, и т.п.)
+        # Стилистические (no-unused-vars, exhaustive-deps, set-state-in-effect, purity,
+        # immutability, refs, only-export-components) — warnings, не блокируют.
+        run: npm run lint
+
       - name: Run Tests
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true'
         run: npx vitest run
