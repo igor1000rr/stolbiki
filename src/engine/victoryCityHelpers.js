@@ -84,9 +84,18 @@ export function pieceEmissive(piece) {
 }
 
 // ─── i18n-лейбл сложности AI ───
+//
+// Семантика:
+//  - null/0/undefined → null (нет данных = нет лейбла)
+//  - строка без числового смысла ("abc") → null (как нет данных)
+//  - числовые или число-строки → тированный лейбл по порогам: 150/400/800/1500
 export function getDiffLabel(d, en) {
   if (!d) return null
-  d = typeof d === 'number' ? d : parseInt(d, 10) || 0
+  if (typeof d !== 'number') {
+    const parsed = parseInt(d, 10)
+    if (isNaN(parsed) || parsed <= 0) return null
+    d = parsed
+  }
   if (d >= 1500) return en ? 'Impossible' : 'Невозможно'
   if (d >= 800)  return en ? 'Extreme' : 'Экстрим'
   if (d >= 400)  return en ? 'Hard' : 'Сложно'

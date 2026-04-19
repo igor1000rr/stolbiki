@@ -139,23 +139,35 @@ describe('computeMyReward — resign behaviour', () => {
   })
 })
 
-describe('computeMyReward — partial rewards object', () => {
-  it('missing participation defaults to 0', () => {
+describe('computeMyReward — amount=0 filtering', () => {
+  it('participation=0 is not pushed into parts (no "+0" noise in UI)', () => {
     const r = computeMyReward({
       state: { mode: 'ffa', closed: {} },
-      winner: 0, yourSlot: 0, rewards: { win: 10, centerCapture: 3 },
+      winner: 0, yourSlot: 0,
+      rewards: { participation: 0, win: 10, centerCapture: 3 },
     })
     expect(r.total).toBe(10)
     expect(r.parts.some(p => p.key === 'participation')).toBe(false)
+    expect(r.parts.some(p => p.key === 'win')).toBe(true)
   })
 
-  it('all fields zero → total 0 but parts include participation (key present, amount 0)', () => {
+  it('all zero rewards → parts is empty array', () => {
     const r = computeMyReward({
       state: { mode: 'ffa', closed: {} },
       winner: 1, yourSlot: 0,
       rewards: { participation: 0, win: 0, centerCapture: 0 },
     })
     expect(r.total).toBe(0)
-    expect(r.parts).toEqual([{ key: 'participation', amount: 0 }])
+    expect(r.parts).toEqual([])
+  })
+
+  it('missing rewards fields default to 0 and are filtered out', () => {
+    const r = computeMyReward({
+      state: { mode: 'ffa', closed: {} },
+      winner: 0, yourSlot: 0,
+      rewards: { win: 10 }, // только win
+    })
+    expect(r.total).toBe(10)
+    expect(r.parts).toEqual([{ key: 'win', amount: 10 }])
   })
 })

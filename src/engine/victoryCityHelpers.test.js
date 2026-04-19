@@ -29,6 +29,8 @@ describe('getDiffLabel', () => {
   it('returns null for falsy difficulty', () => {
     expect(getDiffLabel(null)).toBe(null)
     expect(getDiffLabel(0)).toBe(null)
+    expect(getDiffLabel(undefined)).toBe(null)
+    expect(getDiffLabel('')).toBe(null)
   })
   it('RU labels by difficulty tier', () => {
     expect(getDiffLabel(100, false)).toBe('Лёгкая')
@@ -45,9 +47,13 @@ describe('getDiffLabel', () => {
     expect(getDiffLabel(900, true)).toBe('Extreme')
     expect(getDiffLabel(1500, true)).toBe('Impossible')
   })
-  it('accepts string difficulty', () => {
+  it('accepts numeric string difficulty', () => {
     expect(getDiffLabel('400')).toBe('Сложно')
+    expect(getDiffLabel('1500')).toBe('Невозможно')
+  })
+  it('returns null for non-numeric string', () => {
     expect(getDiffLabel('not-a-number')).toBe(null)
+    expect(getDiffLabel('abc123')).toBe(null)  // parseInt → NaN
   })
   it('boundary exactness: 150 = Medium, 149 = Easy, 400 = Hard, 399 = Medium', () => {
     expect(getDiffLabel(149)).toBe('Лёгкая')

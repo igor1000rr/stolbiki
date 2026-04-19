@@ -53,6 +53,12 @@ db.pragma('busy_timeout = 5000')
 db.pragma('synchronous = NORMAL')
 
 // Базовая схема. Новые колонки — через migrations.js, а не здесь.
+//
+// ВАЖНО: все CREATE TABLE должны быть ДО CREATE INDEX ссылающихся на них.
+// Table season_rewards создаётся в migrate(5), но индекс на неё был в базовой
+// схеме → в :memory: (тесты) падало "no such table: main.season_rewards". В проде
+// работало потому что таблица уже существовала с предыдущих запусков. Добавляем CREATE TABLE
+// здесь чтобы fresh-init работал.
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -231,6 +237,35 @@ db.exec(`
     event TEXT NOT NULL, page TEXT, user_id INTEGER, session_id TEXT,
     meta TEXT, ip TEXT, ua TEXT,
     created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS season_rewards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    season_id INTEGER NOT NULL,
+    placement INTEGER NOT NULL,
+    reward_type TEXT NOT NULL,
+    reward_id TEXT NOT NULL,
+    claimed INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, season_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (season_id) REFERENCES seasons(id)
+  );
+  CREATE TABLE IF NOT EXISTS brick_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS user_skins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    skin_id TEXT NOT NULL,
+    purchased_at INTEGER NOT NULL,
+    UNIQUE(user_id, skin_id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
   );
   CREATE INDEX IF NOT EXISTS idx_users_rating ON users(rating DESC);
   CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_id, played_at DESC);
