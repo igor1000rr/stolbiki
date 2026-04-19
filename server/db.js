@@ -33,6 +33,13 @@ export const JWT_SECRET = process.env.JWT_SECRET || (() => {
     console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
     process.exit(1)
   }
+  // В VITEST-режиме не пишем secret на диск — каждый тест получает свежий
+  // эфемерный secret, persist не нужен. Без этого .jwt-secret (mode 0o600)
+  // создавался при прогоне тестов в CI и ломал appleboy/scp-action "Permission denied"
+  // потому что docker контейнер scp'а работает от другого юзера.
+  if (process.env.VITEST) {
+    return 'stolbiki_test_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+  }
   const secretPath = resolve(__dirname, '.jwt-secret')
   if (existsSync(secretPath)) return readFileSync(secretPath, 'utf8').trim()
   const secret = 'stolbiki_dev_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)

@@ -92,6 +92,15 @@ jobs:
           ROOT_VERSION=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('server/package.json','utf8')); p.version='$ROOT_VERSION'; fs.writeFileSync('server/package.json', JSON.stringify(p, null, 2) + '\n')"
 
+      # Защита от Permission denied в scp: удаляем возможные артефакты тестов
+      # (например .jwt-secret с mode 0o600 создавался раньше при импорте db.js в тестах).
+      # Теперь db.js не пишет его при VITEST=1, но оставляем rm -f как double-safety.
+      - name: Clean server test artifacts before upload
+        run: |
+          rm -f server/.jwt-secret
+          rm -rf server/data
+          rm -f server/*.db server/*.db-*
+
       - name: Upload Frontend
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -135,4 +144,4 @@ jobs:
             pm2 set pm2-logrotate:max_size 10M 2>/dev/null || true
             pm2 set pm2-logrotate:retain 7 2>/dev/null || true
             nginx -t && systemctl reload nginx
-            echo "✅ $(date): deploy done, v$(node -e "console.log(require('./package.json').version || '?')" 2>/dev/null || echo '?')"
+            echo "✅ $(date): deploy done, v$(node -e \"console.log(require('./package.json').version || '?')\" 2>/dev/null || echo '?')"
