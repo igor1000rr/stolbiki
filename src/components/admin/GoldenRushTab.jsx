@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react'
 import { S, api, ago } from './_utils'
 
 /**
- * Таб Golden Rush в админке
+ * Таб Golden Rush в админке:
+ *  - Текущая стата (комнаты, очередь)
+ *  - Лайв-комнаты с игроками, счётом, ping'ом
+ *  - Очередь матчмейкинга (кто сколько ждёт)
+ *  - Последние сыгранные матчи (из /api/gr/recent)
+ *  - Топ игроков по победам
+ *
+ * Автообновление каждые 10с — этого достаточно для мониторинга плейтеста.
  */
 
 const PLAYER_COLORS = ['#4a9eff', '#ff6066', '#3dd68c', '#e040fb']
@@ -72,6 +79,7 @@ export function GoldenRushTab() {
         {err && <span style={{ fontSize: 12, color: '#ff5050' }}>Ошибка: {err}</span>}
       </div>
 
+      {/* Сводные метрики */}
       <div style={S.grid(4)}>
         <div style={S.metric('#ffc145')}>
           <div style={S.metricVal('#ffc145')}>{stats.rooms}</div>
@@ -91,6 +99,7 @@ export function GoldenRushTab() {
         </div>
       </div>
 
+      {/* Очередь */}
       <div style={{ ...S.card, marginTop: 16 }}>
         <div style={S.cardTitle}>Матчмейкинг — очередь ({admin?.queue?.length || 0})</div>
         {!admin?.queue?.length ? (
@@ -121,6 +130,7 @@ export function GoldenRushTab() {
         )}
       </div>
 
+      {/* Лайв-комнаты */}
       <div style={S.card}>
         <div style={S.cardTitle}>Активные комнаты ({admin?.rooms?.length || 0})</div>
         {!admin?.rooms?.length ? (
@@ -171,6 +181,7 @@ export function GoldenRushTab() {
         )}
       </div>
 
+      {/* Топ игроков */}
       <div style={S.card}>
         <div style={S.cardTitle}>Топ-10 по победам</div>
         {!leaderboard?.length ? (
@@ -208,6 +219,7 @@ export function GoldenRushTab() {
         )}
       </div>
 
+      {/* Последние матчи */}
       <div style={S.card}>
         <div style={S.cardTitle}>Последние матчи ({recent?.length || 0})</div>
         {!recent?.length ? (

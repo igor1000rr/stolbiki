@@ -18,7 +18,6 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { auth } from '../middleware.js'
-import { awardBricks } from './bricks.js'
 
 // ─── Bootstrap ───
 db.exec(`
@@ -62,7 +61,6 @@ db.exec(`
 // SECURITY-ФИКС: UTC-даты — раньше использовали локальную TZ сервера, из-за чего
 // BP-сезон начинался/заканчивался в разное время для клиентов разных часовых поясов.
 function ensureBPSeason() {
-  const now = Math.floor(Date.now() / 1000)
   let season = db.prepare('SELECT * FROM bp_seasons WHERE is_active=1').get()
   if (season) return season
 
@@ -138,7 +136,7 @@ try { _activeSeason = ensureBPSeason() } catch (e) { console.error('[BP] seed er
 
 // ─── updateBPProgress — вызывается из games.js ───
 // eventType: 'win', 'win_ai_hard', 'win_online', 'close_golden', 'play'
-export function updateBPProgress(userId, eventType, payload = {}) {
+export function updateBPProgress(userId, eventType, _payload = {}) {
   try {
     const season = db.prepare('SELECT * FROM bp_seasons WHERE is_active=1').get()
     if (!season) return
