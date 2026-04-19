@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { GameState, applyAction, GOLDEN_STAND, MAX_CHIPS } from '../engine/game'
 import { useI18n } from '../engine/i18n'
 import Board from './Board'

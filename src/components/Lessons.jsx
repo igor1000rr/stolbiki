@@ -3,7 +3,7 @@
  * Каждый: текст + задание на интерактивной доске
  */
 import { useState, useEffect } from 'react'
-import { GameState, applyAction, getValidTransfers } from '../engine/game'
+import { GameState, getValidTransfers } from '../engine/game'
 import Board from './Board'
 import Mascot from './Mascot'
 import { useI18n } from '../engine/i18n'

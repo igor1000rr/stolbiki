@@ -2,7 +2,7 @@
  * PuzzleRush — реши максимум головоломок за 3 минуты
  * +10 секунд за правильную, -15 за ошибку
  */
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { GameState, applyAction, getValidTransfers } from '../engine/game'
 import Board from './Board'
 import Mascot from './Mascot'

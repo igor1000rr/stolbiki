@@ -74,7 +74,7 @@ function Tower({ bx, by, tower, selected, onSelect }) {
   )
 }
 
-export default function VictoryCity2D({ towers, stats, en }) {
+export default function VictoryCity2D({ towers, _stats, en }) {
   const [selIdx, setSelIdx] = useState(null)
   const [view, setView] = useState(null)
   const containerRef = useRef(null)
