@@ -4,7 +4,7 @@
  * c('site.name') → 'Перехват высотки' (RU) или 'Highrise Heist' (EN) в зависимости от языка
  */
 
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const CACHE_KEY = 'stolbiki_content'
 const CACHE_TTL = 5 * 60 * 1000 // 5 минут

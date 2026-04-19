@@ -3,10 +3,10 @@
  */
 
 import {
-  GameState, getValidTransfers, applyAction,
+  GameState, getValidTransfers,
   MAX_CHIPS, GOLDEN_STAND
 } from './game.js'
-import { mctsSearch, sampleRandomAction } from './ai.js'
+import { mctsSearch } from './ai.js'
 
 const standLabel = i => i === GOLDEN_STAND ? '★' : String(i)
 
@@ -18,7 +18,6 @@ export function getHint(state, simulations = 60) {
 
   // Получаем лучший ход от MCTS
   const bestAction = mctsSearch(state, simulations)
-  const player = state.currentPlayer
 
   // Анализируем позицию
   const analysis = analyzePosition(state)
@@ -50,7 +49,7 @@ function analyzePosition(state) {
 
   // Какие стойки можно закрыть
   for (const [src, dst] of transfers) {
-    const [gc, gs] = state.topGroup(src)
+    const [_gc, gs] = state.topGroup(src)
     if (state.stands[dst].length + gs >= MAX_CHIPS) {
       info.closingMoves.push({ src, dst, label: `${standLabel(src)}→${standLabel(dst)}` })
     }
@@ -60,7 +59,7 @@ function analyzePosition(state) {
   for (const i of state.openStands()) {
     const chips = state.stands[i]
     if (!chips.length) continue
-    const [topColor, topSize] = state.topGroup(i)
+    const [topColor, _topSize] = state.topGroup(i)
     const myChips = chips.filter(c => c === player).length
     const oppChips = chips.filter(c => c === opponent).length
 
@@ -109,7 +108,6 @@ function explainAction(state, action, analysis) {
 
     if (newTotal >= MAX_CHIPS) {
       // Закрывающий перенос
-      const owner = gc === player ? 'вашу' : 'вражескую'
       const isGolden = dst === GOLDEN_STAND
       parts.push(`Рекомендация: достроить высотку ${standLabel(dst)} переносом с ${standLabel(src)}.`)
       if (isGolden) {

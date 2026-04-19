@@ -2,7 +2,7 @@
  * useGameTimer — хук для управления таймерами партии
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 const TIMER_LIMITS = { off: 0, blitz: 180, rapid: 600, classical: 1800 }
 

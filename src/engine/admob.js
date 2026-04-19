@@ -74,7 +74,7 @@ export async function loadInterstitial() {
       isTesting: isTestAdsEnabled(),
     })
     interstitialReady = true
-  } catch (e) {
+  } catch {
     interstitialReady = false
   }
 }
