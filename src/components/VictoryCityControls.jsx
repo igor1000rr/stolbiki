@@ -122,6 +122,7 @@ export default function VictoryCityControls({
 
   return (
     <>
+      {/* Панель кнопок Photo Mode */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10, gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
           {CAMERA_PRESETS_UI.map(p => {
@@ -315,6 +316,7 @@ export default function VictoryCityControls({
         )}
       </div>
 
+      {/* Saved views */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {savedViews.map((v, i) => (
           <div key={i} style={{
@@ -353,6 +355,7 @@ export default function VictoryCityControls({
         )}
       </div>
 
+      {/* Time presets */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
         <div style={{ display: 'flex', gap: 4, padding: 3, background: 'var(--surface2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
           {TIME_PRESETS_UI.map(p => {
