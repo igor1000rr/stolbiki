@@ -42,7 +42,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - name: Sync server lockfile (auto-regenerate if out of sync)
@@ -87,9 +87,6 @@ jobs:
           ROOT_VERSION=$(node -p "require('./package.json').version")
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('server/package.json','utf8')); p.version='$ROOT_VERSION'; fs.writeFileSync('server/package.json', JSON.stringify(p, null, 2) + '\n')"
 
-      # Защита от Permission denied в scp: удаляем артефакты тестов с mode 0o600
-      # (.jwt-secret, .vapid создавались раньше при импорте в тестах). Теперь db.js
-      # и push-helpers.js не пишут их при VITEST=1, но rm оставляем как double-safety.
       - name: Clean server test artifacts before upload
         run: |
           rm -f server/.jwt-secret

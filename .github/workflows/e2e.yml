@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - name: Install frontend deps
@@ -45,13 +45,9 @@ jobs:
             cp dist/csp-hashes.json server/csp-hashes.json
             echo "✅ CSP hashes copied"
           else
-            echo "⚠️ No csp-hashes.json (build пропустил этот шаг)"
+            echo "⚠️  No csp-hashes.json (build пропустил этот шаг)"
           fi
 
-      # ВАЖНО: удаляем любые остатки DB из прошлых прогонов. CREATE TABLE IF NOT EXISTS
-      # не обновляет схему существующей таблицы → если в старой БД нет колонки ref_id
-      # (добавленной в недавнем коммите), register падает с 500. runner-ы в CI чистые,
-      # но есть actions/cache на некоторые пути — чистим явно.
       - name: Clean DB from previous run
         run: |
           rm -rf server/data
