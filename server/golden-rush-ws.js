@@ -7,8 +7,6 @@
  *  - handleGoldenRushMessage / handleGoldenRushDisconnect / cleanupGoldenRush / getGoldenRushStats
  *
  * При старте модуля ожидает setDatabase(db) от ws.js чтобы persistGameResult имел доступ к БД.
- *
- * Протокол: см. docstring в предыдущей версии — не изменился.
  */
 
 import {
@@ -25,13 +23,17 @@ let _db = null
 export function setDatabase(db) { _db = db }
 
 // ═══ Константы наград ═══
-// В 2p PvP за победу даём 5 бриксов (см. ws.js handleServerGameOver).
-// В GR 4-player матч длиннее и сложнее — даём больше за участие и победу.
 const GR_REWARDS = {
   win: 10,           // Победитель FFA или оба в выигравшей команде 2v2
   participation: 2,  // Каждому сыгравшему (не resign'нувшему)
   centerCapture: 3,  // Бонус тому кто замкнул центр
 }
+
+// ═══ Rate limit per-user для gr.findMatch ═══
+// Защита от спама очереди. Ключ — userId, значение — timestamp последнего findMatch.
+// После каждого findMatch следующий разрешён не раньше чем через MIN_MATCH_INTERVAL_MS.
+const findMatchLastAt = new Map()
+const MIN_MATCH_INTERVAL_MS = 2000
 
 // ═══ Генерация id ═══
 function generateGrRoomId() {
@@ -85,7 +87,6 @@ function findPlayerRoomByUserId(userId) {
 /**
  * Пишет результат матча в БД + начисляет бриксы + обновляет счётчики пользователей.
  * Идемпотентна через флаг room.persisted.
- * Никогда не кидает — логирует и отдаёт дальше, чтобы не сломать gr.gameOver broadcast.
  */
 function persistGameResult(room, opts = {}) {
   if (!_db || room.persisted) return
@@ -96,12 +97,10 @@ function persistGameResult(room, opts = {}) {
   const scores = state.scores || computeScores(state)
   const durationSec = Math.round((Date.now() - room.created) / 1000)
 
-  // Определяем кто замкнул центр — за бонус
   const centerOwner = state.closed?.[CENTER_IDX]
 
   try {
     const tx = _db.transaction(() => {
-      // 1. Запись матча
       const playersJson = JSON.stringify(room.players.map(p => ({
         slot: p.slot,
         userId: p.userId || null,
@@ -119,7 +118,6 @@ function persistGameResult(room, opts = {}) {
         state.winner, scoresJson, state.turn, durationSec, resignedBy
       )
 
-      // 2. Определяем победителей per-user
       const winners = new Set()
       if (state.mode === 'ffa' && state.winner >= 0) {
         winners.add(state.winner)
@@ -127,32 +125,27 @@ function persistGameResult(room, opts = {}) {
         for (const slot of state.teams[state.winner]) winners.add(slot)
       }
 
-      // 3. Награды и счётчики per-player
       for (const p of room.players) {
-        if (!p.userId) continue // анонимы пропускаются
+        if (!p.userId) continue
 
         let bricks = 0
         const reasons = []
 
-        // Участие (кроме resigner'а — он не получает)
         if (p.slot !== resignedBy) {
           bricks += GR_REWARDS.participation
           reasons.push('participation')
         }
 
-        // Победа
         if (winners.has(p.slot)) {
           bricks += GR_REWARDS.win
           reasons.push('win')
         }
 
-        // Бонус за центр
         if (p.slot === centerOwner && p.slot !== resignedBy) {
           bricks += GR_REWARDS.centerCapture
           reasons.push('center')
         }
 
-        // Счётчики
         const isWinner = winners.has(p.slot) ? 1 : 0
         const isCenterCapture = p.slot === centerOwner ? 1 : 0
 
@@ -165,7 +158,6 @@ function persistGameResult(room, opts = {}) {
           WHERE id = ?
         `).run(isWinner, isCenterCapture, bricks, p.userId)
 
-        // Транзакция бриксов (если были)
         if (bricks > 0) {
           const reason = `gr:${room.mode}:${reasons.join('+')}`
           _db.prepare(`
@@ -178,13 +170,9 @@ function persistGameResult(room, opts = {}) {
     tx()
   } catch (e) {
     console.error('[gr] persistGameResult error:', e.message)
-    // Флаг оставляем true — не пытаемся повторно при другой ошибке
   }
 }
 
-/**
- * Создаёт комнату из 4 записей очереди. В 2v2 команды по диагонали: 0+2 vs 1+3.
- */
 function createRoomFromQueue(entries, mode) {
   const shuffled = [...entries].sort(() => Math.random() - 0.5)
   const players = []
@@ -211,7 +199,7 @@ function createRoomFromQueue(entries, mode) {
     created: Date.now(),
     lastActivity: Date.now(),
     deleteTimer: null,
-    persisted: false, // флаг идемпотентности persistGameResult
+    persisted: false,
   }
   grRooms.set(roomId, room)
   return room
@@ -234,7 +222,6 @@ function notifyMatchFound(room) {
   }
 }
 
-// ═══ Matchmaking ═══
 function tryMatch() {
   const byMode = { 'ffa': [], '2v2': [] }
   for (const entry of grMatchQueue) {
@@ -269,8 +256,6 @@ function tryMatch() {
   }
 }
 
-// ═══ Публичный API для ws.js ═══
-
 export function handleGoldenRushMessage({ ws, msg, wsUser }) {
   const type = msg.type
   if (!type.startsWith('gr.')) return false
@@ -278,6 +263,17 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
   // ─── gr.findMatch ───
   if (type === 'gr.findMatch') {
     if (!wsUser) { sendErr(ws, 'auth_required'); return true }
+
+    // Per-user rate limit: не чаще чем раз в 2 секунды.
+    // Защищает от ctrl-клика / клиентского бага повторяющего gr.findMatch.
+    const now = Date.now()
+    const lastAt = findMatchLastAt.get(wsUser.id) || 0
+    if (now - lastAt < MIN_MATCH_INTERVAL_MS) {
+      sendErr(ws, 'rate_limit')
+      return true
+    }
+    findMatchLastAt.set(wsUser.id, now)
+
     const mode = msg.mode === '2v2' ? '2v2' : 'ffa'
 
     for (let i = grMatchQueue.length - 1; i >= 0; i--) {
@@ -349,7 +345,7 @@ export function handleGoldenRushMessage({ ws, msg, wsUser }) {
         state: room.state.serialize(),
         winner: room.state.winner,
         scores: room.state.scores || computeScores(room.state),
-        rewards: GR_REWARDS, // клиент покажет "+10 бриксов"
+        rewards: GR_REWARDS,
       })
       setTimeout(() => { if (grRooms.has(room.id)) grRooms.delete(room.id) }, 5 * 60 * 1000)
     }
@@ -485,6 +481,11 @@ export function cleanupGoldenRush() {
   }
   for (let i = grMatchQueue.length - 1; i >= 0; i--) {
     if (grMatchQueue[i].ws.readyState !== 1) grMatchQueue.splice(i, 1)
+  }
+  // Чистим устаревшие записи findMatch rate limit (>1 мин)
+  const cutoff = now - 60000
+  for (const [uid, ts] of findMatchLastAt) {
+    if (ts < cutoff) findMatchLastAt.delete(uid)
   }
 }
 

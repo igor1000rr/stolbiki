@@ -14,10 +14,12 @@ import {
   STAND_META, STAND_COORDS, CENTER_IDX, NUM_STANDS, MAX_CHIPS, MAX_PLACE,
   PLAYER_COLORS, PLAYER_NAMES_RU,
 } from '../game/goldenRushEngine'
+import GoldenRushTutorial from './GoldenRushTutorial'
 
 const SVG_SIZE = 480
 const SVG_C = SVG_SIZE / 2
 const SVG_R = SVG_SIZE * 0.38
+const TUTORIAL_KEY = 'stolbiki_gr_tutorial_seen'
 
 function standXY(i) {
   const c = STAND_COORDS[i]
@@ -143,7 +145,7 @@ function Board({ state, pending, onStandClick, yourSlot }) {
   )
 }
 
-function Lobby({ onFind, hasToken, lang }) {
+function Lobby({ onFind, hasToken, lang, onShowTutorial }) {
   const en = lang === 'en'
   const [mode, setMode] = useState('2v2')
 
@@ -180,6 +182,18 @@ function Lobby({ onFind, hasToken, lang }) {
         style={{ width: '100%', padding: '10px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
       >
         {en ? 'Find match' : 'Найти матч'}
+      </button>
+
+      <button
+        onClick={onShowTutorial}
+        style={{
+          width: '100%', padding: '8px 14px', marginTop: 8,
+          background: 'transparent', color: 'var(--ink2)',
+          border: '1px solid var(--ink4)', borderRadius: 8,
+          fontWeight: 500, fontSize: 12, cursor: 'pointer',
+        }}
+      >
+        {en ? 'How to play (30s)' : 'Как играть (30 сек)'}
       </button>
 
       <div style={{ marginTop: 18, padding: 10, background: 'var(--bg)', borderRadius: 6, fontSize: 11, color: 'var(--ink3)', lineHeight: 1.5 }}>
@@ -258,14 +272,9 @@ function RewardCard({ reward, lang }) {
   if (resigned && total === 0) {
     return (
       <div style={{
-        padding: 10,
-        background: 'var(--card)',
-        border: '1px dashed var(--ink4)',
-        borderRadius: 6,
-        marginTop: 8,
-        textAlign: 'center',
-        fontSize: 12,
-        color: 'var(--ink3)',
+        padding: 10, background: 'var(--card)',
+        border: '1px dashed var(--ink4)', borderRadius: 6,
+        marginTop: 8, textAlign: 'center', fontSize: 12, color: 'var(--ink3)',
       }}>
         {en ? 'You resigned — no bricks earned.' : 'Ты сдался — бриксы не начислены.'}
       </div>
@@ -283,9 +292,7 @@ function RewardCard({ reward, lang }) {
       padding: 10,
       background: 'linear-gradient(135deg, #3dd68c20, #3dd68c35)',
       border: '1px solid #3dd68c',
-      borderRadius: 6,
-      marginTop: 8,
-      textAlign: 'center',
+      borderRadius: 6, marginTop: 8, textAlign: 'center',
     }}>
       <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
         {en ? 'You earned' : 'Начислено'}
@@ -348,6 +355,14 @@ export default function GoldenRushOnline() {
   const gr = useGoldenRushWS()
   const [pending, setPending] = useState({ transfer: null, placement: {} })
   const [transferPhase, setTransferPhase] = useState(null)
+  const [showTutorial, setShowTutorial] = useState(() => {
+    try { return !localStorage.getItem(TUTORIAL_KEY) } catch { return false }
+  })
+
+  function closeTutorial() {
+    try { localStorage.setItem(TUTORIAL_KEY, '1') } catch {}
+    setShowTutorial(false)
+  }
 
   useEffect(() => {
     if (gr.state) setPending({ transfer: null, placement: {} })
@@ -424,7 +439,12 @@ export default function GoldenRushOnline() {
   }
 
   if (gr.status === 'idle' || gr.status === 'connecting' || gr.status === 'error') {
-    return <Lobby onFind={gr.findMatch} hasToken={gr.hasToken} lang={lang} />
+    return (
+      <>
+        {showTutorial && <GoldenRushTutorial lang={lang} onClose={closeTutorial} />}
+        <Lobby onFind={gr.findMatch} hasToken={gr.hasToken} lang={lang} onShowTutorial={() => setShowTutorial(true)} />
+      </>
+    )
   }
 
   if (gr.status === 'queued') {
@@ -469,7 +489,7 @@ export default function GoldenRushOnline() {
 
       {gr.error && (
         <div style={{ padding: 8, marginBottom: 8, background: '#ff6b6b22', border: '1px solid #ff6b6b', borderRadius: 6, fontSize: 12, color: '#ff6b6b' }}>
-          {en ? 'Error: ' : 'Ошибка: '}{gr.error}
+          {en ? 'Error: ' : 'Ошибка: '}{gr.error === 'rate_limit' ? (en ? 'too many requests, wait a moment' : 'слишком часто, подожди секунду') : gr.error}
         </div>
       )}
 
