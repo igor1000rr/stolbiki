@@ -133,7 +133,7 @@ app.post('/api/rooms', rateLimit(60000, 10), (req, res) => {
 
 app.get('/api/rooms/active', (req, res) => {
   const active = []
-  for (const [id, room] of rooms) { if (room.state === 'playing' && room.players.length === 2) active.push({ id: room.id, players: room.players.map(p => p.name), scores: room.scores, turn: room.gameState?.turn || 0, spectators: (room.spectators || []).filter(s => s.readyState === 1).length }) }
+  for (const [, room] of rooms) { if (room.state === 'playing' && room.players.length === 2) active.push({ id: room.id, players: room.players.map(p => p.name), scores: room.scores, turn: room.gameState?.turn || 0, spectators: (room.spectators || []).filter(s => s.readyState === 1).length }) }
   res.json(active)
 })
 
@@ -250,7 +250,7 @@ if (!isTest) {
 
   const gracefulShutdown = (signal) => {
     console.log(`\n⏳ ${signal} — graceful shutdown...`)
-    for (const [id, room] of rooms) { const msg = JSON.stringify({ type: 'serverShutdown' }); room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(msg) } catch {} }) }
+    for (const [, room] of rooms) { const msg = JSON.stringify({ type: 'serverShutdown' }); room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(msg) } catch {} }) }
     server.close(() => { db.close(); process.exit(0) })
     setTimeout(() => process.exit(1), 5000)
   }
