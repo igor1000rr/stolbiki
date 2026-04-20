@@ -1,15 +1,16 @@
 /**
  * LandingCity3D — 3D-превью «Города побед» на главной странице.
  *
- * v5.9.15: дороги слиты в одну большую площадь-плиту.
- *   Раньше была сетка из 8 прямоугольных stripe-ов (rows+1 горизонтальных + cols+1
- *   вертикальных), которые создавали «плиточный» эффект. Теперь это одна большая
- *   plane-плита под всем городом (асфальт как у реальных городских площадей).
+ * v5.9.16: cyber-улицы на плите.
+ *   v5.9.15 убрала road-stripe-сетку → дорог стало вообще не видно.
+ *   Теперь поверх плиты нарисованы тонкие неоновые линии (cyan emissive)
+ *   между рядами зданий — чёткие cyber-style улицы без «плиточного»
+ *   эффекта. Линии 0.3 толщиной вместо 2.4 у предыдущих stripe-ов.
  *
- * Наследие от v5.9.14:
- *   - Реальные PointLight у фонарей (свет падает на плиту и здания)
- *   - Цветные PointLight у неонов
- *   - Огни машин на виртуальных полосах между зданиями
+ * Наследие от v5.9.14-15:
+ *   - Одна большая плита-площадь под городом (MeshStandardMaterial)
+ *   - Реальные PointLight у фонарей и неонов
+ *   - Огни машин на виртуальных полосах
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -29,6 +30,9 @@ const SMOKE_PER_BUILDING = 5
 const ROOF_BEACON_CHANCE = 0.3
 const NEON_CHANCE = 0.55
 const NEON_COLORS = [0xff4090, 0x00d4ff, 0x3dd68c, 0xff8020, 0xc060ff, 0xffdd20]
+
+// Цвет cyber-улиц (cyan)
+const STREET_LINE_COLOR = 0x00d4ff
 
 function hasWebGL() {
   if (typeof window === 'undefined') return false
@@ -153,7 +157,6 @@ export default function LandingCity3D() {
         rim.position.set(centerX - 15, 12, centerZ - 15)
         scene.add(rim)
 
-        // Дальний фон — почти чёрная плоскость вокруг города
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
@@ -164,9 +167,7 @@ export default function LandingCity3D() {
         ground.receiveShadow = true
         scene.add(ground)
 
-        // ─── ГОРОДСКАЯ ПЛОЩАДЬ (одна большая плита вместо сетки дорог) ───
-        // Плита покрывает весь город + полосу вокруг. MeshStandardMaterial — свет от
-        // фонарей и неонов по-настоящему падает на неё (круглые блики).
+        // ─── ГОРОДСКАЯ ПЛИТА (одна большая площадь) ───
         const plazaW = COLS * SPACING + SPACING * 1.5
         const plazaD = rows * SPACING + SPACING * 1.5
         const plazaTex = makeRoadTexture(THREE)
@@ -184,6 +185,41 @@ export default function LandingCity3D() {
         plaza.position.set(centerX, 0, centerZ)
         plaza.receiveShadow = true
         scene.add(plaza)
+
+        // ─── CYBER-УЛИЦЫ (тонкие неоновые линии на плите) ───
+        // Плоские планы 0.3 толщиной с emissive-cyan материалом — выглядят как
+        // светящиеся дорожки в стиле Tron. Без бордюров и текстур, просто
+        // самосвечение. AdditiveBlending — линия мягко наложится на плиту
+        // и не создаст «плиточный» эффект.
+        const streetLineMat = new THREE.MeshBasicMaterial({
+          color: STREET_LINE_COLOR,
+          transparent: true,
+          opacity: 0.45,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+        const streetWidth = 0.3
+        const streetExtent = Math.max(rows, COLS) * SPACING + SPACING * 1.2
+        const streetsGroup = new THREE.Group()
+        // Горизонтальные линии — между рядами зданий (и по краям)
+        for (let r = -1; r < rows; r++) {
+          const z = r * SPACING + SPACING / 2
+          const lineGeo = new THREE.PlaneGeometry(streetExtent, streetWidth)
+          const line = new THREE.Mesh(lineGeo, streetLineMat)
+          line.rotation.x = -Math.PI / 2
+          line.position.set(centerX, 0.04, z)
+          streetsGroup.add(line)
+        }
+        // Вертикальные линии — между колонками зданий
+        for (let c = -1; c < COLS; c++) {
+          const x = c * SPACING + SPACING / 2
+          const lineGeo = new THREE.PlaneGeometry(streetWidth, streetExtent)
+          const line = new THREE.Mesh(lineGeo, streetLineMat)
+          line.rotation.x = -Math.PI / 2
+          line.position.set(x, 0.04, centerZ)
+          streetsGroup.add(line)
+        }
+        scene.add(streetsGroup)
 
         // ─── УЛИЧНЫЕ ФОНАРИ ───
         const lampHaloTex = makeLampHaloTexture(THREE)
@@ -231,7 +267,7 @@ export default function LandingCity3D() {
         }
         scene.add(lampGroup)
 
-        // ─── ЗВЁЗДЫ НА НЕБЕ ───
+        // ─── ЗВЁЗДЫ ───
         const starGeo = new THREE.BufferGeometry()
         const starPos = new Float32Array(500 * 3)
         for (let i = 0; i < 500; i++) {
@@ -261,16 +297,13 @@ export default function LandingCity3D() {
         scene.add(moon)
 
         // ─── ОГНИ МАШИН (виртуальные полосы между зданиями) ───
-        // Дорог больше нет — машины ездят по виртуальным линиям между рядами зданий.
-        // Это сохраняет эффект «живого города» без визуальных дорожных плит.
         const carSpriteTex = makeSoftDotTexture(THREE)
         const carLightsGroup = new THREE.Group()
         const cars = []
         const CAR_COUNT = 10
 
-        // Виртуальные полосы между рядами/колонками зданий
-        const lanesH = []  // z-координаты горизонтальных полос (машина едет вдоль X)
-        const lanesV = []  // x-координаты вертикальных полос (машина едет вдоль Z)
+        const lanesH = []
+        const lanesV = []
         for (let r = -1; r < rows; r++) lanesH.push(r * SPACING + SPACING / 2)
         for (let c = -1; c < COLS; c++) lanesV.push(c * SPACING + SPACING / 2)
 
@@ -599,6 +632,8 @@ export default function LandingCity3D() {
               n.material.opacity = opacity
               nLight.intensity = nLight.userData.baseIntensity * lightMul
             }
+            // Cyber-улицы — медленная пульсация opacity
+            streetLineMat.opacity = 0.4 + Math.sin(t * 1.2) * 0.1
             for (let i = 0; i < cars.length; i++) {
               const car = cars[i]
               car.progress += dt * car.speed * car.dir
@@ -690,6 +725,7 @@ export default function LandingCity3D() {
           plazaGeo.dispose()
           plazaMat.dispose()
           plazaTex.dispose()
+          streetLineMat.dispose()
           lampPoleGeo.dispose()
           lampPoleMat.dispose()
           bulbGeo.dispose()
