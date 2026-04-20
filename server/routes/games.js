@@ -13,7 +13,7 @@ const router = Router()
 
 router.post('/games', auth, (req, res) => {
   const {
-    won, score, difficulty, closedGolden, isComeback, turns, duration,
+    won, score, difficulty, closedGolden, isComeback, duration,
     isOnline, moves, humanColor,
     // Cosmetic поля для victory_building (опционально от клиента)
     opponentName, playerSkinId, backgroundId, standsSnapshot,
