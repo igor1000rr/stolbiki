@@ -1,0 +1,26 @@
+export default {
+  version: '5.9.14',
+  date: '2026-04-20',
+  title_ru: 'Wow-пакет 3: реальный свет + трафик',
+  title_en: 'Wow pack 3: real lights + traffic',
+  changes_ru: [
+    { type: 'fix', text: 'Удалены puddle-ы под фонарями. Они давали светлые «плиты» на асфальте в виде бордюра вокруг города — это и воспринималось как «плохие дороги». Теперь освещение асфальта даёт реальный PointLight, не текстура.' },
+    { type: 'feat', text: 'У каждого уличного фонаря теперь есть реальный THREE.PointLight тёпло-оранжевого цвета (intensity 2.5, range 14м). Свет реально падает на стены зданий, землю, другие объекты — это создает настоящую ночную атмосферу.' },
+    { type: 'feat', text: 'Фонари увеличены: высота 3м → 4м, лампочка 0.16 → 0.28, хало 1.8 → 3.5. Предыдущей версии были микроскопичными на изометрическом ракурсе.' },
+    { type: 'feat', text: 'Неоновые вывески увеличены: 1.7×0.5 → 2.4×0.8 в горизонтальном варианте. Добавлены вертикальные вывески 0.7×2.5 (как в Токио/Гонконге). Частота неонов 40% → 55%.' },
+    { type: 'feat', text: 'К каждому неону прикреплён PointLight соответствующего цвета (intensity 1.8, range 5м). Розовый неон подсвечивает стену розовым, голубой — голубым, и т.д. Это главный вау-эффект — здания живут, цвета смешиваются.' },
+    { type: 'feat', text: 'Огни машин на улицах! 10 машин движутся по дорогам — каждая это пара sprite-ов (жёлтые фары впереди + красные стоп-огни сзади) с AdditiveBlending. Разная скорость, разные направления, смена полос (lane offset). При выходе за периметр — возвращаются с другой стороны.' },
+    { type: 'improve', text: 'Освещение сцены пересобрано под реальную ночь: sun 0.9 → 0.55 с холодным цветом луны #aab0d8, ambient 0.5 → 0.35 с синеватым #3040a0, exposure 1.2 → 1.35. Низкий ambient пропускает все цветные акценты ярче.' },
+    { type: 'improve', text: 'Земля сделана почти чёрной (#0a0a16 → #070710). Fog сокращён (40→140 → 28→110) — удалённые здания мягко растворяются в тумане. 500 звёзд вместо 400.' },
+  ],
+  changes_en: [
+    { type: 'fix', text: 'Removed light puddles under lamps. They produced light "plates" on asphalt like a border around the city — that was perceived as "bad roads". Asphalt lighting is now a real PointLight, not a texture.' },
+    { type: 'feat', text: 'Each street lamp now has a real THREE.PointLight (warm-orange, intensity 2.5, range 14m). The light actually falls on building walls, the ground, and other objects — this creates a proper night atmosphere.' },
+    { type: 'feat', text: 'Lamps enlarged: height 3m → 4m, bulb 0.16 → 0.28, halo 1.8 → 3.5. In previous versions they were microscopic at the isometric angle.' },
+    { type: 'feat', text: 'Neon signs enlarged: 1.7×0.5 → 2.4×0.8 for horizontal. Added vertical signs 0.7×2.5 (Tokyo/Hong Kong style). Neon frequency 40% → 55%.' },
+    { type: 'feat', text: 'Each neon now has a matching-colour PointLight attached (intensity 1.8, range 5m). Pink neon lights the wall pink, cyan cyan, and so on. This is the main wow effect — buildings come alive, colours blend.' },
+    { type: 'feat', text: 'Car lights on streets! 10 cars move along roads — each is a pair of sprites (yellow headlights ahead + red tail lights behind) with additive blending. Different speeds, directions, lane offsets. On perimeter exit — wraps around.' },
+    { type: 'improve', text: 'Scene lighting rebuilt for real night: sun 0.9 → 0.55 with cool moon colour #aab0d8, ambient 0.5 → 0.35 with bluish #3040a0, exposure 1.2 → 1.35. Low ambient lets colored accents shine through brighter.' },
+    { type: 'improve', text: 'Ground made nearly black (#0a0a16 → #070710). Fog tightened (40→140 → 28→110) — distant buildings softly dissolve into mist. 500 stars instead of 400.' },
+  ],
+}

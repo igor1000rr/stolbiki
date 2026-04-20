@@ -1,18 +1,21 @@
 /**
  * LandingCity3D — 3D-превью «Города побед» на главной странице.
  *
- * v5.9.13: wow-пакет 2 — уличные фонари + неоновые вывески.
- *   - Удалены зебры (доминировали на изометрии)
- *   - Дорога — упрощенный тёмный фон
- *   - 6 уличных фонарей: столб + лампочка + хало + световое пятно на асфальте
- *   - Неоновые вывески на ~35% зданий (разноцветные, мигают)
+ * v5.9.14: wow-пакет 3 — реальный свет, не текстуры.
+ *   - Удалены puddle-ы фонарей (давали светлые «плиты» на асфальте)
+ *   - Фонари увеличены вдвое + каждый загружен собственным PointLight
+ *     → свет реально падает на здания и землю
+ *   - Неоны увеличены + добавлены вертикальные + прикреплён цветной PointLight
+ *     → каждый неон подсвечивает стену в свой цвет
+ *   - Огни машин: 8 пар фар (жёлтая+красная) движутся по дорогам
+ *   - Тонкий атмосферный туман у земли для глубины
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
 import {
   makeRoadTexture, makeStarTexture, makeSoftDotTexture,
   makeFacadeTexture, makeMoonTexture,
-  makeLampHaloTexture, makeLightPuddleTexture,
+  makeLampHaloTexture,
 } from './victoryCityTextures'
 
 const SKIN_COLORS = [
@@ -23,7 +26,7 @@ const GOLDEN = 0xffd86e
 const CROWN_HEX = 0xffc845
 const SMOKE_PER_BUILDING = 5
 const ROOF_BEACON_CHANCE = 0.3
-const NEON_CHANCE = 0.4
+const NEON_CHANCE = 0.55
 const NEON_COLORS = [0xff4090, 0x00d4ff, 0x3dd68c, 0xff8020, 0xc060ff, 0xffdd20]
 
 function hasWebGL() {
@@ -58,7 +61,8 @@ const DEMO_BUILDINGS = Array.from({ length: 20 }, (_, i) => {
     hasNeon: seeded(i + 1100) < NEON_CHANCE,
     neonColorIdx: Math.floor(seeded(i + 1200) * NEON_COLORS.length),
     neonFace: Math.floor(seeded(i + 1300) * 4),
-    neonHeightFrac: 0.35 + seeded(i + 1400) * 0.35,
+    neonHeightFrac: 0.3 + seeded(i + 1400) * 0.45,
+    neonVertical: seeded(i + 1500) < 0.35,
   }
 })
 
@@ -106,8 +110,9 @@ export default function LandingCity3D() {
         const h = Math.min(380, Math.max(240, w * 0.42))
 
         const scene = new THREE.Scene()
-        scene.background = new THREE.Color(0x05050c)
-        scene.fog = new THREE.Fog(0x05050c, 40, 140)
+        scene.background = new THREE.Color(0x04040a)
+        // Более плотный туман для атмосферы
+        scene.fog = new THREE.Fog(0x04040a, 28, 110)
 
         const rows = Math.ceil(DEMO_BUILDINGS.length / COLS)
         const centerX = ((COLS - 1) / 2) * SPACING
@@ -124,15 +129,17 @@ export default function LandingCity3D() {
         renderer.shadowMap.enabled = true
         renderer.shadowMap.type = THREE.PCFSoftShadowMap
         renderer.toneMapping = THREE.ACESFilmicToneMapping
-        renderer.toneMappingExposure = 1.2
+        renderer.toneMappingExposure = 1.35
         container.appendChild(renderer.domElement)
         renderer.domElement.style.display = 'block'
         renderer.domElement.style.borderRadius = '14px'
         renderer.domElement.style.touchAction = 'none'
 
-        scene.add(new THREE.AmbientLight(0x6070a8, 0.5))
+        // Низкий ambient чтобы реальный свет от фонарей/неонов выделялся
+        scene.add(new THREE.AmbientLight(0x3040a0, 0.35))
 
-        const sun = new THREE.DirectionalLight(0xfff0c8, 0.9)
+        // Солнце слабее — это ночь, задача sun только давать лёгкий контур
+        const sun = new THREE.DirectionalLight(0xaab0d8, 0.55)
         sun.position.set(centerX + 20, 35, centerZ + 12)
         sun.target.position.set(centerX, 0, centerZ)
         sun.castShadow = true
@@ -144,15 +151,15 @@ export default function LandingCity3D() {
         sun.shadow.bias = -0.0003
         scene.add(sun, sun.target)
 
-        const rim = new THREE.DirectionalLight(0x8070d0, 0.6)
+        const rim = new THREE.DirectionalLight(0x6050b0, 0.45)
         rim.position.set(centerX - 15, 12, centerZ - 15)
         scene.add(rim)
 
-        // Земля — еще темнее чем раньше (#0a0a16)
+        // Земля — почти чёрная, чтобы фонари и неоны давали яркие пятна
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
-          new THREE.MeshStandardMaterial({ color: 0x0a0a16, roughness: 0.85, metalness: 0.1 }),
+          new THREE.MeshStandardMaterial({ color: 0x070710, roughness: 0.75, metalness: 0.15 }),
         )
         ground.rotation.x = -Math.PI / 2
         ground.position.y = -0.01
@@ -168,6 +175,9 @@ export default function LandingCity3D() {
         const roadMat = new THREE.MeshBasicMaterial({ map: roadTex })
         const roadGeo = new THREE.PlaneGeometry(roadW, roadLen)
         const roadsGroup = new THREE.Group()
+        // Собираем позиции дорог для car-lights
+        const roadLinesH = []  // горизонтальные (вдоль Z)
+        const roadLinesV = []  // вертикальные (вдоль X)
         for (let r = -1; r < rows; r++) {
           const z = r * SPACING + SPACING / 2
           const m = new THREE.Mesh(roadGeo, roadMat)
@@ -176,6 +186,7 @@ export default function LandingCity3D() {
           m.position.set(centerX, 0.02, z)
           m.receiveShadow = true
           roadsGroup.add(m)
+          roadLinesH.push(z)
         }
         for (let c = -1; c < COLS; c++) {
           const x = c * SPACING + SPACING / 2
@@ -184,20 +195,17 @@ export default function LandingCity3D() {
           m.position.set(x, 0.02, centerZ)
           m.receiveShadow = true
           roadsGroup.add(m)
+          roadLinesV.push(x)
         }
         scene.add(roadsGroup)
 
-        // ─── УЛИЧНЫЕ ФОНАРИ ───
-        // Тонкие cylinder-столбы + sphere-лампочка + sprite-хало + plane со световым пятном на асфальте.
+        // ─── УЛИЧНЫЕ ФОНАРИ (увеличены + реальный PointLight) ───
         const lampHaloTex = makeLampHaloTexture(THREE)
-        const puddleTex = makeLightPuddleTexture(THREE)
-        const lampPoleGeo = new THREE.CylinderGeometry(0.06, 0.09, 3, 8)
-        const lampPoleMat = new THREE.MeshStandardMaterial({ color: 0x15151e, roughness: 0.85, metalness: 0.25 })
-        const bulbGeo = new THREE.SphereGeometry(0.16, 10, 10)
-        const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff2c8 })
-        const puddleGeo = new THREE.PlaneGeometry(4, 4)
+        const lampPoleGeo = new THREE.CylinderGeometry(0.08, 0.12, 4, 8)
+        const lampPoleMat = new THREE.MeshStandardMaterial({ color: 0x20202a, roughness: 0.8, metalness: 0.3 })
+        const bulbGeo = new THREE.SphereGeometry(0.28, 12, 12)
+        const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff5d0 })
 
-        // 6 фонарей в стратегических точках города
         const lampPositions = [
           [-SPACING / 2, centerZ - SPACING / 2],
           [SPACING + SPACING / 2, centerZ - SPACING / 2],
@@ -207,50 +215,42 @@ export default function LandingCity3D() {
           [centerX + SPACING / 2, (rows - 1) * SPACING + SPACING / 2],
         ]
         const lampHaloSprites = []
-        const lampPuddleMeshes = []
+        const lampPointLights = []
         const lampGroup = new THREE.Group()
         for (let i = 0; i < lampPositions.length; i++) {
           const [lx, lz] = lampPositions[i]
-          // Столб
           const pole = new THREE.Mesh(lampPoleGeo, lampPoleMat)
-          pole.position.set(lx, 1.5, lz)
+          pole.position.set(lx, 2, lz)
           pole.castShadow = true
           lampGroup.add(pole)
-          // Лампочка
           const bulb = new THREE.Mesh(bulbGeo, bulbMat)
-          bulb.position.set(lx, 3.05, lz)
+          bulb.position.set(lx, 4.05, lz)
           lampGroup.add(bulb)
-          // Хало
+          // Большое хало
           const haloMat = new THREE.SpriteMaterial({
-            map: lampHaloTex, color: 0xffd9a0,
-            transparent: true, opacity: 0.9, depthWrite: false,
+            map: lampHaloTex, color: 0xffdca0,
+            transparent: true, opacity: 0.95, depthWrite: false,
             blending: THREE.AdditiveBlending,
           })
           const halo = new THREE.Sprite(haloMat)
-          halo.scale.set(1.8, 1.8, 1)
-          halo.position.set(lx, 3.05, lz)
+          halo.scale.set(3.5, 3.5, 1)
+          halo.position.set(lx, 4.05, lz)
           halo.userData.phase = seeded(i + 5000) * Math.PI * 2
           lampGroup.add(halo)
           lampHaloSprites.push(halo)
-          // Световое пятно на асфальте
-          const puddleMat = new THREE.MeshBasicMaterial({
-            map: puddleTex, color: 0xffcc88,
-            transparent: true, opacity: 0.55, depthWrite: false,
-            blending: THREE.AdditiveBlending,
-          })
-          const puddle = new THREE.Mesh(puddleGeo, puddleMat)
-          puddle.rotation.x = -Math.PI / 2
-          puddle.position.set(lx, 0.05, lz)
-          puddle.userData.phase = halo.userData.phase
-          lampGroup.add(puddle)
-          lampPuddleMeshes.push(puddle)
+          // Реальный свет от фонаря — вот что по-настоящему освещает здания и землю
+          const pointLight = new THREE.PointLight(0xffb060, 2.5, 14, 2)
+          pointLight.position.set(lx, 4, lz)
+          pointLight.userData.phase = halo.userData.phase
+          lampGroup.add(pointLight)
+          lampPointLights.push(pointLight)
         }
         scene.add(lampGroup)
 
         // ─── ЗВЁЗДЫ НА НЕБЕ ───
         const starGeo = new THREE.BufferGeometry()
-        const starPos = new Float32Array(400 * 3)
-        for (let i = 0; i < 400; i++) {
+        const starPos = new Float32Array(500 * 3)
+        for (let i = 0; i < 500; i++) {
           const r = 120
           const theta = Math.random() * Math.PI * 2
           const phi = Math.acos(Math.random() * 0.6)
@@ -260,21 +260,65 @@ export default function LandingCity3D() {
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
         const starMat = new THREE.PointsMaterial({
-          color: 0xffffff, size: 0.6, sizeAttenuation: true,
-          transparent: true, opacity: 0.75,
+          color: 0xffffff, size: 0.7, sizeAttenuation: true,
+          transparent: true, opacity: 0.8,
         })
         scene.add(new THREE.Points(starGeo, starMat))
 
         // ─── ЛУНА ───
         const moonTex = makeMoonTexture(THREE)
         const moonMat = new THREE.SpriteMaterial({
-          map: moonTex, transparent: true, opacity: 0.95, depthWrite: false,
+          map: moonTex, transparent: true, opacity: 1, depthWrite: false,
           blending: THREE.AdditiveBlending,
         })
         const moon = new THREE.Sprite(moonMat)
-        moon.scale.set(12, 12, 1)
-        moon.position.set(centerX - 38, 36, centerZ - 32)
+        moon.scale.set(14, 14, 1)
+        moon.position.set(centerX - 38, 38, centerZ - 32)
         scene.add(moon)
+
+        // ─── ОГНИ МАШИН (движутся по дорогам) ───
+        // Каждая машина = пара sprite-ов (жёлтые фары впереди, красные сзади)
+        // Движение: линейное вдоль дороги, при выходе за пределы — новый случайный заход.
+        const carSpriteTex = makeSoftDotTexture(THREE)
+        const carLightsGroup = new THREE.Group()
+        const cars = []
+        const CAR_COUNT = 10
+        for (let i = 0; i < CAR_COUNT; i++) {
+          const horizontal = seeded(i + 7000) < 0.5  // true = едет вдоль X (по горизонтальной дороге)
+          const laneOffset = (seeded(i + 7100) < 0.5 ? -1 : 1) * 0.5
+
+          const frontMat = new THREE.SpriteMaterial({
+            map: carSpriteTex, color: 0xfff0c0,
+            transparent: true, opacity: 1, depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          })
+          const backMat = new THREE.SpriteMaterial({
+            map: carSpriteTex, color: 0xff2040,
+            transparent: true, opacity: 0.9, depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          })
+          const front = new THREE.Sprite(frontMat)
+          const back = new THREE.Sprite(backMat)
+          front.scale.set(0.55, 0.55, 1)
+          back.scale.set(0.45, 0.45, 1)
+
+          carLightsGroup.add(front, back)
+
+          const car = {
+            front, back, horizontal, laneOffset,
+            speed: 2.2 + seeded(i + 7200) * 1.8,
+            progress: seeded(i + 7300),
+          }
+          if (horizontal) {
+            car.roadZ = roadLinesH[Math.floor(seeded(i + 7400) * roadLinesH.length)]
+            car.dir = seeded(i + 7500) < 0.5 ? 1 : -1
+          } else {
+            car.roadX = roadLinesV[Math.floor(seeded(i + 7400) * roadLinesV.length)]
+            car.dir = seeded(i + 7500) < 0.5 ? 1 : -1
+          }
+          cars.push(car)
+        }
+        scene.add(carLightsGroup)
 
         // ─── ФАСАДНЫЕ ТЕКСТУРЫ ───
         const facadeCache = new Map()
@@ -311,6 +355,7 @@ export default function LandingCity3D() {
         const beaconTex = makeSoftDotTexture(THREE)
         const beaconSprites = []
         const neonSigns = []
+        const neonPointLights = []
 
         const cityGroup = new THREE.Group()
         scene.add(cityGroup)
@@ -318,7 +363,9 @@ export default function LandingCity3D() {
         const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
         const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
         const crownGeo = new THREE.BoxGeometry(CROWN_W, FLOOR_H * 1.2, CROWN_W)
-        const neonGeo = new THREE.PlaneGeometry(1.7, 0.5)
+        // 2 типа неоновых планов: горизонтальный (широкий) и вертикальный (высокий)
+        const neonHGeo = new THREE.PlaneGeometry(2.4, 0.8)
+        const neonVGeo = new THREE.PlaneGeometry(0.7, 2.5)
         const spireMeshes = []
         const crownMeshes = []
         const goldenSprites = []
@@ -434,17 +481,18 @@ export default function LandingCity3D() {
             beaconSprites.push(beacon)
           }
 
-          // Неоновая вывеска на фасаде (не для золотых зданий)
+          // Неоновая вывеска (большая) + цветной PointLight — подсвечивает стену
           if (b.hasNeon && !b.golden) {
             const neonColor = NEON_COLORS[b.neonColorIdx]
             const neonMat = new THREE.MeshBasicMaterial({
-              color: neonColor, transparent: true, opacity: 0.95,
+              color: neonColor, transparent: true, opacity: 1.0,
               blending: THREE.AdditiveBlending, depthWrite: false,
               side: THREE.DoubleSide,
             })
-            const neon = new THREE.Mesh(neonGeo, neonMat)
+            const geo = b.neonVertical ? neonVGeo : neonHGeo
+            const neon = new THREE.Mesh(geo, neonMat)
             const heightAt = b.height * FLOOR_H * b.neonHeightFrac
-            const half = BLOCK_W / 2 + 0.04
+            const half = BLOCK_W / 2 + 0.05
             const faces = [
               { x: 0,    z: half,  ry: 0 },
               { x: 0,    z: -half, ry: Math.PI },
@@ -455,9 +503,19 @@ export default function LandingCity3D() {
             neon.position.set(f.x, heightAt, f.z)
             neon.rotation.y = f.ry
             neon.userData.phase = seeded(idx + 1500) * Math.PI * 2
-            neon.userData.baseColor = neonColor
             bGroup.add(neon)
             neonSigns.push(neon)
+
+            // Цветной PointLight на свою цветную подсветку стены
+            const neonLight = new THREE.PointLight(neonColor, 1.8, 5, 2)
+            // Свет немного «выступает» от стены по нормали
+            const nx = f.x === 0 ? 0 : f.x * 1.3
+            const nz = f.z === 0 ? 0 : f.z * 1.3
+            neonLight.position.set(nx, heightAt, nz)
+            neonLight.userData.phase = neon.userData.phase
+            neonLight.userData.baseIntensity = 1.8
+            bGroup.add(neonLight)
+            neonPointLights.push(neonLight)
           }
 
           cityGroup.add(bGroup)
@@ -497,6 +555,13 @@ export default function LandingCity3D() {
         const visibleRef = { current: true }
         const clock = new THREE.Clock()
         let lastFrameTime = performance.now()
+
+        // Границы дорог для wrap машин
+        const roadMinX = -SPACING
+        const roadMaxX = COLS * SPACING
+        const roadMinZ = -SPACING
+        const roadMaxZ = rows * SPACING
+
         const animate = () => {
           if (disposed || !visibleRef.current) { rafRef.current = 0; return }
           rafRef.current = requestAnimationFrame(animate)
@@ -526,24 +591,65 @@ export default function LandingCity3D() {
               b.material.opacity = 0.25 + blink * 0.75
               b.scale.setScalar(0.6 + blink * 0.5)
             }
-            // Уличные фонари — легкое мерцание хало + пульсация светового пятна
+            // Фонари — легкое мерцание хало + колебания мощности PointLight
             for (let i = 0; i < lampHaloSprites.length; i++) {
               const halo = lampHaloSprites[i]
-              const puddle = lampPuddleMeshes[i]
+              const pLight = lampPointLights[i]
               const phase = halo.userData.phase + t * 0.7
-              const breath = 0.88 + Math.sin(phase) * 0.09
+              const breath = 0.9 + Math.sin(phase) * 0.08
               halo.material.opacity = breath
-              halo.scale.setScalar(1.8 * (0.95 + Math.sin(phase) * 0.05))
-              puddle.material.opacity = 0.5 + Math.sin(phase) * 0.08
+              halo.scale.setScalar(3.5 * (0.95 + Math.sin(phase) * 0.05))
+              pLight.intensity = 2.3 + Math.sin(phase) * 0.35
             }
-            // Неоновые вывески — мерцание с случайными glitch-моментами
+            // Неоны — мерцание + glitch + цветная подсветка стены
             for (let i = 0; i < neonSigns.length; i++) {
               const n = neonSigns[i]
+              const nLight = neonPointLights[i]
               const phase = n.userData.phase + t * 2.5
-              let opacity = 0.82 + Math.sin(phase) * 0.12
-              // glitch-момент — детерминированно по sin(phase * 7.3) > 0.96
-              if (Math.sin(phase * 7.3) > 0.96) opacity *= 0.3
+              let opacity = 0.85 + Math.sin(phase) * 0.12
+              let lightMul = 1.0
+              if (Math.sin(phase * 7.3) > 0.96) {
+                opacity *= 0.25
+                lightMul = 0.3
+              }
               n.material.opacity = opacity
+              nLight.intensity = nLight.userData.baseIntensity * lightMul
+            }
+            // Машины — движение по дорогам
+            for (let i = 0; i < cars.length; i++) {
+              const car = cars[i]
+              car.progress += dt * car.speed * car.dir
+              if (car.horizontal) {
+                // Едет вдоль X, z = roadZ + laneOffset
+                let x = roadMinX + car.progress
+                if (car.dir > 0 && x > roadMaxX + 3) {
+                  car.progress = 0
+                  x = roadMinX
+                } else if (car.dir < 0 && x < roadMinX - 3) {
+                  car.progress = roadMaxX - roadMinX
+                  x = roadMaxX
+                }
+                const z = car.roadZ + car.laneOffset
+                const frontX = x + car.dir * 0.4
+                const backX = x - car.dir * 0.4
+                car.front.position.set(frontX, 0.3, z)
+                car.back.position.set(backX, 0.3, z)
+              } else {
+                // Едет вдоль Z
+                let z = roadMinZ + car.progress
+                if (car.dir > 0 && z > roadMaxZ + 3) {
+                  car.progress = 0
+                  z = roadMinZ
+                } else if (car.dir < 0 && z < roadMinZ - 3) {
+                  car.progress = roadMaxZ - roadMinZ
+                  z = roadMaxZ
+                }
+                const x = car.roadX + car.laneOffset
+                const frontZ = z + car.dir * 0.4
+                const backZ = z - car.dir * 0.4
+                car.front.position.set(x, 0.3, frontZ)
+                car.back.position.set(x, 0.3, backZ)
+              }
             }
             if (smoke) {
               const pos = smokeGeo.attributes.position.array
@@ -597,7 +703,8 @@ export default function LandingCity3D() {
           floorGeo.dispose()
           spireGeo.dispose()
           crownGeo.dispose()
-          neonGeo.dispose()
+          neonHGeo.dispose()
+          neonVGeo.dispose()
           groundGeo.dispose()
           roadGeo.dispose()
           roadMat.dispose()
@@ -606,9 +713,7 @@ export default function LandingCity3D() {
           lampPoleMat.dispose()
           bulbGeo.dispose()
           bulbMat.dispose()
-          puddleGeo.dispose()
           lampHaloTex.dispose()
-          puddleTex.dispose()
           moonMat.dispose()
           moonTex.dispose()
           starGeo.dispose()
@@ -616,6 +721,7 @@ export default function LandingCity3D() {
           starTex.dispose()
           dotTex.dispose()
           beaconTex.dispose()
+          carSpriteTex.dispose()
           facadeCache.forEach(pair => {
             pair.diffuse.dispose()
             pair.emissive.dispose()
@@ -646,7 +752,7 @@ export default function LandingCity3D() {
     <div
       ref={containerRef}
       style={{
-        background: 'linear-gradient(180deg, #03030a 0%, #05050c 100%)',
+        background: 'linear-gradient(180deg, #02020a 0%, #04040b 100%)',
         borderRadius: 14,
         border: '1px solid rgba(255,255,255,0.07)',
         overflow: 'hidden',
@@ -654,7 +760,7 @@ export default function LandingCity3D() {
         maxWidth: 780,
         margin: '0 auto',
         position: 'relative',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3), 0 0 60px rgba(74,158,255,0.08)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3), 0 0 60px rgba(255,180,100,0.1)',
       }}
       aria-label={en ? '3D preview of Victory City' : '3D-превью Города побед'}
     />
