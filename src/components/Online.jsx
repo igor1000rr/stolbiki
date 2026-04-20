@@ -50,7 +50,7 @@ export default function Online() {
   const [loadingRooms, setLoadingRooms] = useState(false)
   const [opponentSkins, setOpponentSkins] = useState(null)
   const [reconnectInfo, setReconnectInfo] = useState(null)
-  const [opponentRating, setOpponentRating] = useState(null)
+  const [, setOpponentRating] = useState(null)
 
   function getMySkins() {
     const s = getSettings()
