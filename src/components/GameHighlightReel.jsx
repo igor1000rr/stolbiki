@@ -189,13 +189,12 @@ function extractHighlights(moveHistory) {
   const prev = { closed: 0 }
 
   for (let i = 0; i < moveHistory.length; i++) {
-    const { action, player } = moveHistory[i]
+    const { action } = moveHistory[i]
     gs = applyAction(gs, action)
     const closedNow = Object.keys(gs.closed).length
 
     if (closedNow > prev.closed) {
       // Новое закрытие!
-      const newClosed = Object.keys(gs.closed).filter(k => !(k in Object.keys(gs.closed).slice(0, closedNow - 1)))
       highlights.push({
         gs: gs,
         label: `Stand closed! ${gs.countClosed(0)}:${gs.countClosed(1)}`,
@@ -285,8 +284,6 @@ export default function GameHighlightReel({ moveHistory, _result, _humanPlayer, 
 
     // Transition frames (crossfade)
     const TRANSITION_MS = 300
-    let transitionProgress = 1 // 0→1 = fade-in
-    let nextHighlight = null
 
     function drawFrame(now) {
       if (frameIdx >= highlights.length) {
