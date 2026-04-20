@@ -111,14 +111,14 @@ export default function Game() {
   const [mascotRun, setMascotRun] = useState(null)
   const [tournament, setTournament] = useState(null)
   const [dailyMode, setDailyMode] = useState(false)
-  const [dailySeed, setDailySeed] = useState(null)
+  const [, setDailySeed] = useState(null)
   const moveHistoryRef = useRef([])
   const [showReplay, setShowReplay] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [showMobileSettings, setShowMobileSettings] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
-  const [onlineRoom, setOnlineRoom] = useState(null)
-  const [onlinePlayerIdx, setOnlinePlayerIdx] = useState(-1)
+  const [, setOnlineRoom] = useState(null)
+  const [, setOnlinePlayerIdx] = useState(-1)
   const [onlinePlayers, setOnlinePlayers] = useState([])
   const [drawOffered, setDrawOffered] = useState(false)
   const [rematchOffered, setRematchOffered] = useState(false)
@@ -248,7 +248,7 @@ export default function Game() {
     const d = new Date()
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
   }
-  function startDaily() { setDailySeed(getDailySeed()); setDailyMode(true); newGame(0, 100, 'ai'); setInfo(lang === 'en' ? `Daily challenge — beat AI!` : `Ежедневный челлендж — победите AI!`) }
+  function _startDaily() { setDailySeed(getDailySeed()); setDailyMode(true); newGame(0, 100, 'ai'); setInfo(lang === 'en' ? `Daily challenge — beat AI!` : `Ежедневный челлендж — победите AI!`) }
 
   function startTournament(total = 3) {
     setTournament({ total, games: [], currentGame: 1 })
