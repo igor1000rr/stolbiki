@@ -73,84 +73,63 @@ export function makeStarTexture(THREE) {
 }
 
 /**
- * Дорожное полотно 256×256 — 1 SPACING (6 метров).
+ * Дорожное полотно 512×512 — 1 SPACING (6 метров).
  * Используется с MeshBasicMaterial — warm light не перекрашивает асфальт.
  *
- * Содержит: темно-синий асфальт, зернистость, бордюры-тротуары, двойную
- * центральную разметку, lane edge lines, мелкие трещины.
+ * v5.9.12: упрощено — убраны тонкие детали (плитка тротуара 0.5px, трещины 0.8px),
+ * которые при mipmap + anisotropy на большом расстоянии усреднялись в светло-серый
+ * tone, из-за чего асфальт выглядел как бетон. Теперь только жирные элементы:
+ * тёмно-синий асфальт, толстый тротуар-бордюр с обеих сторон, сдержанная двойная
+ * центральная разметка. Размер canvas 512 (было 256) → mipmap начинается с более
+ * детальной базы.
  */
 export function makeRoadTexture(THREE) {
-  const W = 256, H = 256
+  const W = 512, H = 512
   const c = document.createElement('canvas')
   c.width = W; c.height = H
   const ctx = c.getContext('2d')
 
-  const base = ctx.createLinearGradient(0, 0, 0, H)
-  base.addColorStop(0, '#0c0c14')
-  base.addColorStop(0.1, '#151520')
-  base.addColorStop(0.5, '#1c1c28')
-  base.addColorStop(0.9, '#151520')
-  base.addColorStop(1, '#0c0c14')
-  ctx.fillStyle = base
+  // Асфальт — тёмно-синий, плоский (без краевого градиента — fake AO у бордюров
+  // создаёт светлую полосу при aliasing).
+  ctx.fillStyle = '#12121c'
   ctx.fillRect(0, 0, W, H)
 
-  for (let i = 0; i < 1400; i++) {
+  // Лёгкая зернистость — крупнее чем раньше (2-3px), чтобы mipmap не усреднил в grey
+  for (let i = 0; i < 500; i++) {
     const x = Math.random() * W
-    const y = Math.random() * H
-    const s = Math.random() * 1.4 + 0.3
-    const shade = 24 + Math.random() * 45
-    const alpha = 0.18 + Math.random() * 0.35
-    ctx.fillStyle = `rgba(${shade},${shade},${shade + 8},${alpha})`
+    const y = 20 + Math.random() * (H - 40)  // не заходит на бордюры
+    const s = Math.random() * 2.5 + 1.2
+    const shade = 28 + Math.random() * 20
+    ctx.fillStyle = `rgba(${shade},${shade},${shade + 6},${0.15 + Math.random() * 0.2})`
     ctx.fillRect(x, y, s, s)
   }
 
-  ctx.strokeStyle = 'rgba(8,8,12,0.5)'
-  ctx.lineWidth = 0.8
-  for (let i = 0; i < 3; i++) {
-    const y = 30 + Math.random() * (H - 60)
-    ctx.beginPath()
-    ctx.moveTo(Math.random() * W, y)
-    for (let k = 0; k < 4; k++) {
-      ctx.lineTo(Math.random() * W, y + (Math.random() - 0.5) * 12)
-    }
-    ctx.stroke()
-  }
+  // Бордюры-тротуары — тёмные! Не светло-серые. Это асфальтовое ограждение,
+  // не plain concrete. Цвет чуть светлее асфальта для читаемости, но не серебро.
+  // Ширина увеличена до 16px (было 5) — достаточно толстая чтобы не исчезать
+  // при mipmap.
+  ctx.fillStyle = '#252532'
+  ctx.fillRect(0, 0, W, 16)
+  ctx.fillRect(0, H - 16, W, 16)
 
-  const curbTop = ctx.createLinearGradient(0, 0, 0, 7)
-  curbTop.addColorStop(0, '#525263')
-  curbTop.addColorStop(0.6, '#3a3a48')
-  curbTop.addColorStop(1, '#262632')
-  ctx.fillStyle = curbTop
-  ctx.fillRect(0, 0, W, 5)
-  const curbBot = ctx.createLinearGradient(0, H - 7, 0, H)
-  curbBot.addColorStop(0, '#262632')
-  curbBot.addColorStop(0.4, '#3a3a48')
-  curbBot.addColorStop(1, '#525263')
-  ctx.fillStyle = curbBot
-  ctx.fillRect(0, H - 5, W, 5)
+  // Тонкая разделительная линия между бордюром и проезжей частью — темнее асфальта
+  ctx.fillStyle = '#08080f'
+  ctx.fillRect(0, 15, W, 2)
+  ctx.fillRect(0, H - 17, W, 2)
 
-  ctx.strokeStyle = 'rgba(20,20,28,0.6)'
-  ctx.lineWidth = 0.5
-  for (let x = 0; x < W; x += 20) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 5); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(x, H - 5); ctx.lineTo(x, H); ctx.stroke()
-  }
-
-  ctx.fillStyle = '#9b9ba8'
-  const dashLen = 24, gap = 28, y1 = H / 2 - 6, y2 = H / 2 + 4
+  // Двойная центральная разметка — сдержанный серый, толще чем было (4px)
+  // чтобы не исчезала при mipmap downsampling.
+  ctx.fillStyle = '#6a6a78'
+  const dashLen = 48, gap = 40, y1 = H / 2 - 10, y2 = H / 2 + 6
   for (let x = 0; x < W; x += dashLen + gap) {
-    ctx.fillRect(x, y1, dashLen, 2)
-    ctx.fillRect(x, y2, dashLen, 2)
+    ctx.fillRect(x, y1, dashLen, 4)
+    ctx.fillRect(x, y2, dashLen, 4)
   }
-
-  ctx.fillStyle = 'rgba(130,130,145,0.38)'
-  ctx.fillRect(0, 10, W, 1)
-  ctx.fillRect(0, H - 11, W, 1)
 
   const tex = new THREE.CanvasTexture(c)
   tex.wrapS = THREE.RepeatWrapping
   tex.wrapT = THREE.RepeatWrapping
-  tex.anisotropy = 8
+  tex.anisotropy = 4
   tex.needsUpdate = true
   return tex
 }
