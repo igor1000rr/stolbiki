@@ -55,7 +55,7 @@ const DEMO_BUILDINGS = Array.from({ length: 20 }, (_, i) => {
     emissive: seeded(i + 600) < 0.35,
     roofBeacon: height >= 5 && seeded(i + 700) < ROOF_BEACON_CHANCE,
     hueShift: (seeded(i + 800) - 0.5) * 0.3,
-    hasNeon: !seeded(i + 200) < 0.18 && seeded(i + 1100) < NEON_CHANCE,
+    hasNeon: seeded(i + 1100) < NEON_CHANCE,
     neonColorIdx: Math.floor(seeded(i + 1200) * NEON_COLORS.length),
     neonFace: Math.floor(seeded(i + 1300) * 4),
     neonHeightFrac: 0.35 + seeded(i + 1400) * 0.35,
@@ -541,12 +541,9 @@ export default function LandingCity3D() {
               const n = neonSigns[i]
               const phase = n.userData.phase + t * 2.5
               let opacity = 0.82 + Math.sin(phase) * 0.12
-              // ~2% чанс glitch-момента — детерминированно по seeded (не random)
+              // glitch-момент — детерминированно по sin(phase * 7.3) > 0.96
               if (Math.sin(phase * 7.3) > 0.96) opacity *= 0.3
               n.material.opacity = opacity
-            }
-            lamp1_pulse: {
-              // placeholder (unused label)
             }
             if (smoke) {
               const pos = smokeGeo.attributes.position.array
