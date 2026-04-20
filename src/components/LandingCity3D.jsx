@@ -1,13 +1,19 @@
 /**
- * LandingCity3D — 3D-превью «Города побед» на главной странице для first-impression.
- * Рендерит демо-город из 20 сгенерированных зданий с автоповоротом камеры.
+ * LandingCity3D — 3D-превью «Города побед» на главной странице.
  *
- * v5.9.11: фасады зданий переведены на canvas-текстуры с окнами (map + emissiveMap).
- * Добавлены луна и зебры-переходы.
+ * v5.9.13: wow-пакет 2 — уличные фонари + неоновые вывески.
+ *   - Удалены зебры (доминировали на изометрии)
+ *   - Дорога — упрощенный тёмный фон
+ *   - 6 уличных фонарей: столб + лампочка + хало + световое пятно на асфальте
+ *   - Неоновые вывески на ~35% зданий (разноцветные, мигают)
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
-import { makeRoadTexture, makeStarTexture, makeSoftDotTexture, makeFacadeTexture, makeCrosswalkTexture, makeMoonTexture } from './victoryCityTextures'
+import {
+  makeRoadTexture, makeStarTexture, makeSoftDotTexture,
+  makeFacadeTexture, makeMoonTexture,
+  makeLampHaloTexture, makeLightPuddleTexture,
+} from './victoryCityTextures'
 
 const SKIN_COLORS = [
   0x4a9eff, 0xff6066, 0x00e5ff, 0xff3090, 0xffc145,
@@ -17,6 +23,8 @@ const GOLDEN = 0xffd86e
 const CROWN_HEX = 0xffc845
 const SMOKE_PER_BUILDING = 5
 const ROOF_BEACON_CHANCE = 0.3
+const NEON_CHANCE = 0.4
+const NEON_COLORS = [0xff4090, 0x00d4ff, 0x3dd68c, 0xff8020, 0xc060ff, 0xffdd20]
 
 function hasWebGL() {
   if (typeof window === 'undefined') return false
@@ -47,6 +55,10 @@ const DEMO_BUILDINGS = Array.from({ length: 20 }, (_, i) => {
     emissive: seeded(i + 600) < 0.35,
     roofBeacon: height >= 5 && seeded(i + 700) < ROOF_BEACON_CHANCE,
     hueShift: (seeded(i + 800) - 0.5) * 0.3,
+    hasNeon: !seeded(i + 200) < 0.18 && seeded(i + 1100) < NEON_CHANCE,
+    neonColorIdx: Math.floor(seeded(i + 1200) * NEON_COLORS.length),
+    neonFace: Math.floor(seeded(i + 1300) * 4),
+    neonHeightFrac: 0.35 + seeded(i + 1400) * 0.35,
   }
 })
 
@@ -94,8 +106,8 @@ export default function LandingCity3D() {
         const h = Math.min(380, Math.max(240, w * 0.42))
 
         const scene = new THREE.Scene()
-        scene.background = new THREE.Color(0x0a0a18)
-        scene.fog = new THREE.Fog(0x0a0a18, 40, 140)
+        scene.background = new THREE.Color(0x05050c)
+        scene.fog = new THREE.Fog(0x05050c, 40, 140)
 
         const rows = Math.ceil(DEMO_BUILDINGS.length / COLS)
         const centerX = ((COLS - 1) / 2) * SPACING
@@ -118,9 +130,9 @@ export default function LandingCity3D() {
         renderer.domElement.style.borderRadius = '14px'
         renderer.domElement.style.touchAction = 'none'
 
-        scene.add(new THREE.AmbientLight(0x9098d8, 0.7))
+        scene.add(new THREE.AmbientLight(0x6070a8, 0.5))
 
-        const sun = new THREE.DirectionalLight(0xfff0c8, 1.05)
+        const sun = new THREE.DirectionalLight(0xfff0c8, 0.9)
         sun.position.set(centerX + 20, 35, centerZ + 12)
         sun.target.position.set(centerX, 0, centerZ)
         sun.castShadow = true
@@ -132,33 +144,25 @@ export default function LandingCity3D() {
         sun.shadow.bias = -0.0003
         scene.add(sun, sun.target)
 
-        const rim = new THREE.DirectionalLight(0x8070d0, 0.7)
+        const rim = new THREE.DirectionalLight(0x8070d0, 0.6)
         rim.position.set(centerX - 15, 12, centerZ - 15)
         scene.add(rim)
 
-        const lamp1 = new THREE.PointLight(0xffb060, 1.2, 22, 2)
-        lamp1.position.set(centerX - SPACING * 1.5, 4, centerZ + SPACING * 0.5)
-        scene.add(lamp1)
-        const lamp2 = new THREE.PointLight(0xffa840, 1.0, 20, 2)
-        lamp2.position.set(centerX + SPACING * 1.2, 4, centerZ - SPACING * 1.5)
-        scene.add(lamp2)
-
+        // Земля — еще темнее чем раньше (#0a0a16)
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
-          new THREE.MeshStandardMaterial({ color: 0x16162a, roughness: 0.85, metalness: 0.1 }),
+          new THREE.MeshStandardMaterial({ color: 0x0a0a16, roughness: 0.85, metalness: 0.1 }),
         )
         ground.rotation.x = -Math.PI / 2
         ground.position.y = -0.01
         ground.receiveShadow = true
         scene.add(ground)
 
-        // ─── ДОРОГИ ───
+        // ─── ДОРОГИ (тёмный фон) ───
         const roadW = 2.4
         const roadLen = Math.max(rows, COLS) * SPACING + SPACING * 2
         const roadTex = makeRoadTexture(THREE)
-        roadTex.center.set(0.5, 0.5)
-        roadTex.rotation = Math.PI / 2
         roadTex.repeat.set(1, roadLen / SPACING)
         roadTex.needsUpdate = true
         const roadMat = new THREE.MeshBasicMaterial({ map: roadTex })
@@ -183,33 +187,70 @@ export default function LandingCity3D() {
         }
         scene.add(roadsGroup)
 
-        // ─── ЗЕБРЫ-ПЕРЕХОДЫ ───
-        // Небольшие плоские plane'ы с текстурой зебры на центральных перекрёстках.
-        // Положены немного выше дороги (y=0.03), transparent=true — дорога прозрачно видна под стрипами.
-        const crosswalkTex = makeCrosswalkTexture(THREE)
-        const crosswalkMat = new THREE.MeshBasicMaterial({
-          map: crosswalkTex, transparent: true, depthWrite: false,
-        })
-        const crosswalkGeo = new THREE.PlaneGeometry(roadW, roadW)
-        const crosswalkPositions = [
-          [centerX, centerZ],
-          [SPACING + SPACING / 2, centerZ],
-          [centerX + SPACING, centerZ],
-          [centerX, centerZ - SPACING],
+        // ─── УЛИЧНЫЕ ФОНАРИ ───
+        // Тонкие cylinder-столбы + sphere-лампочка + sprite-хало + plane со световым пятном на асфальте.
+        const lampHaloTex = makeLampHaloTexture(THREE)
+        const puddleTex = makeLightPuddleTexture(THREE)
+        const lampPoleGeo = new THREE.CylinderGeometry(0.06, 0.09, 3, 8)
+        const lampPoleMat = new THREE.MeshStandardMaterial({ color: 0x15151e, roughness: 0.85, metalness: 0.25 })
+        const bulbGeo = new THREE.SphereGeometry(0.16, 10, 10)
+        const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff2c8 })
+        const puddleGeo = new THREE.PlaneGeometry(4, 4)
+
+        // 6 фонарей в стратегических точках города
+        const lampPositions = [
+          [-SPACING / 2, centerZ - SPACING / 2],
+          [SPACING + SPACING / 2, centerZ - SPACING / 2],
+          [centerX + SPACING / 2, centerZ + SPACING / 2],
+          [(COLS - 1) * SPACING + SPACING / 2, centerZ + SPACING / 2],
+          [centerX - SPACING / 2, -SPACING / 2],
+          [centerX + SPACING / 2, (rows - 1) * SPACING + SPACING / 2],
         ]
-        const crosswalksGroup = new THREE.Group()
-        for (const [cx, cz] of crosswalkPositions) {
-          const m = new THREE.Mesh(crosswalkGeo, crosswalkMat)
-          m.rotation.x = -Math.PI / 2
-          m.position.set(cx, 0.03, cz)
-          crosswalksGroup.add(m)
+        const lampHaloSprites = []
+        const lampPuddleMeshes = []
+        const lampGroup = new THREE.Group()
+        for (let i = 0; i < lampPositions.length; i++) {
+          const [lx, lz] = lampPositions[i]
+          // Столб
+          const pole = new THREE.Mesh(lampPoleGeo, lampPoleMat)
+          pole.position.set(lx, 1.5, lz)
+          pole.castShadow = true
+          lampGroup.add(pole)
+          // Лампочка
+          const bulb = new THREE.Mesh(bulbGeo, bulbMat)
+          bulb.position.set(lx, 3.05, lz)
+          lampGroup.add(bulb)
+          // Хало
+          const haloMat = new THREE.SpriteMaterial({
+            map: lampHaloTex, color: 0xffd9a0,
+            transparent: true, opacity: 0.9, depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          })
+          const halo = new THREE.Sprite(haloMat)
+          halo.scale.set(1.8, 1.8, 1)
+          halo.position.set(lx, 3.05, lz)
+          halo.userData.phase = seeded(i + 5000) * Math.PI * 2
+          lampGroup.add(halo)
+          lampHaloSprites.push(halo)
+          // Световое пятно на асфальте
+          const puddleMat = new THREE.MeshBasicMaterial({
+            map: puddleTex, color: 0xffcc88,
+            transparent: true, opacity: 0.55, depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          })
+          const puddle = new THREE.Mesh(puddleGeo, puddleMat)
+          puddle.rotation.x = -Math.PI / 2
+          puddle.position.set(lx, 0.05, lz)
+          puddle.userData.phase = halo.userData.phase
+          lampGroup.add(puddle)
+          lampPuddleMeshes.push(puddle)
         }
-        scene.add(crosswalksGroup)
+        scene.add(lampGroup)
 
         // ─── ЗВЁЗДЫ НА НЕБЕ ───
         const starGeo = new THREE.BufferGeometry()
-        const starPos = new Float32Array(300 * 3)
-        for (let i = 0; i < 300; i++) {
+        const starPos = new Float32Array(400 * 3)
+        for (let i = 0; i < 400; i++) {
           const r = 120
           const theta = Math.random() * Math.PI * 2
           const phi = Math.acos(Math.random() * 0.6)
@@ -219,25 +260,23 @@ export default function LandingCity3D() {
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
         const starMat = new THREE.PointsMaterial({
-          color: 0xffffff, size: 0.55, sizeAttenuation: true,
-          transparent: true, opacity: 0.7,
+          color: 0xffffff, size: 0.6, sizeAttenuation: true,
+          transparent: true, opacity: 0.75,
         })
         scene.add(new THREE.Points(starGeo, starMat))
 
         // ─── ЛУНА ───
-        // Большой sprite с halo высоко в углу неба. AdditiveBlending для свечения сквозь fog.
         const moonTex = makeMoonTexture(THREE)
         const moonMat = new THREE.SpriteMaterial({
           map: moonTex, transparent: true, opacity: 0.95, depthWrite: false,
           blending: THREE.AdditiveBlending,
         })
         const moon = new THREE.Sprite(moonMat)
-        moon.scale.set(10, 10, 1)
-        moon.position.set(centerX - 35, 35, centerZ - 30)
+        moon.scale.set(12, 12, 1)
+        moon.position.set(centerX - 38, 36, centerZ - 32)
         scene.add(moon)
 
         // ─── ФАСАДНЫЕ ТЕКСТУРЫ ───
-        // Кэш по ключу (colorHex, metallic). Переиспользуется между этажами/зданиями.
         const facadeCache = new Map()
         const getFacade = (baseHex, metallic) => {
           const key = `${baseHex.toString(16)}_${metallic ? 1 : 0}`
@@ -249,7 +288,6 @@ export default function LandingCity3D() {
           return cached
         }
 
-        // Текстуры для звезды над короной и дыма
         const starTex = makeStarTexture(THREE)
         const dotTex = makeSoftDotTexture(THREE)
 
@@ -272,6 +310,7 @@ export default function LandingCity3D() {
 
         const beaconTex = makeSoftDotTexture(THREE)
         const beaconSprites = []
+        const neonSigns = []
 
         const cityGroup = new THREE.Group()
         scene.add(cityGroup)
@@ -279,6 +318,7 @@ export default function LandingCity3D() {
         const floorGeo = new THREE.BoxGeometry(BLOCK_W, FLOOR_H, BLOCK_W)
         const spireGeo = new THREE.BoxGeometry(SPIRE_W, FLOOR_H, SPIRE_W)
         const crownGeo = new THREE.BoxGeometry(CROWN_W, FLOOR_H * 1.2, CROWN_W)
+        const neonGeo = new THREE.PlaneGeometry(1.7, 0.5)
         const spireMeshes = []
         const crownMeshes = []
         const goldenSprites = []
@@ -295,10 +335,6 @@ export default function LandingCity3D() {
           const bGroup = new THREE.Group()
           bGroup.position.set(bx, 0, bz)
 
-          // Корпус здания: каждый этаж — BoxGeometry с 6-material array.
-          // 4 боковые грани = MeshStandardMaterial с map:facade.diffuse + emissiveMap:facade.emissive
-          //   → настоящие окна на стенах (3×3 сетка, рандомные off/dim/bright).
-          // top/bottom грани = плоский capMat без текстуры.
           for (let i = 0; i < b.height; i++) {
             const isTop = i === b.height - 1 && b.spires === 0 && !b.golden
             const heightFactor = (i / Math.max(1, b.height - 1)) * 0.3 - 0.15 + b.hueShift
@@ -322,7 +358,6 @@ export default function LandingCity3D() {
               emissive: colorHex,
               emissiveIntensity: b.emissive ? 0.25 : 0.06,
             })
-            // BoxGeometry material order: [+X, -X, +Y(top), -Y(bottom), +Z, -Z]
             const matArr = [wallMat, wallMat, capMat, capMat, wallMat, wallMat]
 
             const mesh = new THREE.Mesh(floorGeo, matArr)
@@ -399,6 +434,32 @@ export default function LandingCity3D() {
             beaconSprites.push(beacon)
           }
 
+          // Неоновая вывеска на фасаде (не для золотых зданий)
+          if (b.hasNeon && !b.golden) {
+            const neonColor = NEON_COLORS[b.neonColorIdx]
+            const neonMat = new THREE.MeshBasicMaterial({
+              color: neonColor, transparent: true, opacity: 0.95,
+              blending: THREE.AdditiveBlending, depthWrite: false,
+              side: THREE.DoubleSide,
+            })
+            const neon = new THREE.Mesh(neonGeo, neonMat)
+            const heightAt = b.height * FLOOR_H * b.neonHeightFrac
+            const half = BLOCK_W / 2 + 0.04
+            const faces = [
+              { x: 0,    z: half,  ry: 0 },
+              { x: 0,    z: -half, ry: Math.PI },
+              { x: half, z: 0,     ry: Math.PI / 2 },
+              { x: -half, z: 0,    ry: -Math.PI / 2 },
+            ]
+            const f = faces[b.neonFace]
+            neon.position.set(f.x, heightAt, f.z)
+            neon.rotation.y = f.ry
+            neon.userData.phase = seeded(idx + 1500) * Math.PI * 2
+            neon.userData.baseColor = neonColor
+            bGroup.add(neon)
+            neonSigns.push(neon)
+          }
+
           cityGroup.add(bGroup)
         })
 
@@ -465,8 +526,28 @@ export default function LandingCity3D() {
               b.material.opacity = 0.25 + blink * 0.75
               b.scale.setScalar(0.6 + blink * 0.5)
             }
-            lamp1.intensity = 1.1 + Math.sin(t * 0.8) * 0.15
-            lamp2.intensity = 0.95 + Math.sin(t * 0.6 + 1.5) * 0.15
+            // Уличные фонари — легкое мерцание хало + пульсация светового пятна
+            for (let i = 0; i < lampHaloSprites.length; i++) {
+              const halo = lampHaloSprites[i]
+              const puddle = lampPuddleMeshes[i]
+              const phase = halo.userData.phase + t * 0.7
+              const breath = 0.88 + Math.sin(phase) * 0.09
+              halo.material.opacity = breath
+              halo.scale.setScalar(1.8 * (0.95 + Math.sin(phase) * 0.05))
+              puddle.material.opacity = 0.5 + Math.sin(phase) * 0.08
+            }
+            // Неоновые вывески — мерцание с случайными glitch-моментами
+            for (let i = 0; i < neonSigns.length; i++) {
+              const n = neonSigns[i]
+              const phase = n.userData.phase + t * 2.5
+              let opacity = 0.82 + Math.sin(phase) * 0.12
+              // ~2% чанс glitch-момента — детерминированно по seeded (не random)
+              if (Math.sin(phase * 7.3) > 0.96) opacity *= 0.3
+              n.material.opacity = opacity
+            }
+            lamp1_pulse: {
+              // placeholder (unused label)
+            }
             if (smoke) {
               const pos = smokeGeo.attributes.position.array
               for (let i = 0; i < smokeFillIdx; i++) {
@@ -519,13 +600,18 @@ export default function LandingCity3D() {
           floorGeo.dispose()
           spireGeo.dispose()
           crownGeo.dispose()
+          neonGeo.dispose()
           groundGeo.dispose()
           roadGeo.dispose()
           roadMat.dispose()
           roadTex.dispose()
-          crosswalkGeo.dispose()
-          crosswalkMat.dispose()
-          crosswalkTex.dispose()
+          lampPoleGeo.dispose()
+          lampPoleMat.dispose()
+          bulbGeo.dispose()
+          bulbMat.dispose()
+          puddleGeo.dispose()
+          lampHaloTex.dispose()
+          puddleTex.dispose()
           moonMat.dispose()
           moonTex.dispose()
           starGeo.dispose()
@@ -533,7 +619,6 @@ export default function LandingCity3D() {
           starTex.dispose()
           dotTex.dispose()
           beaconTex.dispose()
-          // Dispose cached facade textures
           facadeCache.forEach(pair => {
             pair.diffuse.dispose()
             pair.emissive.dispose()
@@ -564,7 +649,7 @@ export default function LandingCity3D() {
     <div
       ref={containerRef}
       style={{
-        background: 'linear-gradient(180deg, #06060f 0%, #0a0a18 100%)',
+        background: 'linear-gradient(180deg, #03030a 0%, #05050c 100%)',
         borderRadius: 14,
         border: '1px solid rgba(255,255,255,0.07)',
         overflow: 'hidden',

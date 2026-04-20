@@ -1,20 +1,17 @@
 /**
  * Фабрики Three.js текстур для VictoryCity.
- * Вынесено из VictoryCity.jsx ради распила.
- * Каждая функция принимает THREE модуль и возвращает текстуру.
  *
  * Состав:
- *   makeStarTexture       — сияющая 5-конечная звезда для sprite-ов (корона)
- *   makeRoadTexture       — дорожное полотно с двойной разметкой + бордюры
- *   makeSoftDotTexture    — мягкая круглая точка для particles (дым/облака)
- *   makeFacadeTexture     — фасад небоскрёба с окнами (diffuse + emissiveMap)
- *   makeCrosswalkTexture  — зебра-переход на перекрёстках
- *   makeMoonTexture       — луна с кратерами для неба
+ *   makeStarTexture         — сияющая 5-конечная звезда (корона)
+ *   makeRoadTexture         — дорожное полотно (упрощенный фон)
+ *   makeSoftDotTexture      — мягкая круглая точка (дым/облака)
+ *   makeFacadeTexture       — фасад с окнами (diffuse + emissiveMap)
+ *   makeCrosswalkTexture    — зебра-переход (legacy, не используется)
+ *   makeMoonTexture         — луна с кратерами
+ *   makeLampHaloTexture     — тёплое хало уличного фонаря (sprite)
+ *   makeLightPuddleTexture  — световое пятно на асфальте под фонарём
  */
 
-/**
- * Звезда-корона: белая 5-конечная звезда на мягком теплом ореоле с лучами-sparkle.
- */
 export function makeStarTexture(THREE) {
   const c = document.createElement('canvas')
   c.width = 128; c.height = 128
@@ -73,58 +70,32 @@ export function makeStarTexture(THREE) {
 }
 
 /**
- * Дорожное полотно 512×512 — 1 SPACING (6 метров).
- * Используется с MeshBasicMaterial — warm light не перекрашивает асфальт.
- *
- * v5.9.12: упрощено — убраны тонкие детали (плитка тротуара 0.5px, трещины 0.8px),
- * которые при mipmap + anisotropy на большом расстоянии усреднялись в светло-серый
- * tone, из-за чего асфальт выглядел как бетон. Теперь только жирные элементы:
- * тёмно-синий асфальт, толстый тротуар-бордюр с обеих сторон, сдержанная двойная
- * центральная разметка. Размер canvas 512 (было 256) → mipmap начинается с более
- * детальной базы.
+ * Дорога — ПРОСТОЙ фон. Почти чёрный асфальт без ярких элементов,
+ * чтобы фонари и здания были главными акцентами.
  */
 export function makeRoadTexture(THREE) {
-  const W = 512, H = 512
+  const W = 256, H = 256
   const c = document.createElement('canvas')
   c.width = W; c.height = H
   const ctx = c.getContext('2d')
 
-  // Асфальт — тёмно-синий, плоский (без краевого градиента — fake AO у бордюров
-  // создаёт светлую полосу при aliasing).
-  ctx.fillStyle = '#12121c'
+  // Плоский тёмный асфальт
+  ctx.fillStyle = '#0e0e16'
   ctx.fillRect(0, 0, W, H)
 
-  // Лёгкая зернистость — крупнее чем раньше (2-3px), чтобы mipmap не усреднил в grey
-  for (let i = 0; i < 500; i++) {
+  // Лёгкая крупная зернистость — будет видна вблизи, на дистанции усреднится в тёмный tone
+  for (let i = 0; i < 200; i++) {
     const x = Math.random() * W
-    const y = 20 + Math.random() * (H - 40)  // не заходит на бордюры
-    const s = Math.random() * 2.5 + 1.2
-    const shade = 28 + Math.random() * 20
-    ctx.fillStyle = `rgba(${shade},${shade},${shade + 6},${0.15 + Math.random() * 0.2})`
+    const y = Math.random() * H
+    const s = Math.random() * 2 + 1.5
+    const shade = 18 + Math.random() * 14
+    ctx.fillStyle = `rgba(${shade},${shade},${shade + 4},0.4)`
     ctx.fillRect(x, y, s, s)
   }
 
-  // Бордюры-тротуары — тёмные! Не светло-серые. Это асфальтовое ограждение,
-  // не plain concrete. Цвет чуть светлее асфальта для читаемости, но не серебро.
-  // Ширина увеличена до 16px (было 5) — достаточно толстая чтобы не исчезать
-  // при mipmap.
-  ctx.fillStyle = '#252532'
-  ctx.fillRect(0, 0, W, 16)
-  ctx.fillRect(0, H - 16, W, 16)
-
-  // Тонкая разделительная линия между бордюром и проезжей частью — темнее асфальта
-  ctx.fillStyle = '#08080f'
-  ctx.fillRect(0, 15, W, 2)
-  ctx.fillRect(0, H - 17, W, 2)
-
-  // Двойная центральная разметка — сдержанный серый, толще чем было (4px)
-  // чтобы не исчезала при mipmap downsampling.
-  ctx.fillStyle = '#6a6a78'
-  const dashLen = 48, gap = 40, y1 = H / 2 - 10, y2 = H / 2 + 6
-  for (let x = 0; x < W; x += dashLen + gap) {
-    ctx.fillRect(x, y1, dashLen, 4)
-    ctx.fillRect(x, y2, dashLen, 4)
-  }
+  // Сдержанная центральная полоса — едва видная, не доминирует
+  ctx.fillStyle = 'rgba(70,70,85,0.45)'
+  ctx.fillRect(0, H / 2 - 1, W, 2)
 
   const tex = new THREE.CanvasTexture(c)
   tex.wrapS = THREE.RepeatWrapping
@@ -147,21 +118,6 @@ export function makeSoftDotTexture(THREE) {
   return new THREE.CanvasTexture(c)
 }
 
-/**
- * Фасад небоскрёба 256×256 = 1 этаж.
- * Возвращает { diffuse, emissive } — пару canvas-текстур для MeshStandardMaterial:
- *   material.map          = diffuse  (стена + тёмные незажжённые окна)
- *   material.emissiveMap  = emissive (только светящиеся окна — чёрный фон)
- *
- * Окна в сетке cols×rows со случайным состоянием: off ~15%, dim ~25%, bright ~60%.
- *
- * Параметры:
- *   baseHex   — базовый цвет фасада (0xrrggbb)
- *   cols      — колонок окон (default 3)
- *   rows      — рядов окон (default 3)
- *   seed      — детерминизм (фасад не мерцает между рендерами)
- *   metallic  — true добавляет горизонтальные «панели» перекрытий
- */
 export function makeFacadeTexture(THREE, { baseHex = 0x4a9eff, cols = 3, rows = 3, seed = 1, metallic = false } = {}) {
   const W = 256, H = 256
   const diff = document.createElement('canvas')
@@ -301,11 +257,7 @@ export function makeCrosswalkTexture(THREE) {
   c.width = W; c.height = H
   const ctx = c.getContext('2d')
   ctx.clearRect(0, 0, W, H)
-
-  const stripeW = 12
-  const gap = 8
-  const marginX = 12
-  const marginY = 20
+  const stripeW = 12, gap = 8, marginX = 12, marginY = 20
   ctx.fillStyle = 'rgba(210,210,218,0.92)'
   const stripeH = H - marginY * 2
   let x = marginX
@@ -364,6 +316,82 @@ export function makeMoonTexture(THREE) {
   ctx.beginPath()
   ctx.arc(64, 64, 34, 0, Math.PI * 2)
   ctx.fill()
+
+  const tex = new THREE.CanvasTexture(c)
+  tex.needsUpdate = true
+  return tex
+}
+
+/**
+ * Хало уличного фонаря: большой тёплый bloom для sprite-а на верхушке столба.
+ * AdditiveBlending — термо-белое свечение поверх темного города.
+ */
+export function makeLampHaloTexture(THREE) {
+  const W = 128, H = 128
+  const c = document.createElement('canvas')
+  c.width = W; c.height = H
+  const ctx = c.getContext('2d')
+
+  // Внешний широкий glow
+  const outer = ctx.createRadialGradient(64, 64, 0, 64, 64, 60)
+  outer.addColorStop(0, 'rgba(255,225,170,1)')
+  outer.addColorStop(0.15, 'rgba(255,210,140,0.8)')
+  outer.addColorStop(0.4, 'rgba(255,180,100,0.3)')
+  outer.addColorStop(1, 'rgba(255,140,60,0)')
+  ctx.fillStyle = outer
+  ctx.fillRect(0, 0, W, H)
+
+  // Яркое ядро
+  const core = ctx.createRadialGradient(64, 64, 0, 64, 64, 14)
+  core.addColorStop(0, 'rgba(255,255,240,1)')
+  core.addColorStop(1, 'rgba(255,255,240,0)')
+  ctx.fillStyle = core
+  ctx.fillRect(50, 50, 28, 28)
+
+  // Lens-flare лучи горизонтально-вертикальные
+  ctx.save()
+  ctx.translate(64, 64)
+  ctx.globalCompositeOperation = 'lighter'
+  const ray = ctx.createLinearGradient(-60, 0, 60, 0)
+  ray.addColorStop(0, 'rgba(255,220,150,0)')
+  ray.addColorStop(0.5, 'rgba(255,220,150,0.7)')
+  ray.addColorStop(1, 'rgba(255,220,150,0)')
+  ctx.fillStyle = ray
+  ctx.fillRect(-60, -2, 120, 4)
+  ctx.rotate(Math.PI / 2)
+  ctx.fillRect(-60, -2, 120, 4)
+  ctx.restore()
+
+  const tex = new THREE.CanvasTexture(c)
+  tex.needsUpdate = true
+  return tex
+}
+
+/**
+ * Световое пятно на асфальте под фонарём. Крупный radial gradient с elongated-формой.
+ * Рендерится на plane в горизонтальной плоскости (чуть выше дороги), AdditiveBlending.
+ */
+export function makeLightPuddleTexture(THREE) {
+  const W = 256, H = 256
+  const c = document.createElement('canvas')
+  c.width = W; c.height = H
+  const ctx = c.getContext('2d')
+
+  // Большой elongated градиент — фонарь светит в виде круга на земле
+  const grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2 - 10)
+  grad.addColorStop(0, 'rgba(255,200,130,0.75)')
+  grad.addColorStop(0.3, 'rgba(255,170,90,0.4)')
+  grad.addColorStop(0.65, 'rgba(255,140,60,0.15)')
+  grad.addColorStop(1, 'rgba(255,120,40,0)')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, W, H)
+
+  // Маленькое яркое ядро под самой лампой
+  const core = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 30)
+  core.addColorStop(0, 'rgba(255,240,200,0.85)')
+  core.addColorStop(1, 'rgba(255,240,200,0)')
+  ctx.fillStyle = core
+  ctx.fillRect(W / 2 - 40, H / 2 - 40, 80, 80)
 
   const tex = new THREE.CanvasTexture(c)
   tex.needsUpdate = true
