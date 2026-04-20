@@ -5,15 +5,15 @@
  */
 
 /**
- * Звезда-корона: маленькая белая 5-конечная звезда на мягком тёплом ореоле.
- * Раньше была большая жёлтая клякса — доминировала в кадре.
+ * Звезда-корона: маленькая белая 5-конечная звезда на мягком теплом ореоле.
+ * Раньше была большая желтая клякса — доминировала в кадре.
  */
 export function makeStarTexture(THREE) {
   const c = document.createElement('canvas')
   c.width = 128; c.height = 128
   const ctx = c.getContext('2d')
 
-  // Ореол — мягкий тёплый, слабее жёлтого (было #fff4b0 / #ffaa20)
+  // Ореол — мягкий теплый, слабее желтого (было #fff4b0 / #ffaa20)
   const glow = ctx.createRadialGradient(64, 64, 0, 64, 64, 56)
   glow.addColorStop(0, 'rgba(255,240,200,0.55)')
   glow.addColorStop(0.4, 'rgba(255,220,160,0.22)')
@@ -21,7 +21,7 @@ export function makeStarTexture(THREE) {
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, 128, 128)
 
-  // Сама звезда — компактнее (28/11 вместо 36/16) и без жёлтой обводки
+  // Сама звезда — компактнее (28/11 вместо 36/16) и без желтой обводки
   ctx.fillStyle = '#ffffff'
   ctx.shadowColor = 'rgba(255,240,180,0.8)'
   ctx.shadowBlur = 8
@@ -52,14 +52,13 @@ export function makeStarTexture(THREE) {
 /**
  * Дорожное полотно: квадратный тайл 256×256 = 1 SPACING (6 метров).
  *
- * Было 16×256 с почти белыми штрихами на тусклом фоне — «матрасная» полоса,
- * на ночной сцене выглядела ярче зданий из-за дефолтного освещения.
+ * В вызывающем коде использовать MeshBasicMaterial — чтобы теплый
+ * directional light (sun 0xfff0c8) не перекрашивал асфальт в желто-золотой.
+ * MeshStandardMaterial с ACES tone mapping + exposure 1.1 делает любой
+ * темный пиксель теплым; BasicMaterial рендерит текстуру как есть.
  *
- * Теперь: тёмный асфальт с лёгкой зернистостью, тонкие светло-серые бордюры,
- * двойная белая пунктирная разметка по центру.
- *
- * В вызывающем коде material color должен быть 0xffffff — иначе текстура
- * умножается на тёмный и цвета гасятся.
+ * Содержимое: темно-синий асфальт с легкой зернистостью, тонкие серые
+ * бордюры-тротуары по краям, двойная сдержанная пунктирная разметка.
  */
 export function makeRoadTexture(THREE) {
   const W = 256, H = 256
@@ -67,7 +66,7 @@ export function makeRoadTexture(THREE) {
   c.width = W; c.height = H
   const ctx = c.getContext('2d')
 
-  // База — тёмный асфальт с мягким vertical-градиентом (края темнее — fake AO у бордюров)
+  // База — темный асфальт с мягким vertical-градиентом (края темнее — fake AO у бордюров)
   const base = ctx.createLinearGradient(0, 0, 0, H)
   base.addColorStop(0, '#0f0f18')
   base.addColorStop(0.15, '#15151f')
@@ -99,18 +98,19 @@ export function makeRoadTexture(THREE) {
   ctx.fillStyle = curbBot
   ctx.fillRect(0, H - 4, W, 4)
 
-  // Двойная центральная разметка — холодный белый, без жёлтого
-  ctx.fillStyle = '#b8b8c8'
-  const dashLen = 32, gap = 22, y1 = H / 2 - 6, y2 = H / 2 + 4
+  // Двойная центральная разметка — сдержанный серый (не белый)
+  // и короче dashes чтобы визуально меньше доминировали при perspective
+  ctx.fillStyle = '#8a8a96'
+  const dashLen = 22, gap = 30, y1 = H / 2 - 5, y2 = H / 2 + 4
   for (let x = 0; x < W; x += dashLen + gap) {
-    ctx.fillRect(x, y1, dashLen, 2)
-    ctx.fillRect(x, y2, dashLen, 2)
+    ctx.fillRect(x, y1, dashLen, 1.5)
+    ctx.fillRect(x, y2, dashLen, 1.5)
   }
 
-  // Тонкие lane edge lines у бордюров
-  ctx.fillStyle = 'rgba(140,140,160,0.5)'
-  ctx.fillRect(0, 10, W, 1)
-  ctx.fillRect(0, H - 11, W, 1)
+  // Тонкие lane edge lines у бордюров — совсем тусклые
+  ctx.fillStyle = 'rgba(110,110,125,0.35)'
+  ctx.fillRect(0, 9, W, 1)
+  ctx.fillRect(0, H - 10, W, 1)
 
   const tex = new THREE.CanvasTexture(c)
   tex.wrapS = THREE.RepeatWrapping
