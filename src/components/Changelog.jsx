@@ -18,11 +18,6 @@ const TYPES = {
 }
 const TYPE_ORDER = ['security', 'new', 'improve', 'fix', 'perf', 'refactor']
 
-function formatDate(dateStr, lang) {
-  const d = new Date(dateStr)
-  const locale = lang === 'en' ? 'en-US' : 'ru-RU'
-  return d.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })
-}
 
 function relativeDate(dateStr, lang) {
   const d = new Date(dateStr)
@@ -276,7 +271,6 @@ function DistributionBar({ typeCounts, total }) {
 
 // ────────── Стили фильтра ──────────
 function filterBtnStyle(active, typeDef) {
-  const color = active && typeDef ? typeDef.color : 'var(--ink3)'
   const bg = active
     ? (typeDef ? typeDef.bg : 'color-mix(in srgb, var(--accent) 12%, transparent)')
     : 'var(--surface)'
