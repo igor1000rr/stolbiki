@@ -182,7 +182,7 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
         }).catch(() => {})
       }
     })
-  }, [serverOnline, gameCtx]) // eslint-disable-line
+  }, [serverOnline, gameCtx])
 
   if (viewUsername) {
     if (publicLoading) {
