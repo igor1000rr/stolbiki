@@ -192,9 +192,9 @@ export default function VictoryCity({ userId }) {
         const roadW = 2.6
         const roadLen = Math.max(rows, COLS) * SPACING + SPACING * 2
         const roadTex = makeRoadTexture(THREE)
-        roadTex.repeat.set(roadLen / 4, 1)
+        roadTex.repeat.set(roadLen / SPACING, 1)
         roadTex.needsUpdate = true
-        const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, color: 0x222230, roughness: 0.95, metalness: 0 })
+        const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, color: 0xffffff, roughness: 0.95, metalness: 0 })
         const roadGeo = new THREE.PlaneGeometry(roadLen, roadW)
         const roadsGroup = new THREE.Group()
         for (let r = -1; r < rows; r++) {
