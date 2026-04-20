@@ -68,7 +68,7 @@ export default function SeasonPass() {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('stolbiki_token')}` },
       })
-      const d = await r.json()
+      await r.json()
       if (r.ok) {
         // Обновляем локально
         setData(prev => {

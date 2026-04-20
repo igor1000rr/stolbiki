@@ -191,8 +191,6 @@ export default function GoldenRushLeaderboard() {
     return () => { alive = false }
   }, [])
 
-  const myUserId = null // для MatchRow в публичном фиде не нужно — ничего не подсвечивается
-
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: 12 }}>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>
@@ -287,9 +285,6 @@ export default function GoldenRushLeaderboard() {
             </div>
           )}
           {recent && recent.map(m => {
-            const won = m.winner != null && m.winner >= 0
-              ? (m.mode === 'ffa' ? null : null)
-              : null
             const adapted = {
               ...m,
               won: null,
