@@ -13,6 +13,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
+import { makeRoadTexture, makeStarTexture, makeSoftDotTexture } from './victoryCityTextures'
 
 const SKIN_COLORS = [
   0x4a9eff, 0xff6066, 0x00e5ff, 0xff3090, 0xffc145,
@@ -23,7 +24,7 @@ const CROWN_HEX = 0xffc845
 const WINDOW_HEX = 0xfff4a8           // ярче, теплее
 const WINDOW_OPACITY = 1.0            // opacity максимум, яркость даёт AdditiveBlending
 const SMOKE_PER_BUILDING = 5
-const ROOF_BEACON_CHANCE = 0.3        // 30% небоскрёбов получают мигающий маяк на крыше
+const ROOF_BEACON_CHANCE = 0.3        // 30% небоскребов получают мигающий маяк на крыше
 
 function hasWebGL() {
   if (typeof window === 'undefined') return false
@@ -46,7 +47,7 @@ function seeded(i) {
 
 // 20 зданий по 5-колоночной сетке, разные высоты и цвета скинов.
 // Доля metallic/emissive увеличена с 15% до 35% — больше визуального
-// разнообразия. roofBeacon — мигающий маяк на крыше (для небоскрёбов от 5 этажей).
+// разнообразия. roofBeacon — мигающий маяк на крыше (для небоскребов от 5 этажей).
 const DEMO_BUILDINGS = Array.from({ length: 20 }, (_, i) => {
   const height = 3 + Math.floor(seeded(i) * 6)
   return {
@@ -72,89 +73,7 @@ const CROWN_W = 2.2
 const WINDOW_SIZE = 0.75              // было 0.5 — увеличено для читаемости с расстояния
 const WINDOW_FACES_PER_FLOOR = 4      // было 2 — теперь 4 грани, гарантированно видны с любого ракурса
 
-// Дорога: НАМНОГО контрастнее чем раньше. Раньше асфальт #2c2c3e на земле
-// #16162a — разница в яркости почти нулевая, дороги сливались. Теперь:
-// - асфальт #3a3a55 (заметно светлее земли)
-// - бордюры #9090b0 (светло-серо-синий, толщиной 4px)
-// - центральная разметка ярко-жёлтая #ffe14a, шириной 6px и пунктиром
-// - дополнительные параллельные тонкие белые полосы по бокам разметки
-function makeRoadTexture(THREE) {
-  const c = document.createElement('canvas')
-  c.width = 32; c.height = 256
-  const ctx = c.getContext('2d')
-  // Базовый асфальт — светлее чем раньше, читается на тёмной земле
-  ctx.fillStyle = '#3a3a55'
-  ctx.fillRect(0, 0, 32, 256)
-  // Лёгкий шум поверх — даёт «текстуру» вместо плоского цвета
-  for (let i = 0; i < 200; i++) {
-    const x = Math.random() * 32
-    const y = Math.random() * 256
-    const a = 0.05 + Math.random() * 0.08
-    ctx.fillStyle = `rgba(${Math.random() < 0.5 ? '20,20,40' : '90,90,130'},${a})`
-    ctx.fillRect(x, y, 1, 1)
-  }
-  // Боковые бордюры — толще и светлее
-  ctx.fillStyle = '#9090b0'
-  ctx.fillRect(0, 0, 4, 256)
-  ctx.fillRect(28, 0, 4, 256)
-  // Тонкие белые полосы рядом с разметкой (как настоящая дорога)
-  ctx.fillStyle = 'rgba(220,220,235,0.5)'
-  ctx.fillRect(11, 0, 1, 256)
-  ctx.fillRect(20, 0, 1, 256)
-  // Ярко-жёлтая центральная разметка пунктиром (шире и ярче)
-  ctx.fillStyle = '#ffe14a'
-  for (let y = 12; y < 256; y += 32) ctx.fillRect(13, y, 6, 18)
-  const tex = new THREE.CanvasTexture(c)
-  tex.wrapS = THREE.RepeatWrapping
-  tex.wrapT = THREE.RepeatWrapping
-  return tex
-}
-
-// Текстура звезды (10-конечная) — для sprite-овой звёздочки над короной
-function makeStarTexture(THREE) {
-  const c = document.createElement('canvas')
-  c.width = 128; c.height = 128
-  const ctx = c.getContext('2d')
-  const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 60)
-  grad.addColorStop(0, 'rgba(255,240,160,0.9)')
-  grad.addColorStop(0.5, 'rgba(255,200,80,0.4)')
-  grad.addColorStop(1, 'rgba(255,180,40,0)')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, 128, 128)
-  ctx.fillStyle = '#fff4b0'
-  ctx.strokeStyle = '#ffaa20'
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? 36 : 16
-    const a = (Math.PI * 2 / 10) * i - Math.PI / 2
-    const x = 64 + Math.cos(a) * r
-    const y = 64 + Math.sin(a) * r
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
-  }
-  ctx.closePath()
-  ctx.fill()
-  ctx.stroke()
-  const tex = new THREE.CanvasTexture(c)
-  tex.needsUpdate = true
-  return tex
-}
-
-// Мягкая круглая текстура для частиц дыма
-function makeSoftDotTexture(THREE) {
-  const c = document.createElement('canvas')
-  c.width = 32; c.height = 32
-  const ctx = c.getContext('2d')
-  const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16)
-  grad.addColorStop(0, 'rgba(255,255,255,1)')
-  grad.addColorStop(0.5, 'rgba(255,255,255,0.6)')
-  grad.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, 32, 32)
-  return new THREE.CanvasTexture(c)
-}
-
-// Лёгкий hue shift hex-цвета (без RGB→HSL конвертации, простой множитель)
+// Легкий hue shift hex-цвета (без RGB→HSL конвертации, простой множитель)
 function shiftHex(hex, shift) {
   const r = (hex >> 16) & 0xff
   const g = (hex >> 8) & 0xff
@@ -248,8 +167,8 @@ export default function LandingCity3D() {
         lamp2.position.set(centerX + SPACING * 1.2, 4, centerZ - SPACING * 1.5)
         scene.add(lamp2)
 
-        // Земля: чуть светлее (#16162a) + лёгкий emissive чтобы дороги
-        // на ней не казались более тёмными чем сама земля.
+        // Земля: чуть светлее (#16162a) + легкий emissive чтобы дороги
+        // на ней не казались более темными чем сама земля.
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
@@ -263,22 +182,21 @@ export default function LandingCity3D() {
         // ─── ДОРОГИ ───
         // Сетка дорог между зданиями: COLS+1 продольных + rows+1 поперечных.
         // Все дороги шарят одну геометрию, материал и текстуру.
-        // Материал: emissive жёлтым с малой интенсивностью — даёт лёгкое
-        // самосвечение разметки, читается ночью даже когда фонари далеко.
+        // Shared текстура из victoryCityTextures.js — квадратный тайл 256×256
+        // с разметкой по горизонтали (U). Здесь plane ориентирован длиной по Y/V
+        // (PlaneGeometry(roadW, roadLen)) — поэтому крутим текстуру на 90°
+        // чтобы разметка шла ВДОЛЬ дороги, а не поперёк.
+        //
+        // Материал: BasicMaterial (не Standard) — чтобы теплый directional light
+        // не перекрашивал асфальт в желто-золотой. Текстура рендерится как есть.
         const roadW = 2.4
         const roadLen = Math.max(rows, COLS) * SPACING + SPACING * 2
         const roadTex = makeRoadTexture(THREE)
-        roadTex.repeat.set(1, roadLen / 4)
+        roadTex.center.set(0.5, 0.5)
+        roadTex.rotation = Math.PI / 2
+        roadTex.repeat.set(1, roadLen / SPACING)
         roadTex.needsUpdate = true
-        const roadMat = new THREE.MeshStandardMaterial({
-          map: roadTex,
-          color: 0xffffff,            // не дополнительно тонируем поверх текстуры
-          roughness: 0.7,
-          metalness: 0.05,
-          emissive: 0xffe14a,         // жёлтое самосвечение — разметка видна ночью
-          emissiveMap: roadTex,       // emissive следует текстуре (только разметка светится)
-          emissiveIntensity: 0.3,
-        })
+        const roadMat = new THREE.MeshBasicMaterial({ map: roadTex })
         const roadGeo = new THREE.PlaneGeometry(roadW, roadLen)
         const roadsGroup = new THREE.Group()
         for (let r = -1; r < rows; r++) {
@@ -403,7 +321,7 @@ export default function LandingCity3D() {
           const bGroup = new THREE.Group()
           bGroup.position.set(bx, 0, bz)
 
-          // Корпус здания: каждый этаж — отдельный куб с лёгкой вариацией
+          // Корпус здания: каждый этаж — отдельный куб с легкой вариацией
           // оттенка по высоте. Низ темнее, верх светлее (имитация атмосферы)
           // плюс случайный hueShift на здание. Раньше все этажи были
           // монохромными — теперь высотки выглядят «слоями».
@@ -591,7 +509,7 @@ export default function LandingCity3D() {
             // Уличные фонари — лёгкое «дыхание» (не моргание, теплый свет колышется)
             lamp1.intensity = 1.1 + Math.sin(t * 0.8) * 0.15
             lamp2.intensity = 0.95 + Math.sin(t * 0.6 + 1.5) * 0.15
-            // Дым: подъём + лёгкий wobble
+            // Дым: подъем + лёгкий wobble
             if (smoke) {
               const pos = smokeGeo.attributes.position.array
               for (let i = 0; i < smokeFillIdx; i++) {
