@@ -38,8 +38,11 @@ test.describe('Security: SQL injection attempts', () => {
       const res = await request.post(`${API}/api/auth/login`, {
         data: { username: p, password: 'whatever' },
       })
-      // Должен вернуть 401, НЕ 500
-      expect(res.status()).toBe(401)
+      // Не должно быть 500 (краш) или 200 (успешный логин через injection).
+      // 401 (отказ) или 429 (rate limit) — оба валидные reject-коды.
+      expect(res.status()).not.toBe(500)
+      expect(res.status()).not.toBe(200)
+      expect([401, 429]).toContain(res.status())
     }
   })
 
