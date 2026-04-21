@@ -122,10 +122,10 @@ function compileCity(userId) {
 
 function getUserBrief(userId) {
   try {
-    return db.prepare('SELECT id, name, avatar_url FROM users WHERE id = ?').get(userId) || null
+    return db.prepare('SELECT id, username, avatar_url FROM users WHERE id = ?').get(userId) || null
   } catch {
     try {
-      return db.prepare('SELECT id, name FROM users WHERE id = ?').get(userId) || null
+      return db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId) || null
     } catch { return null }
   }
 }
@@ -134,11 +134,11 @@ function safeSelectUsers(ids) {
   if (!ids.length) return new Map()
   const placeholders = ids.map(() => '?').join(',')
   try {
-    const rows = db.prepare(`SELECT id, name, avatar_url FROM users WHERE id IN (${placeholders})`).all(...ids)
+    const rows = db.prepare(`SELECT id, username, avatar_url FROM users WHERE id IN (${placeholders})`).all(...ids)
     return new Map(rows.map(r => [r.id, r]))
   } catch {
     try {
-      const rows = db.prepare(`SELECT id, name FROM users WHERE id IN (${placeholders})`).all(...ids)
+      const rows = db.prepare(`SELECT id, username FROM users WHERE id IN (${placeholders})`).all(...ids)
       return new Map(rows.map(r => [r.id, r]))
     } catch { return new Map() }
   }
@@ -345,7 +345,7 @@ router.get('/leaderboard', (req, res) => {
       const score = closed * 100 + crowned * 50 + city.total_bricks
       entries.push({
         user_id: c.user_id,
-        name: u.name,
+        name: u.username,
         avatar_url: u.avatar_url || null,
         total_wins: city.total_wins,
         total_bricks: city.total_bricks,
@@ -393,10 +393,13 @@ router.get('/feed/recent', (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50)
     const oneDayAgo = Math.floor(now / 1000) - 24 * 3600
 
+    // БАГ-ФИКС: раньше был u.name, но в users колонка называется username.
+    // На fresh install (CI, новый prod) → 500 "no such column: u.name".
+    // На legacy-проде (где могла быть колонка name из старых миграций) работало.
     const recent = db.prepare(`
       SELECT vb.id, vb.user_id, vb.opponent_name, vb.is_ai, vb.ai_difficulty,
              vb.player_skin_id, vb.result, vb.created_at,
-             u.name as username
+             u.username as username
       FROM victory_buildings vb
       LEFT JOIN users u ON u.id = vb.user_id
       ORDER BY vb.created_at DESC
