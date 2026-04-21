@@ -22,12 +22,14 @@ jobs:
           java-version: '17'
 
       - name: Install dependencies
-        run: npm ci
+        # --legacy-peer-deps нужен из-за peer-конфликтов Capacitor 8 / React 19
+        # (тот же флаг использует e2e.yml, где сборка фронта проходит успешно)
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Build web
         run: npx vite build
         env:
-          VITE_API_URL: /api
+          VITE_API_URL: https://snatch-highrise.com/api
 
       - name: Sync Capacitor
         run: npx cap sync android
