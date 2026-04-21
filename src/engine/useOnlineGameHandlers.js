@@ -16,54 +16,9 @@ import * as API from './api.js'
 // Синхронизируется с именем бренда — после ребрендинга snatch-highrise → highriseheist.
 const NOTIF_TITLE = 'Highrise Heist'
 
-/**
- * @param {object} opts
- * @param {object} opts.gameCtx — GameContext instance
- * @param {object} opts.gsRef — ref на текущий GameState
- * @param {object} opts.onlineRef — ref на { roomId, playerIdx, myColor }
- * @param {object} opts.aiRunningRef — ref на boolean
- * @param {object} opts.modeRef — ref на текущий mode ('ai'|'online'|'spectate-online')
- * @param {object} opts.prevScore — ref на [s1, s2]
- * @param {object} opts.moveHistoryRef — ref на массив ходов
- * @param {Function} opts.setGs
- * @param {Function} opts.setPhase
- * @param {Function} opts.setSelected
- * @param {Function} opts.setTransfer
- * @param {Function} opts.setPlacement
- * @param {Function} opts.setResult
- * @param {Function} opts.setHint
- * @param {Function} opts.setAiThinking
- * @param {Function} opts.setScoreBump
- * @param {Function} opts.setHumanPlayer
- * @param {Function} opts.setMode
- * @param {Function} opts.setLocked
- * @param {Function} opts.setInfo
- * @param {Function} opts.setLog
- * @param {Function} opts.addLog
- * @param {Function} opts.setUndoStack
- * @param {Function} opts.setShowReplay
- * @param {Function} opts.setOnlineRoom
- * @param {Function} opts.setOnlinePlayerIdx
- * @param {Function} opts.setOnlinePlayers
- * @param {Function} opts.setDrawOffered
- * @param {Function} opts.setRematchOffered
- * @param {Function} opts.setRematchPending
- * @param {Function} opts.setFloatingEmoji
- * @param {Function} opts.setSpectatorCount
- * @param {Function} opts.setPlayerTime
- * @param {Function} opts.setConfetti
- * @param {Function} opts.resetTimers
- * @param {Function} opts.requestNotificationPermission
- * @param {Function} opts.showNotification
- * @param {Function} opts.startTitleBlink
- * @param {Function} opts.describeAction
- * @param {Function} opts.t — i18n translator
- * @param {string} opts.lang
- * @param {object} opts.sounds — { sw, sl, ss, sp, st }
- */
 export function useOnlineGameHandlers(opts) {
   const {
-    gameCtx, gsRef, onlineRef, aiRunningRef, modeRef, prevScore, moveHistoryRef,
+    gameCtx, gsRef, onlineRef, aiRunning, modeRef, prevScore, moveHistoryRef,
     setGs, setPhase, setSelected, setTransfer, setPlacement, setResult, setHint,
     setAiThinking, setScoreBump, setHumanPlayer, setMode, setLocked, setInfo,
     setLog, addLog, setUndoStack, setShowReplay,
@@ -79,7 +34,6 @@ export function useOnlineGameHandlers(opts) {
   useEffect(() => {
     if (!gameCtx) return
 
-    // ─── Start новой онлайн-партии ───
     function handleOnlineStart(detail) {
       const { players, firstPlayer, roomId, playerIdx, nextGame, timer, ratings } = detail
       requestNotificationPermission()
@@ -96,7 +50,7 @@ export function useOnlineGameHandlers(opts) {
       setResult(null); setHint(null); setAiThinking(false)
       API.track('game_start', 'game', { mode: 'online' })
       setScoreBump(null); setHumanPlayer(myColor); setMode('online')
-      aiRunningRef.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
+      aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
       startRecording()
       setGameMeta('online', 0)
       resetTimers()
@@ -121,7 +75,6 @@ export function useOnlineGameHandlers(opts) {
       else { setLocked(true); setInfo(t('game.opponentTurn')) }
     }
 
-    // ─── Входящий ход соперника ───
     function handleOnlineMove(action) {
       if (modeRef.current === 'spectate-online') return
       const myColorBefore = onlineRef.current?.myColor ?? 0
@@ -172,7 +125,6 @@ export function useOnlineGameHandlers(opts) {
       }
     }
 
-    // ─── Спектатор: входящий ход любого из игроков ───
     function handleSpectateMove(action) {
       if (modeRef.current !== 'spectate-online') return
       const prevState = gsRef.current
@@ -189,7 +141,6 @@ export function useOnlineGameHandlers(opts) {
       }
     }
 
-    // ─── Вход в спектатор-режим ───
     function handleSpectateStart(detail) {
       const { players, gameState: gsData } = detail
       cancelRecording()
@@ -207,7 +158,7 @@ export function useOnlineGameHandlers(opts) {
       setGs(state); setPhase('done'); setSelected(null); setTransfer(null); setPlacement({})
       setResult(null); setHint(null); setAiThinking(false); setScoreBump(null)
       setHumanPlayer(0); setMode('spectate-online'); setLocked(true)
-      aiRunningRef.current = false; modeRef.current = 'spectate-online'
+      aiRunning.current = false; modeRef.current = 'spectate-online'
       setOnlinePlayers(players || [])
       onlineRef.current = { roomId: null, playerIdx: -1, myColor: 0 }
       moveHistoryRef.current = []
@@ -219,7 +170,6 @@ export function useOnlineGameHandlers(opts) {
       }])
     }
 
-    // ─── Противник сдался / ничья / время / gameOver от сервера ───
     function handleOnlineResign() {
       const myColor = onlineRef.current?.myColor ?? 0
       setResult(myColor); setPhase('done'); setLocked(false)
@@ -268,7 +218,6 @@ export function useOnlineGameHandlers(opts) {
       }, 300)
     }
 
-    // ─── Регистрация всех обработчиков в GameContext ───
     const unsubs = [
       gameCtx.register('onOnlineStart', handleOnlineStart),
       gameCtx.register('onOnlineMove', (action, serverTime) => {

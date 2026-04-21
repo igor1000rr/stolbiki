@@ -8,40 +8,26 @@ import * as API from '../engine/api'
 import { maybeShowInterstitial } from '../engine/admob'
 
 /**
- * Хук, инкапсулирующий всю логику хода AI: MCTS-поиск, применение хода,
- * обновление состояния игры и обработку конца партии.
- * Вынесено из Game.jsx ради распила.
- *
- * Возвращает стабильный runAi(state) callback.
+ * Хук, инкапсулирующий всю логику хода AI.
  */
 export function useAiRunner({
-  // ref'ы
-  aiRunningRef, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
-  // setter'ы
+  aiRunning, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
   setGs, setPhase, setResult, setInfo, setLocked,
   setAiThinking, setTransfersLeft, setConfetti, setTournament,
   setTransfer, setPlacement,
   addLog,
-  // значения (попадают в deps useCallback)
   humanPlayer, difficulty,
-  // звуки
   soundWin: sw, soundLose: sl,
-  // контекст
   gameCtx, tournament, t,
-  // внешние функции
   saveBuildingOnWin,
 }) {
   // Ref для рекурсивного вызова runAi из вложенного setTimeout.
-  // Прямая ссылка `runAi(ns)` внутри useCallback захватывает функцию из
-  // текущего замыкания — если хук пересоздаётся (difficulty/humanPlayer
-  // меняются), старый таймер дёрнет устаревшую версию и может использовать
-  // устаревшие параметры сложности/ходов (react-hooks/immutability).
   const runAiRef = useRef(null)
   /* eslint-disable react-hooks/preserve-manual-memoization */
   const runAi = useCallback((state) => {
-    if (aiRunningRef.current || state.gameOver) return
+    if (aiRunning.current || state.gameOver) return
     if (modeRef.current === 'online') return
-    aiRunningRef.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
+    aiRunning.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
     const startTime = Date.now()
     setTimeout(() => {
       const gpu = isGpuReady()
@@ -62,7 +48,7 @@ export function useAiRunner({
           moveHistoryRef.current.push({ action: { ...action }, player: state.currentPlayer })
           const ns = applyAction(state, action)
           setGs(ns)
-          aiRunningRef.current = false
+          aiRunning.current = false
           setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
           if (ns.gameOver) {
             setTimeout(() => {
