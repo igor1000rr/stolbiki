@@ -21,6 +21,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # Ubuntu-latest имеет предустановленный Android SDK, но обычно API 34/35.
+      # У нас compileSdkVersion = 36 (см. android/variables.gradle), его надо докачать.
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
       - name: Install dependencies
         # --legacy-peer-deps нужен из-за peer-конфликтов Capacitor 8 / React 19
         # (тот же флаг использует e2e.yml, где сборка фронта проходит успешно)
@@ -36,7 +43,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
