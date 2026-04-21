@@ -18,7 +18,7 @@ const NOTIF_TITLE = 'Highrise Heist'
 
 export function useOnlineGameHandlers(opts) {
   const {
-    gameCtx, gsRef, onlineRef, aiRunning, modeRef, prevScore, moveHistoryRef,
+    gameCtx, gsRef, onlineRef, aiRunningRef, modeRef, prevScore, moveHistoryRef,
     setGs, setPhase, setSelected, setTransfer, setPlacement, setResult, setHint,
     setAiThinking, setScoreBump, setHumanPlayer, setMode, setLocked, setInfo,
     setLog, addLog, setUndoStack, setShowReplay,
@@ -50,7 +50,7 @@ export function useOnlineGameHandlers(opts) {
       setResult(null); setHint(null); setAiThinking(false)
       API.track('game_start', 'game', { mode: 'online' })
       setScoreBump(null); setHumanPlayer(myColor); setMode('online')
-      aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
+      aiRunningRef.current = false; prevScore.current = [0, 0]; modeRef.current = 'online'
       startRecording()
       setGameMeta('online', 0)
       resetTimers()
@@ -158,7 +158,7 @@ export function useOnlineGameHandlers(opts) {
       setGs(state); setPhase('done'); setSelected(null); setTransfer(null); setPlacement({})
       setResult(null); setHint(null); setAiThinking(false); setScoreBump(null)
       setHumanPlayer(0); setMode('spectate-online'); setLocked(true)
-      aiRunning.current = false; modeRef.current = 'spectate-online'
+      aiRunningRef.current = false; modeRef.current = 'spectate-online'
       setOnlinePlayers(players || [])
       onlineRef.current = { roomId: null, playerIdx: -1, myColor: 0 }
       moveHistoryRef.current = []
