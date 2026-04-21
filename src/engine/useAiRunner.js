@@ -16,7 +16,7 @@ import { maybeShowInterstitial } from '../engine/admob'
  */
 export function useAiRunner({
   // ref'ы
-  aiRunning, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
+  aiRunningRef, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
   // setter'ы
   setGs, setPhase, setResult, setInfo, setLocked,
   setAiThinking, setTransfersLeft, setConfetti, setTournament,
@@ -37,10 +37,11 @@ export function useAiRunner({
   // меняются), старый таймер дёрнет устаревшую версию и может использовать
   // устаревшие параметры сложности/ходов (react-hooks/immutability).
   const runAiRef = useRef(null)
+  /* eslint-disable react-hooks/preserve-manual-memoization */
   const runAi = useCallback((state) => {
-    if (aiRunning.current || state.gameOver) return
+    if (aiRunningRef.current || state.gameOver) return
     if (modeRef.current === 'online') return
-    aiRunning.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
+    aiRunningRef.current = true; setAiThinking(true); setLocked(true); setInfo(t('game.aiThinking'))
     const startTime = Date.now()
     setTimeout(() => {
       const gpu = isGpuReady()
@@ -61,7 +62,7 @@ export function useAiRunner({
           moveHistoryRef.current.push({ action: { ...action }, player: state.currentPlayer })
           const ns = applyAction(state, action)
           setGs(ns)
-          aiRunning.current = false
+          aiRunningRef.current = false
           setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
           if (ns.gameOver) {
             setTimeout(() => {
@@ -102,6 +103,7 @@ export function useAiRunner({
       }, remaining)
     }, 50)
   }, [difficulty, humanPlayer]) // eslint-disable-line react-hooks/exhaustive-deps
+  /* eslint-enable react-hooks/preserve-manual-memoization */
 
   useEffect(() => { runAiRef.current = runAi }, [runAi])
 
