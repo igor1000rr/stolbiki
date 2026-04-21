@@ -127,7 +127,7 @@ export default function Game() {
   const [spectatorCount, setSpectatorCount] = useState(0)
   const onlineRef = useRef(null)
   const gsRef = useRef(gs)
-  const aiRunning = useRef(false)
+  const aiRunningRef = useRef(false)
   const modeRef = useRef('ai')
   const prevScore = useRef([0, 0])
   const modifiersRef = useRef(modifiers)
@@ -157,7 +157,7 @@ export default function Game() {
 
   // AI-ход — MCTS-поиск, применение, конец партии (хук из engine/useAiRunner)
   const runAi = useAiRunner({
-    aiRunning, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
+    aiRunningRef, modeRef, difficultyRef, modifiersRef, moveHistoryRef,
     setGs, setPhase, setResult, setInfo, setLocked,
     setAiThinking, setTransfersLeft, setConfetti, setTournament,
     setTransfer, setPlacement,
@@ -175,7 +175,7 @@ export default function Game() {
     currentPlayer: gs.currentPlayer,
     humanPlayer,
     locked,
-    aiRunning: aiRunning?.current,
+    aiRunning: aiRunningRef?.current,
     onTimeUp: (cp) => {
       if (modifiersRef.current?.blitz && cp === humanPlayer) {
         setInfo(en ? "Time's up — auto-pass!" : 'Время вышло — авто-пас!')
@@ -202,7 +202,7 @@ export default function Game() {
   useEffect(() => { gsRef.current = gs }, [gs])
 
   useOnlineGameHandlers({
-    gameCtx, gsRef, onlineRef, aiRunning, modeRef, prevScore, moveHistoryRef,
+    gameCtx, gsRef, onlineRef, aiRunningRef, modeRef, prevScore, moveHistoryRef,
     setGs, setPhase, setSelected, setTransfer, setPlacement, setResult, setHint,
     setAiThinking, setScoreBump, setHumanPlayer, setMode, setLocked, setInfo,
     setLog, addLog, setUndoStack, setShowReplay,
@@ -234,7 +234,7 @@ export default function Game() {
       gsRef.current = state
       setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setHint(null); setAiThinking(false)
       setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(400); difficultyRef.current = 400; setMode('ai')
-      aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
+      aiRunningRef.current = false; prevScore.current = [0, 0]; modeRef.current = 'ai'
       startRecording(); setGameMeta('daily', 100); resetTimers(); setUndoStack([])
       moveHistoryRef.current = []; setShowReplay(false)
       setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
@@ -293,7 +293,7 @@ export default function Game() {
     setGs(state); setPhase('place'); setSelected(null); setTransfer(null); setPlacement({}); setResult(null); setRatingDelta(null); setHint(null); setAiThinking(false)
     setScoreBump(null); setLocked(false); setHumanPlayer(hp); setDifficulty(d); difficultyRef.current = d; setMode(m)
     if (d >= 200) preloadGpuNet()
-    aiRunning.current = false; prevScore.current = [0, 0]; modeRef.current = m
+    aiRunningRef.current = false; prevScore.current = [0, 0]; modeRef.current = m
     startRecording(); setGameMeta(m, d); resetTimers(); setUndoStack([])
     setTransfersLeft(modifiersRef.current?.doubleTransfer ? 2 : 1)
     if (m === 'pvp') {
@@ -330,7 +330,7 @@ export default function Game() {
 
   function onStandClick(i) {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
-    if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
+    if (gs.gameOver || !currentIsHuman || aiRunningRef.current || locked) return
     if (i in gs.closed) return
     soundClick()
 
@@ -393,7 +393,7 @@ export default function Game() {
 
   function onStandLongPress(i) {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
-    if (gs.gameOver || !currentIsHuman || aiRunning.current || locked) return
+    if (gs.gameOver || !currentIsHuman || aiRunningRef.current || locked) return
     if (i in gs.closed) return
     if (phase !== 'place') return
     if (gs.isFirstTurn()) return
@@ -539,7 +539,7 @@ export default function Game() {
   const totalPlaced = Object.values(placement).reduce((a, b) => a + b, 0)
   const maxTotal = gs.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canConfirm = gs.isFirstTurn() ? totalPlaced === 1 : (totalPlaced > 0 || transfer)
-  const isMyTurn = (mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer) && !gs.gameOver && !aiRunning.current && !locked
+  const isMyTurn = (mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer) && !gs.gameOver && !aiRunningRef.current && !locked
   const hasTransfers = !gs.isFirstTurn() && getValidTransfers(gs).length > 0
   const inTransferMode = phase === 'transfer-select' || phase === 'transfer-dst'
 
