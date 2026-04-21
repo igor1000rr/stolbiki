@@ -151,6 +151,8 @@ export function useGoldenRushWS() {
         wsRef.current = null
         if (savedRoomRef.current && (status === 'playing' || status === 'queued')) {
           if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+          // Рекурсивный вызов connect() через setTimeout для переподключения WS.
+          // eslint-disable-next-line react-hooks/immutability
           reconnectTimerRef.current = setTimeout(() => connect(), 2000)
         }
       })
