@@ -10,8 +10,15 @@ export const rateLimits = new Map()
 const gameSubmitLimits = new Map()
 export { gameSubmitLimits }
 
+// В CI/тестах rate-limit мешает: 20 юзеров регистрируются параллельно →
+// 11-й получает 429 и тест падает. На проде лимит защищает от brute-force,
+// но в изолированном E2E окружении это только помеха.
+// Активируется через NODE_ENV=test (ставится в e2e.yml workflow).
+const RATE_LIMIT_DISABLED = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+
 export function rateLimit(windowMs = 60000, max = 60) {
   return (req, res, next) => {
+    if (RATE_LIMIT_DISABLED) return next()
     const key = req.ip + ':' + req.path
     const now = Date.now()
     const entry = rateLimits.get(key)
