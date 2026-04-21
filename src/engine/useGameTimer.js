@@ -10,7 +10,9 @@ export function useGameTimer({ timerSetting, gameOver, currentPlayer, humanPlaye
   const timerLimit = TIMER_LIMITS[timerSetting] || 0
   const [playerTime, setPlayerTime] = useState([0, 0])
   const [elapsed, setElapsed] = useState(0)
-  const [startTime, setStartTime] = useState(Date.now())
+  // Lazy initializer: Date.now() вычисляется один раз при маунте,
+  // а не при каждом ререндере (react-hooks/purity).
+  const [startTime, setStartTime] = useState(() => Date.now())
 
   function resetTimers() {
     setStartTime(Date.now())

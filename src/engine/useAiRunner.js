@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef, useEffect } from 'react'
 import { mctsSearch } from '../engine/ai'
 import { isGpuReady } from '../engine/neuralnet'
 import { applyAction } from '../engine/game'
@@ -31,6 +31,12 @@ export function useAiRunner({
   // внешние функции
   saveBuildingOnWin,
 }) {
+  // Ref для рекурсивного вызова runAi из вложенного setTimeout.
+  // Прямая ссылка `runAi(ns)` внутри useCallback захватывает функцию из
+  // текущего замыкания — если хук пересоздаётся (difficulty/humanPlayer
+  // меняются), старый таймер дёрнет устаревшую версию и может использовать
+  // устаревшие параметры сложности/ходов (react-hooks/immutability).
+  const runAiRef = useRef(null)
   const runAi = useCallback((state) => {
     if (aiRunning.current || state.gameOver) return
     if (modeRef.current === 'online') return
@@ -85,7 +91,7 @@ export function useAiRunner({
             return
           }
           if (ns.currentPlayer !== humanPlayer || modeRef.current === 'spectate') {
-            setTimeout(() => runAi(ns), modeRef.current === 'spectate' ? 1200 : 600)
+            setTimeout(() => runAiRef.current?.(ns), modeRef.current === 'spectate' ? 1200 : 600)
             return
           }
           setTimeout(() => {
@@ -96,6 +102,8 @@ export function useAiRunner({
       }, remaining)
     }, 50)
   }, [difficulty, humanPlayer]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { runAiRef.current = runAi }, [runAi])
 
   return runAi
 }

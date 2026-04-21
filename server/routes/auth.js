@@ -29,9 +29,20 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, referralCode } = req.body
     if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
-    const cleanName = String(username).trim().replace(/[<>&"']/g, '')
+    const cleanName = String(username).trim().replace(/[<>&\"']/g, '')
     if (cleanName.length < 2 || cleanName.length > 20) return res.status(400).json({ error: 'Username: 2-20 chars' })
     if (String(password).length < 6) return res.status(400).json({ error: 'Password: min 6 chars' })
+
+    // Валидация email: необязательное поле, но если прислан — должен быть валидным
+    // (защита от мусора типа "<script>" или произвольных строк в БД).
+    let cleanEmail = null
+    if (email !== undefined && email !== null && email !== '') {
+      const e = String(email).trim().toLowerCase()
+      if (e.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+        return res.status(400).json({ error: 'Некорректный email' })
+      }
+      cleanEmail = e
+    }
 
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(cleanName)
     if (existing) return res.status(409).json({ error: 'Username taken' })
@@ -45,7 +56,7 @@ router.post('/register', async (req, res) => {
       if (referrer) referrerId = referrer.id
     }
 
-    const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin, referred_by) VALUES (?, ?, ?, ?, ?)').run(cleanName, email || null, hash, isAdmin, referrerId)
+    const result = db.prepare('INSERT INTO users (username, email, password_hash, is_admin, referred_by) VALUES (?, ?, ?, ?, ?)').run(cleanName, cleanEmail, hash, isAdmin, referrerId)
     const userId = result.lastInsertRowid
 
     const refCode = generateReferralCode(cleanName, userId)

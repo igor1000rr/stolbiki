@@ -13,7 +13,10 @@ export function useSessionStats({ result, mode, humanPlayer, difficultyRef, gs }
   const [sessionStats, setSessionStats] = useState({ wins: 0, losses: 0, streak: 0, loseStreak: 0 })
   const [firstWinCelebration, setFirstWinCelebration] = useState(false)
   const statsRef = useRef(sessionStats)
-  statsRef.current = sessionStats
+  // Синхронизация ref в useEffect, а не в теле рендера (react-hooks/refs):
+  // мутация ref.current во время рендера может давать устаревшее значение
+  // при конкурентном рендере в React 19.
+  useEffect(() => { statsRef.current = sessionStats }, [sessionStats])
 
   useEffect(() => {
     if (result === null || result === -1) return
