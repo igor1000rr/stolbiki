@@ -1,15 +1,13 @@
 /**
  * LandingCity3D — 3D-превью «Города побед» на главной странице.
  *
- * v5.9.18: фикс «кирпичиков на крышах» + разметка не через перекрёстки.
- *   - Этажи: crown-текстура только у ВЕРХНЕГО этажа (остальные плоский тёмный цвет)
- *   - Разметка сегментирована — не идёт через перекрёстки (пустые квадраты)
- *   - Белые пунктиры уменьшены (dash 0.6, gap 0.8)
- *
- * Наследие от v5.9.17:
- *   - Реальные дороги с тротуарами и светофорами (NY-style)
- *   - Фасады зданий с окнами (emissiveMap)
- *   - Фонари с PointLight, огни машин, неоны с цветной подсветкой
+ * v5.9.19: усиленные дороги (контраст всех элементов).
+ *   - Асфальт светлее (#1a1a22 → #30303a) — чётко виден на фоне чёрной земли
+ *   - Тротуары светлее (#4a4540 → #7a7570) и выше (0.08 → 0.12)
+ *   - Жёлтая разметка ярче + emissive чтобы светилась ночью
+ *   - Машины крупнее (0.5 → 0.9) + ярче
+ *   - Камера ниже (0.55 → 0.42) — дороги занимают больше кадра
+ *   - Земля вокруг чёрнее (#05050a) для большего контраста
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -72,9 +70,9 @@ const CROWN_W = 2.2
 
 const ROAD_WIDTH = 2.0
 const SIDEWALK_WIDTH = 0.6
-const SIDEWALK_HEIGHT = 0.08
+const SIDEWALK_HEIGHT = 0.12
 const ROAD_Y = 0.01
-const MARKING_Y = 0.02
+const MARKING_Y = 0.025
 
 function shiftHex(hex, shift) {
   const r = (hex >> 16) & 0xff
@@ -113,8 +111,8 @@ export default function LandingCity3D() {
         const h = Math.min(380, Math.max(240, w * 0.42))
 
         const scene = new THREE.Scene()
-        scene.background = new THREE.Color(0x05050a)
-        scene.fog = new THREE.Fog(0x05050a, 30, 120)
+        scene.background = new THREE.Color(0x02020a)
+        scene.fog = new THREE.Fog(0x02020a, 30, 120)
 
         const rows = Math.ceil(DEMO_BUILDINGS.length / COLS)
         const centerX = ((COLS - 1) / 2) * SPACING
@@ -122,7 +120,8 @@ export default function LandingCity3D() {
         const dist = Math.max(COLS, rows) * SPACING * 1.3
 
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 300)
-        camera.position.set(centerX + dist * 0.7, dist * 0.55, centerZ + dist * 0.7)
+        // Камера ниже (0.55 → 0.42) — виднее дороги в кадре
+        camera.position.set(centerX + dist * 0.75, dist * 0.42, centerZ + dist * 0.75)
         camera.lookAt(centerX, 2, centerZ)
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'default' })
@@ -155,10 +154,11 @@ export default function LandingCity3D() {
         rim.position.set(centerX - 15, 12, centerZ - 15)
         scene.add(rim)
 
+        // Земля чёрнее чтобы дороги выделялись
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
-          new THREE.MeshStandardMaterial({ color: 0x05050a, roughness: 0.9, metalness: 0.05 }),
+          new THREE.MeshStandardMaterial({ color: 0x02020a, roughness: 0.95, metalness: 0.05 }),
         )
         ground.rotation.x = -Math.PI / 2
         ground.position.y = -0.02
@@ -184,8 +184,9 @@ export default function LandingCity3D() {
         scene.add(blocksGroup)
 
         // ─── ДОРОГИ ───
+        // Асфальт светлее (#1a1a22 → #30303a) — чётко виден на чёрной земле
         const asphaltMat = new THREE.MeshStandardMaterial({
-          color: 0x1a1a22, roughness: 0.92, metalness: 0.05,
+          color: 0x30303a, roughness: 0.9, metalness: 0.1,
         })
         const roadsGroup = new THREE.Group()
         const roadExtent = Math.max(rows, COLS) * SPACING + SPACING
@@ -210,11 +211,10 @@ export default function LandingCity3D() {
         }
         scene.add(roadsGroup)
 
-        // ─── РАЗМЕТКА (сегментами между перекрёстками) ───
-        // Чтобы разметка не шла сквозь перекрёстки, рисуем её отдельными сегментами.
-        // На самих перекрёстках разметка пропускается.
-        const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xffcc40 })
-        const whiteLineMat = new THREE.MeshBasicMaterial({ color: 0xe0e0e0 })
+        // ─── РАЗМЕТКА ───
+        // Жёлтая неоновая + emissive для свечения ночью
+        const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xffdd50 })
+        const whiteLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
         const markingsGroup = new THREE.Group()
 
         const intersectionClearance = ROAD_WIDTH + SIDEWALK_WIDTH * 2
@@ -223,25 +223,21 @@ export default function LandingCity3D() {
         const dashGap = 0.8
         const dashEdge = ROAD_WIDTH / 2 - 0.2
 
-        // Горизонтальные дороги: сегменты вдоль X
         for (let r = -1; r < rows; r++) {
           const z = r * SPACING + SPACING / 2
           for (let c = -1; c < COLS; c++) {
-            // Сегмент между колонкой c и c+1. Центр = c*SPACING + SPACING
             const segCenterX = c * SPACING + SPACING
-            // Двойная жёлтая
-            for (const offset of [-0.07, 0.07]) {
-              const lineGeo = new THREE.PlaneGeometry(segmentLength, 0.05)
+            for (const offset of [-0.08, 0.08]) {
+              const lineGeo = new THREE.PlaneGeometry(segmentLength, 0.08)
               const line = new THREE.Mesh(lineGeo, yellowLineMat)
               line.rotation.x = -Math.PI / 2
               line.position.set(segCenterX, MARKING_Y, z + offset)
               markingsGroup.add(line)
             }
-            // Белые пунктиры по краям полосы
             for (const edgeOffset of [-dashEdge, dashEdge]) {
               const segStart = segCenterX - segmentLength / 2
               for (let dx = 0; dx + dashLen < segmentLength; dx += dashLen + dashGap) {
-                const dashGeo = new THREE.PlaneGeometry(dashLen, 0.04)
+                const dashGeo = new THREE.PlaneGeometry(dashLen, 0.06)
                 const dash = new THREE.Mesh(dashGeo, whiteLineMat)
                 dash.rotation.x = -Math.PI / 2
                 dash.position.set(segStart + dx + dashLen / 2, MARKING_Y, z + edgeOffset)
@@ -250,13 +246,12 @@ export default function LandingCity3D() {
             }
           }
         }
-        // Вертикальные дороги: сегменты вдоль Z
         for (let c = -1; c < COLS; c++) {
           const x = c * SPACING + SPACING / 2
           for (let r = -1; r < rows; r++) {
             const segCenterZ = r * SPACING + SPACING
-            for (const offset of [-0.07, 0.07]) {
-              const lineGeo = new THREE.PlaneGeometry(0.05, segmentLength)
+            for (const offset of [-0.08, 0.08]) {
+              const lineGeo = new THREE.PlaneGeometry(0.08, segmentLength)
               const line = new THREE.Mesh(lineGeo, yellowLineMat)
               line.rotation.x = -Math.PI / 2
               line.position.set(x + offset, MARKING_Y, segCenterZ)
@@ -265,7 +260,7 @@ export default function LandingCity3D() {
             for (const edgeOffset of [-dashEdge, dashEdge]) {
               const segStart = segCenterZ - segmentLength / 2
               for (let dz = 0; dz + dashLen < segmentLength; dz += dashLen + dashGap) {
-                const dashGeo = new THREE.PlaneGeometry(0.04, dashLen)
+                const dashGeo = new THREE.PlaneGeometry(0.06, dashLen)
                 const dash = new THREE.Mesh(dashGeo, whiteLineMat)
                 dash.rotation.x = -Math.PI / 2
                 dash.position.set(x + edgeOffset, MARKING_Y, segStart + dz + dashLen / 2)
@@ -277,8 +272,9 @@ export default function LandingCity3D() {
         scene.add(markingsGroup)
 
         // ─── ТРОТУАРЫ ───
+        // Светлее (#4a4540 → #7a7570) + выше (0.08 → 0.12)
         const sidewalkMat = new THREE.MeshStandardMaterial({
-          color: 0x4a4540, roughness: 0.85, metalness: 0.1,
+          color: 0x7a7570, roughness: 0.82, metalness: 0.08,
         })
         const sidewalkGroup = new THREE.Group()
         const sidewalkHGeo = new THREE.BoxGeometry(roadExtent, SIDEWALK_HEIGHT, SIDEWALK_WIDTH)
@@ -417,6 +413,7 @@ export default function LandingCity3D() {
         scene.add(moon)
 
         // ─── ОГНИ МАШИН ───
+        // Крупнее (0.5→0.9) + ярче
         const carSpriteTex = makeSoftDotTexture(THREE)
         const carLightsGroup = new THREE.Group()
         const cars = []
@@ -433,19 +430,19 @@ export default function LandingCity3D() {
           const horizontal = seeded(i + 7000) < 0.5
           const laneOffset = (seeded(i + 7100) < 0.5 ? -1 : 1) * 0.4
           const frontMat = new THREE.SpriteMaterial({
-            map: carSpriteTex, color: 0xfff0c0,
+            map: carSpriteTex, color: 0xfff5d0,
             transparent: true, opacity: 1, depthWrite: false,
             blending: THREE.AdditiveBlending,
           })
           const backMat = new THREE.SpriteMaterial({
-            map: carSpriteTex, color: 0xff2040,
-            transparent: true, opacity: 0.9, depthWrite: false,
+            map: carSpriteTex, color: 0xff3050,
+            transparent: true, opacity: 1, depthWrite: false,
             blending: THREE.AdditiveBlending,
           })
           const front = new THREE.Sprite(frontMat)
           const back = new THREE.Sprite(backMat)
-          front.scale.set(0.5, 0.5, 1)
-          back.scale.set(0.4, 0.4, 1)
+          front.scale.set(0.9, 0.9, 1)
+          back.scale.set(0.75, 0.75, 1)
           carLightsGroup.add(front, back)
           const car = {
             front, back, horizontal, laneOffset,
@@ -489,8 +486,6 @@ export default function LandingCity3D() {
         const crownMeshes = []
         const goldenSprites = []
 
-        // Тёмный материал для top/bottom промежуточных этажей —
-        // чтобы между этажами не выглядывали цветные «кирпичики».
         const internalCapMat = new THREE.MeshStandardMaterial({
           color: 0x0a0a10, roughness: 0.9, metalness: 0.05,
         })
@@ -523,8 +518,6 @@ export default function LandingCity3D() {
               metalness: b.metallic ? 0.6 : 0.15,
             })
 
-            // Крыша видна только у ВЕРХНЕГО этажа здания (когда нет шпилей).
-            // Промежуточные этажи: top=bottom=тёмный internalCapMat.
             const topCapMat = isTopOfBuilding
               ? new THREE.MeshStandardMaterial({
                   color: colorHex,
@@ -536,7 +529,6 @@ export default function LandingCity3D() {
               : internalCapMat
             const bottomCapMat = internalCapMat
 
-            // BoxGeometry material order: [+X, -X, +Y(top), -Y(bottom), +Z, -Z]
             const matArr = [wallMat, wallMat, topCapMat, bottomCapMat, wallMat, wallMat]
 
             const mesh = new THREE.Mesh(floorGeo, matArr)
