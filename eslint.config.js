@@ -40,7 +40,11 @@ export default defineConfig([
       'react-hooks/purity': 'warn',
       'react-hooks/immutability': 'warn',
       'react-hooks/refs': 'warn',
-      'react-refresh/only-export-components': 'warn',
+      // allowConstantExport: файл может экспортировать компонент + константы
+      // без ломания HMR (Vite/React Fast Refresh это нормально переживает).
+      // Закрывает ворнинги в QRCode.jsx, ReplayViewer.jsx, и др. файлах где
+      // рядом с компонентом экспортируется хелпер/константа.
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
   // Серверный код (Node)
