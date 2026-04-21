@@ -76,11 +76,14 @@ test.describe('API: public endpoints (без auth)', () => {
     expect(typeof data).toBe('object')
   })
 
-  test('GET /api/buildings/feed/recent — лента последних построек (endpoint не падает)', async ({ request }) => {
+  test('GET /api/buildings/feed/recent — лента последних построек', async ({ request }) => {
     const res = await request.get(`${API}/api/buildings/feed/recent`)
-    // Endpoint может требовать auth или параметры, главное — не 500
-    expect(res.status()).not.toBe(500)
-    expect(res.status()).toBeLessThan(500)
+    expect(res.ok()).toBeTruthy()
+    const data = await res.json()
+    // Структура: { items: [], stats: {...}, cached_at }
+    expect(Array.isArray(data.items)).toBe(true)
+    expect(typeof data.stats).toBe('object')
+    expect(typeof data.stats.wins_total).toBe('number')
   })
 
   test('GET /api/globalchat — публичный чат (endpoint не падает)', async ({ request }) => {
