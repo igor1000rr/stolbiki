@@ -29,7 +29,7 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, referralCode } = req.body
     if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
-    const cleanName = String(username).trim().replace(/[<>&\"']/g, '')
+    const cleanName = String(username).trim().replace(/[<>&"']/g, '')
     if (cleanName.length < 2 || cleanName.length > 20) return res.status(400).json({ error: 'Username: 2-20 chars' })
     if (String(password).length < 6) return res.status(400).json({ error: 'Password: min 6 chars' })
 
@@ -120,7 +120,7 @@ router.post('/refresh', (req, res) => {
   if (payload.tv !== undefined && payload.tv !== (user.token_version || 0)) {
     return res.status(401).json({ error: 'Токен отозван. Войдите заново' })
   }
-  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
   res.json({ token: newToken })
 })
 
