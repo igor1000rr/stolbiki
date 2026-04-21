@@ -1,13 +1,11 @@
 /**
  * LandingCity3D — 3D-превью «Города побед» на главной странице.
  *
- * v5.9.19: усиленные дороги (контраст всех элементов).
- *   - Асфальт светлее (#1a1a22 → #30303a) — чётко виден на фоне чёрной земли
- *   - Тротуары светлее (#4a4540 → #7a7570) и выше (0.08 → 0.12)
- *   - Жёлтая разметка ярче + emissive чтобы светилась ночью
- *   - Машины крупнее (0.5 → 0.9) + ярче
- *   - Камера ниже (0.55 → 0.42) — дороги занимают больше кадра
- *   - Земля вокруг чёрнее (#05050a) для большего контраста
+ * v5.9.20: асфальт заметно светлее и с emissive-подсветкой.
+ *   - Асфальт #30303a → #4a4a55 + emissive 0x0a0a12 (самосветится слабо)
+ *   - Блоки кварталов #1a1a22 → #28282f (чтобы не сливались с асфальтом)
+ *   - Тротуары #7a7570 → #9a9590 (ещё светлее — контраст с асфальтом)
+ *   - emissive для разметки (жёлтая и белая светятся ночью)
  */
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -120,7 +118,6 @@ export default function LandingCity3D() {
         const dist = Math.max(COLS, rows) * SPACING * 1.3
 
         const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 300)
-        // Камера ниже (0.55 → 0.42) — виднее дороги в кадре
         camera.position.set(centerX + dist * 0.75, dist * 0.42, centerZ + dist * 0.75)
         camera.lookAt(centerX, 2, centerZ)
 
@@ -154,7 +151,6 @@ export default function LandingCity3D() {
         rim.position.set(centerX - 15, 12, centerZ - 15)
         scene.add(rim)
 
-        // Земля чёрнее чтобы дороги выделялись
         const groundGeo = new THREE.PlaneGeometry(160, 160)
         const ground = new THREE.Mesh(
           groundGeo,
@@ -166,10 +162,11 @@ export default function LandingCity3D() {
         scene.add(ground)
 
         // ─── БЛОКИ-КВАРТАЛЫ ───
+        // v5.9.20: блоки светлее #1a1a22 → #28282f чтобы не сливались с асфальтом
         const blockSize = SPACING - ROAD_WIDTH - SIDEWALK_WIDTH * 2
         const blockGeo = new THREE.PlaneGeometry(blockSize, blockSize)
         const blockMat = new THREE.MeshStandardMaterial({
-          color: 0x1a1a22, roughness: 0.85, metalness: 0.1,
+          color: 0x28282f, roughness: 0.85, metalness: 0.1,
         })
         const blocksGroup = new THREE.Group()
         for (let row = 0; row < rows; row++) {
@@ -184,9 +181,14 @@ export default function LandingCity3D() {
         scene.add(blocksGroup)
 
         // ─── ДОРОГИ ───
-        // Асфальт светлее (#1a1a22 → #30303a) — чётко виден на чёрной земле
+        // v5.9.20: асфальт заметно светлее #30303a → #4a4a55 + emissive
+        // emissive 0x0a0a12 @0.6 даёт лёгкое самосвечение — асфальт виден даже вдали от фонарей
         const asphaltMat = new THREE.MeshStandardMaterial({
-          color: 0x30303a, roughness: 0.9, metalness: 0.1,
+          color: 0x4a4a55,
+          roughness: 0.75,
+          metalness: 0.15,
+          emissive: 0x0a0a12,
+          emissiveIntensity: 0.6,
         })
         const roadsGroup = new THREE.Group()
         const roadExtent = Math.max(rows, COLS) * SPACING + SPACING
@@ -212,7 +214,6 @@ export default function LandingCity3D() {
         scene.add(roadsGroup)
 
         // ─── РАЗМЕТКА ───
-        // Жёлтая неоновая + emissive для свечения ночью
         const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xffdd50 })
         const whiteLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
         const markingsGroup = new THREE.Group()
@@ -272,9 +273,9 @@ export default function LandingCity3D() {
         scene.add(markingsGroup)
 
         // ─── ТРОТУАРЫ ───
-        // Светлее (#4a4540 → #7a7570) + выше (0.08 → 0.12)
+        // v5.9.20: ещё светлее #7a7570 → #9a9590 для яркого контраста с асфальтом
         const sidewalkMat = new THREE.MeshStandardMaterial({
-          color: 0x7a7570, roughness: 0.82, metalness: 0.08,
+          color: 0x9a9590, roughness: 0.82, metalness: 0.08,
         })
         const sidewalkGroup = new THREE.Group()
         const sidewalkHGeo = new THREE.BoxGeometry(roadExtent, SIDEWALK_HEIGHT, SIDEWALK_WIDTH)
@@ -413,7 +414,6 @@ export default function LandingCity3D() {
         scene.add(moon)
 
         // ─── ОГНИ МАШИН ───
-        // Крупнее (0.5→0.9) + ярче
         const carSpriteTex = makeSoftDotTexture(THREE)
         const carLightsGroup = new THREE.Group()
         const cars = []
