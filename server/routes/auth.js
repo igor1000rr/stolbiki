@@ -120,7 +120,7 @@ router.post('/refresh', (req, res) => {
   if (payload.tv !== undefined && payload.tv !== (user.token_version || 0)) {
     return res.status(401).json({ error: 'Токен отозван. Войдите заново' })
   }
-  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
+  const newToken = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
   res.json({ token: newToken })
 })
 
