@@ -49,7 +49,12 @@ export default function Snappy({
   const [visible, setVisible] = useState(false)
   const timerRef = useRef(null)
   const onDoneRef = useRef(onDone)
-  onDoneRef.current = onDone
+
+  // Синхронизация onDoneRef с актуальной пропсой — внутри useEffect чтобы не
+  // мутировать ref во время рендера (react-hooks/refs warning).
+  useEffect(() => {
+    onDoneRef.current = onDone
+  }, [onDone])
 
   useEffect(() => {
     if (!event) return
