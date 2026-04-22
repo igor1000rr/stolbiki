@@ -13,6 +13,7 @@ import SiteHeader from './components/SiteHeader'
 import SiteFooter from './components/SiteFooter'
 import AppRoutes from './components/AppRoutes'
 import LazyFallback from './components/LazyFallback'
+import { SnappyOverlay } from './components/Snappy'
 import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating } from './engine/appstore'
@@ -424,6 +425,9 @@ export default function App() {
       {!isNative && !cookieOk && (
         <CookieBanner lang={lang} onAccept={() => setCookieOk(true)} />
       )}
+
+      {/* Snappy — глобальный overlay для маскот-комментов из любой точки приложения */}
+      <SnappyOverlay />
 
     </div>
     </I18nContext.Provider>
