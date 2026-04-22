@@ -16,10 +16,13 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      # JDK 21: Android Gradle Plugin 8.13 + compileSdk 36 (Android 16) официально
+      # требуют JDK 17 минимум, но на практике под compileSdk 36 нужен JDK 21 —
+      # иначе gradle падает при компиляции android platform stub'ов.
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       # Ubuntu-latest имеет предустановленный Android SDK, но обычно API 34/35.
       # У нас compileSdkVersion = 36 (см. android/variables.gradle), его надо докачать.
@@ -41,13 +44,30 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # --stacktrace + --info: если снова упадёт — в логах будет полный trace
+      # и видно какой именно task развалился
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace --info
 
       - name: Upload APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: highrise-heist-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+          if-no-files-found: warn
+
+      # Если gradle упал — собираем отчёты из android/app/build/reports
+      # чтобы можно было скачать и посмотреть детали ошибки
+      - name: Upload gradle reports (only on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports
+          path: |
+            android/app/build/reports/
+            android/build/reports/
+          retention-days: 7
+          if-no-files-found: ignore
