@@ -41,6 +41,7 @@ import GameDesktopControls from './GameDesktopControls'
 import GameStatusBar from './GameStatusBar'
 import GameOffers from './GameOffers'
 import GameReactions from './GameReactions'
+import { triggerSnappy } from './Snappy'
 const GameReview = lazy(() => import('./GameReview'))
 
 const isNative = !!window.Capacitor?.isNativePlatform?.()
@@ -429,6 +430,21 @@ export default function Game() {
     const newClosed = Object.keys(ns.closed).length
     const oldClosed = Object.keys(gs.closed).length
     if (newClosed > oldClosed) soundClose()
+
+    // Snappy: реакция на закрытие башни. Триггерим только в AI/online режимах
+    // (в pvp на одном устройстве комментарий маскота сбивает второго игрока).
+    // tower_takeover — игрок только что закрыл свою башню.
+    // near_loss — у соперника стало 5 закрытых, ещё одна — победа игрока.
+    if (newClosed > oldClosed && mode !== 'pvp' && mode !== 'spectate' && mode !== 'spectate-online') {
+      const opponent = humanPlayer === 0 ? 1 : 0
+      const opponentClosed = ns.countClosed(opponent)
+      if (gs.currentPlayer === humanPlayer) {
+        // Игрок закрыл башню. Если у соперника уже 5 — приоритет near_loss
+        // (это сильнее по эмоции), иначе обычный takeover.
+        if (opponentClosed === 5) triggerSnappy('near_loss')
+        else triggerSnappy('tower_takeover')
+      }
+    }
 
     setHint(null)
 
