@@ -4,31 +4,35 @@
  * Активируется только если задан VITE_SENTRY_DSN в env. Без DSN — noop:
  * приложение работает обычно, ошибки пишутся в наш /api/error-report.
  *
+ * ВАЖНО: @sentry/react импортируется ДИНАМИЧЕСКИ — если пакет не установлен
+ * (забыли npm install после моего коммита), init просто не сработает,
+ * а приложение не развалится на старте. Это критично для native билда,
+ * где отсутствие dep в dist = белый экран в WebView.
+ *
  * Зачем: Sentry даёт desymbolicated stack traces (с source maps),
  * breadcrumbs, replay при ошибке, release tracking — всё то чего
  * нет в error_reports table. Наш самодельный report остаётся как fallback.
- *
- * CSP: sentry.io и *.ingest.sentry.io добавлены в connect-src в server.js
- * только когда VITE_SENTRY_DSN задан — нет, сейчас CSP у нас статический,
- * нужно отдельно расширить connectSrc когда будем конфигурировать сервер.
  */
-
-import * as Sentry from '@sentry/react'
 
 const DSN = import.meta.env.VITE_SENTRY_DSN
 let initialized = false
+let SentryRef = null // Держим ссылку на модуль для captureException/setUser
 
-export function initSentry() {
+export async function initSentry() {
   if (initialized) return
   if (!DSN) return // Без DSN — не инициализируем, ничего не шлём.
 
   try {
+    // Dynamic import: если @sentry/react не установлен — catch ниже
+    // съест ошибку, приложение продолжит работу без Sentry.
+    const Sentry = await import('@sentry/react')
+    SentryRef = Sentry
+
     Sentry.init({
       dsn: DSN,
       release: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown',
       environment: import.meta.env.PROD ? 'production' : 'development',
 
-      // Integrations
       integrations: [
         Sentry.browserTracingIntegration(),
         // Replay: запись пользовательской сессии (DOM снапшоты + ввод).
@@ -47,21 +51,16 @@ export function initSentry() {
       replaysSessionSampleRate: 0,   // нормальные сессии не записываем
       replaysOnErrorSampleRate: 1.0, // 100% сессий с ошибкой
 
-      // Telemetry opt-out — не шлём внутреннюю телеметрию SDK.
       sendDefaultPii: false,
 
-      // Игнорируем известный браузерный шум.
       ignoreErrors: [
-        // ResizeObserver — косметические warnings, не ломают ничего
         'ResizeObserver loop limit exceeded',
         'ResizeObserver loop completed with undelivered notifications',
-        // Рекламные блокеры блокируют Metrika
         'Non-Error promise rejection captured',
-        /Loading chunk \d+ failed/, // после деплоя старые вкладки не находят чанки
+        /Loading chunk \d+ failed/,
         /ChunkLoadError/,
       ],
 
-      // Фильтруем ошибки из браузерных расширений — их мы не контролируем.
       beforeSend(event) {
         const frames = event.exception?.values?.[0]?.stacktrace?.frames || []
         const isExtension = frames.some(f =>
@@ -73,37 +72,27 @@ export function initSentry() {
     })
 
     initialized = true
-    // Теги для быстрого фильтра в дашборде Sentry.
     Sentry.setTag('native', !!window.Capacitor?.isNativePlatform?.())
     Sentry.setTag('platform', window.Capacitor?.getPlatform?.() || 'web')
   } catch (e) {
-    // SDK не должен ломать приложение
-    console.warn('[sentry] init failed:', e?.message)
+    // Модуль не установлен, CDN блокирован, или init упал — не критично.
+    // eslint-disable-next-line no-console
+    console.warn('[sentry] init skipped:', e?.message || e)
   }
 }
 
-/**
- * Дописываем юзера в scope когда знаем kто вошёл.
- * Вызывать из AuthContext при login/logout.
- */
 export function setSentryUser(user) {
-  if (!initialized) return
+  if (!initialized || !SentryRef) return
   try {
     if (user) {
-      Sentry.setUser({ id: String(user.id), username: user.username })
+      SentryRef.setUser({ id: String(user.id), username: user.username })
     } else {
-      Sentry.setUser(null)
+      SentryRef.setUser(null)
     }
   } catch {}
 }
 
-/**
- * Ручной репорт из ErrorBoundary/catch блоков.
- * Старается не крашиться если Sentry не инициализирован.
- */
 export function captureException(error, context) {
-  if (!initialized) return
-  try { Sentry.captureException(error, context ? { extra: context } : undefined) } catch {}
+  if (!initialized || !SentryRef) return
+  try { SentryRef.captureException(error, context ? { extra: context } : undefined) } catch {}
 }
-
-export { Sentry }

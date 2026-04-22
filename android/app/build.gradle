@@ -44,19 +44,20 @@ android {
     }
     buildTypes {
         release {
-            // R8 code shrinking + obfuscation. Правила — в proguard-rules.pro.
-            // Capacitor и плагины обычно включают consumer-rules, так что минификация безопасна.
-            minifyEnabled true
-            // Удаляем неиспользуемые ресурсы (drawables/strings/layouts) — экономит 2-5 MB.
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // ВРЕМЕННО: minify/shrink отключены до диагностики краша.
+            // Когда починим ProGuard-правила, вернуть minifyEnabled=true + shrinkResources=true.
+            // Без минификации APK больше на ~3MB, но гарантированно запускается.
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             }
         }
         debug {
             minifyEnabled false
-            applicationIdSuffix ".debug"
+            // applicationIdSuffix убран: ломает deep links, autoVerify и
+            // локальное перезатирание существующей установки релиз-сборки.
             versionNameSuffix "-debug"
         }
     }
