@@ -11,10 +11,12 @@
  * Такая схема даёт монотонно растущие versionCode пока MINOR < 100 и
  * PATCH < 100, что для этого проекта заведомо выполняется.
  *
+ * Идемпотентно: если в gradle уже нужные значения — ничего не делаем и выходим 0.
+ * Падаем только если паттерны versionCode/versionName вообще не найдены
+ * (т.е. шаблон сломался — реальная ошибка, не пройдёт).
+ *
  * Запуск:
  *   node scripts/sync-android-version.cjs
- *
- * Выход: 0 если всё ок, 1 при ошибках.
  */
 
 const fs = require('fs')
@@ -42,15 +44,24 @@ if (minor > 99 || patch > 99) {
 }
 const versionCode = major * 10000 + minor * 100 + patch
 
-let gradle = fs.readFileSync(GRADLE_PATH, 'utf8')
-const before = gradle
+const gradle = fs.readFileSync(GRADLE_PATH, 'utf8')
 
-gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${versionCode}`)
-gradle = gradle.replace(/versionName\s+"[^"]+"/, `versionName "${versionName}"`)
+const codeRe = /versionCode\s+\d+/
+const nameRe = /versionName\s+"[^"]+"/
 
-if (gradle === before) {
-  fail('не нашёл versionCode/versionName в android/app/build.gradle — проверь шаблон')
+// Валидация шаблонов — падаем только если самого ключевого слова нет в файле.
+// Если уже стоят нужные значения — замена не изменит файл, это норма.
+if (!codeRe.test(gradle)) fail('не нашёл versionCode в android/app/build.gradle — проверь шаблон')
+if (!nameRe.test(gradle)) fail('не нашёл versionName в android/app/build.gradle — проверь шаблон')
+
+const updated = gradle
+  .replace(codeRe, `versionCode ${versionCode}`)
+  .replace(nameRe, `versionName "${versionName}"`)
+
+if (updated === gradle) {
+  console.log(`[sync-android-version] ℹ️  уже ${versionName} (code ${versionCode}) — ничего не меняю`)
+  process.exit(0)
 }
 
-fs.writeFileSync(GRADLE_PATH, gradle)
+fs.writeFileSync(GRADLE_PATH, updated)
 console.log(`[sync-android-version] ✅ ${versionName} (code ${versionCode}) → android/app/build.gradle`)
