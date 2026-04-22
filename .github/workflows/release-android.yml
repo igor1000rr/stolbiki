@@ -50,6 +50,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Передаём секреты в env на уровне job — тогда их можно использовать в if:
+    # через env.X != '' (secrets.X недоступен в if прямым выражением).
+    env:
+      HAS_ADMOB: ${{ secrets.ADMOB_APP_ID_ANDROID != '' }}
+      HAS_FCM: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -66,9 +71,8 @@ jobs:
             exit 1
           fi
           echo "✅ Обязательные секреты на месте"
-          # Опциональные — логируем, не падаем
-          [ -z "${{ secrets.ADMOB_APP_ID_ANDROID }}" ] && echo "ℹ️ ADMOB_APP_ID_ANDROID не задан — будут Google test ads" || echo "✅ AdMob prod IDs настроены"
-          [ -z "${{ secrets.GOOGLE_SERVICES_JSON }}" ] && echo "ℹ️ GOOGLE_SERVICES_JSON не задан — FCM push отключён" || echo "✅ Firebase настроен"
+          [ "$HAS_ADMOB" = "true" ] && echo "✅ AdMob prod IDs настроены" || echo "ℹ️ AdMob prod IDs не заданы — будут Google test ads"
+          [ "$HAS_FCM" = "true" ]   && echo "✅ Firebase настроен"       || echo "ℹ️ GOOGLE_SERVICES_JSON не задан — FCM push отключён"
 
       - uses: actions/setup-node@v5
         with:
@@ -105,7 +109,7 @@ jobs:
       # Опционально: google-services.json из секрета → включается плагин com.google.gms.google-services
       # и нативный FCM push заработает. Без этого push работает только через Web Push API (VAPID) в браузере.
       - name: Decode google-services.json (optional)
-        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+        if: env.HAS_FCM == 'true'
         run: |
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
           echo "✅ google-services.json установлен"
@@ -135,7 +139,7 @@ jobs:
       - name: Compute gradle properties
         id: gradle_props
         run: |
-          if [ -n "${{ secrets.ADMOB_APP_ID_ANDROID }}" ]; then
+          if [ "$HAS_ADMOB" = "true" ]; then
             echo "props=-PadmobAppId=${{ secrets.ADMOB_APP_ID_ANDROID }}" >> $GITHUB_OUTPUT
           else
             echo "props=" >> $GITHUB_OUTPUT
@@ -181,13 +185,17 @@ jobs:
         run: |
           AAB=$(ls -la release-artifacts/*.aab | awk '{print $5, $9}')
           APK=$(ls -la release-artifacts/*.apk | awk '{print $5, $9}')
+          ADMOB_MODE="test IDs"
+          FCM_MODE="web push only"
+          [ "$HAS_ADMOB" = "true" ] && ADMOB_MODE="prod IDs"
+          [ "$HAS_FCM" = "true" ]   && FCM_MODE="enabled"
           echo "### 📦 Release build v${{ steps.version.outputs.v }} (${{ github.event.inputs.track }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**AAB:** \`$AAB\`" >> $GITHUB_STEP_SUMMARY
           echo "**APK:** \`$APK\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "AdMob: ${{ secrets.ADMOB_APP_ID_ANDROID != '' && 'prod IDs' || 'test IDs' }}" >> $GITHUB_STEP_SUMMARY
-          echo "FCM:   ${{ secrets.GOOGLE_SERVICES_JSON != '' && 'enabled' || 'web push only' }}" >> $GITHUB_STEP_SUMMARY
+          echo "AdMob: $ADMOB_MODE" >> $GITHUB_STEP_SUMMARY
+          echo "FCM:   $FCM_MODE" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Скачай AAB и загрузи в Play Console." >> $GITHUB_STEP_SUMMARY
 
