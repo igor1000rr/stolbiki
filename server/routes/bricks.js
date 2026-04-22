@@ -194,7 +194,7 @@ router.post('/award-rewarded', auth, (req, res) => {
 //
 // Настройка:
 //   1) В AdMob Console указать в настройках rewarded ad unit:
-//      SSV callback URL = https://snatch-highrise.com/api/bricks/admob-ssv
+//      SSV callback URL = https://highriseheist.com/api/bricks/admob-ssv
 //   2) В клиенте при показе рекламы установить customData = user_id (из JWT)
 //   3) Env ADMOB_SSV_ENABLED=1 и ADMOB_AD_UNIT=ca-app-pub-.../... (опционально для строгой проверки)
 //
