@@ -1,22 +1,41 @@
 /**
  * Snappy — всплывающий маскот-комментатор.
  *
- * Использование:
- *   <Snappy event="tower_takeover" lang={lang} onDone={() => {}} />
+ * Два способа использования:
  *
- * Принцип:
- *   - Появляется снизу-справа с маскотом + bubble с фразой.
- *   - Через duration мс (по умолчанию 2.5с) исчезает.
- *   - Анимации входа/выхода — slideUp + fadeIn (mascot-bounce от Mascot).
- *   - При size='banner' растягивается на всю ширину (для GameResultPanel).
+ * 1. Прямое — ставишь компонент в JSX:
+ *    <Snappy event="victory" lang={lang} variant="inline" cooldown={false} />
+ *    Подходит для встройки в карточки (GameResultPanel, VictoryCity).
  *
- * Anti-spam: использует canShow/markShown из snappy.js. Если кулдаун не
- * истёк — компонент не рендерится.
+ * 2. Глобальное — через event-bus (window CustomEvent):
+ *    triggerSnappy('tower_takeover')
+ *    Срабатывает <SnappyOverlay/>, единожды смонтированный в App.jsx.
+ *    Подходит для триггеров из глубины Game.jsx, движка, WS-обработчиков —
+ *    без props-drilling и без прямых импортов.
+ *
+ * Anti-spam: cooldown=true (default) — не чаще 1 раза в 4 сек.
+ * В variant='inline' с cooldown=false — для гарантированных показов в окнах.
  */
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Mascot from './Mascot'
 import { pickPhrase, canShow, markShown } from '../engine/snappy'
+import { useI18n } from '../engine/i18n'
+
+const SNAPPY_EVENT_NAME = 'snappy:trigger'
+
+/**
+ * Глобальный триггер Snappy. Можно звать из любого места — Game.jsx, движка,
+ * WS-обработчиков. SnappyOverlay подхватит и покажет реакцию.
+ *
+ * Пример:
+ *   import { triggerSnappy } from './Snappy'
+ *   triggerSnappy('tower_takeover')
+ */
+export function triggerSnappy(event) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(SNAPPY_EVENT_NAME, { detail: { event } }))
+}
 
 export default function Snappy({
   event,
@@ -119,5 +138,44 @@ export default function Snappy({
         }
       `}</style>
     </div>
+  )
+}
+
+/**
+ * SnappyOverlay — слушает глобальные triggerSnappy() события и показывает
+ * Snappy в corner-варианте. Один раз монтируется в App.jsx, дальше работает
+ * автономно. Берёт текущий язык из useI18n().
+ */
+export function SnappyOverlay() {
+  const { lang } = useI18n()
+  const [event, setEvent] = useState(null)
+  // ключ нужен чтобы один и тот же event подряд перерендерил Snappy
+  const [key, setKey] = useState(0)
+
+  const handleDone = useCallback(() => setEvent(null), [])
+
+  useEffect(() => {
+    const onTrigger = (e) => {
+      const ev = e?.detail?.event
+      if (!ev) return
+      setEvent(ev)
+      setKey(k => k + 1)
+    }
+    window.addEventListener(SNAPPY_EVENT_NAME, onTrigger)
+    return () => window.removeEventListener(SNAPPY_EVENT_NAME, onTrigger)
+  }, [])
+
+  if (!event) return null
+
+  return (
+    <Snappy
+      key={key}
+      event={event}
+      lang={lang}
+      variant="corner"
+      cooldown
+      duration={2500}
+      onDone={handleDone}
+    />
   )
 }
