@@ -8,7 +8,7 @@
 
 **Body:**
 
-Hey r/boardgames! My friend and I have been building an abstract strategy board game called **Snatch Highrise** — think Go meets Jenga.
+Hey r/boardgames! My friend and I have been building an abstract strategy board game called **Highrise Heist** — think Go meets Jenga.
 
 **The rules are dead simple:** 10 stands, 11 blocks each. On your turn, place blocks or transfer the top group. When a stand reaches 11 blocks, whoever's color is on top owns it. First to control 6 out of 10 wins.
 
@@ -31,7 +31,7 @@ We built an AlphaZero-style neural network (840K parameters, MCTS + ResNet) and 
 
 The digital version has AI at 5 difficulty levels, post-game AI review (rates every move like chess.com — from "Excellent" to "Blunder"), daily puzzles, online multiplayer, 33 achievements, and a referral system.
 
-**Try it free:** [snatch-highrise.com](https://snatch-highrise.com) — no signup needed for AI games. There's also a Print & Play PDF if you want to try the physical version.
+**Try it free:** [highriseheist.com](https://highriseheist.com) — no signup needed for AI games. There's also a Print & Play PDF if you want to try the physical version.
 
 Would love to hear what you think about the game design. Are there other abstract strategy games that achieved this level of statistical balance?
 
@@ -43,7 +43,7 @@ Would love to hear what you think about the game design. Are there other abstrac
 
 **Body:**
 
-I've been building an abstract strategy board game (Snatch Highrise) and wanted an AI that could actually challenge experienced players. Here's the technical journey.
+I've been building an abstract strategy board game (Highrise Heist) and wanted an AI that could actually challenge experienced players. Here's the technical journey.
 
 **The game:** 10 stands, 11 blocks. Place or transfer blocks to control stands. Simple rules but the branching factor is huge (200+ legal moves per turn).
 
@@ -69,7 +69,7 @@ I've been building an abstract strategy board game (Snatch Highrise) and wanted 
 
 **Stack:** React + Vite (client), Node.js + Express + SQLite + WebSocket (server), PyTorch (training). The neural net runs client-side in the browser via Float32Array weights (3.2MB binary).
 
-**Try it:** [snatch-highrise.com](https://snatch-highrise.com)
+**Try it:** [highriseheist.com](https://highriseheist.com)
 
 Happy to answer questions about the architecture or training process!
 
@@ -77,7 +77,7 @@ Happy to answer questions about the architecture or training process!
 
 ## Reddit: r/WebGames
 
-**Title:** Snatch Highrise — free strategy board game with neural network AI, no signup needed
+**Title:** Highrise Heist — free strategy board game with neural network AI, no signup needed
 
 **Body:**
 
@@ -87,7 +87,7 @@ Built a browser-based abstract strategy game with a properly trained AI opponent
 
 **Features:** 5 AI levels (Easy → Extreme), AI game review after each match, daily puzzles, online multiplayer, achievements. Works on mobile.
 
-[snatch-highrise.com](https://snatch-highrise.com) — click Play, pick difficulty, go. No account needed.
+[highriseheist.com](https://highriseheist.com) — click Play, pick difficulty, go. No account needed.
 
 ---
 
@@ -97,7 +97,7 @@ Built a browser-based abstract strategy game with a properly trained AI opponent
 Board game with AlphaZero AI trained on 10M games
 
 **Description:**
-Snatch Highrise is an abstract strategy board game with a neural network AI that analyzed 10 million self-play games to achieve perfect 50:50 balance.
+Highrise Heist is an abstract strategy board game with a neural network AI that analyzed 10 million self-play games to achieve perfect 50:50 balance.
 
 Simple rules: 10 stands, 11 blocks each. Place or transfer blocks. Control 6 of 10 stands to win. 2 minutes to learn, impossible to master.
 
@@ -124,13 +124,13 @@ Free. No ads. No paywalls. Just pure strategy.
 
 ## Telegram — первый пост
 
-🏗 **Snatch Highrise — стратегическая настольная игра с AI**
+🏗 **Highrise Heist — стратегическая настольная игра с AI**
 
 10 стоек. 11 блоков. Простые правила — бесконечная глубина.
 
 Наш AI обучен на 10 миллионов партий и анализирует каждый твой ход: от «Отличный» до «Грубая ошибка».
 
-🎮 Играй бесплатно: snatch-highrise.com
+🎮 Играй бесплатно: highriseheist.com
 📱 Android скоро в Google Play
 
 Что внутри:
