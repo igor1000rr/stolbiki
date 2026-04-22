@@ -39,13 +39,13 @@ jobs:
       - name: Build web
         run: npx vite build
         env:
-          # VITE_API_URL — для веб-сборки (относительный /api резолвится к текущему хосту)
-          VITE_API_URL: https://snatch-highrise.com/api
+          # VITE_API_URL — для веб-сборки (api.js использует этот URL)
+          VITE_API_URL: https://highriseheist.com/api
           # VITE_SERVER_URL — КРИТИЧНО для native (Capacitor) сборки:
           # main.jsx в isNative-ветке делает fetch interceptor, который подставляет
-          # этот URL в начало каждого /api/* запроса. Без этой переменной fallback
-          # идёт на 'https://highriseheist.com' (несуществующий домен) и APK не работает.
-          VITE_SERVER_URL: https://snatch-highrise.com
+          # этот URL в начало каждого /api/* запроса. Также используется для
+          # window.__SH_WS_BASE (WebSocket endpoint).
+          VITE_SERVER_URL: https://highriseheist.com
 
       - name: Sync Capacitor
         run: npx cap sync android
