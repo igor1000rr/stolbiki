@@ -20,7 +20,7 @@ const SVG_SIZE = 480
 const SVG_C = SVG_SIZE / 2
 const SVG_R = SVG_SIZE * 0.38
 const TUTORIAL_KEY = 'stolbiki_gr_tutorial_seen'
-const GR_URL = 'https://snatch-highrise.com/goldenrush-online'
+const GR_URL = 'https://highriseheist.com/goldenrush-online'
 
 function standXY(i) {
   const c = STAND_COORDS[i]
