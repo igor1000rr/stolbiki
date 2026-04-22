@@ -24,6 +24,7 @@ import ProfileAccount from './ProfileAccount'
 import ProfileFriends from './ProfileFriends'
 import ProfileAnalytics from './ProfileAnalytics'
 import VictoryCity from './VictoryCity'
+import { triggerSnappy } from './Snappy'
 import CityShareControls from './CityShareControls'
 import BrickBalance from './BrickBalance'
 import SeasonPass from './SeasonPass'
@@ -54,6 +55,15 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   const [publicProfile, setPublicProfile] = useState(null)
   const [publicLoading, setPublicLoading] = useState(false)
   const [tab, setTab] = useState(initialTab || 'profile')
+
+  // Snappy реагирует при переключении на вкладку Город Побед —
+  // комментит "трофеи" игрока. Задержка 1.2s чтобы не пересечься
+  // с анимацией загрузки 3D сцены VictoryCity.
+  useEffect(() => {
+    if (tab !== 'city') return
+    const timer = setTimeout(() => triggerSnappy('victory_city'), 1200)
+    return () => clearTimeout(timer)
+  }, [tab])
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
   const [loginMode, setLoginMode] = useState(false)
