@@ -270,7 +270,7 @@ export default function PuzzleRush({ onClose }) {
               {en ? 'Play again' : 'Ещё раз'}
             </button>
             <button className="btn" onClick={() => {
-              const text = `Puzzle Rush: ${score} solved! — snatch-highrise.com`
+              const text = `Puzzle Rush: ${score} solved! — highriseheist.com`
               navigator.share?.({ text }).catch(() => navigator.clipboard?.writeText(text))
             }} style={{ fontSize: 14, padding: '12px 20px' }}>
               {en ? 'Share' : 'Поделиться'}
