@@ -1,13 +1,13 @@
-# Snatch Highrise — Store Metadata
+# Highrise Heist — Store Metadata
 
 ## App Name
-Snatch Highrise
+Highrise Heist
 
 ## Short Description (80 chars)
 Strategy board game with neural network AI. Play online, solve puzzles, compete!
 
 ## Full Description
-Snatch Highrise is an original strategy board game for 2 players powered by AlphaZero-style AI trained on 10M+ self-play games.
+Highrise Heist is an original strategy board game for 2 players powered by AlphaZero-style AI trained on 10M+ self-play games.
 
 🎯 SIMPLE TO LEARN, DEEP TO MASTER
 10 stands, 11 chips each. Place your chips, transfer between stands, and close them to claim ownership. First to close 6 stands wins! The golden ★ stand breaks 5:5 ties.
@@ -46,7 +46,7 @@ board game, strategy, AI, neural network, puzzle, multiplayer
 Everyone
 
 ## Privacy Policy URL
-https://snatch-highrise.com/#privacy
+https://highriseheist.com/#privacy
 
 ## Contact
 https://t.me/igor1000rr
