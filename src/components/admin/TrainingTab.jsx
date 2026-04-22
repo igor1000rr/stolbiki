@@ -70,7 +70,7 @@ git push`}
           </div>
           <p style={{ fontSize: 11, color: 'var(--ink3)' }}>Или через API (без скачивания БД):</p>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', fontFamily: 'monospace', fontSize: 11, color: '#a8a4b8', whiteSpace: 'pre-wrap' }}>
-{`py -3.12 retrain.py --url https://snatch-highrise.com --token ВАШ_JWT_ТОКЕН`}
+{`py -3.12 retrain.py --url https://highriseheist.com --token ВАШ_JWT_ТОКЕН`}
           </div>
         </div>
       </div>
