@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
-// Signing config из local.properties (не коммитится)
+// Signing config из keystore.properties (не коммитится).
+// В CI (Actions) файл генерируется перед билдом из секретов — см. release-android.yml.
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
@@ -14,8 +15,10 @@ android {
         applicationId "com.highriseheist.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 59
-        versionName "5.7.2"
+        // Версия синхронизируется скриптом scripts/sync-android-version.cjs из package.json.
+        // Не править руками — CI перезатрёт.
+        versionCode 50920
+        versionName "5.9.20"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -35,12 +38,33 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8 code shrinking + obfuscation. Правила — в proguard-rules.pro.
+            // Capacitor и плагины обычно включают consumer-rules, так что минификация безопасна.
+            minifyEnabled true
+            // Удаляем неиспользуемые ресурсы (drawables/strings/layouts) — экономит 2-5 MB.
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             }
         }
+        debug {
+            minifyEnabled false
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+    }
+    // App Bundle (AAB) конфиг — Play Store с авг 2021 требует AAB вместо APK.
+    // enableSplit=true делит по density/language/abi → меньший размер у пользователя.
+    bundle {
+        language { enableSplit = true }
+        density  { enableSplit = true }
+        abi      { enableSplit = true }
+    }
+    // Для больших assets (NN weights 3.5MB) отключаем компрессию .bin —
+    // иначе WebView их не смапит напрямую.
+    androidResources {
+        noCompress += ['bin']
     }
 }
 

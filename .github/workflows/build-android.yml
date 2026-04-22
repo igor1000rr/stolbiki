@@ -1,6 +1,7 @@
-# Сборка Android APK
+# Сборка Android debug APK
 # Запуск: вручную через Actions → Run workflow
-name: Build Android APK
+# Для release AAB → см. release-android.yml
+name: Build Android APK (debug)
 
 on:
   workflow_dispatch:
@@ -30,6 +31,11 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
+      # Синхронизируем versionCode/versionName из package.json в build.gradle —
+      # иначе debug APK уйдёт со старой версией.
+      - name: Sync Android version from package.json
+        run: node scripts/sync-android-version.cjs
 
       - name: Install dependencies
         # --legacy-peer-deps нужен из-за peer-конфликтов Capacitor 8 / React 19

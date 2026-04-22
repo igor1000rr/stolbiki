@@ -1,0 +1,160 @@
+# Release Android AAB (App Bundle) для Play Store
+#
+# Запуск: только вручную через Actions → Release Android → Run workflow.
+# Собирает подписанный .aab из keystore в секретах, загружает как artifact.
+#
+# Секреты репозитория (Settings → Secrets → Actions):
+#   ANDROID_KEYSTORE_BASE64   — base64(upload-keystore.jks)
+#   ANDROID_KEYSTORE_PASSWORD — пароль keystore
+#   ANDROID_KEY_ALIAS         — alias ключа (обычно "upload")
+#   ANDROID_KEY_PASSWORD      — пароль ключа
+#
+# Генерация keystore (один раз, локально):
+#   keytool -genkey -v -keystore upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#   base64 -w0 upload-keystore.jks
+#
+# После успешного билда: artifact `highrise-heist-release-aab` → скачать →
+# загрузить в Play Console (Internal testing / Production).
+
+name: Release Android AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play Store трек (для информации в названии artifact)'
+        required: false
+        type: choice
+        default: 'internal'
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check required secrets
+        run: |
+          missing=""
+          [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]   && missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ] && missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]         && missing="$missing ANDROID_KEY_ALIAS"
+          [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ]      && missing="$missing ANDROID_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "❌ Отсутствуют секреты:$missing"
+            echo "См. комментарий в .github/workflows/release-android.yml"
+            exit 1
+          fi
+          echo "✅ Все секреты на месте"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
+      - name: Sync Android version from package.json
+        run: node scripts/sync-android-version.cjs
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+          ls -la android/upload-keystore.jks
+
+      - name: Create keystore.properties
+        run: |
+          cat > android/keystore.properties <<EOF
+          storeFile=../upload-keystore.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build web (production)
+        run: npx vite build
+        env:
+          VITE_API_URL: https://highriseheist.com/api
+          VITE_SERVER_URL: https://highriseheist.com
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Build release APK (универсальный, для sideload/тестов)
+        working-directory: android
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Get version from package.json
+        id: version
+        run: echo "v=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Rename artifacts with version
+        run: |
+          mkdir -p release-artifacts
+          cp android/app/build/outputs/bundle/release/app-release.aab \
+             release-artifacts/highrise-heist-v${{ steps.version.outputs.v }}-${{ github.event.inputs.track }}.aab
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             release-artifacts/highrise-heist-v${{ steps.version.outputs.v }}-${{ github.event.inputs.track }}.apk
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: highrise-heist-release-aab
+          path: release-artifacts/*.aab
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload APK artifact (for sideload)
+        uses: actions/upload-artifact@v4
+        with:
+          name: highrise-heist-release-apk
+          path: release-artifacts/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Build summary
+        run: |
+          AAB=$(ls -la release-artifacts/*.aab | awk '{print $5, $9}')
+          APK=$(ls -la release-artifacts/*.apk | awk '{print $5, $9}')
+          echo "### 📦 Release build v${{ steps.version.outputs.v }} (${{ github.event.inputs.track }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**AAB:** \`$AAB\`" >> $GITHUB_STEP_SUMMARY
+          echo "**APK:** \`$APK\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Скачай AAB и загрузи в Play Console." >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload gradle reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-release
+          path: |
+            android/app/build/reports/
+            android/build/reports/
+          retention-days: 7
+          if-no-files-found: ignore
