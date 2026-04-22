@@ -87,6 +87,43 @@ jobs:
           VITE_API_URL=/api npm run build
           BUILD_HASH=$(git rev-parse --short HEAD)-$(date +%s)
           sed -i "s/__BUILD_HASH__/$BUILD_HASH/g" dist/sw.js
+        env:
+          # Sentry DSN попадёт в bundle через import.meta.env.VITE_SENTRY_DSN.
+          # Если секрет пустой — Sentry не инициализируется (см. src/engine/sentry.js).
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
+      # Sentry release и upload sourcemaps. Срабатывает только если все 3 секрета заданы.
+      # Без них Sentry работает без desymbolication, stack traces прилетают с хэшированными именами.
+      #
+      # Секреты:
+      #   SENTRY_AUTH_TOKEN — https://sentry.io/settings/account/api/auth-tokens/ (scope: project:releases)
+      #   SENTRY_ORG        — slug организации в Sentry
+      #   SENTRY_PROJECT    — slug проекта
+      - name: Sentry Release + Upload Sourcemaps
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "⬆️ Uploading sourcemaps to Sentry for release v$VERSION"
+          npx @sentry/cli releases new "$VERSION"
+          npx @sentry/cli releases files "$VERSION" upload-sourcemaps ./dist \
+            --url-prefix '~/assets' \
+            --rewrite \
+            --ignore-file .sentryignore \
+            --strip-common-prefix || true
+          npx @sentry/cli releases set-commits "$VERSION" --auto || true
+          npx @sentry/cli releases finalize "$VERSION"
+          echo "✅ Sentry release v$VERSION finalized"
+
+      # Удаляем .map файлы перед деплоем на VPS — не раздаём дебаг-инфо конечным
+      # пользователям. Sentry уже получил копии через upload выше.
+      - name: Strip sourcemaps from dist
+        run: |
+          find dist -name '*.map' -delete
+          echo "✅ Sourcemaps removed from dist"
 
       - name: Sync version to server
         run: |

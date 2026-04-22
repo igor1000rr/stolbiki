@@ -1,7 +1,13 @@
 /**
- * Error Boundary — ловит JS-краши, показывает fallback UI
+ * Error Boundary — ловит JS-краши, показывает fallback UI.
+ *
+ * Репортит в два места:
+ *   1. Sentry (если инициализирован) — с componentStack в extras, с breadcrumbs и replay
+ *   2. /api/error-report — fallback для случаев когда Sentry не настроен или
+ *      заблокирован adblock-ом (некоторые блокуют sentry.io)
  */
 import { Component } from 'react'
+import { captureException } from '../engine/sentry'
 
 export default class ErrorBoundary extends Component {
   state = { hasError: false, error: null }
@@ -12,7 +18,11 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('ErrorBoundary caught:', error, info.componentStack)
-    // Отправляем ошибку на сервер (fire-and-forget)
+
+    // Sentry (noop если не инициализирован)
+    captureException(error, { componentStack: info?.componentStack })
+
+    // Внутренний fallback — независимо от Sentry
     try {
       const token = localStorage.getItem('stolbiki_token')
       fetch('/api/error-report', {

@@ -3,22 +3,31 @@ import { createRoot } from 'react-dom/client'
 import { GameProvider } from './engine/GameContext'
 import { AuthProvider } from './engine/AuthContext'
 import { captureReferralCode } from './engine/api'
+import { initSentry, captureException } from './engine/sentry'
 import { getEmbedComponent } from './components/EmbedRoot'
 import App from './App'
+
+// Sentry init до всего остального — чтобы поймать ошибки в GameProvider/AuthProvider тоже.
+// noop если VITE_SENTRY_DSN не задан.
+initSentry()
 
 // Ловим ?ref=XXX из URL до рендера
 captureReferralCode()
 
-// Error Boundary — ловит ошибки React-рендера, репортит на сервер,
+// Error Boundary — ловит ошибки React-рендера, репортит на сервер + в Sentry,
 // показывает локализованный fallback с кнопками Reload / Home
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
   static getDerivedStateFromError(error) { return { error } }
 
   componentDidCatch(error, errorInfo) {
-    // Репорт на сервер через глобальный reportError (определён ниже, но уже в scope)
+    // Сервер (fallback)
     try {
       reportError(error?.message || 'React render error', (error?.stack || '') + '\n\nComponent stack:' + (errorInfo?.componentStack || ''))
+    } catch {}
+    // Sentry (на топ-уровне, noop без DSN)
+    try {
+      captureException(error, { componentStack: errorInfo?.componentStack, boundary: 'root' })
     } catch {}
     // Yandex.Metrika goal
     try { window.ym && window.ym(108329078, 'reachGoal', 'error_boundary', { msg: String(error?.message || '').slice(0, 100) }) } catch {}
@@ -189,7 +198,9 @@ if (!isNative && 'serviceWorker' in navigator) {
   })
 }
 
-// Глобальный отлов ошибок → error-report (не пойманных ErrorBoundary)
+// Глобальный отлов ошибок → error-report (не пойманных ErrorBoundary).
+// Sentry ловит эти же события сам через внутренний GlobalHandlers integration,
+// здесь только fallback в /api/error-report.
 function reportError(message, stack) {
   try {
     const token = localStorage.getItem('stolbiki_token')

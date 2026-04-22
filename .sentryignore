@@ -1,0 +1,17 @@
+# Файлы/директории которые не нужно заливать в Sentry при upload-sourcemaps.
+# Sentry CLI воспринимает файл также как .gitignore.
+
+# Большие ассеты — смаприть Sentry их всё равно не сможет,
+# а квоту upload займут.
+*.bin
+*.npz
+mascot/*.webp
+*.webp
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.json
+
+# Третьи зависимости с уже корректными sourcemaps в npm
+node_modules/

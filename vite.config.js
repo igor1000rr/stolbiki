@@ -85,6 +85,11 @@ export default defineConfig({
   plugins: [react(), swBuildHash(), injectVersion(), cspHashes()],
   base: '/',
   build: {
+    // Source maps для Sentry. 'hidden' = генерирует .map файлы но не добавляет
+    // //# sourceMappingURL= коммент в конец JS. Итог: конечные пользователи
+    // не видят дебаг-инфо, но Sentry получает .map через CLI upload и делает
+    // desymbolication stack traces. .map удаляются из dist перед деплоем.
+    sourcemap: 'hidden',
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -95,6 +100,8 @@ export default defineConfig({
           // Three.js — отдельный чанк (~600KB, нужен только в Victory City и Block3DPreview)
           // Подгружается lazy через dynamic import, поэтому в main bundle не попадёт
           if (id.includes('node_modules/three/')) return 'three'
+          // Sentry в отдельном чанке — не раздуваем критический main
+          if (id.includes('node_modules/@sentry/')) return 'sentry'
         },
       },
     },
