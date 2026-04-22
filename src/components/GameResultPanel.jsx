@@ -2,10 +2,12 @@
  * GameResultPanel — экран результата после партии
  * Извлечён из Game.jsx
  * v5.1: TikTok highlight reel кнопка
+ * v5.10: интеграция Snappy — фраза маскота под аватаркой по результату
  */
 
 import { useState, lazy, Suspense } from 'react'
 import Mascot from './Mascot'
+import Snappy from './Snappy'
 import Confetti from './Confetti'
 import * as MP from '../engine/multiplayer'
 import * as API from '../engine/api'
@@ -31,6 +33,10 @@ export default function GameResultPanel({
   const goldenOwned = (0 in gs.closed)
   const shareText = `Highrise Heist${mode === 'online' ? ' Online' : ''}: ${isDraw ? 'Draw' : won ? 'W' : 'L'} ${s0}:${s1} ${goldenOwned ? '⭐' : ''} — highriseheist.com`
   const accentColor = isDraw ? 'var(--purple)' : won ? 'var(--green)' : 'var(--p2)'
+
+  // Триггер для Snappy: в PvP не показываем (там нет "победителя-игрока")
+  // cooldown=false в результате — окно показывается один раз, нужна гарантированная фраза
+  const snappyEvent = mode === 'pvp' ? null : (isDraw ? 'draw' : won ? 'victory' : 'defeat')
 
   async function doShare() {
     try {
@@ -95,6 +101,10 @@ export default function GameResultPanel({
         ? (won ? t('game.victory') : t('game.defeat'))
         : (won ? t('game.victory') : t('game.aiWins'))
       }</span>
+      {/* Snappy реакция — фраза по результату партии. cooldown=false: окно показывается один раз. */}
+      {snappyEvent && (
+        <Snappy event={snappyEvent} lang={lang} variant="inline" cooldown={false} duration={6000} />
+      )}
       <div style={{ fontSize: isNative ? 44 : 32, fontWeight: 700, margin: isNative ? '12px 0' : '6px 0', color: 'var(--ink)' }}>{s0} : {s1}</div>
       <div style={{ fontSize: isNative ? 12 : 11, color: 'var(--ink3)', display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
         <span>{t('game.moves')}: {gs.turn}</span>
