@@ -337,7 +337,7 @@ export default function Settings() {
               fetch('/api/profile/rating-history', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
             ])
             const blob = new Blob([JSON.stringify({ profile, games, ratingHistory: history, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' })
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'snatch-highrise-data.json'; a.click()
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'highriseheist-data.json'; a.click()
           } catch {}
         }} style={{ fontSize: 12, padding: '8px 16px' }}>
           {en ? 'Export data' : 'Экспорт данных'}
