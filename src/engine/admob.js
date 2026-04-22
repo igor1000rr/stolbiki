@@ -2,38 +2,57 @@
  * AdMob — обёртка над @capacitor-community/admob
  * Используется только в native (Capacitor) приложении.
  *
- * Установка:
+ * ─── Конфигурация ID через env ───
+ * Production IDs передаются в build через Vite env переменные:
+ *   VITE_ADMOB_APP_ID_ANDROID, VITE_ADMOB_INTERSTITIAL_ANDROID,
+ *   VITE_ADMOB_REWARDED_ANDROID, VITE_ADMOB_BANNER_ANDROID
+ *   (+ аналогичные _IOS)
+ *
+ * В release-android.yml они прокидываются из GH Secrets.
+ * Если env-переменная не задана — используется Google test ID (публичный,
+ * безопасный). AdMob воспринимает test ID как "безопасный режим" и
+ * не крутит реальный трафик по ним.
+ *
+ * AndroidManifest APPLICATION_ID резолвится отдельно через manifestPlaceholders
+ * в gradle (-PadmobAppId=...). Без этого native AdMob при init падает с
+ * "Missing application ID", что крашит всё приложение.
+ *
+ * ─── Установка ───
  *   npm install @capacitor-community/admob --legacy-peer-deps
  *   npx cap sync android
- *
- * В AndroidManifest.xml добавить внутри <application>:
- *   <meta-data
- *     android:name="com.google.android.gms.ads.APPLICATION_ID"
- *     android:value="YOUR_APP_ID"/>
- *
- * Реальные ID берём из консоли AdMob: admob.google.com
  */
 
+// Google test IDs — публичные, их можно держать в коде. AdMob не крутит
+// по ним реальную рекламу даже в release билде.
+const TEST_IDS = {
+  appId:        'ca-app-pub-3940256099942544~3347511713',
+  interstitial: 'ca-app-pub-3940256099942544/1033173712',
+  rewarded:     'ca-app-pub-3940256099942544/5224354917',
+  banner:       'ca-app-pub-3940256099942544/6300978111',
+}
+
+const env = import.meta.env || {}
 const ADS_CONFIG = {
   android: {
-    appId:        'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
-    interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    rewarded:     'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    banner:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    appId:        env.VITE_ADMOB_APP_ID_ANDROID        || TEST_IDS.appId,
+    interstitial: env.VITE_ADMOB_INTERSTITIAL_ANDROID  || TEST_IDS.interstitial,
+    rewarded:     env.VITE_ADMOB_REWARDED_ANDROID      || TEST_IDS.rewarded,
+    banner:       env.VITE_ADMOB_BANNER_ANDROID        || TEST_IDS.banner,
   },
   ios: {
-    appId:        'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
-    interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    rewarded:     'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    banner:       'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    appId:        env.VITE_ADMOB_APP_ID_IOS        || TEST_IDS.appId,
+    interstitial: env.VITE_ADMOB_INTERSTITIAL_IOS  || TEST_IDS.interstitial,
+    rewarded:     env.VITE_ADMOB_REWARDED_IOS      || TEST_IDS.rewarded,
+    banner:       env.VITE_ADMOB_BANNER_IOS        || TEST_IDS.banner,
   },
-  // Тестовые ID Google
-  test: {
-    appId:        'ca-app-pub-3940256099942544~3347511713',
-    interstitial: 'ca-app-pub-3940256099942544/1033173712',
-    rewarded:     'ca-app-pub-3940256099942544/5224354917',
-    banner:       'ca-app-pub-3940256099942544/6300978111',
-  },
+}
+
+// Production режим активен если хотя бы одна real-ID env-переменная задана
+// для текущей платформы. Иначе SDK получает isTesting=true и гарантированно
+// отдаёт тестовые креативы.
+function hasRealIds(platform) {
+  const p = platform === 'ios' ? 'IOS' : 'ANDROID'
+  return !!(env[`VITE_ADMOB_APP_ID_${p}`])
 }
 
 let AdMob = null
@@ -42,12 +61,21 @@ let interstitialReady = false
 let gamesAfterAd = 0
 
 const isNative = () => !!window.Capacitor?.isNativePlatform?.()
-const isTestAdsEnabled = () => window.ADMOB_TEST === true || import.meta.env.DEV
+
+function currentPlatform() {
+  return window.Capacitor?.getPlatform?.() === 'ios' ? 'ios' : 'android'
+}
+
+function isTestAdsEnabled() {
+  // Приоритет: dev всегда test, window override всегда применяется,
+  // в prod test только если реальные ID не настроены.
+  if (env.DEV) return true
+  if (window.ADMOB_TEST === true) return true
+  return !hasRealIds(currentPlatform())
+}
 
 function getAdUnit(type) {
-  if (isTestAdsEnabled()) return ADS_CONFIG.test[type]
-  const platform = window.Capacitor?.getPlatform?.() || 'android'
-  return ADS_CONFIG[platform]?.[type] || ADS_CONFIG.android[type]
+  return ADS_CONFIG[currentPlatform()]?.[type] || TEST_IDS[type]
 }
 
 export async function initAdMob() {

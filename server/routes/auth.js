@@ -7,6 +7,10 @@ const router = Router()
 
 const ADMIN_NAMES = (process.env.ADMIN_USERNAMES || 'admin').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
 const TOKEN_EXPIRY = '7d'
+// Минимум 8 символов — NIST 800-63B рекомендация. Поднято с 6 (старое правило было
+// слабым для публичного продукта с ranked/leaderboard). Клиент валидацией не
+// занимается — ловит ошибку сервера и показывает в authError.
+const PASSWORD_MIN = 8
 const REFERRAL_XP = 100
 const REFERRAL_BRICKS_REG = 20
 const REFERRAL_BRICKS_GAMES = 30
@@ -31,7 +35,7 @@ router.post('/register', async (req, res) => {
     if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
     const cleanName = String(username).trim().replace(/[<>&"']/g, '')
     if (cleanName.length < 2 || cleanName.length > 20) return res.status(400).json({ error: 'Username: 2-20 chars' })
-    if (String(password).length < 6) return res.status(400).json({ error: 'Password: min 6 chars' })
+    if (String(password).length < PASSWORD_MIN) return res.status(400).json({ error: `Password: min ${PASSWORD_MIN} chars` })
 
     // Валидация email: необязательное поле, но если прислан — должен быть валидным
     // (защита от мусора типа "<script>" или произвольных строк в БД).

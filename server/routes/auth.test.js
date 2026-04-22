@@ -57,10 +57,11 @@ describe('POST /api/auth/register', () => {
     expect(res.status).toBe(400)
   })
 
-  it('400 если password короче 6 символов', async () => {
-    const res = await request(app).post('/api/auth/register').send({ username: uniqueName(), password: '12345' })
+  it('400 если password короче 8 символов', async () => {
+    // 7 символов — должно отклониться после поднятия лимита с 6 до 8.
+    const res = await request(app).post('/api/auth/register').send({ username: uniqueName(), password: '1234567' })
     expect(res.status).toBe(400)
-    expect(res.body.error).toMatch(/6/)
+    expect(res.body.error).toMatch(/8/)
   })
 
   it('409 если username уже занят', async () => {

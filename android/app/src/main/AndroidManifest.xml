@@ -12,6 +12,14 @@
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
 
+        <!-- AdMob APPLICATION_ID. Placeholder ${admobAppId} резолвится в build.gradle
+             из gradle property -PadmobAppId=... (передаётся из GH Secret в release-android.yml).
+             Если property не задано — используется Google test ID. Без этой meta-data
+             AdMob SDK при init крашит приложение с "Missing application ID". -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"

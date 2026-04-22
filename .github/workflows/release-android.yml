@@ -3,13 +3,23 @@
 # Запуск: только вручную через Actions → Release Android → Run workflow.
 # Собирает подписанный .aab из keystore в секретах, загружает как artifact.
 #
-# Секреты репозитория (Settings → Secrets → Actions):
+# ═══ Обязательные секреты ═══
+# Settings → Secrets → Actions:
 #   ANDROID_KEYSTORE_BASE64   — base64(upload-keystore.jks)
 #   ANDROID_KEYSTORE_PASSWORD — пароль keystore
 #   ANDROID_KEY_ALIAS         — alias ключа (обычно "upload")
 #   ANDROID_KEY_PASSWORD      — пароль ключа
 #
-# Генерация keystore (один раз, локально):
+# ═══ Опциональные секреты ═══
+# AdMob IDs (если не заданы — используются Google public test IDs):
+#   ADMOB_APP_ID_ANDROID, ADMOB_INTERSTITIAL_ANDROID,
+#   ADMOB_REWARDED_ANDROID, ADMOB_BANNER_ANDROID
+#
+# Firebase Cloud Messaging (если не задан — push на native Android работать не будет,
+# веб-push через VAPID продолжит работать):
+#   GOOGLE_SERVICES_JSON — base64 от google-services.json из Firebase Console
+#
+# ═══ Генерация keystore (один раз, локально) ═══
 #   keytool -genkey -v -keystore upload-keystore.jks \
 #     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 #   base64 -w0 upload-keystore.jks
@@ -55,7 +65,10 @@ jobs:
             echo "См. комментарий в .github/workflows/release-android.yml"
             exit 1
           fi
-          echo "✅ Все секреты на месте"
+          echo "✅ Обязательные секреты на месте"
+          # Опциональные — логируем, не падаем
+          [ -z "${{ secrets.ADMOB_APP_ID_ANDROID }}" ] && echo "ℹ️ ADMOB_APP_ID_ANDROID не задан — будут Google test ads" || echo "✅ AdMob prod IDs настроены"
+          [ -z "${{ secrets.GOOGLE_SERVICES_JSON }}" ] && echo "ℹ️ GOOGLE_SERVICES_JSON не задан — FCM push отключён" || echo "✅ Firebase настроен"
 
       - uses: actions/setup-node@v5
         with:
@@ -89,6 +102,14 @@ jobs:
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
+      # Опционально: google-services.json из секрета → включается плагин com.google.gms.google-services
+      # и нативный FCM push заработает. Без этого push работает только через Web Push API (VAPID) в браузере.
+      - name: Decode google-services.json (optional)
+        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+          echo "✅ google-services.json установлен"
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
@@ -97,17 +118,36 @@ jobs:
         env:
           VITE_API_URL: https://highriseheist.com/api
           VITE_SERVER_URL: https://highriseheist.com
+          # AdMob — если секреты не заданы, env будут пустыми и admob.js
+          # автоматически переключится на Google test IDs (см. engine/admob.js).
+          VITE_ADMOB_APP_ID_ANDROID:        ${{ secrets.ADMOB_APP_ID_ANDROID }}
+          VITE_ADMOB_INTERSTITIAL_ANDROID:  ${{ secrets.ADMOB_INTERSTITIAL_ANDROID }}
+          VITE_ADMOB_REWARDED_ANDROID:      ${{ secrets.ADMOB_REWARDED_ANDROID }}
+          VITE_ADMOB_BANNER_ANDROID:        ${{ secrets.ADMOB_BANNER_ANDROID }}
 
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # Gradle properties:
+      #   -PadmobAppId=... резолвится в AndroidManifest placeholder ${admobAppId}
+      #   (см. android/app/build.gradle). Если секрет пустой — используется
+      #   Google public test app ID, fallback прописан в build.gradle.
+      - name: Compute gradle properties
+        id: gradle_props
+        run: |
+          if [ -n "${{ secrets.ADMOB_APP_ID_ANDROID }}" ]; then
+            echo "props=-PadmobAppId=${{ secrets.ADMOB_APP_ID_ANDROID }}" >> $GITHUB_OUTPUT
+          else
+            echo "props=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build release AAB
         working-directory: android
-        run: ./gradlew bundleRelease --stacktrace
+        run: ./gradlew bundleRelease ${{ steps.gradle_props.outputs.props }} --stacktrace
 
       - name: Build release APK (универсальный, для sideload/тестов)
         working-directory: android
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease ${{ steps.gradle_props.outputs.props }} --stacktrace
 
       - name: Get version from package.json
         id: version
@@ -145,6 +185,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**AAB:** \`$AAB\`" >> $GITHUB_STEP_SUMMARY
           echo "**APK:** \`$APK\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "AdMob: ${{ secrets.ADMOB_APP_ID_ANDROID != '' && 'prod IDs' || 'test IDs' }}" >> $GITHUB_STEP_SUMMARY
+          echo "FCM:   ${{ secrets.GOOGLE_SERVICES_JSON != '' && 'enabled' || 'web push only' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Скачай AAB и загрузи в Play Console." >> $GITHUB_STEP_SUMMARY
 

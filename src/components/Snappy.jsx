@@ -15,12 +15,17 @@
  *
  * Anti-spam: cooldown=true (default) — не чаще 1 раза в 4 сек.
  * В variant='inline' с cooldown=false — для гарантированных показов в окнах.
+ *
+ * Analytics: каждый фактический показ (после cooldown check) трекается
+ * через API.track('snappy_shown', variant, { event, pose, textLen }) —
+ * это даёт метрику какие фразы заходят и не спамим ли мы.
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Mascot from './Mascot'
 import { pickPhrase, canShow, markShown } from '../engine/snappy'
 import { useI18n } from '../engine/i18n'
+import { track } from '../engine/api'
 
 const SNAPPY_EVENT_NAME = 'snappy:trigger'
 
@@ -67,6 +72,18 @@ export default function Snappy({
     setPhrase(p)
     setVisible(true)
 
+    // Аналитика: фиксируем конкретно какие фразы/позы срабатывают, чтобы
+    // потом в админке увидеть топ-event и понять что убрать/добавить.
+    // textLen вместо text — не пихаем ru/en-зависимый контент в events БД.
+    try {
+      track('snappy_shown', variant, {
+        event,
+        pose: p.pose,
+        lang,
+        textLen: p.text?.length || 0,
+      })
+    } catch {}
+
     // Автоскрытие
     timerRef.current = setTimeout(() => {
       setVisible(false)
@@ -77,7 +94,7 @@ export default function Snappy({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [event, lang, duration, cooldown])
+  }, [event, lang, duration, cooldown, variant])
 
   if (!phrase || !visible) return null
 

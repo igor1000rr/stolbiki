@@ -8,6 +8,11 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// AdMob APPLICATION_ID — резолвится в AndroidManifest через placeholder ${admobAppId}.
+// В CI передаётся через -PadmobAppId=... из секрета ADMOB_APP_ID_ANDROID.
+// Fallback — Google public test ID, безопасный (реальный трафик по нему не идёт).
+def admobAppIdProp = project.findProperty('admobAppId') ?: 'ca-app-pub-3940256099942544~3347511713'
+
 android {
     namespace = "com.highriseheist.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -20,6 +25,7 @@ android {
         versionCode 50920
         versionName "5.9.20"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [admobAppId: admobAppIdProp]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
