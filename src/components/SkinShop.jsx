@@ -1,11 +1,11 @@
 /**
- * SkinShop — popup для кастомизации: темы, скины блоков, скины стоек
+ * SkinShop — popup для кастомизации: темы, блоки, стойки, фоны
  * v5.2: bricks с сервера, кнопка Rewarded только в native / DEV
  * v5.5: 3D превью активного скина в вкладке Блоки (Block3DPreview)
+ * v5.9.22: добавлена категория фонов (bg_city_day/night/mountains/desert/space)
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
-import * as API from '../engine/api'
 import { useGameContext } from '../engine/GameContext'
 import { getSettings, saveSettings, applySettings } from '../engine/settings'
 import { showRewarded } from '../engine/admob'
@@ -66,6 +66,20 @@ const STAND_SKINS = [
     bg: 'linear-gradient(180deg, #0a0a14, #050508, #0a0a14)', border: 'rgba(80,60,120,0.2)' },
   { id: 'stands_ice', legacyId: 'ice', ru: 'Лёд', en: 'Ice', level: 20, price: 500, rarity: 'legendary',
     bg: 'linear-gradient(180deg, rgba(180,220,255,0.3), rgba(120,180,240,0.15), rgba(180,220,255,0.25))', border: 'rgba(120,180,240,0.25)' },
+]
+
+// ─── Фоны — превью через градиент (цветовая гамма скина) ───
+const BG_SKINS = [
+  { id: 'bg_city_day',   ru: 'Дневной город', en: 'City Day',   price: 0,   rarity: 'common',
+    preview: 'linear-gradient(180deg, #7bc5f0 0%, #a0d8e8 40%, #8fbf7a 60%, #6ba050 100%)' },
+  { id: 'bg_city_night', ru: 'Ночной город',  en: 'City Night', price: 200, rarity: 'rare',
+    preview: 'linear-gradient(180deg, #0a1020 0%, #1a2438 40%, #152030 60%, #0c1420 100%)' },
+  { id: 'bg_mountains',  ru: 'Горы',          en: 'Mountains',  price: 300, rarity: 'rare',
+    preview: 'linear-gradient(180deg, #6a8aa8 0%, #8aa0b5 40%, #5a7288 60%, #3a4c5e 100%)' },
+  { id: 'bg_desert',     ru: 'Пустыня',       en: 'Desert',     price: 400, rarity: 'epic',
+    preview: 'linear-gradient(180deg, #e8a060 0%, #f0c080 40%, #d88050 60%, #a05030 100%)' },
+  { id: 'bg_space',      ru: 'Космос',        en: 'Space',      price: 600, rarity: 'legendary',
+    preview: 'linear-gradient(180deg, #0a0020 0%, #2a1060 40%, #4020a0 60%, #0c0018 100%)' },
 ]
 
 const THEMES = [
@@ -132,6 +146,32 @@ function StandPreview({ skin }) {
   )
 }
 
+function BgPreview({ skin }) {
+  // Превью фона — 120x70 карточка с градиентом имитирующим картинку.
+  return (
+    <div style={{
+      width: 120, height: 70, borderRadius: 6,
+      background: skin.preview,
+      boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.2)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Мини-стойки на переднем плане — передают вайб "фон за игрой" */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        display: 'flex', justifyContent: 'center', gap: 2, padding: '0 8px',
+      }}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} style={{
+            width: 6, height: 18 + (i % 2) * 4,
+            background: 'rgba(30,30,48,0.85)', borderRadius: '2px 2px 0 0',
+          }} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function RarityBadge({ rarity, en }) {
   const labels = { common: '', rare: en ? 'Rare' : 'Редкий', epic: en ? 'Epic' : 'Эпик', legendary: en ? 'Legend' : 'Легенда' }
   if (!labels[rarity]) return null
@@ -147,6 +187,11 @@ export function PaintIcon({ size = 20, color = 'currentColor' }) {
   )
 }
 
+// Применить data-skin-bg на <html>, чтобы CSS подтянул нужный фильтр/overlay
+function applyBgSkin(bgId) {
+  try { document.documentElement.setAttribute('data-skin-bg', bgId) } catch {}
+}
+
 export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'default', onThemeChange, bricks = 0, onBricksChange }) {
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -157,7 +202,7 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
   const [purchasing, setPurchasing] = useState(null)
   const [equipping, setEquipping] = useState(null)
   const [localBricks, setLocalBricks] = useState(bricks)
-  const [serverActive, setServerActive] = useState({ blocks: null, stands: null })
+  const [serverActive, setServerActive] = useState({ blocks: null, stands: null, background: null })
   const [watchingAd, setWatchingAd] = useState(false)
   const [rewardMsg, setRewardMsg] = useState(null)
 
@@ -168,7 +213,11 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
       .then(r => r.json())
       .then(d => {
         if (d.skins) setOwnedSkins(new Set(d.skins.filter(s => s.owned).map(s => s.id)))
-        if (d.active) setServerActive(d.active)
+        if (d.active) {
+          setServerActive(d.active)
+          // Сразу применить активный фон к html
+          if (d.active.background) applyBgSkin(d.active.background)
+        }
         if (typeof d.bricks === 'number') {
           setLocalBricks(d.bricks)
           onBricksChange?.(d.bricks)
@@ -196,12 +245,17 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
     return ownedSkins.has(skin.id) || ownedSkins.has(skin.themeId)
   }
 
-  async function equip(skin, isChip) {
-    const selectKey = isChip ? 'chipStyle' : 'standStyle'
-    const selectVal = skin.legacyId || skin.id
-    const ns = { ...settings, [selectKey]: selectVal }
-    setSettings(ns); saveSettings(ns); applySettings(ns)
-    gameCtx?.emit('settingsChanged')
+  async function equip(skin, kind /* 'chip' | 'stand' | 'bg' */) {
+    if (kind === 'bg') {
+      applyBgSkin(skin.id)
+      setServerActive(prev => ({ ...prev, background: skin.id }))
+    } else {
+      const selectKey = kind === 'chip' ? 'chipStyle' : 'standStyle'
+      const selectVal = skin.legacyId || skin.id
+      const ns = { ...settings, [selectKey]: selectVal }
+      setSettings(ns); saveSettings(ns); applySettings(ns)
+      gameCtx?.emit('settingsChanged')
+    }
     const token = localStorage.getItem('stolbiki_token')
     if (token) {
       setEquipping(skin.id)
@@ -211,7 +265,8 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ skinId: skin.id }),
         })
-        setServerActive(prev => ({ ...prev, [isChip ? 'blocks' : 'stands']: skin.id }))
+        const key = kind === 'chip' ? 'blocks' : kind === 'stand' ? 'stands' : 'background'
+        setServerActive(prev => ({ ...prev, [key]: skin.id }))
       } catch {}
       setEquipping(null)
     }
@@ -280,9 +335,12 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
     setWatchingAd(false)
   }
 
-  function renderSkinCard(skin, isChip) {
+  function renderSkinCard(skin, kind /* 'chip' | 'stand' | 'bg' */) {
     const unlocked = isUnlocked(skin)
-    const activeId = isChip ? (serverActive.blocks || settings.chipStyle) : (serverActive.stands || settings.standStyle)
+    const activeId =
+      kind === 'chip' ? (serverActive.blocks || settings.chipStyle) :
+      kind === 'stand' ? (serverActive.stands || settings.standStyle) :
+      (serverActive.background || 'bg_city_day')
     const active = skin.id === activeId || skin.legacyId === activeId
 
     return (
@@ -298,7 +356,9 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0 8px',
           background: 'rgba(0,0,0,0.15)', borderRadius: 8, marginBottom: 8, minHeight: 60, alignItems: 'center' }}>
-          {isChip ? <ChipPreview skin={skin} /> : <StandPreview skin={skin} />}
+          {kind === 'chip' ? <ChipPreview skin={skin} /> :
+           kind === 'stand' ? <StandPreview skin={skin} /> :
+           <BgPreview skin={skin} />}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)' }}>
@@ -307,7 +367,7 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
           {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
         </div>
         {unlocked ? (
-          <button onClick={() => equip(skin, isChip)} disabled={active || equipping === skin.id} style={{
+          <button onClick={() => equip(skin, kind)} disabled={active || equipping === skin.id} style={{
             width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
             background: active ? 'rgba(59,184,168,0.1)' : 'rgba(255,255,255,0.05)',
             color: active ? 'var(--accent)' : 'var(--ink2)',
@@ -364,9 +424,10 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
 
       <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
         {[
-          ['themes', en ? 'Themes' : 'Темы', THEMES.length],
-          ['chips', en ? 'Blocks' : 'Блоки', `${CHIP_SKINS.filter(s => isUnlocked(s)).length}/${CHIP_SKINS.length}`],
-          ['stands', en ? 'Stands' : 'Стойки', `${STAND_SKINS.filter(s => isUnlocked(s)).length}/${STAND_SKINS.length}`],
+          ['themes',      en ? 'Themes' : 'Темы', THEMES.length],
+          ['chips',       en ? 'Blocks' : 'Блоки', `${CHIP_SKINS.filter(s => isUnlocked(s)).length}/${CHIP_SKINS.length}`],
+          ['stands',      en ? 'Stands' : 'Стойки', `${STAND_SKINS.filter(s => isUnlocked(s)).length}/${STAND_SKINS.length}`],
+          ['backgrounds', en ? 'Backgrounds' : 'Фоны', `${BG_SKINS.filter(s => isUnlocked(s)).length}/${BG_SKINS.length}`],
         ].map(([id, label, count]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, padding: '12px 16px', border: 'none', cursor: 'pointer',
@@ -427,7 +488,6 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
 
         {tab === 'chips' && (
           <div>
-            {/* 3D превью текущего экипированного скина */}
             <div style={{ marginBottom: 16 }}>
               <Block3DPreview
                 skinId={serverActive.blocks || settings.chipStyle || 'blocks_classic'}
@@ -438,14 +498,20 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-              {CHIP_SKINS.map(skin => renderSkinCard(skin, true))}
+              {CHIP_SKINS.map(skin => renderSkinCard(skin, 'chip'))}
             </div>
           </div>
         )}
 
         {tab === 'stands' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-            {STAND_SKINS.map(skin => renderSkinCard(skin, false))}
+            {STAND_SKINS.map(skin => renderSkinCard(skin, 'stand'))}
+          </div>
+        )}
+
+        {tab === 'backgrounds' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+            {BG_SKINS.map(skin => renderSkinCard(skin, 'bg'))}
           </div>
         )}
 
@@ -466,7 +532,6 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
                     : 'Побеждай (1–5 за игру) · Реклама за кирпичи — в мобильном приложении'}
               </div>
             </div>
-            {/* Rewarded кнопка — только native или DEV */}
             {showRewardedBtn() && localStorage.getItem('stolbiki_token') && (
               <button
                 onClick={watchAdForBricks}

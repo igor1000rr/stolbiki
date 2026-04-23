@@ -105,10 +105,6 @@ export function runMigrations(db) {
   })
 
   // Golden Rush матчи + per-user счётчики.
-  // Храним компактно: по одной строке на матч, участники/итог в JSON.
-  // Это принципиально отличается от games (там строка per-user): GR-матч
-  // содержит 4 игроков, делать 4 строки неоправданно — агрегаты (wins/losses)
-  // дешевле считать на лету из one-row-per-match при объёмах < 100k матчей.
   migrate(11, () => {
     db.exec(`CREATE TABLE IF NOT EXISTS gr_matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,5 +127,10 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN gr_center_captures INTEGER DEFAULT 0') } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 11')
+  // Скины фонов. Колонка на users + сид фонов в skins делается в bricks.js.
+  migrate(12, () => {
+    try { db.exec("ALTER TABLE users ADD COLUMN active_skin_background TEXT NOT NULL DEFAULT 'bg_city_day'") } catch {}
+  })
+
+  console.log('Schema version: ' + getVersion() + ', миграций: 12')
 }
