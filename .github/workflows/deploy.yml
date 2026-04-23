@@ -26,6 +26,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # secrets.X нельзя использовать в if: на шаге напрямую — кидает
+    # "Unrecognized named-value: 'secrets'" и ломает весь workflow.
+    # Транслируем в job-level env — это разрешено.
+    env:
+      HAS_SENTRY_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
     steps:
       - name: Log dispatch context
         if: github.event_name == 'workflow_dispatch'
@@ -92,15 +97,11 @@ jobs:
           # Если секрет пустой — Sentry не инициализируется (см. src/engine/sentry.js).
           VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
-      # Sentry release и upload sourcemaps. Срабатывает только если все 3 секрета заданы.
-      # Без них Sentry работает без desymbolication, stack traces прилетают с хэшированными именами.
-      #
-      # Секреты:
-      #   SENTRY_AUTH_TOKEN — https://sentry.io/settings/account/api/auth-tokens/ (scope: project:releases)
-      #   SENTRY_ORG        — slug организации в Sentry
-      #   SENTRY_PROJECT    — slug проекта
+      # Sentry release + upload sourcemaps — только когда все 3 секрета заданы.
+      # Проверка идёт через env.HAS_SENTRY_UPLOAD (см. сверху) — это валидно,
+      # в отличие от прямого secrets.X который ломает парсер workflow.
       - name: Sentry Release + Upload Sourcemaps
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+        if: env.HAS_SENTRY_UPLOAD == 'true'
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -119,10 +120,10 @@ jobs:
           echo "✅ Sentry release v$VERSION finalized"
 
       # Удаляем .map файлы перед деплоем на VPS — не раздаём дебаг-инфо конечным
-      # пользователям. Sentry уже получил копии через upload выше.
+      # пользователям. Sentry уже получил копии через upload выше (если был включён).
       - name: Strip sourcemaps from dist
         run: |
-          find dist -name '*.map' -delete
+          find dist -name '*.map' -delete 2>/dev/null || true
           echo "✅ Sourcemaps removed from dist"
 
       - name: Sync version to server
