@@ -6,6 +6,7 @@ import { captureReferralCode } from './engine/api'
 import { initSentry, captureException } from './engine/sentry'
 import { getEmbedComponent } from './components/EmbedRoot'
 import App from './App'
+import './css/scene-background.css'
 
 // Sentry init до всего остального — чтобы поймать ошибки в GameProvider/AuthProvider тоже.
 // noop если VITE_SENTRY_DSN не задан.
@@ -151,6 +152,10 @@ if (isNative) {
 // нарушение rules of hooks. Provider-ы оставлены обёрнутыми вокруг embed
 // тоже на случай если EmbedCity/CompareCities используют контексты.
 const embedComponent = getEmbedComponent()
+if (embedComponent) {
+  // В widget-режиме убираем фоновую картинку — она ломает внедрение на чужой сайт.
+  document.body.classList.add('embed-mode')
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
