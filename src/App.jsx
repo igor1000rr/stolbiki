@@ -163,16 +163,19 @@ export default function App() {
     document.title = titles[tab] ? `${titles[tab]} — Highrise Heist` : 'Highrise Heist — Strategy Board Game'
   }, [tab, lang])
 
-  // Фоновая сцена показывается только на игровом экране — класс tab-game на body.
-  // scene-background.css настроен на body.tab-game::after, так что убирая класс —
-  // фон исчезает на landing/online/puzzles/profile/и других вкладках.
+  // Фон показывается только на игровом экране.
+  //
+  // ВАЖНО: класс ставим на <html>, НЕ на body. Причина: body в app.css имеет
+  // `background: var(--bg)`, которое перекрывает ::after с z-index:-1 на том же
+  // элементе. Вешая на html — фон виден, т.к. body мы сделали прозрачным
+  // в scene-background.css (!important + background-color: transparent).
   useEffect(() => {
     if (tab === 'game') {
-      document.body.classList.add('tab-game')
+      document.documentElement.classList.add('tab-game')
     } else {
-      document.body.classList.remove('tab-game')
+      document.documentElement.classList.remove('tab-game')
     }
-    return () => document.body.classList.remove('tab-game')
+    return () => document.documentElement.classList.remove('tab-game')
   }, [tab])
 
   useEffect(() => {

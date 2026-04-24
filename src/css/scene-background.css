@@ -1,27 +1,36 @@
 /**
  * Фоновая сцена — ПОКАЗЫВАЕТСЯ ТОЛЬКО НА ИГРОВОМ ЭКРАНЕ.
  *
- * Механика: App.jsx useEffect ставит body.tab-game когда tab === 'game',
- * убирает на остальных страницах (landing/online/puzzles/profile/и т.д.).
+ * АРХИТЕКТУРА (важно):
+ *   html::after — слой фона с z-index:-1. Рисуется между html background
+ *     и body content — т.е. виден только если body.background = transparent.
+ *   html.tab-game::after — активен только когда App.jsx поставил
+ *     класс на <html> (при tab === 'game').
  *
- * АССЕТЫ:
- *   bg_city_day — 6 webp (breakpoint + orientation)
- *   bg_city_night/mountains/desert/space — по 1 SVG на скин
+ * ПОЧЕМУ html::after А НЕ body::after:
+ *   В app.css стоит `body { background: var(--bg) }`. По CSS spec псевдоэлемент
+ *   с z-index:-1 рисуется ПОД background своего элемента. Если вешать ::after
+ *   на body — он будет под body.background, невидим. Был именно этот баг.
+ *   Вешаем на html::after + делаем body прозрачным → фон виден.
  *
  * СКИНЫ управляются data-skin-bg на <html>. По умолчанию — bg_city_day.
- *
- * Базовый цвет фона (--bg) на html нужен чтобы на страницах без фона не было
- * белого мелькания (body сам прозрачен).
  */
 
 html {
   background-color: var(--bg, #0c0c12);
 }
 
-/* ─── Сам слой фона: появляется только когда body.tab-game ───
-   Используем body::after а не html::after — чтобы проще было
-   селективно включать через класс на том же элементе. */
-body.tab-game::after {
+/* ВАЖНО: body прозрачный, иначе html::after с z-index:-1 скроется под body.background.
+   app.css задаёт `body { background: var(--bg) }` — перебиваем через !important
+   и повторяем все background-* подсвойства чтобы shorthand не воскрес цвет. */
+body {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ─── Сам слой фона: появляется только когда html.tab-game ─── */
+html.tab-game::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -42,93 +51,94 @@ body.tab-game::after {
 }
 
 /* ─── bg_city_day: webp с responsive breakpoints ─── */
-html[data-skin-bg="bg_city_day"] body.tab-game::after,
-html:not([data-skin-bg]) body.tab-game::after {
+html.tab-game[data-skin-bg="bg_city_day"]::after,
+html.tab-game:not([data-skin-bg])::after {
   background-image: url('/backgrounds/mobile-portrait.webp');
   filter: brightness(0.85) saturate(1.0);
 }
 @media (max-width: 767px) and (orientation: landscape) {
-  html[data-skin-bg="bg_city_day"] body.tab-game::after,
-  html:not([data-skin-bg]) body.tab-game::after {
+  html.tab-game[data-skin-bg="bg_city_day"]::after,
+  html.tab-game:not([data-skin-bg])::after {
     background-image: url('/backgrounds/mobile-landscape.webp');
   }
 }
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
-  html[data-skin-bg="bg_city_day"] body.tab-game::after,
-  html:not([data-skin-bg]) body.tab-game::after {
+  html.tab-game[data-skin-bg="bg_city_day"]::after,
+  html.tab-game:not([data-skin-bg])::after {
     background-image: url('/backgrounds/tablet-portrait.webp');
   }
 }
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
-  html[data-skin-bg="bg_city_day"] body.tab-game::after,
-  html:not([data-skin-bg]) body.tab-game::after {
+  html.tab-game[data-skin-bg="bg_city_day"]::after,
+  html.tab-game:not([data-skin-bg])::after {
     background-image: url('/backgrounds/tablet-landscape.webp');
   }
 }
 @media (min-width: 1280px) {
-  html[data-skin-bg="bg_city_day"] body.tab-game::after,
-  html:not([data-skin-bg]) body.tab-game::after {
+  html.tab-game[data-skin-bg="bg_city_day"]::after,
+  html.tab-game:not([data-skin-bg])::after {
     background-image: url('/backgrounds/desktop.webp');
   }
 }
 @media (min-width: 2560px),
        (min-resolution: 1.5dppx) and (min-width: 1440px) {
-  html[data-skin-bg="bg_city_day"] body.tab-game::after,
-  html:not([data-skin-bg]) body.tab-game::after {
+  html.tab-game[data-skin-bg="bg_city_day"]::after,
+  html.tab-game:not([data-skin-bg])::after {
     background-image: url('/backgrounds/desktop-4k.webp');
   }
 }
 
 /* ─── bg_city_night ─── */
-html[data-skin-bg="bg_city_night"] body.tab-game::after {
+html.tab-game[data-skin-bg="bg_city_night"]::after {
   background-image: url('/backgrounds/city-night.svg');
   filter: none;
 }
 
 /* ─── bg_mountains ─── */
-html[data-skin-bg="bg_mountains"] body.tab-game::after {
+html.tab-game[data-skin-bg="bg_mountains"]::after {
   background-image: url('/backgrounds/mountains.svg');
   filter: brightness(0.75);
 }
 
 /* ─── bg_desert — яркий, затемняем для читаемости чипов ─── */
-html[data-skin-bg="bg_desert"] body.tab-game::after {
+html.tab-game[data-skin-bg="bg_desert"]::after {
   background-image: url('/backgrounds/desert.svg');
   filter: brightness(0.65);
 }
 
 /* ─── bg_space ─── */
-html[data-skin-bg="bg_space"] body.tab-game::after {
+html.tab-game[data-skin-bg="bg_space"]::after {
   background-image: url('/backgrounds/space.svg');
   filter: none;
 }
 
 /* ─── Лёгкий overlay поверх ярких фонов для UI-контраста ───
    body::before уже используется в app.css для радиальных градиентов — мы только
-   добавляем background-color поверх, не трогая градиенты. */
-html[data-skin-bg="bg_desert"] body.tab-game::before {
+   добавляем background-color поверх, не трогая градиенты.
+   body::before рендерится ПОВЕРХ html::after так как body выше в tree. */
+html.tab-game[data-skin-bg="bg_desert"] body::before {
   background-color: rgba(80, 30, 10, 0.15);
 }
-html[data-skin-bg="bg_space"] body.tab-game::before {
+html.tab-game[data-skin-bg="bg_space"] body::before {
   background-color: rgba(20, 5, 40, 0.2);
 }
-html[data-skin-bg="bg_city_night"] body.tab-game::before {
+html.tab-game[data-skin-bg="bg_city_night"] body::before {
   background-color: rgba(8, 10, 24, 0.3);
 }
 
 /* ─── Accessibility ─── */
 @media (prefers-contrast: more) {
-  body.tab-game::after { display: none; }
+  html.tab-game::after { display: none; }
 }
 @media (prefers-reduced-data: reduce) {
-  html[data-skin-bg="bg_city_day"] body.tab-game::after,
-  html:not([data-skin-bg]) body.tab-game::after { display: none; }
+  html.tab-game[data-skin-bg="bg_city_day"]::after,
+  html.tab-game:not([data-skin-bg])::after { display: none; }
 }
 
-/* ─── Embed/compare widget — всегда без фона ─── */
+/* ─── Embed/compare widget — всегда без фона + body непрозрачен ─── */
 body.embed-mode,
 body.compare-mode {
   background: var(--bg, #0c0c12) !important;
 }
-html:has(body.embed-mode) body.tab-game::after,
-html:has(body.compare-mode) body.tab-game::after { display: none; }
+html:has(body.embed-mode).tab-game::after,
+html:has(body.compare-mode).tab-game::after { display: none; }
