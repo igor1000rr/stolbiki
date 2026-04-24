@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import '../css/game.css'
+import '../css/game-layout.css'
 import MascotRunner from './MascotRunner'
 import {
   GameState, getValidTransfers, applyAction,
@@ -35,7 +36,8 @@ import MobileGameBar from './MobileGameBar'
 import MobileSettingsSheet from './MobileSettingsSheet'
 import GameScoreboard from './GameScoreboard'
 import GameOnlineBanners from './GameOnlineBanners'
-import GameActions from './GameActions'
+import GameActionsTop from './GameActionsTop'
+import GameActionsBottom from './GameActionsBottom'
 import GameOverlays from './GameOverlays'
 import GameDesktopControls from './GameDesktopControls'
 import GameStatusBar from './GameStatusBar'
@@ -617,6 +619,17 @@ export default function Game() {
         />
       )}
 
+      {/* Мелкие кнопки состояния (New/Undo/Resign/Offer Draw) — НАД MobileGameBar,
+          чтобы не мешали играть. По ТЗ Александра (апр 2026) — рядом
+          с игровыми кнопками они могут запороть игру. */}
+      <GameActionsTop
+        mode={mode} undoStack={undoStack} gameOver={gs.gameOver} t={t}
+        onNewGame={() => newGame()}
+        onUndo={undoMove}
+        onResign={resign}
+        onOfferDraw={() => { MP.send({ type: 'drawOffer' }); setInfo(t('game.drawOffered')) }}
+      />
+
       <MobileGameBar
         isNative={isNative} mode={mode} difficulty={difficulty}
         modifiers={modifiers} humanPlayer={humanPlayer} lang={lang} t={t}
@@ -687,21 +700,17 @@ export default function Game() {
         onRematchDecline={() => { MP.sendRematchResponse(false); setRematchOffered(false) }}
       />
 
-      <GameActions
+      <GameActionsBottom
         isMyTurn={isMyTurn} phase={phase} inTransferMode={inTransferMode}
         transfer={transfer} totalPlaced={totalPlaced} canConfirm={canConfirm}
         modifiers={modifiers} transfersLeft={transfersLeft}
-        hasTransfers={hasTransfers} undoStack={undoStack} mode={mode}
+        hasTransfers={hasTransfers} mode={mode}
         gameOver={gs.gameOver}
         soundOn={soundOn} hintLoading={hintLoading}
         en={en} t={t}
         onCancelAction={(kind) => { if (kind === 'transfer') cancelTransfer(); if (kind === 'placement') setPlacement({}) }}
         onStartTransfer={startTransfer}
         onConfirm={confirmTurn}
-        onNewGame={() => newGame()}
-        onUndo={undoMove}
-        onResign={resign}
-        onOfferDraw={() => { MP.send({ type: 'drawOffer' }); setInfo(t('game.drawOffered')) }}
         onToggleSound={() => setSoundOnState(p => !p)}
         onHint={requestHint}
       />
