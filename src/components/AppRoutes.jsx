@@ -41,16 +41,17 @@ export default function AppRoutes({
         {tab === 'landing' && !isNative && (
           <Landing
             onPlay={() => {
-              // Web-гость кликает «Играть» → скроллим к секции с мобильным приложением
-              // (решение Александра, апр 2026: фокус на мобильное приложение, сайт — полигон).
-              // Админ и native-юзеры идут в игру как раньше.
-              if (!isAdmin) {
-                const section = document.getElementById('mobile-app-section')
-                if (section) {
-                  section.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  return
-                }
+              // На десктопе кнопка «Играть» на лендинге всегда скроллит к секции
+              // с мобильным приложением (решение Александра, апр 2026: фокус на мобильное,
+              // десктоп-сайт — полигон). Админ может зайти в игру через навигацию
+              // в шапке («Play») или напрямую по /game. Native APK в этот код не попадает —
+              // там Landing вообще не рендерится.
+              const section = document.getElementById('mobile-app-section')
+              if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                return
               }
+              // Fallback — если секция по какой-то причине не найдена (лендинг не монтирован до конца).
               go('game')
             }}
             onTutorial={onShowLessons}
