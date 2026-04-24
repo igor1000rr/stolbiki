@@ -22,8 +22,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Версия синхронизируется скриптом scripts/sync-android-version.cjs из package.json.
         // Не править руками — CI перезатрёт.
-        versionCode 50922
-        versionName "5.9.22"
+        versionCode 50923
+        versionName "5.9.23"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [admobAppId: admobAppIdProp]
         aaptOptions {
@@ -44,17 +44,23 @@ android {
     }
     buildTypes {
         release {
-            // ВРЕМЕННО: minify/shrink отключены до диагностики краша.
-            // Когда починим ProGuard-правила, вернуть minifyEnabled=true + shrinkResources=true.
-            // Без минификации APK больше на ~3MB, но гарантированно запускается.
-            minifyEnabled false
-            shrinkResources false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // minify + shrink включены. ProGuard-правила в proguard-rules.pro
+            // покрывают Capacitor + Cordova + AdMob + JS-bridge.
+            // Выигрыш — APK меньше на ~3MB, release-сборка быстрее запускается.
+            //
+            // Если release версия крашит на классах которых нет в правилах:
+            //   1) посмотреть stack trace в Play Console / logcat
+            //   2) добавить -keep class для неживущего пакета в proguard-rules.pro
+            //   3) временно вернуть minifyEnabled=false если срочно
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             }
         }
         debug {
+            // Debug — без minify для быстрой сборки и читаемых stack trace'ов.
             minifyEnabled false
             // applicationIdSuffix убран: ломает deep links, autoVerify и
             // локальное перезатирание существующей установки релиз-сборки.
@@ -70,9 +76,8 @@ android {
     }
     // noCompress — какие типы файлов НЕ сжимать zip'ом в APK.
     //   .bin  — NN weights (3.5MB), WebView не смапит их напрямую если сжаты
-    //   .webp — уже сжаты (lossy), повторный gzip бесполезен, но замедляет отдачу
+    //   .webp — уже сжаты (lossy), повторный gzip бесполезен
     //   .svg  — в старых WebView (Android 7-) сжатые SVG иногда не загружались
-    //   без Content-Encoding, лучше хранить raw
     androidResources {
         noCompress += ['bin', 'webp', 'svg']
     }
