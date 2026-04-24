@@ -1,5 +1,24 @@
+import { useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
 import Mascot from './Mascot'
+
+// FAQ schema для страницы правил. Инжектится только когда /rules активен —
+// раньше блок висел в index.html и применялся ко всем 28 страницам, что
+// нарушает гайдлайны Google (FAQ schema должна быть на странице где есть
+// собственно FAQ-контент).
+const FAQ_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    { '@type': 'Question', name: 'What is Highrise Heist?', acceptedAnswer: { '@type': 'Answer', text: 'A strategy board game with AI powered by AlphaZero-style neural network. Classic mode for 2 players plus Golden Rush for 4 players on a 9-stand cross. Free, no ads. Play against AI, online PvP or offline with friends.' } },
+    { '@type': 'Question', name: 'How do I play?', acceptedAnswer: { '@type': 'Answer', text: 'Place blocks on 10 stands and transfer stacks of up to 11 blocks to complete highrises. The player who claims the majority of stands wins. Full rules at /rules.' } },
+    { '@type': 'Question', name: 'What is Golden Rush?', acceptedAnswer: { '@type': 'Answer', text: 'A 4-player mode on a 9-stand cross layout. Each player owns two stands (near and far); close both to qualify for the golden center (+15 points, FIFO). Supports 2v2 team play and 4-FFA. Online with matchmaking or hot-seat on a single device.' } },
+    { '@type': 'Question', name: 'Is it free?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, completely free with no ads. In-game bricks currency is earned by playing and unlocks cosmetic skins.' } },
+    { '@type': 'Question', name: 'Can I play offline?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. The game works as a Progressive Web App — install it and play against AI even without internet.' } },
+    { '@type': 'Question', name: 'Do I need an account?', acceptedAnswer: { '@type': 'Answer', text: 'No, you can play as a guest. Sign up to save stats, compete in ranked matches, and join the global leaderboard.' } },
+    { '@type': 'Question', name: 'Is there a mobile app?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Android app is available, iOS coming soon. The web version also installs as a PWA on any device.' } },
+  ],
+}
 
 function Section({ title, children }) {
   return (
@@ -19,7 +38,6 @@ function Bullet({ children, color = 'var(--ink3)' }) {
   )
 }
 
-// SVG-схема переноса
 function TransferSchema({ lang }) {
   const en = lang === 'en'
   return (
@@ -47,7 +65,6 @@ function TransferSchema({ lang }) {
   )
 }
 
-// SVG-схема закрытия
 function CloseSchema({ lang }) {
   const en = lang === 'en'
   return (
@@ -79,7 +96,6 @@ function CloseSchema({ lang }) {
   )
 }
 
-// SVG-схема Golden Rush: 9 стоек крестом
 function GoldenRushSchema({ lang }) {
   const en = lang === 'en'
   return (
@@ -125,6 +141,24 @@ function GoldenRushSchema({ lang }) {
 export default function Rules() {
   const { lang } = useI18n()
   const en = lang === 'en'
+
+  // Инжектим FAQPage JSON-LD при монтировании /rules, убираем при размонтировании.
+  // Prerender zachватит в HTML страницы /rules и /en/rules — там теперь legit
+  // FAQ schema, а не на всех 28 URL как раньше.
+  useEffect(() => {
+    let script = document.getElementById('seo-faq')
+    if (!script) {
+      script = document.createElement('script')
+      script.type = 'application/ld+json'
+      script.id = 'seo-faq'
+      document.head.appendChild(script)
+    }
+    script.textContent = JSON.stringify(FAQ_LD)
+    return () => {
+      const el = document.getElementById('seo-faq')
+      if (el) el.remove()
+    }
+  }, [])
 
   const goTab = (id) => window.dispatchEvent(new CustomEvent('stolbiki-go-tab', { detail: id }))
 
@@ -214,7 +248,6 @@ export default function Rules() {
         </div>
       </Section>
 
-      {/* ═══ Golden Rush — отдельный режим на 4 игрока ═══ */}
       <Section title={en ? 'Golden Rush — 4-player mode' : 'Golden Rush — режим на 4 игрока'}>
         <Bullet>{en ? '9 stands in a cross layout (1 center + 8 arms, two per player)' : '9 стоек крестом (1 центральная + 8 «рук», по две у каждого игрока)'}</Bullet>
         <Bullet>{en ? 'Each player owns stand «order=1» (near) and «order=2» (far) of their color' : 'У каждого игрока своя стойка «order=1» (ближняя) и «order=2» (дальняя) своего цвета'}</Bullet>

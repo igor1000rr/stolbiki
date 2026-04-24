@@ -3,6 +3,7 @@ import { I18nContext, useI18nProvider } from './engine/i18n'
 import { GameProvider, useGameContext } from './engine/GameContext'
 import { useAuth } from './engine/AuthContext'
 import * as API from './engine/api'
+import { getSeo, applySeo } from './engine/seo'
 import ErrorBoundary from './components/ErrorBoundary'
 import WhatsNewModal from './components/WhatsNewModal'
 import RatePopup from './components/RatePopup'
@@ -155,21 +156,16 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
+  // URL + SEO (title / description / canonical / og / twitter / hreflang / breadcrumb)
+  // обновляются при смене вкладки и языка. Префикс /en/ для англ. версии.
   useEffect(() => {
-    const en = lang === 'en'
     const base = lang === 'en' ? '/en/' : '/'
     const target = tab === 'landing' ? base : base + tab
     if (location.pathname !== target) history.pushState(null, '', target)
-    const titles = { landing: '', game: en ? 'Play' : 'Играть', rules: en ? 'Rules' : 'Правила', online: en ? 'Online' : 'Онлайн', puzzles: en ? 'Puzzles' : 'Задачи', profile: en ? 'Profile' : 'Профиль', settings: en ? 'Settings' : 'Настройки', blog: en ? 'Blog' : 'Блог', changelog: 'Changelog', openings: en ? 'Analytics' : 'Аналитика', goldenrush: 'Golden Rush', 'goldenrush-online': 'Golden Rush Online', 'goldenrush-top': en ? 'Golden Rush Top' : 'Golden Rush Топ' }
-    document.title = titles[tab] ? `${titles[tab]} — Highrise Heist` : 'Highrise Heist — Strategy Board Game'
+    applySeo(getSeo(tab, lang))
   }, [tab, lang])
 
   // Фон показывается только на игровом экране.
-  //
-  // ВАЖНО: класс ставим на <html>, НЕ на body. Причина: body в app.css имеет
-  // `background: var(--bg)`, которое перекрывает ::after с z-index:-1 на том же
-  // элементе. Вешая на html — фон виден, т.к. body мы сделали прозрачным
-  // в scene-background.css (!important + background-color: transparent).
   useEffect(() => {
     if (tab === 'game') {
       document.documentElement.classList.add('tab-game')
@@ -442,7 +438,6 @@ export default function App() {
         <CookieBanner lang={lang} onAccept={() => setCookieOk(true)} />
       )}
 
-      {/* Snappy — глобальный overlay для маскот-комментов из любой точки приложения */}
       <SnappyOverlay />
 
     </div>

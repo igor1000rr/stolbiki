@@ -1,11 +1,13 @@
 {
   "name": "highrise-heist",
   "private": true,
-  "version": "5.9.24",
+  "version": "5.9.22",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/verify-build-assets.cjs",
+    "prerender": "node scripts/prerender.mjs",
+    "build:seo": "npm run build && npm run prerender",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",

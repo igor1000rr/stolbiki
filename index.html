@@ -19,9 +19,9 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <meta name="author" content="igor1000rr" />
     <meta name="keywords" content="highrise heist, golden rush, 4 player board game, strategy board game, alphazero AI, online multiplayer, puzzle rush, arena tournament, free board game, настольная игра, стратегия с AI, игра на 4 игрока" />
+    <!-- title / description / canonical / og / twitter / hreflang — обновляются в App.jsx через src/engine/seo.js при смене вкладки и языка. Prerender захватывает финальное состояние. -->
     <title>Highrise Heist — Strategy board game with AI</title>
     <meta name="description" content="Strategy board game for 1-2-4 players with AlphaZero AI. Golden Rush mode (4-player cross), AI game review, Puzzle Rush, live Arena tournaments. Free, no ads." />
-    <!-- Open Graph -->
     <meta property="og:title" content="Highrise Heist — Strategy board game with AI" />
     <meta property="og:description" content="10 stands, 11 blocks, infinite depth. Golden Rush 4-player mode, AI review, Arena tournaments. Play free." />
     <meta property="og:type" content="website" />
@@ -33,14 +33,12 @@
     <meta property="og:locale" content="ru_RU" />
     <meta property="og:locale:alternate" content="en_US" />
     <meta property="og:site_name" content="Highrise Heist" />
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Highrise Heist — Strategy board game with AI" />
     <meta name="twitter:description" content="10 stands, 11 chips, infinite depth. Golden Rush for 4 players. AlphaZero AI. Free." />
     <meta name="twitter:image" content="https://highriseheist.com/og.png" />
     <meta name="twitter:image:alt" content="Highrise Heist — strategy board game with AlphaZero AI" />
     <meta name="telegram:channel" content="@highriseheist" />
-    <!-- PWA -->
     <meta name="theme-color" content="#0c0c12" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="color-scheme" content="dark" />
@@ -48,7 +46,7 @@
     <link rel="alternate" hreflang="ru" href="https://highriseheist.com/" />
     <link rel="alternate" hreflang="en" href="https://highriseheist.com/en/" />
     <link rel="alternate" hreflang="x-default" href="https://highriseheist.com/" />
-    <!-- Structured data -->
+    <!-- Structured data: VideoGame (главный схема-блок). FAQPage перенесён в Rules.jsx (инжектится только на /rules). BreadcrumbList строится динамически в App.jsx per-route. aggregateRating убран до появления реальных отзывов на странице — иначе риск manual action от Google. -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -69,44 +67,7 @@
       "author": { "@type": "Person", "name": "igor1000rr", "url": "https://t.me/igor1000rr" },
       "publisher": { "@type": "Organization", "name": "Highrise Heist", "url": "https://highriseheist.com" },
       "screenshot": "https://highriseheist.com/og.png",
-      "softwareVersion": "{{APP_VERSION}}",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "127",
-        "bestRating": "5",
-        "worstRating": "1"
-      }
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Game", "item": "https://highriseheist.com/game" },
-        { "@type": "ListItem", "position": 2, "name": "Online", "item": "https://highriseheist.com/online" },
-        { "@type": "ListItem", "position": 3, "name": "Puzzles", "item": "https://highriseheist.com/puzzles" },
-        { "@type": "ListItem", "position": 4, "name": "Rules", "item": "https://highriseheist.com/rules" },
-        { "@type": "ListItem", "position": 5, "name": "Profile", "item": "https://highriseheist.com/profile" },
-        { "@type": "ListItem", "position": 6, "name": "Golden Rush", "item": "https://highriseheist.com/goldenrush-online" },
-        { "@type": "ListItem", "position": 7, "name": "Golden Rush Top", "item": "https://highriseheist.com/goldenrush-top" }
-      ]
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        { "@type": "Question", "name": "What is Highrise Heist?", "acceptedAnswer": { "@type": "Answer", "text": "A strategy board game with AI powered by AlphaZero-style neural network. Classic mode for 2 players plus Golden Rush for 4 players on a 9-stand cross. Free, no ads. Play against AI, online PvP or offline with friends." }},
-        { "@type": "Question", "name": "How do I play?", "acceptedAnswer": { "@type": "Answer", "text": "Place blocks on 10 stands and transfer stacks of up to 11 blocks to complete highrises. The player who claims the majority of stands wins. Full rules at /rules." }},
-        { "@type": "Question", "name": "What is Golden Rush?", "acceptedAnswer": { "@type": "Answer", "text": "A 4-player mode on a 9-stand cross layout. Each player owns two stands (near and far); close both to qualify for the golden center (+15 points, FIFO). Supports 2v2 team play and 4-FFA. Online with matchmaking or hot-seat on a single device." }},
-        { "@type": "Question", "name": "Is it free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, completely free with no ads. In-game bricks currency is earned by playing and unlocks cosmetic skins." }},
-        { "@type": "Question", "name": "Can I play offline?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The game works as a Progressive Web App — install it and play against AI even without internet." }},
-        { "@type": "Question", "name": "Do I need an account?", "acceptedAnswer": { "@type": "Answer", "text": "No, you can play as a guest. Sign up to save stats, compete in ranked matches, and join the global leaderboard." }},
-        { "@type": "Question", "name": "Is there a mobile app?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Android app is available, iOS coming soon. The web version also installs as a PWA on any device." }}
-      ]
+      "softwareVersion": "{{APP_VERSION}}"
     }
     </script>
     <!-- Yandex.Metrika — загружается только после cookie consent (stolbiki_cookies в localStorage) -->
