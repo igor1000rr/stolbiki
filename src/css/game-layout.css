@@ -1,0 +1,166 @@
+/**
+ * UI главного игрового экрана (мобилка / native)
+ * Редакт запросов Александра (апр 2026):
+ *   - 2 панели кнопок: actions-top (маленькие) и actions-bottom (основные)
+ *   - Tower Takeover золотой — фишка игры
+ *   - Лог в одну строку внизу
+ *   - Доска со стеклянным эффектом под тему
+ */
+
+/* ─── actions-top: узкая панель кнопок смены состояния ───
+   Кнопки New Game / Resign / Undo / Offer Draw — в 2 раза ниже
+   основных. Размещаются над MobileGameBar. */
+.actions-top {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 2px 0 8px;
+  flex-wrap: wrap;
+}
+.actions-top .btn-compact {
+  padding: 4px 10px;
+  font-size: 11px;
+  min-height: 24px;
+  line-height: 1;
+  border-radius: 6px;
+  opacity: 0.85;
+}
+.actions-top .btn-compact:hover {
+  opacity: 1;
+}
+
+/* ─── actions-bottom: основные игровые кнопки ───
+   Грид 4 колонки: Tower Takeover | Confirm | 💡 | 🔊
+   Под доской, достаётся пальцем одной руки. */
+.actions-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 8px;
+  margin: 6px 0 10px;
+  align-items: stretch;
+}
+
+/* Иконки hint/sound — квадратные, компактные */
+.actions-bottom .action-icon {
+  min-width: 44px;
+  padding: 10px 10px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+.actions-bottom .action-icon:hover {
+  opacity: 1;
+}
+/* placeholder вместо hint-кнопки когда её нет — чтобы grid не плясал */
+.action-icon--placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ─── Tower Takeover — золотой, фишка игры ───
+   Базовое состояние: золотая граница, золотой текст.
+   Disabled: приглушённые цвета.
+   Active (режим трансфера вкл): заливка золотом. */
+.action-slot--takeover {
+  color: var(--gold, #ffc145) !important;
+  border: 1.5px solid var(--gold, #ffc145) !important;
+  background: linear-gradient(180deg,
+    rgba(255, 193, 69, 0.08),
+    rgba(255, 193, 69, 0.03)) !important;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(255, 193, 69, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+.action-slot--takeover:not(:disabled):hover,
+.action-slot--takeover:not(:disabled):active {
+  background: linear-gradient(180deg,
+    rgba(255, 193, 69, 0.25),
+    rgba(255, 193, 69, 0.12)) !important;
+  box-shadow:
+    0 0 12px rgba(255, 193, 69, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+.action-slot--takeover:disabled {
+  opacity: 0.4;
+  color: var(--ink3) !important;
+  border-color: rgba(255, 193, 69, 0.2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  box-shadow: none;
+}
+
+/* ─── GameLog — одна строка внизу ─── */
+.game-log--single {
+  font-size: 11px;
+  color: var(--ink3);
+  text-align: center;
+  padding: 4px 12px;
+  margin-top: 8px;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 18px;
+  line-height: 1.4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ─── Стеклянный эффект доски на игровом фоне ───
+   Когда включён html.tab-game — доска становится полупрозрачной
+   со стеклянным бликом, чтобы фон просвечивал.
+
+   CSS-переменные --surface становятся светлыми на light теме и тёмными на dark,
+   так что color-mix с transparent работает универсально: у светлой
+   темы — светлое стекло, у тёмной — тёмное. */
+html.tab-game .board {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+/* блик сверху имитирует отражение на стекле */
+html.tab-game .board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0) 70%);
+  border-radius: 20px 20px 0 0;
+  pointer-events: none;
+  z-index: 0;
+}
+html.tab-game .board > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* На светлой теме (data-theme="minimal") — светлое стекло */
+html.tab-game[data-theme="minimal"] .board {
+  background: color-mix(in srgb, #ffffff 70%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+html.tab-game[data-theme="minimal"] .board::before {
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0) 70%);
+}

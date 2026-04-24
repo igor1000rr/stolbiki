@@ -1,20 +1,17 @@
 import { forwardRef } from 'react'
 
 /**
- * Лог ходов игры. Прокрутка вниз через ref.
- * Вынесен из Game.jsx.
+ * Компактный лог игры — ОДНА СТРОКА внизу экрана. По требованию Александра
+ * (апр 2026): log занимал слишком много места, игрок хочет видеть только
+ * последнее действие (последнюю строку из массива log[]).
+ *
+ * Прокрутки нет. Если нужна история — открывать через Replay или Review.
  */
-const GameLog = forwardRef(function GameLog({ log }, ref) {
+export default forwardRef(function GameLog({ log }, ref) {
+  const last = Array.isArray(log) && log.length > 0 ? log[log.length - 1] : ''
   return (
-    <div className="game-log" ref={ref}>
-      {log.map((e, i) => (
-        <div key={i}>
-          <span style={{ color: 'var(--ink3)', fontSize: 10, marginRight: 6 }}>{e.time}</span>
-          <span className={e.player >= 0 ? `log-p${e.player}` : ''}>{e.text}</span>
-        </div>
-      ))}
+    <div className="game-log game-log--single" ref={ref} aria-live="polite">
+      {last || '\u00A0'}
     </div>
   )
 })
-
-export default GameLog
