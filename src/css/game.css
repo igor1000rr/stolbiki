@@ -54,7 +54,7 @@
   flex-direction: column-reverse;
   align-items: center;
   width: 56px;
-  min-height: 185px;
+  min-height: 280px;
   padding: 4px 4px 6px;
   position: relative;
   border-radius: 12px 12px 0 0;
@@ -206,8 +206,8 @@
    ═══════════════════════════════════════════ */
 .chip {
   width: 40px;
-  height: 13px;
-  border-radius: 7px;
+  height: 20px;
+  border-radius: 10px;
   margin: 1px 0;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -283,11 +283,12 @@
 /* ═══════════════════════════════════════════
    DESKTOP: Блоки крупнее +30% по запросу Александра
    10 стоек × 70px + 9 × 4px gap = 736px → влезает от 768px
+   Высота блоков +50% сверху — stand min-height пересчитан под 11 чипов.
    ═══════════════════════════════════════════ */
 @media (min-width: 769px) {
   .board { gap: 4px; padding: 28px 14px 36px; }
-  .stand { width: 70px; min-height: 220px; }
-  .chip { width: 52px; height: 17px; border-radius: 9px; margin: 1.5px 0; }
+  .stand { width: 70px; min-height: 330px; }
+  .chip { width: 52px; height: 26px; border-radius: 13px; margin: 1.5px 0; }
   .stand-label { font-size: 11px; top: -20px; }
 }
 
