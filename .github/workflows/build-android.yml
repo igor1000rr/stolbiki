@@ -39,11 +39,12 @@ jobs:
 
       - name: Install dependencies
         # --legacy-peer-deps нужен из-за peer-конфликтов Capacitor 8 / React 19
-        # (тот же флаг использует e2e.yml, где сборка фронта проходит успешно)
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Build web
-        run: npx vite build
+        # npm run build вместо vite build напрямую — запускает verify-build-assets
+        # после vite build и падает если хоть один фон отсутствует в dist/
+        run: npm run build
         env:
           # VITE_API_URL — для веб-сборки (api.js использует этот URL)
           VITE_API_URL: https://highriseheist.com/api
@@ -56,11 +57,37 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # Диагностика: что реально попало в assets после cap sync.
+      # Если фонов здесь нет — проблема в cap sync, не в webview.
+      - name: Verify assets in Android assets/
+        run: |
+          echo "─── Backgrounds in android/app/src/main/assets/public/backgrounds/ ───"
+          ls -la android/app/src/main/assets/public/backgrounds/ || echo "❌ Папки нет!"
+          echo ""
+          echo "─── Должны быть: 6 webp + 4 svg = 10 файлов ───"
+          COUNT=$(ls android/app/src/main/assets/public/backgrounds/ 2>/dev/null | wc -l)
+          echo "Факт: $COUNT файлов"
+          if [ "$COUNT" -lt 10 ]; then
+            echo "❌ Фоны не скопировались в APK. Надо разбираться с cap sync."
+            exit 1
+          fi
+          echo "✅ Все фоны на месте в assets"
+
       # --stacktrace + --info: если снова упадёт — в логах будет полный trace
-      # и видно какой именно task развалился
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace --info
+
+      # Проверка что фоны реально в APK: unzip его и листинг assets
+      - name: Verify backgrounds are in final APK
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          echo "─── Заглядываю внутрь APK ───"
+          unzip -l "$APK" | grep -E 'backgrounds/.*(webp|svg)$' || {
+            echo "❌ Фонов нет в APK!"
+            exit 1
+          }
+          echo "✅ Фоны упакованы в APK"
 
       - name: Upload APK
         if: always()
@@ -72,7 +99,6 @@ jobs:
           if-no-files-found: warn
 
       # Если gradle упал — собираем отчёты из android/app/build/reports
-      # чтобы можно было скачать и посмотреть детали ошибки
       - name: Upload gradle reports (only on failure)
         if: failure()
         uses: actions/upload-artifact@v4

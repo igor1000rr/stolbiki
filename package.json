@@ -1,11 +1,11 @@
 {
   "name": "highrise-heist",
   "private": true,
-  "version": "5.9.21",
+  "version": "5.9.22",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/verify-build-assets.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "server:install": "cd server && npm install",
-    "cap:sync": "vite build && npx cap sync",
+    "cap:sync": "npm run build && npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios"
   },

@@ -22,8 +22,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Версия синхронизируется скриптом scripts/sync-android-version.cjs из package.json.
         // Не править руками — CI перезатрёт.
-        versionCode 50920
-        versionName "5.9.20"
+        versionCode 50922
+        versionName "5.9.22"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [admobAppId: admobAppIdProp]
         aaptOptions {
@@ -68,10 +68,13 @@ android {
         density  { enableSplit = true }
         abi      { enableSplit = true }
     }
-    // Для больших assets (NN weights 3.5MB) отключаем компрессию .bin —
-    // иначе WebView их не смапит напрямую.
+    // noCompress — какие типы файлов НЕ сжимать zip'ом в APK.
+    //   .bin  — NN weights (3.5MB), WebView не смапит их напрямую если сжаты
+    //   .webp — уже сжаты (lossy), повторный gzip бесполезен, но замедляет отдачу
+    //   .svg  — в старых WebView (Android 7-) сжатые SVG иногда не загружались
+    //   без Content-Encoding, лучше хранить raw
     androidResources {
-        noCompress += ['bin']
+        noCompress += ['bin', 'webp', 'svg']
     }
 }
 
