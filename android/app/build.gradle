@@ -22,13 +22,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Версия синхронизируется скриптом scripts/sync-android-version.cjs из package.json.
         // Не править руками — CI перезатрёт.
-        versionCode 50923
-        versionName "5.9.23"
+        versionCode 50924
+        versionName "5.9.24"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [admobAppId: admobAppIdProp]
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
@@ -44,40 +42,29 @@ android {
     }
     buildTypes {
         release {
-            // minify + shrink включены. ProGuard-правила в proguard-rules.pro
-            // покрывают Capacitor + Cordova + AdMob + JS-bridge.
-            // Выигрыш — APK меньше на ~3MB, release-сборка быстрее запускается.
+            // ОТКАТ: minifyEnabled=true в v5.9.23 сломал runtime (перевороты,
+            // обучение и др.). R8 обфусцировал классы/методы которые Capacitor
+            // bridge вызывает из JS по строковым именам. Чтобы вернуть минификацию —
+            // нужны дополнительные -keep правила, но сначала нужен рабочий release.
             //
-            // Если release версия крашит на классах которых нет в правилах:
-            //   1) посмотреть stack trace в Play Console / logcat
-            //   2) добавить -keep class для неживущего пакета в proguard-rules.pro
-            //   3) временно вернуть minifyEnabled=false если срочно
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Размер APK/AAB будет на ~3MB больше — терпимо.
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             }
         }
         debug {
-            // Debug — без minify для быстрой сборки и читаемых stack trace'ов.
             minifyEnabled false
-            // applicationIdSuffix убран: ломает deep links, autoVerify и
-            // локальное перезатирание существующей установки релиз-сборки.
             versionNameSuffix "-debug"
         }
     }
-    // App Bundle (AAB) конфиг — Play Store с авг 2021 требует AAB вместо APK.
-    // enableSplit=true делит по density/language/abi → меньший размер у пользователя.
     bundle {
         language { enableSplit = true }
         density  { enableSplit = true }
         abi      { enableSplit = true }
     }
-    // noCompress — какие типы файлов НЕ сжимать zip'ом в APK.
-    //   .bin  — NN weights (3.5MB), WebView не смапит их напрямую если сжаты
-    //   .webp — уже сжаты (lossy), повторный gzip бесполезен
-    //   .svg  — в старых WebView (Android 7-) сжатые SVG иногда не загружались
     androidResources {
         noCompress += ['bin', 'webp', 'svg']
     }
