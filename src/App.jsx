@@ -163,6 +163,18 @@ export default function App() {
     document.title = titles[tab] ? `${titles[tab]} — Highrise Heist` : 'Highrise Heist — Strategy Board Game'
   }, [tab, lang])
 
+  // Фоновая сцена показывается только на игровом экране — класс tab-game на body.
+  // scene-background.css настроен на body.tab-game::after, так что убирая класс —
+  // фон исчезает на landing/online/puzzles/profile/и других вкладках.
+  useEffect(() => {
+    if (tab === 'game') {
+      document.body.classList.add('tab-game')
+    } else {
+      document.body.classList.remove('tab-game')
+    }
+    return () => document.body.classList.remove('tab-game')
+  }, [tab])
+
   useEffect(() => {
     const onPop = () => setTab(getTabFromPath())
     window.addEventListener('popstate', onPop)
