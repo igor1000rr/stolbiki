@@ -332,7 +332,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
       </section>
 
       {/* ═══ MOBILE APP ═══ */}
-      <section className="l-section">
+      <section className="l-section" id="mobile-app-section">
         <div className={`l-download ${dlVis ? 'in' : ''}`} ref={dlRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'center', padding: '40px 36px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--surface3)' }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Android</div>
@@ -399,7 +399,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             <div style={{ textAlign: 'center' }}>
               <h3 style={{ fontSize: 20, fontWeight: 700, color: '#3dd68c', marginBottom: 10 }}>Print & Play</h3>
               <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>
-                {en ? 'Free PDF with game board, 110 blocks and rules. Print, cut, play!' : 'Бесплатный PDF с полем, 110 блоками и правилами. Распечатай, вырежи, играй!'}
+                {en ? 'Free PDF with game board, 110 blocks and rules. Print, cut, play!' : 'Бесплатный PDF с полем, 110 блоками и правилами. Распечатай, вырежь, играй!'}
               </p>
               <span style={{ fontSize: 15, color: '#3dd68c', fontWeight: 700 }}>{en ? 'Download PDF' : 'Скачать PDF'} →</span>
             </div>
