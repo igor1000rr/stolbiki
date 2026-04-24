@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.5"/>
+      <stop offset="0.4" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="#000" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+  <rect width="40" height="20" fill="url(#sheen)"/>
+  <g stroke="#fff" stroke-opacity="0.12" stroke-width="0.3">
+    <line x1="0" y1="4" x2="40" y2="4"/>
+    <line x1="0" y1="8" x2="40" y2="8"/>
+    <line x1="0" y1="12" x2="40" y2="12"/>
+    <line x1="0" y1="16" x2="40" y2="16"/>
+  </g>
+  <g stroke="#000" stroke-opacity="0.15" stroke-width="0.3">
+    <line x1="0" y1="5" x2="40" y2="5"/>
+    <line x1="0" y1="9" x2="40" y2="9"/>
+    <line x1="0" y1="13" x2="40" y2="13"/>
+    <line x1="0" y1="17" x2="40" y2="17"/>
+  </g>
+</svg>

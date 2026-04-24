@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20" preserveAspectRatio="none">
+  <g stroke="#000" stroke-opacity="0.2" stroke-width="0.4" fill="none">
+    <path d="M 0 5 Q 10 4 20 5 T 40 5"/>
+    <path d="M 0 9 Q 12 10 20 9 T 40 9"/>
+    <path d="M 0 13 Q 8 14 20 13 T 40 13"/>
+    <path d="M 0 17 Q 14 16 20 17 T 40 17"/>
+  </g>
+  <g stroke="#fff" stroke-opacity="0.12" stroke-width="0.3" fill="none">
+    <path d="M 0 6 Q 10 5 20 6 T 40 6"/>
+    <path d="M 0 10 Q 12 11 20 10 T 40 10"/>
+    <path d="M 0 14 Q 8 15 20 14 T 40 14"/>
+  </g>
+</svg>

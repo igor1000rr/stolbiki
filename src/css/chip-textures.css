@@ -1,0 +1,57 @@
+/**
+ * Применение SVG-текстур поверх градиентов в скинах чипов.
+ *
+ * Градиенты в confetti.css остаются (базовый цвет), текстура кладётся через
+ * псевдоэлемент .chip::after — весь чип заполняется текстурой, blend-mode overlay
+ * сохраняет цвет градиента внизу.
+ *
+ * 4 текстуры:
+ *   metal  — горизонтальные полосы (хромированный цилиндр)
+ *   candy  — блик и блёстки (конфетная оболочка)
+ *   glass  — вертикальные полосы отражений
+ *   wood   — волны (волокна дерева) — на будущее, если добавим chip-wood
+ *
+ * blocks_flat / blocks_round / blocks_pixel / blocks_neon / blocks_glow — без текстуры
+ * (их свойство — плоский/круглый/пиксельный/светящийся вид, текстура лишняя).
+ */
+
+.chip-metal .chip::after,
+.chip-candy .chip::after,
+.chip-glass .chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  /* overlay blend — текстура усиливает света/тени цветной основы */
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+}
+
+.chip-metal .chip::after {
+  background-image: url('/chip-textures/metal.svg');
+  opacity: 0.75;
+}
+
+.chip-candy .chip::after {
+  background-image: url('/chip-textures/candy.svg');
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+.chip-glass .chip::after {
+  background-image: url('/chip-textures/glass.svg');
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+/* chip position relative чтобы ::after с inset:0 позиционировался правильно.
+   В game.css chip уже position: relative — но дублируем для гарантии. */
+.chip-metal .chip,
+.chip-candy .chip,
+.chip-glass .chip {
+  position: relative;
+  overflow: hidden;
+}

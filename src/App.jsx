@@ -23,6 +23,7 @@ import './app.css'
 import './css/themes.css'
 import './css/native.css'
 import './css/mobile-ui.css'
+import './css/chip-textures.css'
 
 const Tutorial = lazy(() => import('./components/Tutorial'))
 const Lessons = lazy(() => import('./components/Lessons'))
