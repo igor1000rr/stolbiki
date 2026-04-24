@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import LazyFallback from './LazyFallback'
 import MoreTabPage from './MoreTabPage'
+import WebGate from './WebGate'
 
 const Game = lazy(() => import('./Game'))
 const Online = lazy(() => import('./Online'))
@@ -23,8 +24,19 @@ const GoldenRushOnline = lazy(() => import('./GoldenRushOnline'))
 const GoldenRushLeaderboard = lazy(() => import('./GoldenRushLeaderboard'))
 
 /**
+ * Страницы, закрытые для web-гостей (не админы, не native APK).
+ * Решение Александра (апр 2026): сайт — полигон, игра ливёт в мобильном.
+ */
+const GATED_TABS = [
+  'game', 'online', 'puzzles', 'openings',
+  'goldenrush', 'goldenrush-online', 'goldenrush-top',
+  'sim', 'dash', 'replay', 'admin',
+]
+
+/**
  * Свитч роутов внутри <main>. Игра и онлайн рендерятся всегда
- * (display:none когда не активны) — чтобы state не сбрасывался.
+ * (display:none когда не активны) — чтобы state не сбрасывался. Для web-гостей
+ * игровые компоненты вообще не монтируются (экономия кода и запуска).
  */
 export default function AppRoutes({
   tab, isNative, isAdmin,
@@ -35,6 +47,9 @@ export default function AppRoutes({
   go,
   onShowLessons, onShowSkinShop, onLogout,
 }) {
+  const isWebGuest = !isNative && !isAdmin
+  const tabIsGated = GATED_TABS.includes(tab)
+
   return (
     <main className="site-content" id="main-content" role="main">
       <Suspense fallback={<LazyFallback />}>
@@ -48,27 +63,41 @@ export default function AppRoutes({
           />
         )}
       </Suspense>
+
+      {/* Web-гость на закрытой странице → плашка вместо игры/puzzles/etc. */}
+      {isWebGuest && tabIsGated && (
+        <WebGate tab={tab} lang={lang} onGoLanding={() => go('landing')} />
+      )}
+
+      {/* Game/Online — только для admin/native: рендерятся всегда, прячем через display. */}
+      {!isWebGuest && (
+        <Suspense fallback={<LazyFallback />}>
+          <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
+          <div style={{ display: tab === 'online' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { padding: '0 8px', flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Online /></div>
+        </Suspense>
+      )}
+
       <Suspense fallback={<LazyFallback />}>
-        <div style={{ display: tab === 'game' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Game /></div>
-        <div style={{ display: tab === 'online' ? (isNative ? 'flex' : 'block') : 'none', ...(isNative ? { padding: '0 8px', flexDirection: 'column', flex: 1, minHeight: 0 } : {}) }}><Online /></div>
-      </Suspense>
-      <Suspense fallback={<LazyFallback />}>
-        {tab === 'puzzles'           && <div style={isNative ? { padding: '0 8px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : undefined}><Puzzles /></div>}
-        {tab === 'openings'          && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
-        {tab === 'blog'              && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
-        {tab === 'settings'          && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
-        {tab === 'profile'           && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} initialTab={profileInitialTab} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
-        {tab === 'sim'               && isAdmin && <Simulator />}
-        {tab === 'dash'              && isAdmin && <Dashboard />}
-        {tab === 'replay'            && isAdmin && <Replay />}
-        {tab === 'admin'             && isAdmin && <Admin />}
-        {tab === 'changelog'         && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
-        {tab === 'rules'             && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
-        {tab === 'terms'             && <Suspense fallback={<LazyFallback />}><Terms /></Suspense>}
-        {tab === 'privacy'           && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
-        {tab === 'goldenrush'        && <div style={isNative ? { padding: '0 8px' } : undefined}><GoldenRushDemo /></div>}
-        {tab === 'goldenrush-online' && <div style={isNative ? { padding: '0 8px' } : undefined}><GoldenRushOnline /></div>}
-        {tab === 'goldenrush-top'    && <div style={isNative ? { padding: '0 8px' } : undefined}><GoldenRushLeaderboard /></div>}
+        {/* Gated страницы — только для admin или native. */}
+        {!isWebGuest && tab === 'puzzles'  && <div style={isNative ? { padding: '0 8px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : undefined}><Puzzles /></div>}
+        {!isWebGuest && tab === 'openings' && <div style={isNative ? { padding: '0 8px' } : undefined}><Openings /></div>}
+        {!isWebGuest && tab === 'goldenrush'        && <div style={isNative ? { padding: '0 8px' } : undefined}><GoldenRushDemo /></div>}
+        {!isWebGuest && tab === 'goldenrush-online' && <div style={isNative ? { padding: '0 8px' } : undefined}><GoldenRushOnline /></div>}
+        {!isWebGuest && tab === 'goldenrush-top'    && <div style={isNative ? { padding: '0 8px' } : undefined}><GoldenRushLeaderboard /></div>}
+        {tab === 'sim'     && isAdmin && <Simulator />}
+        {tab === 'dash'    && isAdmin && <Dashboard />}
+        {tab === 'replay'  && isAdmin && <Replay />}
+        {tab === 'admin'   && isAdmin && <Admin />}
+
+        {/* Public страницы — всегда доступны. */}
+        {tab === 'blog'      && <div style={isNative ? { padding: '0 8px' } : undefined}><Blog /></div>}
+        {tab === 'settings'  && <div style={isNative ? { padding: '0 8px' } : undefined}><Settings /></div>}
+        {tab === 'profile'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Profile viewUsername={viewProfile} initialTab={profileInitialTab} onClose={viewProfile ? () => setViewProfile(null) : null} /></div>}
+        {tab === 'changelog' && <div style={isNative ? { padding: '0 8px' } : undefined}><Changelog /></div>}
+        {tab === 'rules'     && <div style={isNative ? { padding: '0 8px' } : undefined}><Rules /></div>}
+        {tab === 'terms'     && <Suspense fallback={<LazyFallback />}><Terms /></Suspense>}
+        {tab === 'privacy'   && <div style={isNative ? { padding: '0 8px' } : undefined}><Privacy /></div>}
+
         {tab === 'more' && isNative && (
           <MoreTabPage
             authUser={authUser}

@@ -41,6 +41,10 @@ export default function App() {
 
   const isNative = !!window.Capacitor?.isNativePlatform?.()
 
+  // Web-гость — не админ на сайте. Решение Александра (апр 2026):
+  // сайт закрываем от посторонних, игровой фокус — мобильное приложение.
+  const isWebGuest = !isNative && !isAdmin
+
   const VALID_TABS = ['game','online','puzzles','openings','profile','settings','rules','privacy','terms','sim','dash','replay','admin','changelog','blog','goldenrush','goldenrush-online','goldenrush-top']
 
   function getTabFromPath() {
@@ -156,8 +160,7 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
-  // URL + SEO (title / description / canonical / og / twitter / hreflang / breadcrumb)
-  // обновляются при смене вкладки и языка. Префикс /en/ для англ. версии.
+  // URL + SEO обновляются при смене вкладки и языка. Префикс /en/ для англ. версии.
   useEffect(() => {
     const base = lang === 'en' ? '/en/' : '/'
     const target = tab === 'landing' ? base : base + tab
@@ -165,15 +168,16 @@ export default function App() {
     applySeo(getSeo(tab, lang))
   }, [tab, lang])
 
-  // Фон показывается только на игровом экране.
+  // Фон показывается только на игровом экране (и только если доступ разрешён).
   useEffect(() => {
-    if (tab === 'game') {
+    const showGameBackground = tab === 'game' && !isWebGuest
+    if (showGameBackground) {
       document.documentElement.classList.add('tab-game')
     } else {
       document.documentElement.classList.remove('tab-game')
     }
     return () => document.documentElement.classList.remove('tab-game')
-  }, [tab])
+  }, [tab, isWebGuest])
 
   useEffect(() => {
     const onPop = () => setTab(getTabFromPath())
@@ -274,7 +278,9 @@ export default function App() {
 
   function go(id) {
     if (isNative && id === 'landing') id = 'game'
-    if (id === 'game' && !isNative && !localStorage.getItem('stolbiki_onboarding_done')) {
+    if (id === 'game' && !isNative && !isAdmin && !localStorage.getItem('stolbiki_onboarding_done')) {
+      // Гость на вебе кликает «Играть» — не запускаем онбординг, просто покажем WebGate.
+    } else if (id === 'game' && !isNative && isAdmin && !localStorage.getItem('stolbiki_onboarding_done')) {
       setShowOnboardingGame(true)
       return
     }
@@ -295,23 +301,41 @@ export default function App() {
   useEffect(() => { fetch('/api/stats').then(r => r.json()).then(setPublicStats).catch(() => {}) }, [])
 
   const en = lang === 'en'
-  const primaryNav = [
-    { id: 'rules',   icon: 'rules',   label: en ? 'Rules'   : 'Правила' },
-    { id: 'game',    icon: 'play',    label: en ? 'Play'    : 'Играть' },
-    { id: 'online',  icon: 'online',  label: en ? 'Online'  : 'Онлайн' },
-    { id: 'puzzles', icon: 'puzzle',  label: en ? 'Puzzles' : 'Задачи' },
-  ]
 
-  const secondaryNav = [
-    { id: 'goldenrush',        icon: 'star',   label: 'Golden Rush', badge: 'NEW' },
-    { id: 'goldenrush-online', icon: 'online', label: 'GR Online',   badge: 'NEW' },
-    { id: 'goldenrush-top',    icon: 'chart',  label: 'GR Top' },
-    { id: 'settings',          icon: 'theme',     label: en ? 'Settings'  : 'Настройки' },
-    { id: 'profile',           icon: 'profile',   label: en ? 'Profile'   : 'Профиль' },
-    { id: 'openings',          icon: 'chart',     label: en ? 'Analytics' : 'Аналитика' },
-    { id: 'blog',              icon: 'blog',      label: en ? 'Blog'      : 'Блог' },
-    { id: 'changelog',         icon: 'star',      label: 'Changelog' },
-  ]
+  // Навигация для админов/native — полная. Для web-гостей — только публичные страницы.
+  const primaryNav = isWebGuest
+    ? [
+        { id: 'rules', icon: 'rules', label: en ? 'Rules' : 'Правила' },
+        { id: 'blog',  icon: 'blog',  label: en ? 'Blog'  : 'Блог' },
+      ]
+    : [
+        { id: 'rules',   icon: 'rules',   label: en ? 'Rules'   : 'Правила' },
+        { id: 'game',    icon: 'play',    label: en ? 'Play'    : 'Играть' },
+        { id: 'online',  icon: 'online',  label: en ? 'Online'  : 'Онлайн' },
+        { id: 'puzzles', icon: 'puzzle',  label: en ? 'Puzzles' : 'Задачи' },
+      ]
+
+  const secondaryNav = []
+  if (!isWebGuest) {
+    secondaryNav.push(
+      { id: 'goldenrush',        icon: 'star',   label: 'Golden Rush', badge: 'NEW' },
+      { id: 'goldenrush-online', icon: 'online', label: 'GR Online',   badge: 'NEW' },
+      { id: 'goldenrush-top',    icon: 'chart',  label: 'GR Top' },
+    )
+  }
+  secondaryNav.push(
+    { id: 'settings', icon: 'theme',   label: en ? 'Settings' : 'Настройки' },
+    { id: 'profile',  icon: 'profile', label: en ? 'Profile'  : 'Профиль' },
+  )
+  if (!isWebGuest) {
+    secondaryNav.push(
+      { id: 'openings', icon: 'chart', label: en ? 'Analytics' : 'Аналитика' },
+    )
+  }
+  secondaryNav.push(
+    { id: 'blog',      icon: 'blog', label: en ? 'Blog' : 'Блог' },
+    { id: 'changelog', icon: 'star', label: 'Changelog' },
+  )
   if (isAdmin) {
     secondaryNav.push(
       { id: 'admin',  icon: 'shield',    label: en ? 'Admin Panel' : 'Админка' },
