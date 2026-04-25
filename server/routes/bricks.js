@@ -92,9 +92,6 @@ const seedSkins = [
   // ─── Фоны ───
   { id: 'bg_city_day',     type: 'background', ru: 'Дневной город',  en: 'City Day',    price: 0,   rarity: 'common' },
   { id: 'bg_city_night',   type: 'background', ru: 'Ночной город',   en: 'City Night',  price: 200, rarity: 'rare' },
-  { id: 'bg_mountains',    type: 'background', ru: 'Горы',           en: 'Mountains',   price: 300, rarity: 'rare' },
-  { id: 'bg_desert',       type: 'background', ru: 'Пустыня',        en: 'Desert',      price: 400, rarity: 'epic' },
-  { id: 'bg_space',        type: 'background', ru: 'Космос',         en: 'Space',       price: 600, rarity: 'legendary' },
 ]
 const insertSkin = db.prepare('INSERT OR IGNORE INTO skins (id, type, name_ru, name_en, price_bricks, rarity) VALUES (?,?,?,?,?,?)')
 for (const s of seedSkins) insertSkin.run(s.id, s.type, s.ru, s.en, s.price, s.rarity)

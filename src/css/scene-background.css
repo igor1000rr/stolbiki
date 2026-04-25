@@ -14,6 +14,8 @@
  *   Вешаем на html::after + делаем body прозрачным → фон виден.
  *
  * СКИНЫ управляются data-skin-bg на <html>. По умолчанию — bg_city_day.
+ * Доступны 2 темы: bg_city_day (День) и bg_city_night (Ночь).
+ * Каждая тема имеет 6 webp-вариантов под разрешение/ориентацию.
  */
 
 html {
@@ -35,13 +37,12 @@ html.tab-game::after {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: url('/backgrounds/mobile-portrait.webp');
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
   pointer-events: none;
   animation: sceneFadeIn 0.4s ease-out;
-  filter: brightness(0.55) saturate(0.9);
+  filter: brightness(0.85) saturate(1.0);
   transition: filter 0.4s ease, background-image 0.3s ease;
 }
 
@@ -50,80 +51,81 @@ html.tab-game::after {
   to   { opacity: 1; }
 }
 
-/* ─── bg_city_day: webp с responsive breakpoints ─── */
+/* ─── bg_city_day — дефолтный фон (mobile-portrait) ─── */
 html.tab-game[data-skin-bg="bg_city_day"]::after,
 html.tab-game:not([data-skin-bg])::after {
-  background-image: url('/backgrounds/mobile-portrait.webp');
-  filter: brightness(0.85) saturate(1.0);
+  background-image: url('/backgrounds/day-mobile-portrait.webp');
 }
 @media (max-width: 767px) and (orientation: landscape) {
   html.tab-game[data-skin-bg="bg_city_day"]::after,
   html.tab-game:not([data-skin-bg])::after {
-    background-image: url('/backgrounds/mobile-landscape.webp');
+    background-image: url('/backgrounds/day-mobile-landscape.webp');
   }
 }
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
   html.tab-game[data-skin-bg="bg_city_day"]::after,
   html.tab-game:not([data-skin-bg])::after {
-    background-image: url('/backgrounds/tablet-portrait.webp');
+    background-image: url('/backgrounds/day-tablet-portrait.webp');
   }
 }
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
   html.tab-game[data-skin-bg="bg_city_day"]::after,
   html.tab-game:not([data-skin-bg])::after {
-    background-image: url('/backgrounds/tablet-landscape.webp');
+    background-image: url('/backgrounds/day-tablet-landscape.webp');
   }
 }
 @media (min-width: 1280px) {
   html.tab-game[data-skin-bg="bg_city_day"]::after,
   html.tab-game:not([data-skin-bg])::after {
-    background-image: url('/backgrounds/desktop.webp');
+    background-image: url('/backgrounds/day-desktop.webp');
   }
 }
 @media (min-width: 2560px),
        (min-resolution: 1.5dppx) and (min-width: 1440px) {
   html.tab-game[data-skin-bg="bg_city_day"]::after,
   html.tab-game:not([data-skin-bg])::after {
-    background-image: url('/backgrounds/desktop-4k.webp');
+    background-image: url('/backgrounds/day-desktop-4k.webp');
   }
 }
 
-/* ─── bg_city_night ─── */
+/* ─── bg_city_night — те же 6 вариантов адаптива ─── */
 html.tab-game[data-skin-bg="bg_city_night"]::after {
-  background-image: url('/backgrounds/city-night.svg');
-  filter: none;
+  background-image: url('/backgrounds/night-mobile-portrait.webp');
+  filter: brightness(0.95) saturate(1.0);
+}
+@media (max-width: 767px) and (orientation: landscape) {
+  html.tab-game[data-skin-bg="bg_city_night"]::after {
+    background-image: url('/backgrounds/night-mobile-landscape.webp');
+  }
+}
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  html.tab-game[data-skin-bg="bg_city_night"]::after {
+    background-image: url('/backgrounds/night-tablet-portrait.webp');
+  }
+}
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  html.tab-game[data-skin-bg="bg_city_night"]::after {
+    background-image: url('/backgrounds/night-tablet-landscape.webp');
+  }
+}
+@media (min-width: 1280px) {
+  html.tab-game[data-skin-bg="bg_city_night"]::after {
+    background-image: url('/backgrounds/night-desktop.webp');
+  }
+}
+@media (min-width: 2560px),
+       (min-resolution: 1.5dppx) and (min-width: 1440px) {
+  html.tab-game[data-skin-bg="bg_city_night"]::after {
+    background-image: url('/backgrounds/night-desktop-4k.webp');
+  }
 }
 
-/* ─── bg_mountains ─── */
-html.tab-game[data-skin-bg="bg_mountains"]::after {
-  background-image: url('/backgrounds/mountains.svg');
-  filter: brightness(0.75);
-}
-
-/* ─── bg_desert — яркий, затемняем для читаемости чипов ─── */
-html.tab-game[data-skin-bg="bg_desert"]::after {
-  background-image: url('/backgrounds/desert.svg');
-  filter: brightness(0.65);
-}
-
-/* ─── bg_space ─── */
-html.tab-game[data-skin-bg="bg_space"]::after {
-  background-image: url('/backgrounds/space.svg');
-  filter: none;
-}
-
-/* ─── Лёгкий overlay поверх ярких фонов для UI-контраста ───
+/* ─── Лёгкий overlay для night-фона для UI-контраста ───
    body::before уже используется в app.css для радиальных градиентов — мы только
    добавляем background-color поверх, не трогая градиенты.
    body::before рендерится ПОВЕРХ html::after так как body выше в tree. */
-html.tab-game[data-skin-bg="bg_desert"] body::before {
-  background-color: rgba(80, 30, 10, 0.15);
-}
-html.tab-game[data-skin-bg="bg_space"] body::before {
-  background-color: rgba(20, 5, 40, 0.2);
-}
 html.tab-game[data-skin-bg="bg_city_night"] body::before {
-  background-color: rgba(8, 10, 24, 0.3);
+  background-color: rgba(8, 10, 24, 0.2);
 }
 
 /* ─── Accessibility ─── */
@@ -131,8 +133,7 @@ html.tab-game[data-skin-bg="bg_city_night"] body::before {
   html.tab-game::after { display: none; }
 }
 @media (prefers-reduced-data: reduce) {
-  html.tab-game[data-skin-bg="bg_city_day"]::after,
-  html.tab-game:not([data-skin-bg])::after { display: none; }
+  html.tab-game::after { display: none; }
 }
 
 /* ─── Embed/compare widget — всегда без фона + body непрозрачен ─── */

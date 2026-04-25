@@ -72,15 +72,9 @@ const STAND_SKINS = [
 // ─── Фоны — превью = настоящий ассет. Честный WYSIWYG. ───
 const BG_SKINS = [
   { id: 'bg_city_day',   ru: 'Дневной город', en: 'City Day',   price: 0,   rarity: 'common',
-    asset: '/backgrounds/tablet-landscape.webp' },
+    asset: '/backgrounds/day-tablet-landscape.webp' },
   { id: 'bg_city_night', ru: 'Ночной город',  en: 'City Night', price: 200, rarity: 'rare',
-    asset: '/backgrounds/city-night.svg' },
-  { id: 'bg_mountains',  ru: 'Горы',          en: 'Mountains',  price: 300, rarity: 'rare',
-    asset: '/backgrounds/mountains.svg' },
-  { id: 'bg_desert',     ru: 'Пустыня',       en: 'Desert',     price: 400, rarity: 'epic',
-    asset: '/backgrounds/desert.svg' },
-  { id: 'bg_space',      ru: 'Космос',        en: 'Space',      price: 600, rarity: 'legendary',
-    asset: '/backgrounds/space.svg' },
+    asset: '/backgrounds/night-tablet-landscape.webp' },
 ]
 
 const THEMES = [

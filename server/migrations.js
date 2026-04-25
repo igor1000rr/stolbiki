@@ -132,5 +132,50 @@ export function runMigrations(db) {
     try { db.exec("ALTER TABLE users ADD COLUMN active_skin_background TEXT NOT NULL DEFAULT 'bg_city_day'") } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 12')
+  // Удаляем фоны bg_mountains/desert/space — оставляем только day/night.
+  // Возвращаем кирпичи владельцам, чистим owned/active, деактивируем в каталоге.
+  migrate(13, () => {
+    const TO_REMOVE = ['bg_mountains', 'bg_desert', 'bg_space']
+    const placeholders = TO_REMOVE.map(() => '?').join(',')
+
+    // Юзеры с купленным удаляемым скином → рефанд + запись транзакции
+    try {
+      const owners = db.prepare(
+        `SELECT us.user_id, us.skin_id, s.price_bricks
+         FROM user_skins us JOIN skins s ON s.id = us.skin_id
+         WHERE us.skin_id IN (${placeholders})`
+      ).all(...TO_REMOVE)
+      const refund = db.transaction(() => {
+        for (const row of owners) {
+          if (row.price_bricks > 0) {
+            const u = db.prepare('SELECT bricks FROM users WHERE id=?').get(row.user_id)
+            if (u) {
+              const newBalance = (u.bricks || 0) + row.price_bricks
+              db.prepare('UPDATE users SET bricks=? WHERE id=?').run(newBalance, row.user_id)
+              db.prepare(
+                'INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)'
+              ).run(row.user_id, row.price_bricks, newBalance, `refund_skin:${row.skin_id}`, null)
+            }
+          }
+          db.prepare('DELETE FROM user_skins WHERE user_id=? AND skin_id=?').run(row.user_id, row.skin_id)
+        }
+      })
+      refund()
+    } catch (e) { console.error('[migrate 13] refund error:', e) }
+
+    // Сброс активного фона у юзеров с удалённым активным
+    try {
+      db.prepare(
+        `UPDATE users SET active_skin_background='bg_city_day'
+         WHERE active_skin_background IN (${placeholders})`
+      ).run(...TO_REMOVE)
+    } catch {}
+
+    // Деактивация в каталоге (мягкое удаление — сохраняем FK-целостность)
+    try {
+      db.prepare(`UPDATE skins SET is_active=0 WHERE id IN (${placeholders})`).run(...TO_REMOVE)
+    } catch {}
+  })
+
+  console.log('Schema version: ' + getVersion() + ', миграций: 13')
 }
