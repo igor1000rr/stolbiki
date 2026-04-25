@@ -6,6 +6,10 @@
  * Кнопки изменения состояния игры (New Game, Resign, Undo, Offer Draw)
  * вынесены в GameActionsTop над MobileGameBar — чтобы случайно не нажать
  * в процессе игры.
+ *
+ * Апр 2026 ревизия:
+ *  - Убрана стрелка ⏎ у Confirm (на мобилке стрелка бесполезна, путала юзеров —
+ *    выглядит как «передать ход»). На десктопе подсказка остаётся через title.
  */
 export default function GameActionsBottom({
   isMyTurn, phase, inTransferMode, transfer, totalPlaced, canConfirm,
@@ -50,7 +54,7 @@ export default function GameActionsBottom({
         onClick={onConfirm}
         title="Enter"
       >
-        {t('game.confirm')} ⏎
+        {t('game.confirm')}
       </button>
 
       {/* Hint "лампочка" — только в AI-режиме. В других режимах занимает место невидимкой
