@@ -8,8 +8,8 @@
  * Этот скрипт падает при билде с понятным сообщением, а не через 3 часа после
  * деплоя.
  *
- * Список критичных файлов: все фоны (webp + svg). Если добавляешь новый фон —
- * добавь сюда тоже.
+ * Список критичных файлов: 2 темы фона (День/Ночь), по 6 адаптивных webp.
+ * Если добавляешь новый фон — добавь сюда тоже.
  */
 
 const fs = require('fs')
@@ -18,18 +18,19 @@ const path = require('path')
 const ROOT = path.resolve(__dirname, '..')
 const DIST = path.join(ROOT, 'dist')
 
-const REQUIRED_ASSETS = [
-  'backgrounds/mobile-portrait.webp',
-  'backgrounds/mobile-landscape.webp',
-  'backgrounds/tablet-portrait.webp',
-  'backgrounds/tablet-landscape.webp',
-  'backgrounds/desktop.webp',
-  'backgrounds/desktop-4k.webp',
-  'backgrounds/city-night.svg',
-  'backgrounds/mountains.svg',
-  'backgrounds/desert.svg',
-  'backgrounds/space.svg',
+const THEMES = ['day', 'night']
+const SIZES = [
+  'mobile-portrait',
+  'mobile-landscape',
+  'tablet-portrait',
+  'tablet-landscape',
+  'desktop',
+  'desktop-4k',
 ]
+
+const REQUIRED_ASSETS = THEMES.flatMap(theme =>
+  SIZES.map(size => `backgrounds/${theme}-${size}.webp`)
+)
 
 let missing = []
 let sizes = {}
