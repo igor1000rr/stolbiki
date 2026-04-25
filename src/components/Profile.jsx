@@ -12,6 +12,13 @@
  *   profile/PublicAchievementsList.jsx — ачивки в публичном профиле (с rarity)
  *
  * Остальные вкладки импортируются как были (SeasonPass, Clubs, VictoryCity, и т.д.)
+ *
+ * 26.04.2026 — фикс логина:
+ *   Раньше переключатель «Login ↔ Register» и поле пароля показывались только
+ *   при serverOnline === true. На устройстве проверка checkServer() могла
+ *   занимать секунды/таймаутить — пользователь видел только форму регистрации
+ *   без переключателя на вход. Теперь форма всегда полная, а блокируется только
+ *   submit-кнопка при offline + конкретное сообщение почему.
  */
 
 import { useState, useEffect, lazy, Suspense } from 'react'
@@ -46,6 +53,11 @@ const TabFallback = () => (
   <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>...</div>
 )
 
+// Минимум по серверу — 8 символов (NIST 800-63B). Раньше клиент валидировал на 4
+// и показывал серверу пароль <8 → 400 без понятного UI-сообщения. Теперь
+// блокируем submit на клиенте с понятной подсказкой.
+const PASSWORD_MIN = 8
+
 export default function Profile({ viewUsername, onClose, initialTab }) {
   const isNative = !!window.Capacitor?.isNativePlatform?.()
   const { lang } = useI18n()
@@ -66,9 +78,12 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   }, [tab])
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
-  const [loginMode, setLoginMode] = useState(false)
+  // Дефолт — login. Юзер уже зарегистрировался (раз попал сюда после регистрации
+  // и Logout), куда логичнее показать ему вход. Регистрация — через переключатель.
+  const [loginMode, setLoginMode] = useState(true)
   const [error, setError] = useState('')
   const [serverOnline, setServerOnline] = useState(false)
+  const [authBusy, setAuthBusy] = useState(false)
   const [friendsList, setFriendsList] = useState([])
   const [pendingFriends, setPendingFriends] = useState([])
   const [serverLeaderboard, setServerLeaderboard] = useState(null)
@@ -130,13 +145,21 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
     if (!regName.trim()) return
     setError('')
     const name = regName.trim()
-    if (serverOnline && regPass.length >= 4) {
+    if (serverOnline) {
+      if (regPass.length < PASSWORD_MIN) {
+        setError(en ? `Password: min ${PASSWORD_MIN} chars` : `Пароль: минимум ${PASSWORD_MIN} символов`)
+        return
+      }
+      setAuthBusy(true)
       try {
         const user = await API.register(name, regPass)
         const p = { ...defaultProfile(name), ...user, name: user.username || name, isAdmin: user.isAdmin }
-        setProfile(p); setRegPass(''); return
-      } catch (e) { setError(e.message); return }
+        setProfile(p); setRegPass('')
+      } catch (e) { setError(e.message) }
+      finally { setAuthBusy(false) }
+      return
     }
+    // Offline — локальный профиль без пароля
     const p = defaultProfile(name)
     if (['admin'].includes(name)) p.isAdmin = true
     setProfile(p)
@@ -145,15 +168,19 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   async function doLogin() {
     if (!regName.trim() || !regPass) return
     setError('')
+    setAuthBusy(true)
     try {
       const user = await API.login(regName.trim(), regPass)
       const p = { ...defaultProfile(user.username), ...user, name: user.username, isAdmin: user.isAdmin }
       setProfile(p); setRegPass('')
     } catch (e) { setError(e.message) }
+    finally { setAuthBusy(false) }
   }
 
   function logout() {
     API.logout(); localStorage.removeItem(STORAGE_KEY); setProfile(null)
+    // По логауту возвращаемся в login — естественнее, чем сразу регистрация.
+    setLoginMode(true); setRegPass(''); setError('')
   }
 
   useEffect(() => {
@@ -270,6 +297,8 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   if (!profile) {
     const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #36364a',
       background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }
+    const submit = loginMode ? doLogin : register
+    const submitDisabled = authBusy || !regName.trim() || (serverOnline && !regPass)
     return (
       <div style={isNative ? { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 130px)' } : undefined}>
         <div className="dash-card" style={{ maxWidth: 400, margin: isNative ? '0 auto' : '40px auto', textAlign: 'center', width: '100%' }}>
@@ -277,30 +306,46 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
             <Mascot pose="wave" size={64} />
           </div>
           <h3>{loginMode ? (en ? 'Login' : 'Вход') : (en ? 'Register' : 'Регистрация')}</h3>
-          {serverOnline && <div style={{ fontSize: 10, color: 'var(--green)', marginBottom: 10 }}>● {en ? 'Server online' : 'Сервер онлайн'}</div>}
+          <div style={{
+            fontSize: 10, marginBottom: 10,
+            color: serverOnline ? 'var(--green)' : 'var(--ink3)',
+          }}>
+            {serverOnline
+              ? (en ? '● Server online' : '● Сервер онлайн')
+              : (en ? '○ Offline — local profile only' : '○ Оффлайн — только локальный профиль')}
+          </div>
           {error && <div style={{ fontSize: 12, color: 'var(--p2)', marginBottom: 10 }}>{error}</div>}
           <input type="text" placeholder={en ? 'Username' : 'Никнейм'} value={regName}
             onChange={e => setRegName(e.target.value)} style={inputStyle}
-            onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
+            autoCapitalize="none" autoCorrect="off" autoComplete="username"
+            onKeyDown={e => e.key === 'Enter' && submit()} />
+          {/* Поле пароля показываем ВСЕГДА если серверная авторизация доступна
+              ИЛИ если юзер в режиме логина (логин без пароля бессмысленен).
+              Раньше скрывали при serverOnline=false и юзер не мог войти. */}
           {serverOnline && (
-            <input type="password" placeholder={en ? 'Password (min 6 chars)' : 'Пароль (мин 6 символов)'}
+            <input type="password"
+              placeholder={en ? `Password (min ${PASSWORD_MIN} chars)` : `Пароль (мин ${PASSWORD_MIN} символов)`}
               value={regPass} onChange={e => setRegPass(e.target.value)} style={inputStyle}
-              onKeyDown={e => e.key === 'Enter' && (loginMode ? doLogin() : register())} />
+              autoComplete={loginMode ? 'current-password' : 'new-password'}
+              onKeyDown={e => e.key === 'Enter' && submit()} />
           )}
-          <button className="btn primary" onClick={loginMode ? doLogin : register} style={{ width: '100%' }}>
-            {loginMode ? (en ? 'Login' : 'Войти') : (en ? 'Create profile' : 'Создать профиль')}
+          <button className="btn primary" onClick={submit}
+            disabled={submitDisabled} style={{ width: '100%' }}>
+            {authBusy ? '...' : loginMode ? (en ? 'Login' : 'Войти') : (en ? 'Create profile' : 'Создать профиль')}
           </button>
-          {serverOnline && (
-            <button className="btn" onClick={() => { setLoginMode(!loginMode); setError('') }}
-              style={{ width: '100%', marginTop: 8, fontSize: 12 }}>
-              {loginMode
-                ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация')
-                : (en ? 'Have account? Login' : 'Уже есть аккаунт? Войти')}
-            </button>
-          )}
+          {/* Переключатель login↔register показывается ВСЕГДА, не только при serverOnline.
+              Раньше при offline юзер видел только режим регистрации без возможности
+              переключиться на вход — баг "невозможно залогиниться". */}
+          <button className="btn" onClick={() => { setLoginMode(!loginMode); setError('') }}
+            style={{ width: '100%', marginTop: 8, fontSize: 12 }}>
+            {loginMode
+              ? (en ? 'No account? Register' : 'Нет аккаунта? Регистрация')
+              : (en ? 'Have account? Login' : 'Уже есть аккаунт? Войти')}
+          </button>
           {!serverOnline && (
             <p style={{ color: 'var(--ink3)', fontSize: 10, marginTop: 12 }}>
-              {en ? 'Offline mode: data saved locally' : 'Оффлайн-режим: данные сохраняются локально'}
+              {en ? 'Login requires server connection. Check internet and try again.'
+                  : 'Для входа нужен сервер. Проверьте интернет и попробуйте снова.'}
             </p>
           )}
         </div>
@@ -376,8 +421,16 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
               <div style={{ textAlign: 'right' }}>
                 <Mascot pose="wave" size={48} style={{ marginBottom: 4 }} />
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--gold)', lineHeight: 1, letterSpacing: -1 }}>{profile.rating}</div>
+              {/* ELO число — выровнено и не выезжает за границы карточки.
+                  Раньше шрифт 36px + lineHeight:1 + letterSpacing:-1 позволял
+                  4-значным значениям выползать вправо. Теперь tabular-nums и
+                  ограничение по ширине через flexShrink. */}
+              <div style={{ textAlign: 'right', minWidth: 64, flexShrink: 0 }}>
+                <div style={{
+                  fontSize: 30, fontWeight: 800, color: 'var(--gold)',
+                  lineHeight: 1.05, letterSpacing: -0.5,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>{profile.rating}</div>
                 <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>ELO</div>
               </div>
             </div>
@@ -485,9 +538,14 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
             </div>
           </div>
 
-          <button className="btn" onClick={logout} style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)', marginTop: 8 }}>
-            {en ? 'Logout' : 'Выйти из профиля'}
-          </button>
+          {/* Logout — выровнен по правому краю карточки сверху, чтобы не висел
+              отдельной кнопкой посередине внизу страницы. */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button className="btn" onClick={logout}
+              style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)' }}>
+              {en ? 'Logout' : 'Выйти из профиля'}
+            </button>
+          </div>
         </>
       )}
 
