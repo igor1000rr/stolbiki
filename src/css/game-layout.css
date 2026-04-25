@@ -164,3 +164,115 @@ html.tab-game[data-theme="minimal"] .board::before {
     rgba(255, 255, 255, 0.5),
     rgba(255, 255, 255, 0) 70%);
 }
+
+/* ════════════════════════════════════════════════════════════
+   NATIVE APP — переопределения для Capacitor APK.
+
+   В native.css есть глобальные правила вроде:
+     .native-app .actions { display:flex; overflow-x:auto }
+     .native-app *:not(.chip) { box-shadow:none !important }
+     .native-app .game-log { display:none }
+
+   Они перебивают мою новую раскладку. Здесь — селекторы повышенной
+   специфичности, чтобы вернуть как задумано Александром (апр 2026).
+   ════════════════════════════════════════════════════════════ */
+
+/* Грид Tower Takeover|Confirm|💡|🔊 на native (specificity 0,2,0) */
+.native-app .actions-bottom {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr auto auto !important;
+  gap: 8px !important;
+  margin: 6px 0 10px !important;
+  align-items: stretch !important;
+  padding: 4px 8px 6px !important;
+  flex-wrap: nowrap !important;
+  overflow: visible !important;
+  justify-content: stretch !important;
+}
+
+/* На очень узких экранах (<360px) — два ряда: верхний (takeover|confirm), нижний (💡|🔊) */
+@media (max-width: 360px) {
+  .native-app .actions-bottom {
+    grid-template-columns: 1fr 1fr !important;
+    grid-auto-rows: auto !important;
+  }
+  .native-app .actions-bottom .action-icon {
+    min-width: 0 !important;
+  }
+}
+
+/* На native кнопки в actions-bottom не должны иметь min-width 130 (раздуваются за viewport) */
+.native-app .actions-bottom .action-slot {
+  min-width: 0 !important;
+}
+
+/* Маленькие кнопки сверху — НЕ растягиваем до 44px на native */
+.native-app .actions-top {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  padding: 2px 8px 6px !important;
+  margin: 0 0 6px !important;
+}
+.native-app .actions-top .btn-compact {
+  min-height: 26px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  border-radius: 6px !important;
+  flex-shrink: 1 !important;
+}
+
+/* Иконки 💡 🔊 на native — компактные, без min-width 130 */
+.native-app .actions-bottom .action-icon {
+  min-width: 44px !important;
+  width: 44px !important;
+  padding: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Лог на native — НЕ скрываем, показываем одну строку
+   (по ТЗ Александра лог должен быть видим внизу). */
+.native-app .game-log--single {
+  display: block !important;
+  font-size: 10px;
+  padding: 2px 12px;
+  margin-top: 4px;
+  opacity: 0.6;
+  min-height: 14px;
+}
+
+/* Золотая обводка Tower Takeover — добавляем небольшой glow обратно
+   (на native глобальный box-shadow:none !important убил наш inset glow,
+   но мы можем перебить через :not(:disabled) с большей специфичностью). */
+.native-app .actions-bottom .action-slot--takeover:not(:disabled) {
+  box-shadow:
+    0 0 0 1px rgba(255, 193, 69, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+.native-app .actions-bottom .action-slot--takeover:not(:disabled):active {
+  box-shadow:
+    0 0 14px rgba(255, 193, 69, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+/* Стеклянная доска на native:
+   blur полностью отключён в native.css по соображениям FPS на старых WebView.
+   Мы НЕ возвращаем blur (он съедает 5+ FPS на бюджетных Android),
+   а вместо blur используем более насыщенный полупрозрачный фон с градиентом. */
+.native-app .board {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--surface, #1a1a2a) 70%, transparent),
+    color-mix(in srgb, var(--surface, #1a1a2a) 85%, transparent)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* На светлой теме — светлый полупрозрачный фон без blur */
+.native-app[data-theme="minimal"] .board {
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.78),
+    rgba(255, 255, 255, 0.92)) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
