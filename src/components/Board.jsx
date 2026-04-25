@@ -23,10 +23,27 @@ const Chip = memo(function Chip({ color, isNew, delay, isPending, ghostOut, ghos
   )
 })
 
+/**
+ * Цвет цифры заполнения стойки. По обратной связи Александра (апр 2026):
+ *   0-3   зелёный  — стойка пустая, можно строить безопасно
+ *   4-6   жёлтый   — половина, борьба за контроль
+ *   7-9   оранжевый — почти достроена, критично
+ *   10-11 красный  — следующий ход = закрытие
+ *
+ * Прежняя логика: ≥7 — gold, ≥9 — p2 (красный). Сделано градуированно
+ * для лучшего восприятия игроком.
+ */
+function chipCountColor(count) {
+  if (count >= 10) return 'var(--p2)'              // красный
+  if (count >= 7)  return 'var(--orange, #ff9f3d)' // оранжевый (fallback если переменной нет)
+  if (count >= 4)  return 'var(--gold)'            // жёлтый
+  return 'var(--green)'                            // зелёный
+}
+
 function StandItem({
   i, chips, closedOwner, isGolden, isSelected, isTarget, isFlashing,
   newInfo, pendingCount, humanPlayer, ghostTransfer, particles,
-  showChipCount, showFillBar, maxChips,
+  showChipCount,
   onStandClick, onStandLongPress,
   fogOfWar, fogPlayer,
 }) {
@@ -48,8 +65,7 @@ function StandItem({
   if (ghostTransfer?.to === i) cls += ' stand-ghost-to'
   if (pressing && onStandLongPress) cls += ' stand-long-pressing'
 
-  // Определяем для каждого чипа — скрывать ли (fog of war)
-  // Скрываем чипы противника: те что не принадлежат fogPlayer
+  // Скрываем чипы противника в режиме fog of war
   function isChipFogged(chipColor) {
     return fogOfWar && chipColor !== fogPlayer
   }
@@ -69,28 +85,24 @@ function StandItem({
       <span className="stand-label">{isGolden ? '★' : 'ABCDEFGHI'[i - 1]}</span>
       {isClosed && <span className="stand-owner">П{closedOwner + 1}</span>}
 
+      {/* Цифра заполнения под стойкой. Цвет градуирован по диапазонам
+         (см. chipCountColor выше). Размер увеличен до 14px (было 11) —
+         так читабельнее на мобилке, по запросу Александра. */}
       {showChipCount && !isClosed && (
-        <div style={{
-          position: 'absolute', bottom: -20, fontSize: 11, fontWeight: 600,
-          color: chips.length >= 9 ? 'var(--p2)' : chips.length >= 7 ? 'var(--gold)' : 'var(--ink3)',
-          opacity: chips.length > 0 ? 1 : 0.4,
+        <div className="stand-chip-count" style={{
+          position: 'absolute', bottom: -22, fontSize: 14, fontWeight: 700,
+          color: chipCountColor(chips.length),
+          opacity: chips.length > 0 ? 1 : 0.45,
+          textShadow: '0 1px 0 rgba(0,0,0,0.25)',
+          fontVariantNumeric: 'tabular-nums',
         }}>
           {fogOfWar ? '?' : chips.length}
         </div>
       )}
 
-      {showFillBar && !isClosed && !fogOfWar && chips.length > 0 && (
-        <div style={{
-          position: 'absolute', bottom: 2, left: '10%', right: '10%', height: 2,
-          background: 'var(--surface2)', borderRadius: 1, overflow: 'hidden', opacity: 0.6,
-        }}>
-          <div style={{
-            width: `${chips.length / (maxChips || 11) * 100}%`, height: '100%',
-            background: chips.length >= 9 ? 'var(--p2)' : chips.length >= 7 ? 'var(--gold)' : 'var(--p1)',
-            borderRadius: 1, transition: 'width 0.3s',
-          }} />
-        </div>
-      )}
+      {/* showFillBar убран по запросу Александра (апр 2026):
+         "Под блоками полоска заполнения, убрать". Цифры заполнения
+         с цветами выше дают ту же информацию без визуального шума. */}
 
       {chips.map((c, j) => {
         const isNew = newInfo && j >= newInfo.from
@@ -149,7 +161,7 @@ function StandItem({
 
 function Board({
   state, pending = {}, selected, phase, humanPlayer, onStandClick, onStandLongPress,
-  aiThinking, flip = false, showChipCount = true, showFillBar = true, ghostTransfer = null,
+  aiThinking, flip = false, showChipCount = true, ghostTransfer = null,
   fogOfWar = false, fogPlayer = 0,
 }) {
   const prevRef = useRef({ stands: state.stands.map(s => [...s]), closed: { ...state.closed } })
@@ -234,8 +246,6 @@ function Board({
             ghostTransfer={ghostTransfer}
             particles={particles[i] || null}
             showChipCount={showChipCount}
-            showFillBar={showFillBar}
-            maxChips={state.maxChips || 11}
             onStandClick={onStandClick}
             onStandLongPress={onStandLongPress}
             fogOfWar={fogOfWar}
