@@ -1,6 +1,17 @@
 /**
  * Хелперы профиля — UI-компоненты (AvatarCircle, RatingBadge, AchievementCard,
  * RatingChart, SeasonSection). Извлечено из Profile.jsx.
+ *
+ * 26.04.2026 — фикс по обратной связи Александра:
+ * "Ачивки: текст в столбиках справа выходит за границы окошек".
+ *
+ * Причина: AchievementCard рендерится в grid 2 колонки, текст name + rarity
+ * был в flex-row без overflow:hidden на name — длинные ачивки типа
+ * "Beat extreme AI 10 times in a row" вылезали за карточку. Аналогично
+ * desc — без word-break длинные английские строки порой не переносились.
+ *
+ * Решение: в name-row делаем minWidth:0 + ellipsis, desc получает
+ * word-break: break-word + overflow-wrap: anywhere.
  */
 
 import { AVATARS, RARITY_COLORS, RARITY_LABELS_RU, RARITY_LABELS_EN, achProgress } from './_constants'
@@ -54,6 +65,8 @@ export function AchievementCard({ ach, unlocked, profile, en }) {
         padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
         background: cardBg, border: cardBorder, boxShadow: rarityStyle.shadow || 'none',
         opacity: unlocked ? 1 : 0.5, transition: 'all 0.2s', cursor: 'default', position: 'relative',
+        overflow: 'hidden',                  /* заранее обрезаем что угодно вылезающее */
+        minWidth: 0,                          /* в grid-контейнере иначе расширяется */
       }}
     >
       <div style={{
@@ -62,12 +75,26 @@ export function AchievementCard({ ach, unlocked, profile, en }) {
         border: `2px solid ${unlocked ? ach.color : 'var(--surface3)'}`,
         boxShadow: unlocked ? `0 0 10px ${ach.color}${rarity === 'legendary' ? '60' : rarity === 'epic' ? '40' : '20'}` : 'none',
         fontSize: 12, fontWeight: 800, color: unlocked ? ach.color : 'var(--ink3)',
+        flexShrink: 0,
       }}>
         {name[0]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: unlocked ? 'var(--ink)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
-          {name}
+        {/* name + rarity badge: name получает overflow:hidden + ellipsis,
+            badge — flexShrink:0 чтобы не ужимался. Это убирает выезд за границы. */}
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: unlocked ? 'var(--ink)' : 'var(--ink3)',
+          display: 'flex', alignItems: 'center', gap: 5, minWidth: 0,
+        }}>
+          <span style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            flex: '1 1 auto',
+          }}>
+            {name}
+          </span>
           {rarity !== 'common' && (
             <span style={{
               fontSize: 8, fontWeight: 700, color: rarityColor, letterSpacing: 0.3,
@@ -76,12 +103,19 @@ export function AchievementCard({ ach, unlocked, profile, en }) {
               borderRadius: 3,
               background: rarity === 'legendary' && unlocked ? `${rarityColor}20` : 'transparent',
               textTransform: 'uppercase',
+              flexShrink: 0,
             }}>
               {rarityLabel}
             </span>
           )}
         </div>
-        <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{desc}</div>
+        {/* desc: word-break чтобы длинные слова переносились внутри карточки. */}
+        <div style={{
+          fontSize: 10, color: 'var(--ink3)',
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere',
+          lineHeight: 1.35,
+        }}>{desc}</div>
         {ach.holders !== undefined && (
           <div style={{ fontSize: 9, color: rarityColor, opacity: 0.6, marginTop: 1 }}>
             {ach.holders}% {en ? 'of players' : 'игроков'}
@@ -96,7 +130,7 @@ export function AchievementCard({ ach, unlocked, profile, en }) {
                 transition: 'width 0.3s',
               }} />
             </div>
-            <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 30 }}>{Math.min(cur, target)}/{target}</span>
+            <span style={{ fontSize: 9, color: 'var(--ink3)', minWidth: 30, flexShrink: 0 }}>{Math.min(cur, target)}/{target}</span>
           </div>
         )}
       </div>
