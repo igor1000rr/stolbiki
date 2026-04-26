@@ -205,7 +205,12 @@ body.native-body { animation: none !important; }
   background: rgba(61,214,140,0.1) !important;
 }
 
-/* ═══ NATIVE: Settings — крупнее для пальцев ═══ */
+/* ═══ NATIVE: Settings — крупнее для пальцев ═══
+ *
+ * 26.04.2026: тумблеры были 48×28 — Александр писал "чересчур высокие".
+ * Уменьшил до 40×24 (стандарт material-design switch на мобилке).
+ * Touch-target 44px сохранён через padding на .toggle-row.
+ */
 .native-app .settings-page { padding: 0; }
 .native-app .settings-title { font-size: 20px; margin-bottom: 16px; }
 .native-app .settings-section { margin-bottom: 20px; }
@@ -213,9 +218,13 @@ body.native-body { animation: none !important; }
 .native-app .setting-label { font-size: 14px; }
 .native-app .setting-desc { font-size: 12px; }
 .native-app .segment-control button { padding: 8px 12px; font-size: 12px; }
-.native-app .toggle { width: 48px; height: 28px; border-radius: 14px; }
-.native-app .toggle-thumb { width: 22px; height: 22px; }
-.native-app .toggle.on .toggle-thumb { transform: translateX(20px); }
+.native-app .toggle { width: 40px; height: 24px; border-radius: 12px; }
+.native-app .toggle-thumb { width: 18px; height: 18px; }
+.native-app .toggle.on .toggle-thumb { transform: translateX(16px); }
+
+/* Same для inline-style тумблера в Settings.jsx (он не использует .toggle класс,
+   а инлайн-стили на button — селектор не дотянется. Поэтому в самом Settings.jsx
+   тумблер уже 44×24 — нормально, не трогаем.). */
 
 /* ═══ NATIVE: Game result — overlay fullscreen ═══ */
 .native-app .game-result {
@@ -258,8 +267,11 @@ body.native-body { animation: none !important; }
   font-size: 12px;
 }
 
-/* ═══ NATIVE: Log hidden ═══ */
-.native-app .game-log { display: none; }
+/* ═══ NATIVE: Log hidden ═══
+ *
+ * Раньше .game-log полностью скрывался на native. Теперь GameLog рисует
+ * .game-log--multi (3 строки с приглушением старых). game-layout.css
+ * принудительно показывает .game-log на native — этот блок убран. */
 
 /* ═══ NATIVE: Online lobby ═══ */
 .native-app .dash-card {
@@ -293,7 +305,13 @@ body.native-body { animation: none !important; }
   min-height: 44px;
 }
 
-/* ═══ NATIVE: Profile ═══ */
+/* ═══ NATIVE: Profile ═══
+ *
+ * 26.04.2026: padding-top на native контейнере профиля. По обратной связи
+ * Александра "Верхние пункты меню сверху обрезаны" — вкладки профиля
+ * (Profile/Battle Pass/Analytics/...) на native заходили под status-bar
+ * потому что site-content начинается с y=0. Добавляем safe-area-inset-top.
+ */
 .native-app .profile-card {
   border-radius: 16px;
   margin: 8px 12px;
@@ -303,6 +321,8 @@ body.native-body { animation: none !important; }
   gap: 6px !important;
   padding: 0 4px 8px !important;
   margin-bottom: 12px !important;
+  /* Сверху резервируем место под status-bar плюс небольшой gap */
+  margin-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
 }
 .native-app .profile-tabs .btn {
   font-size: 13px !important;
@@ -405,6 +425,12 @@ body.native-body { animation: none !important; }
 }
 .m-more-danger svg { stroke: #ff6066; }
 
+/* MoreTabPage — на native страница начинается под status-bar.
+   Резервируем верхний padding для всей страницы. */
+.native-app .m-more-page {
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+}
+
 /* Side color indicator (dot) */
 .m-side-indicator {
   width: 10px;
@@ -497,4 +523,3 @@ body.native-body { animation: none !important; }
 }
 
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-
