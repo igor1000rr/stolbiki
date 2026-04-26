@@ -41,6 +41,10 @@ const ALL_ACHIEVEMENTS = [
   { id: 'level_5',     check: u => (u.level || 1) >= 5 },
   { id: 'level_10',    check: u => (u.level || 1) >= 10 },
   { id: 'level_20',    check: u => (u.level || 1) >= 20 },
+  // Style Twin — игрок получил матч в онлайне с одинаковыми блоками
+  // (см. server/ws.js detectSkinCollision + awardStyleTwin). Колонка
+  // style_twin_count добавлена миграцией 15.
+  { id: 'style_twin',  check: u => (u.style_twin_count || 0) >= 1 },
 ]
 
 const CROSS_TABLE_ACHIEVEMENTS = [
