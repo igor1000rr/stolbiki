@@ -1,29 +1,25 @@
 /**
  * Snappy — всплывающий маскот-комментатор.
  *
- * Два способа использования:
+ * Три способа использования:
  *
- * 1. Прямое — ставишь компонент в JSX:
+ * 1. Прямое inline — компонент внутри карточки:
  *    <Snappy event="victory" lang={lang} variant="inline" cooldown={false} />
- *    Подходит для встройки в карточки (GameResultPanel, VictoryCity).
  *
- * 2. Глобальное — через event-bus (window CustomEvent):
+ * 2. Глобальное через event-bus:
  *    triggerSnappy('tower_takeover')
  *    Срабатывает <SnappyOverlay/>, единожды смонтированный в App.jsx.
- *    Подходит для триггеров из глубины Game.jsx, движка, WS-обработчиков —
- *    без props-drilling и без прямых импортов.
+ *
+ * 3. Anchored (апр 2026 по запросу Александра "Snappy на уровне города"):
+ *    <Snappy variant="anchored" event="victory_city" lang={lang} cooldown={false} />
+ *    position: absolute вместо fixed — позиционируется относительно ближайшего
+ *    предка с position: relative. Применяется в VictoryCity где Snappy должен
+ *    появляться в углу 3D-сцены а не в углу всего экрана.
  *
  * Anti-spam: cooldown=true (default) — не чаще 1 раза в 4 сек.
- * В variant='inline' с cooldown=false — для гарантированных показов в окнах.
  *
- * Analytics: каждый фактический показ (после cooldown check) трекается
- * через API.track('snappy_shown', variant, { event, pose, textLen }) —
- * это даёт метрику какие фразы заходят и не спамим ли мы.
- *
- * 26.04.2026 — апр ревизия по обратной связи Александра:
- * "Snappy который выскакивает сделать больше в 2 раза, чтобы было понятно
- *  что енот пролетает". Размеры в corner-варианте удвоены: 64→128,
- *  font 14→16, max-width 240→360, padding +30%.
+ * Analytics: каждый фактический показ трекается через
+ * API.track('snappy_shown', variant, { event, pose, textLen }).
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
@@ -47,7 +43,7 @@ export default function Snappy({
   event,
   lang = 'ru',
   duration = 2500,
-  variant = 'corner', // 'corner' | 'inline'
+  variant = 'corner', // 'corner' | 'inline' | 'anchored'
   cooldown = true,
   onDone,
 }) {
@@ -93,8 +89,6 @@ export default function Snappy({
   if (!phrase || !visible) return null
 
   // Inline вариант — для встройки внутрь карточки результата.
-  // Размер не меняли — здесь Snappy уже на видном месте, рядом с большой
-  // картинкой результата. Удваивать имеет смысл только в corner.
   if (variant === 'inline') {
     return (
       <div style={{
@@ -114,9 +108,56 @@ export default function Snappy({
     )
   }
 
-  // Corner вариант — overlay снизу-справа поверх игры. Удвоен в апр 2026 по
-  // запросу Александра: "сделать больше в 2 раза чтобы было понятно что енот
-  // пролетает". Маскот 128px вместо 64 — теперь действительно "пролетает".
+  // Anchored вариант — position:absolute, для контейнеров с position:relative.
+  // Введён в апр 2026 для VictoryCity: Snappy появляется в углу 3D-сцены,
+  // а не глобально в углу окна. По ТЗ: "Snappy вылетает прям на уровне города".
+  // Размеры компромисс между inline (36) и corner (128) — 96px.
+  if (variant === 'anchored') {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          position: 'absolute',
+          right: 12,
+          bottom: 12,
+          zIndex: 6,                     /* выше minimap (z=5), под controls */
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 8,
+          pointerEvents: 'none',
+          animation: 'snappy-slide-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          maxWidth: 'calc(100% - 24px)',
+        }}
+      >
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: 16,
+          borderBottomRightRadius: 4,
+          background: 'linear-gradient(135deg, rgba(40,40,55,0.95), rgba(30,30,40,0.98))',
+          color: '#ffe7b3',
+          fontSize: 14,
+          fontWeight: 600,
+          fontStyle: 'italic',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
+          border: '1px solid rgba(255,193,69,0.35)',
+          maxWidth: 280,
+          lineHeight: 1.35,
+        }}>
+          {phrase.text}
+        </div>
+        <Mascot pose={phrase.pose} size={96} animate />
+        <style>{`
+          @keyframes snappy-slide-in {
+            from { opacity: 0; transform: translateY(20px) scale(0.9); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  // Corner вариант (default) — fixed overlay снизу-справа поверх игры.
   return (
     <div
       role="status"
@@ -125,7 +166,7 @@ export default function Snappy({
         position: 'fixed',
         right: 16,
         bottom: 16,
-        zIndex: 1400, // ниже модалки результата (1500), но поверх игрового поля
+        zIndex: 1400,
         display: 'flex',
         alignItems: 'flex-end',
         gap: 10,
@@ -135,22 +176,22 @@ export default function Snappy({
       }}
     >
       <div style={{
-        padding: '12px 18px',          /* было 8/14 — крупнее под x2 маскот */
+        padding: '12px 18px',
         borderRadius: 20,
         borderBottomRightRadius: 4,
         background: 'linear-gradient(135deg, rgba(40,40,55,0.95), rgba(30,30,40,0.98))',
         color: '#ffe7b3',
-        fontSize: 16,                  /* было 14 */
+        fontSize: 16,
         fontWeight: 600,
         fontStyle: 'italic',
         boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
         border: '1px solid rgba(255,193,69,0.35)',
-        maxWidth: 360,                 /* было 240 — больше места под текст */
+        maxWidth: 360,
         lineHeight: 1.35,
       }}>
         {phrase.text}
       </div>
-      <Mascot pose={phrase.pose} size={128} animate />  {/* было 64 */}
+      <Mascot pose={phrase.pose} size={128} animate />
       <style>{`
         @keyframes snappy-slide-in {
           from { opacity: 0; transform: translateY(20px) scale(0.9); }
@@ -169,7 +210,6 @@ export default function Snappy({
 export function SnappyOverlay() {
   const { lang } = useI18n()
   const [event, setEvent] = useState(null)
-  // ключ нужен чтобы один и тот же event подряд перерендерил Snappy
   const [key, setKey] = useState(0)
 
   const handleDone = useCallback(() => setEvent(null), [])
