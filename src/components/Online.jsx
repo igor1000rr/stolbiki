@@ -345,7 +345,15 @@ export default function Online() {
           <h3 style={{ fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>{en ? 'Looking for opponent...' : 'Ищем соперника...'}</h3>
           <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>{en ? 'Your rating' : 'Ваш рейтинг'}: <b style={{ color: 'var(--gold)' }}>{userRating}</b></div>
           <p style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 20 }}>{en ? 'ELO ±200, range expands over time' : 'ELO ±200, диапазон расширяется со временем'}</p>
-          <button className="btn" onClick={cancelSearch} style={{ fontSize: 12 }}>{en ? 'Cancel' : 'Отмена'}</button>
+          {/* Cancel — обёрнут в flex-row с justify-center.
+              .btn = display:flex, поэтому text-align:center на родителе её
+              не центрирует. Этот див делает явное центрирование. */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <button className="btn" onClick={cancelSearch}
+              style={{ fontSize: 12, minWidth: 120 }}>
+              {en ? 'Cancel' : 'Отмена'}
+            </button>
+          </div>
         </div>
       </div>
     )
