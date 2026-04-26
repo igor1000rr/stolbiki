@@ -3,6 +3,12 @@
  * Issue #8: Sprint 5
  *
  * Экраны: list → detail | create | my
+ *
+ * 26.04.2026 — фикс по обратной связи Александра:
+ * "Clubs: ширину окошка сделать как в других разделах". Раньше Card
+ * имел жёсткий maxWidth: 600 — на широких экранах был узким окошком,
+ * не таким как другие вкладки профиля (где ширина = ширине контейнера).
+ * Убрали maxWidth, оставили margin: 12px auto на случай standalone-рендера.
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -23,8 +29,11 @@ const ROLE_LABELS_RU = { owner: 'Владелец', officer: 'Офицер', mem
 const ROLE_LABELS_EN = { owner: 'Owner', officer: 'Officer', member: 'Member' }
 const ROLE_COLOR = { owner: 'var(--gold)', officer: '#9b59b6', member: 'var(--ink3)' }
 
+// Card раньше имел maxWidth: 600 — на десктопе выглядел узким "окошком" в
+// отличие от других вкладок профиля (full-width). Теперь ширина = ширине
+// родителя (Profile-tab контейнера) — выглядит единообразно.
 function Card({ children, style }) {
-  return <div className="dash-card" style={{ maxWidth: 600, margin: '12px auto', ...style }}>{children}</div>
+  return <div className="dash-card" style={{ margin: '12px auto', ...style }}>{children}</div>
 }
 
 export default function Clubs() {
