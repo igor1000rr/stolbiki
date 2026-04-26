@@ -16,6 +16,7 @@ export function formatUser(u) {
     puzzlesSolved: u.puzzles_solved || 0, avatar: u.avatar || 'default',
     xp: u.xp || 0, level: u.level || 1,
     bricks: u.bricks ?? 0,
+    styleTwinCount: u.style_twin_count || 0,
     referralCode: u.referral_code || null,
     isAdmin: !!u.is_admin, createdAt: u.created_at, lastSeen: u.last_seen,
   }
@@ -34,6 +35,7 @@ export function formatPublicUser(u) {
     fastWins: u.fast_wins || 0, onlineWins: u.online_wins || 0,
     puzzlesSolved: u.puzzles_solved || 0, avatar: u.avatar || 'default',
     xp: u.xp || 0, level: u.level || 1,
+    styleTwinCount: u.style_twin_count || 0,
     createdAt: u.created_at, lastSeen: u.last_seen,
   }
 }
