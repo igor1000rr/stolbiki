@@ -157,6 +157,12 @@ export default function Online() {
         setScores(msg.scores || [])
         gameCtxRef.current?.emit('onSpectateStart', { players: msg.players, firstPlayer: msg.firstPlayer ?? 0, gameState: msg.gameState, spectators: msg.spectators })
         break
+      // Snappy Block: сервер прислал триггер коллизии скинов (см. server/ws.js
+      // detectSkinCollision + notifySnappyCollision). useOnlineGameHandlers
+      // ловит onSnappyTrigger и вызывает triggerSnappy(event) → SnappyOverlay.
+      case 'snappyTrigger':
+        gameCtxRef.current?.emit('onSnappyTrigger', { event: msg.event })
+        break
     }
   }
 
