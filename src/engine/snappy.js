@@ -9,6 +9,7 @@
  *   - 'defeat'          — поражение в партии
  *   - 'draw'            — ничья
  *   - 'victory_city'    — открыт экран Города Побед
+ *   - 'skin_collision'  — два игрока выбрали одинаковые скины блоков (онлайн)
  *   - 'mistake'         — игрок сделал явно плохой ход (placeholder, пока не используется)
  *
  * Каждая фраза снабжена позой маскота — Mascot.jsx уже поддерживает hero/celebrate/sad/shock/think/wave/point.
@@ -65,6 +66,19 @@ const PHRASES = {
     { ru: 'Что, нравятся?',                  en: 'What, like \'em?',               pose: 'celebrate', priority: 1 },
     { ru: 'Тебе наверное снятся владельцы.', en: 'Bet you dream of the owners.',   pose: 'think',     priority: 0 },
     { ru: 'У меня были башни. Их забрали.',  en: 'I had towers once. Got taken.',  pose: 'sad',       priority: 0 },
+  ],
+
+  // Snappy Block — онлайн партия началась с одинаковыми скинами блоков
+  // у обоих игроков. Триггер посылается сервером после проверки skin_id
+  // в матчмейкинге. Часть Customization Rework Часть 2 — ждёт backend
+  // (server/multiplayer.js должен emit 'skin_collision' при startGame
+  // если у обоих игроков ns.player[0].skin_id === ns.player[1].skin_id).
+  skin_collision: [
+    { ru: 'Эй, скопировал у меня!',         en: 'Hey, copycat!',                  pose: 'shock',     priority: 1 },
+    { ru: 'У вас одинаковые блоки.',        en: 'You both have the same blocks.', pose: 'point',     priority: 1 },
+    { ru: 'Меняй блоки, оригинал!',         en: 'Change \'em, original!',         pose: 'shock',     priority: 0 },
+    { ru: 'Близнецы по стилю.',             en: 'Style twins.',                   pose: 'wave',      priority: 0 },
+    { ru: 'Один из вас — подделка.',        en: 'One of you is a knockoff.',      pose: 'think',     priority: 0 },
   ],
 }
 
