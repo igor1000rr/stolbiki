@@ -102,8 +102,6 @@ export default function App() {
   //   2. Закрыть мобильное меню если открыто
   //   3. Сбросить просмотр публичного профиля (viewProfile)
   //   4. Иначе — window.history.back() через popstate handler ниже
-  // Hook сам решает что вызывать в зависимости от platform (web pointer
-  // events vs Capacitor App.backButton).
   useEdgeBack({
     onBack: () => {
       if (showSkinShop)         { setShowSkinShop(false);         return }
@@ -114,9 +112,6 @@ export default function App() {
       if (authOpen)             { setAuthOpen(false);             return }
       if (mobileMenu)           { setMobileMenu(false);           return }
       if (viewProfile)          { setViewProfile(null);           return }
-      // На native начальный таб — game. Если уже на game — exitApp
-      // (Capacitor backButton hook в useEdgeBack сам это знает,
-      // но web ветка не должна закрывать страницу).
       if (window.history.length > 1) {
         try { window.history.back() } catch {}
       }
@@ -290,7 +285,7 @@ export default function App() {
       }
     }
     window.addEventListener('open-profile', handler)
-    return () => window.removEventListener('open-profile', handler)
+    return () => window.removeEventListener('open-profile', handler)
   }, [authUser])
 
   useEffect(() => {
