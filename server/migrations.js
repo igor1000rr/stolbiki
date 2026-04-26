@@ -177,5 +177,87 @@ export function runMigrations(db) {
     } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 13')
+  // Удаляем категорию стендов целиком. По обратной связи Александра
+  // (апр 2026): "Удалить вкладку Stands — нет игровой логики". Возвращаем
+  // кирпичи всем кто купил платный stand_*, сбрасываем активный стенд
+  // в дефолт и деактивируем все stand_* в каталоге.
+  //
+  // ВАЖНО: settings.standStyle на клиенте остаётся в localStorage —
+  // legacy логика Board.jsx ещё применяет фон стенда из settings.
+  // Сервер забывает покупки, но визуально на устройстве ничего не пропадёт
+  // мгновенно. Через какое-то время (когда юзер сбросит настройки или
+  // переустановит приложение) settings обновится из getProfile().
+  migrate(14, () => {
+    let toRefund = []
+    try {
+      // Берём только платные — бесплатные (stands_classic, stands_concrete)
+      // остаются в каталоге как fallback, на случай если active_skin_stands
+      // ссылается на них. Идемпотентность: если миграция гонится повторно
+      // (например после import-export базы), is_active=0 уже пропустит их
+      // в bricks.js GET /api/bricks/skins.
+      toRefund = db.prepare(
+        `SELECT id, price_bricks FROM skins
+         WHERE id LIKE 'stands_%' AND price_bricks > 0`
+      ).all().map(r => r.id)
+    } catch (e) {
+      console.error('[migrate 14] list stands error:', e)
+      return
+    }
+
+    if (toRefund.length === 0) {
+      console.log('[migrate 14] no paid stand skins found, skipping')
+      return
+    }
+
+    const placeholders = toRefund.map(() => '?').join(',')
+    let refundedCount = 0
+
+    try {
+      const owners = db.prepare(
+        `SELECT us.user_id, us.skin_id, s.price_bricks
+         FROM user_skins us JOIN skins s ON s.id = us.skin_id
+         WHERE us.skin_id IN (${placeholders})`
+      ).all(...toRefund)
+
+      const refund = db.transaction(() => {
+        for (const row of owners) {
+          if (row.price_bricks > 0) {
+            const u = db.prepare('SELECT bricks FROM users WHERE id=?').get(row.user_id)
+            if (u) {
+              const newBalance = (u.bricks || 0) + row.price_bricks
+              db.prepare('UPDATE users SET bricks=? WHERE id=?').run(newBalance, row.user_id)
+              db.prepare(
+                'INSERT INTO brick_transactions (user_id, amount, balance_after, reason, ref_id) VALUES (?,?,?,?,?)'
+              ).run(row.user_id, row.price_bricks, newBalance, `refund_skin:${row.skin_id}`, null)
+              refundedCount++
+            }
+          }
+          db.prepare('DELETE FROM user_skins WHERE user_id=? AND skin_id=?').run(row.user_id, row.skin_id)
+        }
+      })
+      refund()
+      console.log(`[migrate 14] refunded ${refundedCount} stand purchases`)
+    } catch (e) { console.error('[migrate 14] refund error:', e) }
+
+    // Сброс активного стенда у юзеров с удалённым активным.
+    // Включаем ВСЕ stand_* (не только платные) — даже если у юзера активен
+    // бесплатный stands_marble (which is paid actually), сбросим в classic.
+    // Фактически переменная toRefund содержит только платные, но это OK —
+    // миграция атомарна и schema_version защитит от повторного запуска.
+    try {
+      db.prepare(
+        `UPDATE users SET active_skin_stands='stands_classic'
+         WHERE active_skin_stands IN (${placeholders})`
+      ).run(...toRefund)
+    } catch {}
+
+    // Мягкое удаление в каталоге — клиент SkinShop.jsx уже не запрашивает
+    // /api/bricks/skins для категории stands (вкладка скрыта), но
+    // is_active=0 защитит от случайной покупки через прямой API call.
+    try {
+      db.prepare(`UPDATE skins SET is_active=0 WHERE id IN (${placeholders})`).run(...toRefund)
+    } catch {}
+  })
+
+  console.log('Schema version: ' + getVersion() + ', миграций: 14')
 }
