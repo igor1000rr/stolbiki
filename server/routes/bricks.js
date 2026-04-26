@@ -3,6 +3,8 @@
  * Issue #3, #8
  *
  * v12: добавлена категория 'background' (5 скинов, default=bg_city_day).
+ * v13: премиум-блоки (gold/diamond/holographic/galaxy) — за кирпичи,
+ *      legendary tier, цены 800-2000.
  *
  * Колонки users.bricks, active_skin_blocks, active_skin_stands, active_skin_background
  * создаются в миграциях 8 и 12. Таблицы brick_transactions / skins / user_skins /
@@ -69,6 +71,16 @@ const seedSkins = [
   { id: 'blocks_pixel',    type: 'blocks', ru: 'Пиксель',   en: 'Pixel',     price: 150, rarity: 'rare' },
   { id: 'blocks_neon',     type: 'blocks', ru: 'Неон',      en: 'Neon',      price: 300, rarity: 'epic' },
   { id: 'blocks_glow',     type: 'blocks', ru: 'Свечение',  en: 'Glow',      price: 350, rarity: 'legendary' },
+  // ─── Премиум-блоки (legendary tier, апр 2026) ───
+  // Цены 800-2000 кирпичей чтобы был долгосрочный grind-таргет для
+  // активных игроков (10 кирпичей за рекламу, 1-5 за победу). Реальные
+  // IAP/Stripe пока не подключены — эти блоки покупаются за заработанные
+  // в игре кирпичи. Если в будущем добавим IAP, легко конвертировать
+  // через дополнительное поле price_usd_cents в skins-таблице.
+  { id: 'blocks_gold',         type: 'blocks', ru: 'Золото',         en: 'Gold',         price: 800,  rarity: 'legendary' },
+  { id: 'blocks_diamond',      type: 'blocks', ru: 'Алмаз',          en: 'Diamond',      price: 1200, rarity: 'legendary' },
+  { id: 'blocks_holographic',  type: 'blocks', ru: 'Голограмма',     en: 'Holographic',  price: 1500, rarity: 'legendary' },
+  { id: 'blocks_galaxy',       type: 'blocks', ru: 'Галактика',      en: 'Galaxy',       price: 2000, rarity: 'legendary' },
   { id: 'stands_classic',  type: 'stands', ru: 'Классика',  en: 'Classic',   price: 0,   rarity: 'common' },
   { id: 'stands_marble',   type: 'stands', ru: 'Мрамор',    en: 'Marble',    price: 60,  rarity: 'common' },
   { id: 'stands_concrete', type: 'stands', ru: 'Бетон',     en: 'Concrete',  price: 40,  rarity: 'common' },
