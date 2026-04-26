@@ -13,6 +13,7 @@ import { filterText } from './routes/globalchat.js'
 import { canChatNow } from './chat-limits.js'
 import { sendPushTo, isPushConfigured } from './push-helpers.js'
 import { detectSkinCollision } from './skin-helpers.js'
+import { checkAchievements } from './achievements.js'
 import {
   handleGoldenRushMessage,
   handleGoldenRushDisconnect,
@@ -42,6 +43,30 @@ function notifySnappyCollision(p1Ws, p2Ws) {
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   // Golden Rush использует БД для persistGameResult — инжектим ссылку.
   setGrDatabase(db)
+
+  /**
+   * Style Twin — инкремент счётчика коллизий скинов и проверка ачивки
+   * для обоих игроков. Колонка style_twin_count добавлена миграцией 15.
+   * Ачивка 'style_twin' определена в achievements.js (требует count >= 1).
+   *
+   * Вызывается после detectSkinCollision на старте онлайн партии — и в
+   * findMatch (рейтинговый matchmaking), и в join (приватная комната).
+   * Игрок получает ачивку только если он залогинен (userId != null).
+   */
+  function awardStyleTwin(userIdA, userIdB) {
+    const stmt = db.prepare(
+      'UPDATE users SET style_twin_count = COALESCE(style_twin_count, 0) + 1 WHERE id=?'
+    )
+    for (const id of [userIdA, userIdB]) {
+      if (!id) continue
+      try {
+        stmt.run(id)
+        checkAchievements(id)
+      } catch (e) {
+        console.warn('[ws] style_twin award error:', e.message)
+      }
+    }
+  }
 
   const server = createServer(app)
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 })
@@ -418,9 +443,11 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.lastMoveTime = Date.now()
 
           // Snappy Block: если оба игрока выбрали одинаковые блоки —
-          // маскот пошутит "Меняй блоки!" обоим клиентам через 1.5 сек.
+          // маскот пошутит "Меняй блоки!" обоим клиентам через 1.5 сек,
+          // и оба получают +1 к style_twin_count + проверку ачивки.
           if (detectSkinCollision(p1.skins, p2.skins)) {
             notifySnappyCollision(p1.ws, p2.ws)
+            awardStyleTwin(p1.userId, p2.userId)
           }
         } else {
           ws.send(JSON.stringify({ type: 'queued', position: matchQueue.length, rating }))
@@ -465,9 +492,10 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           room.players.forEach(p => p.ws.send(startMsg))
 
           // Snappy Block — приватная комната тоже триггерит коллизию.
-          // Тот же detector что в findMatch.
+          // Тот же detector + инкремент style_twin_count что в findMatch.
           if (detectSkinCollision(room.players[0].skins, room.players[1].skins)) {
             notifySnappyCollision(room.players[0].ws, room.players[1].ws)
+            awardStyleTwin(room.players[0].userId, room.players[1].userId)
           }
         } else {
           ws.send(JSON.stringify({ type: 'waiting', players: room.players.map(p => p.name) }))
