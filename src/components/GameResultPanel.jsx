@@ -3,6 +3,19 @@
  * Извлечён из Game.jsx
  * v5.1: TikTok highlight reel кнопка
  * v5.10: интеграция Snappy — фраза маскота под аватаркой по результату
+ *
+ * 26.04.2026 — апр ревизия по обратной связи Александра:
+ * "Под кнопку TikTok добавить кнопку Город побед, которая ведёт в профиль
+ *  в раздел Город побед. Лишний повод зайти в профиль, там прикольно."
+ *
+ * Реализация: новая кнопка "Город побед" / "Victory City" — диспатчит
+ * window event 'stolbiki-go-tab' с tab='profile' + второй event 'open-profile'
+ * с initialTab='city'. App.jsx уже подписан на оба, переключает на профиль
+ * с открытой вкладкой Город. Не зависит от prop-drilling.
+ *
+ * Кнопка не показывается в pvp/spectate-режимах (там нет smyслa "победы
+ * текущего игрока"), и не показывается в online — там после партии
+ * приоритет на rematch/back-to-lobby.
  */
 
 import { useState, lazy, Suspense } from 'react'
@@ -37,6 +50,25 @@ export default function GameResultPanel({
   // Триггер для Snappy: в PvP не показываем (там нет "победителя-игрока")
   // cooldown=false в результате — окно показывается один раз, нужна гарантированная фраза
   const snappyEvent = mode === 'pvp' ? null : (isDraw ? 'draw' : won ? 'victory' : 'defeat')
+
+  // Город побед — есть смысл показывать в одиночных AI-партиях. Не показываем
+  // в pvp (нет привязки к "своему" профилю), spectate (там нет результатов
+  // зрителя) и online (там приоритет rematch/lobby).
+  const showVictoryCityBtn = mode === 'ai' && !tournament
+
+  function openVictoryCity() {
+    API.track('victory_city_from_result', 'game', { won, isDraw })
+    // App.jsx подписан на 'stolbiki-go-tab' (см. App.jsx useEffect) — переключает таб.
+    // Дополнительно через 'open-profile' с userId=current сообщаем какой
+    // initialTab выставить (city). App.jsx подхватывает оба события.
+    window.dispatchEvent(new CustomEvent('stolbiki-go-tab', { detail: 'profile' }))
+    try {
+      const profile = JSON.parse(localStorage.getItem('stolbiki_profile') || '{}')
+      if (profile?.id) {
+        window.dispatchEvent(new CustomEvent('open-profile', { detail: { userId: profile.id } }))
+      }
+    } catch {}
+  }
 
   async function doShare() {
     try {
@@ -175,6 +207,15 @@ export default function GameResultPanel({
             style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center',
               borderColor: '#ff0050', color: '#ff0050' }}>
             🎬 TikTok
+          </button>
+        )}
+
+        {/* ─── Город побед — лишний повод заглянуть в профиль ─── */}
+        {showVictoryCityBtn && (
+          <button className="btn" onClick={openVictoryCity}
+            style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center',
+              borderColor: 'var(--gold)', color: 'var(--gold)' }}>
+            🏙️ {en ? 'Victory City' : 'Город побед'}
           </button>
         )}
 
