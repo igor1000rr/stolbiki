@@ -19,6 +19,11 @@
  * Analytics: каждый фактический показ (после cooldown check) трекается
  * через API.track('snappy_shown', variant, { event, pose, textLen }) —
  * это даёт метрику какие фразы заходят и не спамим ли мы.
+ *
+ * 26.04.2026 — апр ревизия по обратной связи Александра:
+ * "Snappy который выскакивает сделать больше в 2 раза, чтобы было понятно
+ *  что енот пролетает". Размеры в corner-варианте удвоены: 64→128,
+ *  font 14→16, max-width 240→360, padding +30%.
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
@@ -32,10 +37,6 @@ const SNAPPY_EVENT_NAME = 'snappy:trigger'
 /**
  * Глобальный триггер Snappy. Можно звать из любого места — Game.jsx, движка,
  * WS-обработчиков. SnappyOverlay подхватит и покажет реакцию.
- *
- * Пример:
- *   import { triggerSnappy } from './Snappy'
- *   triggerSnappy('tower_takeover')
  */
 export function triggerSnappy(event) {
   if (typeof window === 'undefined') return
@@ -55,8 +56,6 @@ export default function Snappy({
   const timerRef = useRef(null)
   const onDoneRef = useRef(onDone)
 
-  // Синхронизация onDoneRef с актуальной пропсой — внутри useEffect чтобы не
-  // мутировать ref во время рендера (react-hooks/refs warning).
   useEffect(() => {
     onDoneRef.current = onDone
   }, [onDone])
@@ -72,9 +71,6 @@ export default function Snappy({
     setPhrase(p)
     setVisible(true)
 
-    // Аналитика: фиксируем конкретно какие фразы/позы срабатывают, чтобы
-    // потом в админке увидеть топ-event и понять что убрать/добавить.
-    // textLen вместо text — не пихаем ru/en-зависимый контент в events БД.
     try {
       track('snappy_shown', variant, {
         event,
@@ -84,10 +80,8 @@ export default function Snappy({
       })
     } catch {}
 
-    // Автоскрытие
     timerRef.current = setTimeout(() => {
       setVisible(false)
-      // Колбек чуть позже — после анимации скрытия
       setTimeout(() => { onDoneRef.current?.() }, 250)
     }, duration)
 
@@ -98,7 +92,9 @@ export default function Snappy({
 
   if (!phrase || !visible) return null
 
-  // Inline вариант — для встройки внутрь карточки результата
+  // Inline вариант — для встройки внутрь карточки результата.
+  // Размер не меняли — здесь Snappy уже на видном месте, рядом с большой
+  // картинкой результата. Удваивать имеет смысл только в corner.
   if (variant === 'inline') {
     return (
       <div style={{
@@ -118,7 +114,9 @@ export default function Snappy({
     )
   }
 
-  // Corner вариант — overlay снизу-справа поверх игры
+  // Corner вариант — overlay снизу-справа поверх игры. Удвоен в апр 2026 по
+  // запросу Александра: "сделать больше в 2 раза чтобы было понятно что енот
+  // пролетает". Маскот 128px вместо 64 — теперь действительно "пролетает".
   return (
     <div
       role="status"
@@ -130,29 +128,29 @@ export default function Snappy({
         zIndex: 1400, // ниже модалки результата (1500), но поверх игрового поля
         display: 'flex',
         alignItems: 'flex-end',
-        gap: 8,
+        gap: 10,
         pointerEvents: 'none',
         animation: 'snappy-slide-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
         maxWidth: 'calc(100vw - 32px)',
       }}
     >
       <div style={{
-        padding: '8px 14px',
-        borderRadius: 16,
+        padding: '12px 18px',          /* было 8/14 — крупнее под x2 маскот */
+        borderRadius: 20,
         borderBottomRightRadius: 4,
         background: 'linear-gradient(135deg, rgba(40,40,55,0.95), rgba(30,30,40,0.98))',
         color: '#ffe7b3',
-        fontSize: 14,
+        fontSize: 16,                  /* было 14 */
         fontWeight: 600,
         fontStyle: 'italic',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
         border: '1px solid rgba(255,193,69,0.35)',
-        maxWidth: 240,
-        lineHeight: 1.3,
+        maxWidth: 360,                 /* было 240 — больше места под текст */
+        lineHeight: 1.35,
       }}>
         {phrase.text}
       </div>
-      <Mascot pose={phrase.pose} size={64} animate />
+      <Mascot pose={phrase.pose} size={128} animate />  {/* было 64 */}
       <style>{`
         @keyframes snappy-slide-in {
           from { opacity: 0; transform: translateY(20px) scale(0.9); }
