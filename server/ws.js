@@ -22,6 +22,40 @@ import {
 // ═══ Per-IP connection limit ═══
 const MAX_CONN_PER_IP = 5
 
+/**
+ * Snappy Block — детектор коллизии скинов блоков у двух игроков.
+ * Часть Customization Rework Часть 2 (по ТЗ Александра, апр 2026):
+ * "Snappy Block если у двух игроков одинаковые скины — Меняй блоки!"
+ *
+ * Возвращает true если оба игрока выбрали один и тот же скин блоков.
+ * Сравниваем по blocks (новый ключ от SkinShop v5.5+) и chipStyle
+ * (legacy ключ для backward-compat). Игнорируем stands и background —
+ * Александр явно про блоки писал.
+ */
+function detectSkinCollision(skinsA, skinsB) {
+  if (!skinsA || !skinsB) return false
+  const a = skinsA.blocks || skinsA.chipStyle
+  const b = skinsB.blocks || skinsB.chipStyle
+  if (!a || !b) return false
+  return a === b
+}
+
+/**
+ * Отправить обоим игрокам команду триггерить Snappy. Клиент в
+ * useOnlineGameHandlers ловит { type: 'snappyTrigger', event: 'skin_collision' }
+ * и через triggerSnappy(event) пускает SnappyOverlay.
+ *
+ * Задержка 1500мс после startMsg — чтобы маскот появился ПОСЛЕ того
+ * как UI игры отрисовался, иначе он висит над пустым полем.
+ */
+function notifySnappyCollision(p1Ws, p2Ws) {
+  setTimeout(() => {
+    const msg = JSON.stringify({ type: 'snappyTrigger', event: 'skin_collision' })
+    try { if (p1Ws?.readyState === 1) p1Ws.send(msg) } catch {}
+    try { if (p2Ws?.readyState === 1) p2Ws.send(msg) } catch {}
+  }, 1500)
+}
+
 export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
   // Golden Rush использует БД для persistGameResult — инжектим ссылку.
   setGrDatabase(db)
@@ -399,6 +433,12 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
           const startMsg = JSON.stringify({ type: 'start', players: [p1.name, p2.name], playerSkins: [p1.skins, p2.skins], ratings: [p1.rating, p2.rating], firstPlayer: 0, scores: [0, 0], currentGame: 1, timer: room.timer })
           p1.ws.send(startMsg); p2.ws.send(startMsg)
           room.lastMoveTime = Date.now()
+
+          // Snappy Block: если оба игрока выбрали одинаковые блоки —
+          // маскот пошутит "Меняй блоки!" обоим клиентам через 1.5 сек.
+          if (detectSkinCollision(p1.skins, p2.skins)) {
+            notifySnappyCollision(p1.ws, p2.ws)
+          }
         } else {
           ws.send(JSON.stringify({ type: 'queued', position: matchQueue.length, rating }))
         }
@@ -440,6 +480,12 @@ export function setupWebSocket(app, { JWT_SECRET, rooms, matchQueue, db }) {
             firstPlayer: 0,
           })
           room.players.forEach(p => p.ws.send(startMsg))
+
+          // Snappy Block — приватная комната тоже триггерит коллизию.
+          // Тот же detector что в findMatch.
+          if (detectSkinCollision(room.players[0].skins, room.players[1].skins)) {
+            notifySnappyCollision(room.players[0].ws, room.players[1].ws)
+          }
         } else {
           ws.send(JSON.stringify({ type: 'waiting', players: room.players.map(p => p.name) }))
         }
