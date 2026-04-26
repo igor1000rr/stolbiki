@@ -12,6 +12,7 @@ import { parseRaw, sanitizeChat, sanitizeEmoji, sanitizeRoomId, sanitizeTimer } 
 import { filterText } from './routes/globalchat.js'
 import { canChatNow } from './chat-limits.js'
 import { sendPushTo, isPushConfigured } from './push-helpers.js'
+import { detectSkinCollision } from './skin-helpers.js'
 import {
   handleGoldenRushMessage,
   handleGoldenRushDisconnect,
@@ -21,24 +22,6 @@ import {
 
 // ═══ Per-IP connection limit ═══
 const MAX_CONN_PER_IP = 5
-
-/**
- * Snappy Block — детектор коллизии скинов блоков у двух игроков.
- * Часть Customization Rework Часть 2 (по ТЗ Александра, апр 2026):
- * "Snappy Block если у двух игроков одинаковые скины — Меняй блоки!"
- *
- * Возвращает true если оба игрока выбрали один и тот же скин блоков.
- * Сравниваем по blocks (новый ключ от SkinShop v5.5+) и chipStyle
- * (legacy ключ для backward-compat). Игнорируем stands и background —
- * Александр явно про блоки писал.
- */
-function detectSkinCollision(skinsA, skinsB) {
-  if (!skinsA || !skinsB) return false
-  const a = skinsA.blocks || skinsA.chipStyle
-  const b = skinsB.blocks || skinsB.chipStyle
-  if (!a || !b) return false
-  return a === b
-}
 
 /**
  * Отправить обоим игрокам команду триггерить Snappy. Клиент в
