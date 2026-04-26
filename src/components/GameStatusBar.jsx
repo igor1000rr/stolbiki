@@ -6,6 +6,10 @@
  * - turnIndicator — только для pvp/spectate/online режимов
  * - timerRow — только если установлен timerLimit
  * - turnCounter — всегда, пока идёт игра
+ *
+ * 26.04.2026 — апр ревизия: цвет шрифта статус-бара и сессии изменён с ink3
+ * на ink2 — Александр сказал что слишком бледный, не видно на светлой теме.
+ * "Сделать как у New Game" → btn использует ink2.
  */
 export default function GameStatusBar({
   // общее
@@ -24,7 +28,7 @@ export default function GameStatusBar({
   return (
     <>
       {(sessionStats.wins > 0 || sessionStats.losses > 0) && (
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink3)' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: isNative ? 2 : 8, fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>
           <span>{en ? 'Wins' : 'Побед'}: <b style={{ color: 'var(--green)' }}>{sessionStats.wins}</b></span>
           <span>{en ? 'Losses' : 'Поражений'}: <b style={{ color: 'var(--p2)' }}>{sessionStats.losses}</b></span>
           {sessionStats.streak > 1 && <span>{en ? 'Streak' : 'Серия'}: <b style={{ color: 'var(--gold)' }}>{sessionStats.streak}</b></span>}
@@ -51,19 +55,19 @@ export default function GameStatusBar({
       {timerLimit > 0 && !gs.gameOver && (
         <div style={{ display: 'flex', justifyContent: 'space-between', margin: isNative ? '2px 12px 4px' : '4px 16px 8px', fontSize: isNative ? 12 : 13, fontFamily: 'monospace' }}>
           <div style={{
-            color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink3)',
-            fontWeight: gs.currentPlayer === 0 ? 700 : 400,
+            color: gs.currentPlayer === 0 ? 'var(--p1)' : 'var(--ink2)',
+            fontWeight: gs.currentPlayer === 0 ? 700 : 500,
             opacity: playerTime[0] < 30 && gs.currentPlayer === 0 ? (playerTime[0] % 2 ? 1 : 0.5) : 1,
           }}>
             {Math.floor(playerTime[0] / 60)}:{String(playerTime[0] % 60).padStart(2, '0')}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--ink3)', alignSelf: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--ink2)', alignSelf: 'center' }}>
             {userSettings.timer === 'blitz' ? '3+0' : userSettings.timer === 'rapid' ? '10+0' : '30+0'}
             {modifiers.blitz && <span style={{ color: '#ff9800', marginLeft: 4 }}>⚡пас</span>}
           </div>
           <div style={{
-            color: gs.currentPlayer === 1 ? 'var(--p2)' : 'var(--ink3)',
-            fontWeight: gs.currentPlayer === 1 ? 700 : 400,
+            color: gs.currentPlayer === 1 ? 'var(--p2)' : 'var(--ink2)',
+            fontWeight: gs.currentPlayer === 1 ? 700 : 500,
             opacity: playerTime[1] < 30 && gs.currentPlayer === 1 ? (playerTime[1] % 2 ? 1 : 0.5) : 1,
           }}>
             {Math.floor(playerTime[1] / 60)}:{String(playerTime[1] % 60).padStart(2, '0')}
@@ -73,8 +77,10 @@ export default function GameStatusBar({
 
       <div style={{
         textAlign: 'center', fontSize: isNative ? 10 : 11,
-        color: 'var(--ink3)', padding: isNative ? '3px 8px' : '4px 8px',
+        color: 'var(--ink2)',                    /* было ink3 — темнее */
+        padding: isNative ? '3px 8px' : '4px 8px',
         minHeight: isNative ? 16 : 18,
+        fontWeight: 500,
       }}>
         {t('game.turn')} {gs.turn} · {Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,'0')}
         {phase === 'place' && !gs.isFirstTurn() && isMyTurn && (
