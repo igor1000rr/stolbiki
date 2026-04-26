@@ -9,6 +9,13 @@
  *   VictoryCityControls.jsx — Photo Mode, Saved Views, Time Presets
  *
  * Fallback: WebGL error → VictoryCity2D.
+ *
+ * 26.04.2026 — апр ревизия по обратной связи Александра:
+ * - "Землю у города сделать днём зелёной, ночью темно-зелёной":
+ *   getGroundColor(timeOfDay) возвращает оттенок зелёного, useEffect
+ *   обновляет цвет ground.material при смене пресета.
+ * - "Snappy вылетает прям на уровне города": локальный <Snappy
+ *   variant='anchored'> внутри 3D-контейнера вместо global fixed overlay.
  */
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -27,9 +34,29 @@ import { makeStarTexture, makeRoadTexture, makeSoftDotTexture } from './victoryC
 import VictoryCityStats from './VictoryCityStats'
 import VictoryCityTowerDetail from './VictoryCityTowerDetail'
 import VictoryCityControls from './VictoryCityControls'
+import Snappy from './Snappy'
 
 const VictoryCity2D = lazy(() => import('./VictoryCity2D'))
 const HallOfFame = lazy(() => import('./HallOfFame'))
+
+/**
+ * Цвет земли в зависимости от времени суток.
+ * По обратной связи Александра: "Землю у города сделать днём зелёной,
+ * ночью темно-зелёной".
+ *
+ * Раньше был хардкод 0x0d0d22 (тёмно-фиолетовый) — выглядел как асфальт
+ * 24/7, не передавал смену времени суток.
+ */
+function getGroundColor(timeOfDay) {
+  switch (timeOfDay) {
+    case 'day':       return 0x4a7a32  // ярко-зелёный газон, солнечный день
+    case 'dawn':      return 0x3a6228  // утренний, чуть приглушённее
+    case 'dusk':      return 0x2e4a1e  // закатный полумрак
+    case 'night_neon':return 0x152a14  // киберпанк-ночь, насыщеннее
+    case 'night':
+    default:          return 0x1a3a18  // тёмно-зелёный, ночь
+  }
+}
 
 export default function VictoryCity({ userId }) {
   const { lang } = useI18n()
@@ -95,6 +122,16 @@ export default function VictoryCity({ userId }) {
     if (!t?.applyFilter) return
     t.applyFilter(buildingFilter)
   }, [buildingFilter])
+
+  // При смене времени суток меняем цвет земли через сохранённую ссылку
+  // в threeRef.ground. setHex даёт мгновенный переход — гармонирует
+  // с резкой сменой пресета через UI.
+  useEffect(() => {
+    const t = threeRef.current
+    if (!t?.ground?.material) return
+    t.ground.material.color.setHex(getGroundColor(timeOfDay))
+    t.ground.material.needsUpdate = true
+  }, [timeOfDay])
 
   useEffect(() => {
     const t = threeRef.current
@@ -180,9 +217,16 @@ export default function VictoryCity({ userId }) {
         rim.position.set(centerX - 20, 15, centerZ - 20)
         scene.add(rim)
 
+        // Цвет земли зависит от timeOfDay (день — зелёный, ночь — тёмно-зелёный).
+        // Ссылку сохраняем в threeRef ниже чтобы useEffect мог менять цвет
+        // при переключении пресета без полного перерендера сцены.
         const ground = new THREE.Mesh(
           new THREE.PlaneGeometry(200, 200),
-          new THREE.MeshStandardMaterial({ color: 0x0d0d22, roughness: 0.85, metalness: 0.1 }),
+          new THREE.MeshStandardMaterial({
+            color: getGroundColor(timeOfDay),
+            roughness: 0.85,
+            metalness: 0.1,
+          }),
         )
         ground.rotation.x = -Math.PI / 2
         ground.position.y = -0.01
@@ -893,6 +937,7 @@ export default function VictoryCity({ userId }) {
 
         threeRef.current = {
           scene, camera, renderer, controls, onResize, onVisibility, io,
+          ground,                                /* для useEffect [timeOfDay] */
           floorGeo, crownGeo, windowGeo, windowMat, windowsMesh,
           starTex, roadTex, dotTex, smoke, smokeGeo, smokeMat,
           weather, weatherGeo, weatherMat, rafRef,
@@ -1282,6 +1327,21 @@ export default function VictoryCity({ userId }) {
                 borderRadius: 6, padding: '4px 8px', fontSize: 11,
                 color: 'var(--ink3)', cursor: 'pointer', zIndex: 5,
               }}>🗺</button>
+          )}
+
+          {/* Локальный Snappy — "вылетает прям на уровне города" по запросу
+              Александра. variant='anchored' = position: absolute внутри
+              контейнера 3D-сцены, не глобальный fixed overlay. cooldown=false
+              чтобы гарантированно показать при заходе в город. Скрываем
+              во время записи/таймлапса чтобы не мешать UI. */}
+          {!isTimelapsing && !isRecording && (
+            <Snappy
+              event="victory_city"
+              lang={lang}
+              variant="anchored"
+              cooldown={false}
+              duration={4000}
+            />
           )}
         </div>
       )}
