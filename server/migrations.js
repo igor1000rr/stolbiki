@@ -190,11 +190,6 @@ export function runMigrations(db) {
   migrate(14, () => {
     let toRefund = []
     try {
-      // Берём только платные — бесплатные (stands_classic, stands_concrete)
-      // остаются в каталоге как fallback, на случай если active_skin_stands
-      // ссылается на них. Идемпотентность: если миграция гонится повторно
-      // (например после import-export базы), is_active=0 уже пропустит их
-      // в bricks.js GET /api/bricks/skins.
       toRefund = db.prepare(
         `SELECT id, price_bricks FROM skins
          WHERE id LIKE 'stands_%' AND price_bricks > 0`
@@ -239,11 +234,6 @@ export function runMigrations(db) {
       console.log(`[migrate 14] refunded ${refundedCount} stand purchases`)
     } catch (e) { console.error('[migrate 14] refund error:', e) }
 
-    // Сброс активного стенда у юзеров с удалённым активным.
-    // Включаем ВСЕ stand_* (не только платные) — даже если у юзера активен
-    // бесплатный stands_marble (which is paid actually), сбросим в classic.
-    // Фактически переменная toRefund содержит только платные, но это OK —
-    // миграция атомарна и schema_version защитит от повторного запуска.
     try {
       db.prepare(
         `UPDATE users SET active_skin_stands='stands_classic'
@@ -251,13 +241,18 @@ export function runMigrations(db) {
       ).run(...toRefund)
     } catch {}
 
-    // Мягкое удаление в каталоге — клиент SkinShop.jsx уже не запрашивает
-    // /api/bricks/skins для категории stands (вкладка скрыта), но
-    // is_active=0 защитит от случайной покупки через прямой API call.
     try {
       db.prepare(`UPDATE skins SET is_active=0 WHERE id IN (${placeholders})`).run(...toRefund)
     } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 14')
+  // Счётчик коллизий скинов (Snappy Block) — для ачивки 'style_twin'.
+  // Инкремент происходит в server/ws.js при detectSkinCollision на старте
+  // онлайн партии. Хранится в users чтобы можно было считать персонально
+  // и для ачивки и для возможной будущей статистики.
+  migrate(15, () => {
+    try { db.exec('ALTER TABLE users ADD COLUMN style_twin_count INTEGER DEFAULT 0') } catch {}
+  })
+
+  console.log('Schema version: ' + getVersion() + ', миграций: 15')
 }
