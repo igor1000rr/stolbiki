@@ -32,7 +32,10 @@ import HintPanel from './HintPanel'
 import GameLog from './GameLog'
 import ConfettiOverlay from './ConfettiOverlay'
 import TournamentBanner from './TournamentBanner'
-import MobileGameBar from './MobileGameBar'
+// MobileGameBar заменён на GameModeBar (апр 2026 ревизия Александра):
+// текстовая строка "Player vs AI • Medium" + модификаторы по центру, без
+// кнопки шестерни (она переехала в GameActionsTop как Settings/City Style).
+import GameModeBar from './GameModeBar'
 import MobileSettingsSheet from './MobileSettingsSheet'
 import GameScoreboard from './GameScoreboard'
 import GameOnlineBanners from './GameOnlineBanners'
@@ -619,21 +622,28 @@ export default function Game() {
         />
       )}
 
-      {/* Мелкие кнопки состояния (New/Undo/Resign/Offer Draw) — НАД MobileGameBar,
-          чтобы не мешали играть. По ТЗ Александра (апр 2026) — рядом
-          с игровыми кнопками они могут запороть игру. */}
+      {/* Мелкие кнопки состояния (New/Undo/Resign/Offer Draw) + Settings + City Style.
+          По ТЗ Александра (апр 2026): Settings и City Style — справа от New Game/Resign,
+          City Style — золотая (акцент в сторону монетизации). Settings показывается
+          только на native (на desktop селекты mode/diff в GameDesktopControls). */}
       <GameActionsTop
-        mode={mode} undoStack={undoStack} gameOver={gs.gameOver} t={t}
+        mode={mode} undoStack={undoStack} gameOver={gs.gameOver} t={t} en={en}
+        isNative={isNative}
         onNewGame={() => newGame()}
         onUndo={undoMove}
         onResign={resign}
         onOfferDraw={() => { MP.send({ type: 'drawOffer' }); setInfo(t('game.drawOffered')) }}
+        onOpenSettings={() => setShowMobileSettings(true)}
+        onOpenCityStyle={() => gameCtx?.emit('openSkinShop')}
       />
 
-      <MobileGameBar
-        isNative={isNative} mode={mode} difficulty={difficulty}
-        modifiers={modifiers} humanPlayer={humanPlayer} lang={lang} t={t}
-        onSettingsOpen={() => setShowMobileSettings(true)}
+      {/* Текстовая строка "Player vs AI • Medium" + модификаторы — под кнопками.
+          Заменила старый MobileGameBar (бейдж сложности слева + шестерня).
+          Шестерня переехала в GameActionsTop как Settings. */}
+      <GameModeBar
+        mode={mode} difficulty={difficulty} modifiers={modifiers}
+        lang={lang} t={t} en={en}
+        onSettingsOpen={isNative ? () => setShowMobileSettings(true) : undefined}
       />
 
       <MobileSettingsSheet
