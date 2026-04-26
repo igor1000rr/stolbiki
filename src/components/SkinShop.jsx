@@ -21,10 +21,9 @@
  *   (default+night). Остальные пока используют bg_city_night по умолчанию,
  *   расширим когда добавим больше фонов.
  *
- * НЕ сделано здесь (требует backend):
- * - Snappy Block для одинаковых скинов у двух игроков
- * - Миграция БД 14: рефанд кирпичей за купленные стенды
- * - Новые премиум-блоки (золото, алмаз, $1.5+)
+ * 26.04.2026 (продолжение, v5.10): премиум-блоки legendary tier —
+ * Gold/Diamond/Holographic/Galaxy за 800/1200/1500/2000 кирпичей.
+ * Серверный сид в bricks.js обновлён в том же commit-сете.
  *
  * v5.2: bricks с сервера, кнопка Rewarded только в native / DEV
  * v5.5: 3D превью активного скина в вкладке Блоки
@@ -70,6 +69,33 @@ const CHIP_SKINS = [
     css0: '#4a9eff', css1: '#ff6066',
     shadow: '0 0 8px rgba(74,158,255,0.5), 0 0 16px rgba(74,158,255,0.3)',
     shadow1: '0 0 8px rgba(255,96,102,0.5), 0 0 16px rgba(255,96,102,0.3)', radius: 7 },
+
+  // ─── Премиум-блоки legendary tier (апр 2026) ───
+  // Долгосрочные grind-таргеты. Цены 800-2000 кирпичей. Каталог на сервере
+  // обновлён в том же commit-сете (server/routes/bricks.js v13).
+  { id: 'blocks_gold', legacyId: 'gold', ru: 'Золото', en: 'Gold', level: 18, price: 800, rarity: 'legendary',
+    // Полированное золото с горячей подсветкой сверху и тенью снизу.
+    css0: 'linear-gradient(180deg, #fff4a0 0%, #ffd34a 35%, #d4901a 70%, #b8860b 100%)',
+    css1: 'linear-gradient(180deg, #ffd34a 0%, #d4901a 50%, #8b6508 100%)',
+    shadow: '0 2px 4px rgba(184,134,11,0.6), inset 0 1px 0 rgba(255,255,255,0.7), 0 0 6px rgba(255,193,69,0.3)', radius: 7 },
+
+  { id: 'blocks_diamond', legacyId: 'diamond', ru: 'Алмаз', en: 'Diamond', level: 22, price: 1200, rarity: 'legendary',
+    // Алмазная грань с холодным белым отражением.
+    css0: 'linear-gradient(135deg, #b0e8ff 0%, #80d0f0 25%, #ffffff 50%, #80d0f0 75%, #b0e8ff 100%)',
+    css1: 'linear-gradient(135deg, #ffd0e8 0%, #ffa0c8 25%, #ffffff 50%, #ffa0c8 75%, #ffd0e8 100%)',
+    shadow: '0 0 12px rgba(176,232,255,0.6), inset 0 2px 0 rgba(255,255,255,0.9)', radius: 7 },
+
+  { id: 'blocks_holographic', legacyId: 'holographic', ru: 'Голограмма', en: 'Holographic', level: 25, price: 1500, rarity: 'legendary',
+    // Радужный голографический градиент — переливается всеми цветами.
+    css0: 'linear-gradient(135deg, #ff80ff 0%, #80ffff 25%, #ffff80 50%, #80ff80 75%, #ff80ff 100%)',
+    css1: 'linear-gradient(135deg, #ffff80 0%, #ff80ff 25%, #80ffff 50%, #ff80c0 75%, #ffff80 100%)',
+    shadow: '0 0 16px rgba(255,128,255,0.5), 0 0 8px rgba(128,255,255,0.5)', radius: 7 },
+
+  { id: 'blocks_galaxy', legacyId: 'galaxy', ru: 'Галактика', en: 'Galaxy', level: 30, price: 2000, rarity: 'legendary',
+    // Галактический фиолет с глубокими переходами и пыльным свечением.
+    css0: 'linear-gradient(135deg, #1a0040 0%, #5a00a0 30%, #9040ff 50%, #5a00a0 70%, #1a0040 100%)',
+    css1: 'linear-gradient(135deg, #400a40 0%, #a040a0 30%, #ff80ff 50%, #a040a0 70%, #400a40 100%)',
+    shadow: '0 0 12px rgba(144,64,255,0.5), inset 0 0 4px rgba(255,255,255,0.4)', radius: 7 },
 ]
 
 // STAND_SKINS оставлен в коде для backward-совместимости: купленные ранее
