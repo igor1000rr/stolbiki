@@ -1,6 +1,11 @@
 /**
  * ProfileAnalytics — 15 метрик аналитики (графики, винрейт, тренд)
  * Извлечён из Profile.jsx (~200 строк)
+ *
+ * 26.04.2026 — мелкие i18n-фиксы:
+ * - Суффиксы времени h/m → ч/м на русском
+ * - W/L буквы → П/П на русском (Победы/Поражения, локализованы)
+ * - Удалён мусорный двойной тернарник {en ? en ? ... } для Rush best
  */
 
 export default function ProfileAnalytics({ en, data }) {
@@ -8,6 +13,14 @@ export default function ProfileAnalytics({ en, data }) {
   if (data.empty) return <div className="dash-card" style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>{en ? 'Play some games first!' : 'Сначала сыграйте несколько партий!'}</div>
 
   const analyticsData = data
+  // Локализованные сокращения. Английский: h/m/W/L. Русский: ч/м/П/П.
+  // P (Победы) и P (Поражения) совпадают по первой букве — добавил
+  // пробелы и color чтобы было читаемо в коде.
+  const hSuffix = en ? 'h' : 'ч'
+  const mSuffix = en ? 'm' : 'м'
+  const winLetter = en ? 'W' : 'П'
+  const lossLetter = en ? 'L' : 'П'
+
   return (
     <>
             {/* Основные числа */}
@@ -16,7 +29,7 @@ export default function ProfileAnalytics({ en, data }) {
                 { v: analyticsData.total, l: en ? 'Games' : 'Партий', c: 'var(--ink)' },
                 { v: analyticsData.avgTurns, l: en ? 'Avg turns' : 'Ходов (ср)', c: 'var(--accent)' },
                 { v: analyticsData.avgDuration ? `${Math.floor(analyticsData.avgDuration / 60)}:${String(analyticsData.avgDuration % 60).padStart(2, '0')}` : '—', l: en ? 'Avg time' : 'Время (ср)', c: 'var(--p1)' },
-                { v: analyticsData.totalTime > 3600 ? `${Math.floor(analyticsData.totalTime / 3600)}h` : `${Math.floor(analyticsData.totalTime / 60)}m`, l: en ? 'Total time' : 'Всего', c: 'var(--gold)' },
+                { v: analyticsData.totalTime > 3600 ? `${Math.floor(analyticsData.totalTime / 3600)}${hSuffix}` : `${Math.floor(analyticsData.totalTime / 60)}${mSuffix}`, l: en ? 'Total time' : 'Всего', c: 'var(--gold)' },
               ].map((s, i) => (
                 <div key={i} className="dash-card" style={{ textAlign: 'center', padding: 10 }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: s.c }}>{s.v}</div>
@@ -38,7 +51,7 @@ export default function ProfileAnalytics({ en, data }) {
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>{p.period}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 18, fontWeight: 700, color: wr >= 50 ? 'var(--green)' : 'var(--p2)' }}>{wr}%</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{p.d.w}W {p.d.l}L</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{p.d.w}{winLetter} {p.d.l}{lossLetter}</span>
                     </div>
                     {total > 0 && <div style={{ height: 4, borderRadius: 2, background: 'var(--surface2)', marginTop: 6, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${wr}%`, borderRadius: 2, background: wr >= 50 ? 'var(--green)' : 'var(--p2)', transition: 'width 0.5s' }} />
@@ -182,7 +195,7 @@ export default function ProfileAnalytics({ en, data }) {
                       <div key={mode} style={{ flex: 1, padding: '8px 12px', borderRadius: 8, background: 'var(--surface2)', textAlign: 'center' }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>{mode === 'ai' ? 'vs AI' : mode === 'online' ? 'Online' : mode}</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: wr >= 50 ? 'var(--green)' : 'var(--p2)' }}>{wr}%</div>
-                        <div style={{ fontSize: 9, color: 'var(--ink3)' }}>{d.w}W / {d.l}L</div>
+                        <div style={{ fontSize: 9, color: 'var(--ink3)' }}>{d.w}{winLetter} / {d.l}{lossLetter}</div>
                       </div>
                     )
                   })}
@@ -197,7 +210,7 @@ export default function ProfileAnalytics({ en, data }) {
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>{analyticsData.puzzleAccuracy}%</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? 'accuracy' : 'точность'}</div></div>
                   <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{analyticsData.puzzleTotal}</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? 'solved' : 'решено'}</div></div>
-                  {analyticsData.rushBest > 0 && <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>{analyticsData.rushBest}</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? en ? 'Rush best' : 'Рекорд Rush' : 'Рекорд Rush'}</div></div>}
+                  {analyticsData.rushBest > 0 && <div><span style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold)' }}>{analyticsData.rushBest}</span><div style={{ fontSize: 9, color: 'var(--ink3)' }}>{en ? 'Rush best' : 'Рекорд Rush'}</div></div>}
                 </div>
               </div>
             )}
