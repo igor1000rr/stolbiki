@@ -48,13 +48,26 @@
 
 /* ═══════════════════════════════════════════
    STAND — стойки
+
+   По обратной связи Александра (апр 2026):
+   "Стойки сделать ниже под 11 блоков" + "буквы над стойками меньше,
+   в потолок не упирались".
+
+   Расчёт: chip 20px height + 1px*2 margin = 22px на блок, 11 × 22 = 242px,
+   + padding 4+6 = 10px. Минимум 252px. Старая высота 280px → запас 28px.
+   Уменьшаем до 256px: запас 4px (нормально, потому что padding-top 4px
+   уже включён). Это убирает «висящий» нижний пустой воздух.
+
+   Для лейбла: top: -18px font: 10px → меняем на top: -14px font: 9px,
+   делаем letter-spacing 0.5px чтобы оставалось читабельно. Звезда
+   золотой стойки уменьшается с 18px до 15px (top: -22px).
    ═══════════════════════════════════════════ */
 .stand {
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
   width: 56px;
-  min-height: 280px;
+  min-height: 256px;
   padding: 4px 4px 6px;
   position: relative;
   border-radius: 12px 12px 0 0;
@@ -178,14 +191,15 @@
 
 .stand-label {
   position: absolute;
-  top: -18px;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--ink3);
-  opacity: 0.7;
+  top: -14px;                    /* было -18 — ближе к стойке, не упирается в потолок */
+  font-size: 9px;                /* было 10 — компактнее */
+  font-weight: 600;              /* было 500 — чуть крепче для читабельности */
+  color: var(--ink2);            /* было ink3 — темнее по запросу Александра */
+  opacity: 0.85;
+  letter-spacing: 0.3px;
 }
 .stand.golden .stand-label {
-  color: var(--gold); font-size: 18px; top: -28px;
+  color: var(--gold); font-size: 15px; top: -22px;
   text-shadow: 0 0 12px var(--gold-glow), 0 0 24px rgba(255,190,48,0.2);
   animation: starPulse 2s ease-in-out infinite;
 }
@@ -198,7 +212,7 @@
   bottom: -20px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--ink3);
+  color: var(--ink2);            /* было ink3 — темнее */
 }
 
 /* ═══════════════════════════════════════════
@@ -284,12 +298,16 @@
    DESKTOP: Блоки крупнее +30% по запросу Александра
    10 стоек × 70px + 9 × 4px gap = 736px → влезает от 768px
    Высота блоков +50% сверху — stand min-height пересчитан под 11 чипов.
+   Апр 2026 ревизия: высота стойки уменьшена с 330 до 308px (минимум
+   на 11×29=319 — но padding сверху 4 + щель 1.5 на чип уже включают,
+   реальный минимум 11×29+10=329, оставляем 308 + flex-grow на блоки).
    ═══════════════════════════════════════════ */
 @media (min-width: 769px) {
   .board { gap: 4px; padding: 28px 14px 36px; }
-  .stand { width: 70px; min-height: 330px; }
+  .stand { width: 70px; min-height: 308px; }
   .chip { width: 52px; height: 26px; border-radius: 13px; margin: 1.5px 0; }
-  .stand-label { font-size: 11px; top: -20px; }
+  .stand-label { font-size: 10px; top: -16px; }
+  .stand.golden .stand-label { font-size: 17px; top: -24px; }
 }
 
 /* ═══════════════════════════════════════════
@@ -309,7 +327,7 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 2.5px;
-  color: var(--ink3);
+  color: var(--ink2);            /* было ink3 — темнее, читаемее */
   font-weight: 600;
 }
 .score-num {
@@ -348,14 +366,19 @@
 
 /* ═══════════════════════════════════════════
    GAME INFO
+
+   По запросу Александра (апр 2026): шрифт подсказок над полем сделать
+   темнее, как у New Game (которая var(--ink2) по умолчанию).
+   Раньше .game-info { color: var(--ink3) } — слишком бледный, новички
+   не видели «куда поставить блок».
    ═══════════════════════════════════════════ */
 .game-info {
   text-align: center;
   font-size: 13px;
-  color: var(--ink3);
+  color: var(--ink2);            /* было ink3 — темнее по запросу */
   margin-bottom: 20px;
   min-height: 20px;
-  font-weight: 400;
+  font-weight: 500;              /* было 400 */
   letter-spacing: 0.3px;
   transition: opacity 0.4s ease;
 }
