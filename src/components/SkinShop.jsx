@@ -4,6 +4,12 @@
  * v5.5: 3D превью активного скина в вкладке Блоки (Block3DPreview)
  * v5.9.22: добавлена категория фонов (bg_city_day/night/mountains/desert/space)
  * v5.9.23: превью фонов — настоящие SVG/webp thumbnails вместо градиентов
+ *
+ * 26.04.2026 — апр ревизия по обратной связи Александра:
+ * "Customize кнопка Done и баланс кирпичей улетают сильно вверх, где уже
+ *  значок зарядки телефона". Причина: контейнер position:fixed inset:0 без
+ *  safe-area-inset-top на native — заходит под status bar. Добавлен
+ *  paddingTop: env(safe-area-inset-top).
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -413,11 +419,21 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.88)',
-      display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.88)',
+      display: 'flex', flexDirection: 'column', overflow: 'auto',
+      // Safe-area: на native контейнер уходит под status-bar (полоса зарядки),
+      // header с Done + балансом скрывается. Резервируем место сверху.
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    }}>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
+        padding: '12px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0,
+        // Sticky закрепляет header — даже если контент скроллится, баланс кирпичей
+        // и Done остаются видимыми. Раньше на длинных списках они уезжали наверх.
+        position: 'sticky', top: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10,
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <PaintIcon size={18} color="var(--accent)" />
           <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{en ? 'Customize' : 'Оформление'}</span>
@@ -438,7 +454,11 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
         </div>
       </div>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0,
+        // Tabs тоже sticky — после header, чтобы при скролле списка скинов
+        // переключатели категорий оставались доступны.
+        position: 'sticky', top: 56, background: 'rgba(0,0,0,0.92)', zIndex: 9,
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
         {[
           ['themes',      en ? 'Themes' : 'Темы', THEMES.length],
           ['chips',       en ? 'Blocks' : 'Блоки', `${CHIP_SKINS.filter(s => isUnlocked(s)).length}/${CHIP_SKINS.length}`],
