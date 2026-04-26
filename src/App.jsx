@@ -19,6 +19,7 @@ import { getSettings, applySettings } from './engine/settings'
 import { useNetworkStatus } from './engine/network'
 import { shouldAskRating } from './engine/appstore'
 import { initPush } from './engine/push'
+import { useEdgeBack } from './engine/useEdgeBack'
 import { APP_VERSION } from './version'
 import './app.css'
 import './css/themes.css'
@@ -94,6 +95,33 @@ export default function App() {
   const [notifCount, setNotifCount] = useState(0)
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifData, setNotifData] = useState({ friends: [], challenges: [] })
+
+  // Свайп от левого края + Capacitor App.backButton — возврат в предыдущий
+  // раздел (по запросу Александра, апр 2026). Приоритет:
+  //   1. Закрыть открытое модальное окно (skinshop / lessons / arena / whatsnew)
+  //   2. Закрыть мобильное меню если открыто
+  //   3. Сбросить просмотр публичного профиля (viewProfile)
+  //   4. Иначе — window.history.back() через popstate handler ниже
+  // Hook сам решает что вызывать в зависимости от platform (web pointer
+  // events vs Capacitor App.backButton).
+  useEdgeBack({
+    onBack: () => {
+      if (showSkinShop)         { setShowSkinShop(false);         return }
+      if (showLessons)          { setShowLessons(false);          return }
+      if (showArena)            { setShowArena(false);            return }
+      if (showWhatsNew)         { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION); return }
+      if (notifOpen)            { setNotifOpen(false);            return }
+      if (authOpen)             { setAuthOpen(false);             return }
+      if (mobileMenu)           { setMobileMenu(false);           return }
+      if (viewProfile)          { setViewProfile(null);           return }
+      // На native начальный таб — game. Если уже на game — exitApp
+      // (Capacitor backButton hook в useEdgeBack сам это знает,
+      // но web ветка не должна закрывать страницу).
+      if (window.history.length > 1) {
+        try { window.history.back() } catch {}
+      }
+    },
+  })
 
   useEffect(() => {
     if (!authOpen) return
@@ -262,7 +290,7 @@ export default function App() {
       }
     }
     window.addEventListener('open-profile', handler)
-    return () => window.removeEventListener('open-profile', handler)
+    return () => window.removEventListener('open-profile', handler)
   }, [authUser])
 
   useEffect(() => {
