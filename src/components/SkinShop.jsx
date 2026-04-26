@@ -1,15 +1,33 @@
 /**
- * SkinShop — popup для кастомизации: темы, блоки, стойки, фоны
- * v5.2: bricks с сервера, кнопка Rewarded только в native / DEV
- * v5.5: 3D превью активного скина в вкладке Блоки (Block3DPreview)
- * v5.9.22: добавлена категория фонов (bg_city_day/night/mountains/desert/space)
- * v5.9.23: превью фонов — настоящие SVG/webp thumbnails вместо градиентов
+ * SkinShop — popup для кастомизации.
  *
- * 26.04.2026 — апр ревизия по обратной связи Александра:
- * "Customize кнопка Done и баланс кирпичей улетают сильно вверх, где уже
- *  значок зарядки телефона". Причина: контейнер position:fixed inset:0 без
- *  safe-area-inset-top на native — заходит под status bar. Добавлен
- *  paddingTop: env(safe-area-inset-top).
+ * 26.04.2026 — большая ревизия по обратной связи Александра:
+ *
+ * "Соединить Темы и Фоны как одну сущность. Окошки выбора как у Backgrounds.
+ *  Light → Sunny Day in Park + light фон, default бесплатная.
+ *  Dark → Night City + ночной фон, за кирпичи.
+ *  Остальные темы тоже за кирпичи. Стили дублировать с разными сюжетами.
+ *  УДАЛИТЬ вкладку Backgrounds (объединить с темами).
+ *  УДАЛИТЬ вкладку Stands (нет игровой логики)."
+ *
+ * Что сделано в этом коммите (frontend-only, без миграции БД):
+ * - Каждая тема получила linkedBgId — при выборе темы автоматически
+ *   выставляется связанный фон.
+ * - Вкладка Stands и Backgrounds СКРЫТЫ из UI. Старые купленные стенды
+ *   продолжают применяться через settings.standStyle (backward compat),
+ *   но новых не купить — это как раз для последующей миграции БД 14.
+ * - В превью темы — фон в качестве фона миниатюры (вместо плоского bg-цвета).
+ * - Тематика тем расширена: "Sunny Day in Park" (minimal+day), "Night City"
+ *   (default+night). Остальные пока используют bg_city_night по умолчанию,
+ *   расширим когда добавим больше фонов.
+ *
+ * НЕ сделано здесь (требует backend):
+ * - Snappy Block для одинаковых скинов у двух игроков
+ * - Миграция БД 14: рефанд кирпичей за купленные стенды
+ * - Новые премиум-блоки (золото, алмаз, $1.5+)
+ *
+ * v5.2: bricks с сервера, кнопка Rewarded только в native / DEV
+ * v5.5: 3D превью активного скина в вкладке Блоки
  */
 import { useState, useEffect } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -54,6 +72,10 @@ const CHIP_SKINS = [
     shadow1: '0 0 8px rgba(255,96,102,0.5), 0 0 16px rgba(255,96,102,0.3)', radius: 7 },
 ]
 
+// STAND_SKINS оставлен в коде для backward-совместимости: купленные ранее
+// стенды продолжают применяться через settings.standStyle (Board.jsx
+// использует это значение). Но в UI больше не показываем — Александр
+// удалил вкладку Stands ("нет игровой логики").
 const STAND_SKINS = [
   { id: 'stands_classic', legacyId: 'classic', ru: 'Классика', en: 'Classic', level: 1, price: 0, rarity: 'common',
     bg: 'linear-gradient(180deg, rgba(20,20,32,0.9), rgba(20,20,32,0.6))', border: 'rgba(255,255,255,0.06)' },
@@ -75,7 +97,9 @@ const STAND_SKINS = [
     bg: 'linear-gradient(180deg, rgba(180,220,255,0.3), rgba(120,180,240,0.15), rgba(180,220,255,0.25))', border: 'rgba(120,180,240,0.25)' },
 ]
 
-// ─── Фоны — превью = настоящий ассет. Честный WYSIWYG. ───
+// Фоны — теперь не отдельная категория. Используются только для linkedBgId
+// в темах. Если в будущем добавим премиум-фоны, можно вернуть отдельную
+// вкладку — но по ТЗ Александра в апр 2026 объединили с темами.
 const BG_SKINS = [
   { id: 'bg_city_day',   ru: 'Дневной город', en: 'City Day',   price: 0,   rarity: 'common',
     asset: '/backgrounds/day-tablet-landscape.webp' },
@@ -83,36 +107,86 @@ const BG_SKINS = [
     asset: '/backgrounds/night-tablet-landscape.webp' },
 ]
 
+// Темы расширены: каждая знает свой linkedBgId. При выборе темы автоматом
+// выставляется связанный фон. Названия по ТЗ Александра: minimal=Light=
+// "Sunny Day in Park", default=Dark="Night City". Остальные используют
+// bg_city_night как универсальный фон до добавления новых.
 const THEMES = [
-  { id: 'default',  themeId: 'theme_default',  ru: 'Тёмная',      en: 'Dark',    price: 0,   rarity: 'common',    bg: '#0c0c12', surface: '#1a1a2a', accent: '#3bb8a8', p1: '#4a9eff',  p2: '#ff6066' },
-  { id: 'forest',   themeId: 'theme_forest',   ru: 'Лес',         en: 'Forest',  price: 0,   rarity: 'common',    bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784',  p2: '#e57373' },
-  { id: 'minimal',  themeId: 'theme_minimal',  ru: 'Светлая',     en: 'Light',   price: 0,   rarity: 'common',    bg: '#f5f5f7', surface: '#ffffff', accent: '#0071e3', p1: '#007aff',  p2: '#ff3b30' },
-  { id: 'ocean',    themeId: 'theme_ocean',    ru: 'Океан',       en: 'Ocean',   price: 300, rarity: 'rare',      bg: '#0a1628', surface: '#132840', accent: '#00bcd4', p1: '#4fc3f7',  p2: '#ef5350' },
-  { id: 'wood',     themeId: 'theme_wood',     ru: 'Дерево',      en: 'Wood',    price: 300, rarity: 'rare',      bg: '#2c1e0f', surface: '#4a3520', accent: '#d4803a', p1: '#f0ece0',  p2: '#2a2018' },
-  { id: 'sunset',   themeId: 'theme_sunset',   ru: 'Закат',       en: 'Sunset',  price: 400, rarity: 'rare',      bg: '#1a0e1e', surface: '#2e1a32', accent: '#ff7043', p1: '#ffa726',  p2: '#ab47bc' },
-  { id: 'arctic',   themeId: 'theme_arctic',   ru: 'Арктика',     en: 'Arctic',  price: 400, rarity: 'rare',      bg: '#0a1520', surface: '#122436', accent: '#40c4ff', p1: '#80d8ff',  p2: '#ff8a80' },
-  { id: 'royal',    themeId: 'theme_royal',    ru: 'Королевская', en: 'Royal',   price: 400, rarity: 'epic',      bg: '#0e0a18', surface: '#1e1638', accent: '#9c27b0', p1: '#ce93d8',  p2: '#ef5350' },
-  { id: 'retro',    themeId: 'theme_retro',    ru: 'Ретро',       en: 'Retro',   price: 500, rarity: 'epic',      bg: '#0a0a00', surface: '#1a1a06', accent: '#76ff03', p1: '#76ff03',  p2: '#ff6e40' },
-  { id: 'sakura',   themeId: 'theme_sakura',   ru: 'Сакура',      en: 'Sakura',  price: 500, rarity: 'epic',      bg: '#1a0e14', surface: '#2e1824', accent: '#f06292', p1: '#f48fb1',  p2: '#4fc3f7' },
-  { id: 'neon',     themeId: 'theme_neon',     ru: 'Неон',        en: 'Neon',    price: 600, rarity: 'legendary', bg: '#05050a', surface: '#0f0f22', accent: '#ff00ff', p1: '#00e5ff',  p2: '#ff3090' },
+  { id: 'default',  themeId: 'theme_default',  ru: 'Город ночью',     en: 'Night City',
+    price: 0,   rarity: 'common', linkedBgId: 'bg_city_night',
+    bg: '#0c0c12', surface: '#1a1a2a', accent: '#3bb8a8', p1: '#4a9eff',  p2: '#ff6066' },
+  { id: 'minimal',  themeId: 'theme_minimal',  ru: 'Парк днём',       en: 'Sunny Day in Park',
+    price: 0,   rarity: 'common', linkedBgId: 'bg_city_day',
+    bg: '#f5f5f7', surface: '#ffffff', accent: '#0071e3', p1: '#007aff',  p2: '#ff3b30' },
+  { id: 'forest',   themeId: 'theme_forest',   ru: 'Лес',             en: 'Forest',
+    price: 0,   rarity: 'common', linkedBgId: 'bg_city_night',
+    bg: '#0c1a0f', surface: '#1a2e1f', accent: '#4caf50', p1: '#81c784',  p2: '#e57373' },
+  { id: 'ocean',    themeId: 'theme_ocean',    ru: 'Океан',           en: 'Ocean',
+    price: 300, rarity: 'rare', linkedBgId: 'bg_city_night',
+    bg: '#0a1628', surface: '#132840', accent: '#00bcd4', p1: '#4fc3f7',  p2: '#ef5350' },
+  { id: 'wood',     themeId: 'theme_wood',     ru: 'Дерево',          en: 'Wood',
+    price: 300, rarity: 'rare', linkedBgId: 'bg_city_night',
+    bg: '#2c1e0f', surface: '#4a3520', accent: '#d4803a', p1: '#f0ece0',  p2: '#2a2018' },
+  { id: 'sunset',   themeId: 'theme_sunset',   ru: 'Закат',           en: 'Sunset',
+    price: 400, rarity: 'rare', linkedBgId: 'bg_city_day',
+    bg: '#1a0e1e', surface: '#2e1a32', accent: '#ff7043', p1: '#ffa726',  p2: '#ab47bc' },
+  { id: 'arctic',   themeId: 'theme_arctic',   ru: 'Арктика',         en: 'Arctic',
+    price: 400, rarity: 'rare', linkedBgId: 'bg_city_day',
+    bg: '#0a1520', surface: '#122436', accent: '#40c4ff', p1: '#80d8ff',  p2: '#ff8a80' },
+  { id: 'royal',    themeId: 'theme_royal',    ru: 'Королевская',     en: 'Royal',
+    price: 400, rarity: 'epic', linkedBgId: 'bg_city_night',
+    bg: '#0e0a18', surface: '#1e1638', accent: '#9c27b0', p1: '#ce93d8',  p2: '#ef5350' },
+  { id: 'retro',    themeId: 'theme_retro',    ru: 'Ретро',           en: 'Retro',
+    price: 500, rarity: 'epic', linkedBgId: 'bg_city_night',
+    bg: '#0a0a00', surface: '#1a1a06', accent: '#76ff03', p1: '#76ff03',  p2: '#ff6e40' },
+  { id: 'sakura',   themeId: 'theme_sakura',   ru: 'Сакура',          en: 'Sakura',
+    price: 500, rarity: 'epic', linkedBgId: 'bg_city_day',
+    bg: '#1a0e14', surface: '#2e1824', accent: '#f06292', p1: '#f48fb1',  p2: '#4fc3f7' },
+  { id: 'neon',     themeId: 'theme_neon',     ru: 'Неон',            en: 'Neon',
+    price: 600, rarity: 'legendary', linkedBgId: 'bg_city_night',
+    bg: '#05050a', surface: '#0f0f22', accent: '#ff00ff', p1: '#00e5ff',  p2: '#ff3090' },
 ]
 
 const RARITY_COLOR = { common: 'var(--ink3)', rare: '#4a9eff', epic: '#9b59b6', legendary: '#ffc145' }
 
+// Превью темы теперь отображается на фоне связанной webp-картинки —
+// игрок сразу видит "тема + фон" в комплекте, как просил Александр.
 function ThemePreview({ theme }) {
+  const bgSkin = BG_SKINS.find(b => b.id === theme.linkedBgId)
   return (
-    <div style={{ display: 'flex', gap: 3, justifyContent: 'center', padding: '8px 6px',
-      background: theme.bg, borderRadius: 8, border: `1px solid ${theme.accent}20` }}>
-      {[4, 6, 3].map((count, si) => (
-        <div key={si} style={{ width: 18, minHeight: 50, borderRadius: '4px 4px 0 0',
-          background: theme.surface, border: si === 0 ? `1px solid ${theme.accent}40` : `1px solid ${theme.accent}15`,
-          display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', padding: '2px 1px', gap: 1 }}>
-          {Array.from({ length: count }).map((_, ci) => {
-            const isP1 = si === 0 ? ci < 2 : si === 1 ? ci >= 3 : ci < 1
-            return <div key={ci} style={{ width: 12, height: 4, borderRadius: 2, background: isP1 ? theme.p1 : theme.p2 }} />
-          })}
-        </div>
-      ))}
+    <div style={{
+      position: 'relative', overflow: 'hidden',
+      borderRadius: 8, border: `1px solid ${theme.accent}30`,
+      minHeight: 70,
+    }}>
+      {bgSkin && (
+        <img src={bgSkin.asset} alt="" loading="lazy" style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          objectFit: 'cover', objectPosition: 'center bottom',
+          opacity: 0.55,
+        }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+      )}
+      {/* Полупрозрачный overlay цвета bg темы — приглушает фон чтобы было
+          видно цвет темы. */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: theme.bg, opacity: 0.45, pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', gap: 3, justifyContent: 'center', padding: '8px 6px',
+      }}>
+        {[4, 6, 3].map((count, si) => (
+          <div key={si} style={{ width: 18, minHeight: 50, borderRadius: '4px 4px 0 0',
+            background: theme.surface, border: si === 0 ? `1px solid ${theme.accent}40` : `1px solid ${theme.accent}15`,
+            display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', padding: '2px 1px', gap: 1 }}>
+            {Array.from({ length: count }).map((_, ci) => {
+              const isP1 = si === 0 ? ci < 2 : si === 1 ? ci >= 3 : ci < 1
+              return <div key={ci} style={{ width: 12, height: 4, borderRadius: 2, background: isP1 ? theme.p1 : theme.p2 }} />
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -130,62 +204,6 @@ function ChipPreview({ skin }) {
           boxShadow: isP1 ? skin.shadow : (skin.shadow1 || skin.shadow),
         }} />
       })}
-    </div>
-  )
-}
-
-function StandPreview({ skin }) {
-  return (
-    <div style={{ width: 28, minHeight: 56, borderRadius: '6px 6px 0 0',
-      background: skin.bg, border: `1.5px solid ${skin.border}`, borderBottom: 'none',
-      display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', padding: '3px 2px', gap: 1 }}>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} style={{ width: 18, height: 5, borderRadius: 3,
-          background: i < 2 ? 'var(--p1)' : 'var(--p2)', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
-      ))}
-    </div>
-  )
-}
-
-function BgPreview({ skin }) {
-  // Превью — настоящая картинка скейлированная в карточку.
-  // SVG лёгкие (5-16 КБ), webp кэшируется браузером.
-  // loading="lazy" — грузится при скролле.
-  return (
-    <div style={{
-      width: 120, height: 70, borderRadius: 6,
-      border: '1px solid rgba(255,255,255,0.08)',
-      position: 'relative', overflow: 'hidden',
-      background: '#0a0a12',
-    }}>
-      <img
-        src={skin.asset}
-        loading="lazy"
-        alt=""
-        style={{
-          width: '100%', height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center bottom',
-          display: 'block',
-        }}
-        onError={(e) => { e.currentTarget.style.display = 'none' }}
-      />
-      {/* Мини-стойки на переднем плане — передают контекст "фон за игрой" */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        display: 'flex', justifyContent: 'center', gap: 2, padding: '0 8px',
-        pointerEvents: 'none',
-      }}>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} style={{
-            width: 5, height: 16 + (i % 2) * 4,
-            background: 'rgba(20,20,32,0.9)',
-            borderRadius: '2px 2px 0 0',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderBottom: 'none',
-          }} />
-        ))}
-      </div>
     </div>
   )
 }
@@ -261,20 +279,34 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
     return ownedSkins.has(skin.id) || ownedSkins.has(skin.themeId)
   }
 
-  async function equip(skin, kind /* 'chip' | 'stand' | 'bg' */) {
-    if (kind === 'bg') {
-      applyBgSkin(skin.id)
-      setServerActive(prev => ({ ...prev, background: skin.id }))
-      // Сохраняем в localStorage — чтобы фон пережил F5 и работал для гостей
-      const ns = { ...settings, bgStyle: skin.id }
+  // При выборе темы автоматом выставляется её linkedBgId. Это и есть
+  // объединение Темы+Фоны по ТЗ Александра — игроку не надо отдельно
+  // лезть в Backgrounds-вкладку.
+  function applyThemeWithBg(theme) {
+    if (theme.linkedBgId) {
+      applyBgSkin(theme.linkedBgId)
+      const ns = { ...getSettings(), bgStyle: theme.linkedBgId }
       setSettings(ns); saveSettings(ns); applySettings(ns)
-    } else {
-      const selectKey = kind === 'chip' ? 'chipStyle' : 'standStyle'
-      const selectVal = skin.legacyId || skin.id
-      const ns = { ...settings, [selectKey]: selectVal }
-      setSettings(ns); saveSettings(ns); applySettings(ns)
-      gameCtx?.emit('settingsChanged')
+      setServerActive(prev => ({ ...prev, background: theme.linkedBgId }))
+      // Сообщаем серверу что фон теперь такой (при наличии токена)
+      const token = localStorage.getItem('stolbiki_token')
+      if (token) {
+        fetch('/api/bricks/equip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ skinId: theme.linkedBgId }),
+        }).catch(() => {})
+      }
     }
+    onThemeChange?.(theme.id)
+  }
+
+  async function equip(skin, kind /* 'chip' */) {
+    const selectKey = 'chipStyle'
+    const selectVal = skin.legacyId || skin.id
+    const ns = { ...settings, [selectKey]: selectVal }
+    setSettings(ns); saveSettings(ns); applySettings(ns)
+    gameCtx?.emit('settingsChanged')
     const token = localStorage.getItem('stolbiki_token')
     if (token) {
       setEquipping(skin.id)
@@ -284,8 +316,7 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ skinId: skin.id }),
         })
-        const key = kind === 'chip' ? 'blocks' : kind === 'stand' ? 'stands' : 'background'
-        setServerActive(prev => ({ ...prev, [key]: skin.id }))
+        setServerActive(prev => ({ ...prev, blocks: skin.id }))
       } catch {}
       setEquipping(null)
     }
@@ -326,7 +357,7 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
         if (d.bricks !== null && d.bricks !== undefined) {
           setLocalBricks(d.bricks); onBricksChange?.(d.bricks)
         }
-        onThemeChange?.(th.id)
+        applyThemeWithBg(th)
       }
     } catch {}
     setPurchasing(null)
@@ -354,12 +385,11 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
     setWatchingAd(false)
   }
 
-  function renderSkinCard(skin, kind /* 'chip' | 'stand' | 'bg' */) {
+  // renderSkinCard остался только для блоков. Stands и Backgrounds больше
+  // не показываются — полностью убраны из UI по ТЗ Александра.
+  function renderSkinCard(skin) {
     const unlocked = isUnlocked(skin)
-    const activeId =
-      kind === 'chip' ? (serverActive.blocks || settings.chipStyle) :
-      kind === 'stand' ? (serverActive.stands || settings.standStyle) :
-      (serverActive.background || settings.bgStyle || 'bg_city_day')
+    const activeId = serverActive.blocks || settings.chipStyle
     const active = skin.id === activeId || skin.legacyId === activeId
 
     return (
@@ -374,13 +404,11 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
           <RarityBadge rarity={skin.rarity} en={en} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'center',
-          padding: kind === 'bg' ? 0 : '6px 0 8px',
-          background: kind === 'bg' ? 'transparent' : 'rgba(0,0,0,0.15)',
+          padding: '6px 0 8px',
+          background: 'rgba(0,0,0,0.15)',
           borderRadius: 8, marginBottom: 8,
-          minHeight: kind === 'bg' ? 70 : 60, alignItems: 'center' }}>
-          {kind === 'chip' ? <ChipPreview skin={skin} /> :
-           kind === 'stand' ? <StandPreview skin={skin} /> :
-           <BgPreview skin={skin} />}
+          minHeight: 60, alignItems: 'center' }}>
+          <ChipPreview skin={skin} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)' }}>
@@ -389,7 +417,7 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
           {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
         </div>
         {unlocked ? (
-          <button onClick={() => equip(skin, kind)} disabled={active || equipping === skin.id} style={{
+          <button onClick={() => equip(skin, 'chip')} disabled={active || equipping === skin.id} style={{
             width: '100%', padding: '5px 0', borderRadius: 6, border: 'none',
             background: active ? 'rgba(59,184,168,0.1)' : 'rgba(255,255,255,0.05)',
             color: active ? 'var(--accent)' : 'var(--ink2)',
@@ -422,16 +450,12 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.88)',
       display: 'flex', flexDirection: 'column', overflow: 'auto',
-      // Safe-area: на native контейнер уходит под status-bar (полоса зарядки),
-      // header с Done + балансом скрывается. Резервируем место сверху.
       paddingTop: 'env(safe-area-inset-top, 0px)',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', borderBottom: '1px solid var(--surface2)', flexShrink: 0,
-        // Sticky закрепляет header — даже если контент скроллится, баланс кирпичей
-        // и Done остаются видимыми. Раньше на длинных списках они уезжали наверх.
         position: 'sticky', top: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10,
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -454,16 +478,14 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
         </div>
       </div>
 
+      {/* Только 2 вкладки: Темы (=Темы+Фоны) и Блоки (монетизация).
+          Stands и Backgrounds полностью удалены по ТЗ Александра. */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--surface2)', flexShrink: 0,
-        // Tabs тоже sticky — после header, чтобы при скролле списка скинов
-        // переключатели категорий оставались доступны.
         position: 'sticky', top: 56, background: 'rgba(0,0,0,0.92)', zIndex: 9,
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
         {[
-          ['themes',      en ? 'Themes' : 'Темы', THEMES.length],
-          ['chips',       en ? 'Blocks' : 'Блоки', `${CHIP_SKINS.filter(s => isUnlocked(s)).length}/${CHIP_SKINS.length}`],
-          ['stands',      en ? 'Stands' : 'Стойки', `${STAND_SKINS.filter(s => isUnlocked(s)).length}/${STAND_SKINS.length}`],
-          ['backgrounds', en ? 'Backgrounds' : 'Фоны', `${BG_SKINS.filter(s => isUnlocked(s)).length}/${BG_SKINS.length}`],
+          ['themes', en ? 'Themes' : 'Темы', THEMES.length],
+          ['chips',  en ? 'Blocks' : 'Блоки', `${CHIP_SKINS.filter(s => isUnlocked(s)).length}/${CHIP_SKINS.length}`],
         ].map(([id, label, count]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, padding: '12px 16px', border: 'none', cursor: 'pointer',
@@ -480,7 +502,7 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
 
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
         {tab === 'themes' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
             {THEMES.map(th => {
               const active = currentTheme === th.id
               const owned = isUnlocked(th)
@@ -492,13 +514,14 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
                   background: active ? 'rgba(59,184,168,0.08)' : 'var(--surface)',
                   border: `2px solid ${active ? 'var(--accent)' : owned ? 'var(--surface2)' : RARITY_COLOR[th.rarity] + '50'}`,
                   opacity: !owned ? 0.75 : 1, transition: 'all 0.2s',
-                }} onClick={() => owned && onThemeChange?.(th.id)}>
+                }} onClick={() => owned && applyThemeWithBg(th)}>
                   <ThemePreview theme={th} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)' }}>
+                    <span style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--accent)' : 'var(--ink)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                       {en ? th.en : th.ru}
                     </span>
-                    {active && <span style={{ fontSize: 11, color: 'var(--accent)' }}>✓</span>}
+                    {active && <span style={{ fontSize: 11, color: 'var(--accent)', flexShrink: 0 }}>✓</span>}
                     {!owned && <RarityBadge rarity={th.rarity} en={en} />}
                   </div>
                   {!owned && th.price > 0 ? (
@@ -534,20 +557,8 @@ export default function SkinShop({ onClose, _userLevel = 1, currentTheme = 'defa
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-              {CHIP_SKINS.map(skin => renderSkinCard(skin, 'chip'))}
+              {CHIP_SKINS.map(skin => renderSkinCard(skin))}
             </div>
-          </div>
-        )}
-
-        {tab === 'stands' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-            {STAND_SKINS.map(skin => renderSkinCard(skin, 'stand'))}
-          </div>
-        )}
-
-        {tab === 'backgrounds' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
-            {BG_SKINS.map(skin => renderSkinCard(skin, 'bg'))}
           </div>
         )}
 
