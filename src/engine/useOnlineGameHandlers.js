@@ -10,6 +10,7 @@
 import { useEffect } from 'react'
 import { GameState, applyAction } from './game.js'
 import { cancelRecording, startRecording, setGameMeta, finishRecording } from './collector.js'
+import { triggerSnappy } from '../components/Snappy'
 import * as API from './api.js'
 
 // Title для локальных браузерных уведомлений (Notification API).
@@ -245,6 +246,14 @@ export function useOnlineGameHandlers(opts) {
       }),
       gameCtx.register('onSpectatorCount', ({ count }) => setSpectatorCount(count)),
       gameCtx.register('onSpectateStart', handleSpectateStart),
+      // Snappy Block: сервер шлёт snappyTrigger когда у двух игроков
+      // одинаковые скины блоков (см. server/ws.js detectSkinCollision).
+      // Online.jsx маппит ws-тип в gameCtx event onSnappyTrigger,
+      // здесь триггерим маскота. Фразы для skin_collision уже есть
+      // в src/engine/snappy.js (5 RU/EN вариантов).
+      gameCtx.register('onSnappyTrigger', ({ event }) => {
+        if (event) triggerSnappy(event)
+      }),
     ]
 
     return () => unsubs.forEach(u => u && u())
