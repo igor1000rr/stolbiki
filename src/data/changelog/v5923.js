@@ -12,7 +12,7 @@ export default {
     // ─── Style Twin ачивка ───
     { type: 'new', text: 'Ачивка "Близнецы по стилю" / "Style Twin" — за первый онлайн матч с одинаковыми блоками. Rare, цвет diamond. Прогресс отображается в профиле.' },
     { type: 'improve', text: 'Колонка users.style_twin_count добавлена миграцией 15. Инкремент происходит для обоих игроков при detectSkinCollision (если игроки залогинены).' },
-    { type: 'improve', text: 'styleTwinCount теперь возвращается формате profile API через formatUser/formatPublicUser.' },
+    { type: 'improve', text: 'styleTwinCount теперь возвращается в формате profile API через formatUser/formatPublicUser.' },
 
     // ─── Премиум-блоки ───
     { type: 'new', text: 'Premium Blocks legendary tier: 4 новых скина блоков — Gold (800 кирпичей), Diamond (1200), Holographic (1500), Galaxy (2000). Долгосрочные grind-таргеты.' },
