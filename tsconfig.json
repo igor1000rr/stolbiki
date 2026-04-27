@@ -1,32 +1,38 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
     "allowJs": true,
-    "checkJs": false,
+    "checkJs": true,
     "noEmit": true,
     "strict": false,
     "noImplicitAny": false,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2022"]
   },
   "include": [
     "server/game-engine.js",
     "server/anticheat.js",
-    "server/helpers.js",
     "server/validate.js",
-    "src/engine/game.js"
+    "server/skin-helpers.js",
+    "server/helpers.js",
+    "server/logger.js"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "server/node_modules",
     "android",
     "ios",
+    "gpu_train",
+    "analysis",
+    "src",
     "e2e",
-    "tests"
+    "tests",
+    "**/*.test.js"
   ]
 }

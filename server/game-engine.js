@@ -32,16 +32,16 @@ export const FIRST_TURN_MAX = 1
 export class GameState {
   constructor(numStands = NUM_STANDS) {
     this.numStands = numStands
-    /** @type {number[][]} */
+    /** @type {Color[][]} */
     this.stands = Array.from({ length: numStands }, () => [])
-    /** @type {Object<string, number>} */
+    /** @type {Object<string, Color>} */
     this.closed = {}
     /** @type {Color} */
     this.currentPlayer = 0
     this.turn = 0
     this.swapAvailable = true
     this.gameOver = false
-    /** @type {number|null} */
+    /** @type {Color | -1 | null} */
     this.winner = null
   }
 
@@ -63,14 +63,14 @@ export class GameState {
   }
 
   numOpen() { return this.numStands - Object.keys(this.closed).length }
-  /** @param {number} p */
+  /** @param {Color} p */
   countClosed(p) { return Object.values(this.closed).filter(v => v === p).length }
   /** @param {number} i */
   standSpace(i) { return (i in this.closed) ? 0 : MAX_CHIPS - this.stands[i].length }
   isFirstTurn() { return this.turn === 0 }
   canCloseByPlacement() { return this.numOpen() <= 2 }
 
-  /** @param {number} i @returns {[number, number]} */
+  /** @param {number} i @returns {[number, number]} [color, count] (color=-1 если стойка пуста) */
   topGroup(i) {
     const chips = this.stands[i]
     if (!chips.length) return [-1, 0]
@@ -111,7 +111,7 @@ export function getValidTransfers(state) {
 export function getValidPlacements(state) {
   const maxChips = state.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canClose = state.canCloseByPlacement()
-  /** @type {[number, number][]} */
+  /** @type {Array<[number, number]>} */
   const available = []
 
   for (const idx of state.openStands()) {
@@ -153,7 +153,7 @@ function applyTransfer(state, src, dst) {
   if (total >= MAX_CHIPS) {
     // Стойка закрывается цветом верхней группы, лишние снизу в сброс
     if (total > MAX_CHIPS) state.stands[dst] = state.stands[dst].slice(total - MAX_CHIPS)
-    state.closed[dst] = grpColor
+    state.closed[dst] = /** @type {Color} */ (grpColor)
     return true
   }
   return false
@@ -184,9 +184,9 @@ function applySwap(state) {
   for (let i = 0; i < state.numStands; i++) {
     state.stands[i] = state.stands[i].map(c => /** @type {Color} */ (1 - c))
   }
-  /** @type {Object<string, number>} */
+  /** @type {Object<string, Color>} */
   const nc = {}
-  for (const [k, v] of Object.entries(state.closed)) nc[k] = 1 - v
+  for (const [k, v] of Object.entries(state.closed)) nc[k] = /** @type {Color} */ (1 - v)
   state.closed = nc
 }
 
@@ -196,8 +196,8 @@ function checkGameOver(state) {
     determineWinner(state)
     return
   }
-  for (const p of [0, 1]) {
-    if (state.countClosed(p) > state.countClosed(1 - p) + state.numOpen()) {
+  for (const p of /** @type {Color[]} */ ([0, 1])) {
+    if (state.countClosed(p) > state.countClosed(/** @type {Color} */ (1 - p)) + state.numOpen()) {
       state.gameOver = true
       state.winner = p
       return
@@ -214,7 +214,7 @@ function determineWinner(state) {
   else state.winner = (GOLDEN_STAND in state.closed) ? state.closed[GOLDEN_STAND] : -1
 }
 
-/** @param {GameState} state @param {Action} action */
+/** @param {GameState} state @param {Action} action @returns {GameState} */
 export function applyAction(state, action) {
   const ns = state.copy()
   if (action.swap) {
@@ -237,7 +237,7 @@ export function applyAction(state, action) {
     if (ns.stands[i].length >= MAX_CHIPS) {
       if (ns.stands[i].length > MAX_CHIPS) ns.stands[i] = ns.stands[i].slice(ns.stands[i].length - MAX_CHIPS)
       const [topColor] = ns.topGroup(i)
-      ns.closed[i] = topColor >= 0 ? topColor : ns.currentPlayer
+      ns.closed[i] = topColor >= 0 ? /** @type {Color} */ (topColor) : ns.currentPlayer
     }
   }
 
@@ -248,13 +248,13 @@ export function applyAction(state, action) {
   return ns
 }
 
-/** @param {GameState} state */
+/** @param {GameState} state @returns {Action[]} */
 export function getLegalActions(state) {
   if (state.gameOver) return []
   /** @type {Action[]} */
   const actions = []
   if (state.turn === 1 && state.swapAvailable) actions.push({ swap: true })
-  /** @type {(Transfer|null)[]} */
+  /** @type {Array<Transfer | null>} */
   const transfers = [null, ...getValidTransfers(state)]
   for (const transfer of transfers) {
     const temp = state.copy()

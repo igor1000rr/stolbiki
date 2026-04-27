@@ -8,8 +8,8 @@
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
 
 /**
- * @param {{swap?: boolean, transfer?: [number, number], placement?: Object<string, number>}} a
- * @param {{swap?: boolean, transfer?: [number, number], placement?: Object<string, number>}} b
+ * @param {import('./game-engine.js').Action} a
+ * @param {import('./game-engine.js').Action} b
  */
 function actionsEqual(a, b) {
   if (a.swap || b.swap) return !!a.swap === !!b.swap
@@ -26,7 +26,7 @@ function actionsEqual(a, b) {
 }
 
 /**
- * @param {Array<{action: object, player?: number}>} moves
+ * @param {Array<{action: import('./game-engine.js').Action, player?: number}>} moves
  * @returns {{ok: boolean, winner?: number|null, scoreStr?: string, turns?: number}}
  */
 export function verifyGameFromMoves(moves) {
@@ -56,7 +56,7 @@ export function verifyGameFromMoves(moves) {
  * Используется для валидации реплеев и training data — там партия может быть
  * прервана, но каждый отдельный ход должен быть легален.
  *
- * @param {Array<{action: object}>} moves
+ * @param {Array<{action: import('./game-engine.js').Action}>} moves
  * @returns {{ok: boolean, turns?: number, gameOver?: boolean}}
  */
 export function walkMoves(moves) {
