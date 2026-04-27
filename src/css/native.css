@@ -210,17 +210,22 @@ body.native-body { animation: none !important; }
  * 26.04.2026: тумблеры были 48×28 — Александр писал "чересчур высокие".
  * Уменьшил до 40×24 (стандарт material-design switch на мобилке).
  * Touch-target 44px сохранён через padding на .toggle-row.
+ *
+ * 27.04.2026 (повторная жалоба): сделал ещё компактнее — 36×20.
+ * Александр снова пишет "Customization тумблеры переключения чересчур
+ * высокие", значит ему нужно ещё меньше. Стандарт iOS switch 51×31,
+ * мы делаем 36×20 — оптимально для пальца на маленьком экране.
  */
 .native-app .settings-page { padding: 0; }
 .native-app .settings-title { font-size: 20px; margin-bottom: 16px; }
 .native-app .settings-section { margin-bottom: 20px; }
-.native-app .setting-row { padding: 14px 0; gap: 12px; }
+.native-app .setting-row { padding: 12px 0; gap: 12px; }
 .native-app .setting-label { font-size: 14px; }
 .native-app .setting-desc { font-size: 12px; }
 .native-app .segment-control button { padding: 8px 12px; font-size: 12px; }
-.native-app .toggle { width: 40px; height: 24px; border-radius: 12px; }
-.native-app .toggle-thumb { width: 18px; height: 18px; }
-.native-app .toggle.on .toggle-thumb { transform: translateX(16px); }
+.native-app .toggle { width: 36px; height: 20px; border-radius: 10px; }
+.native-app .toggle-thumb { width: 16px; height: 16px; }
+.native-app .toggle.on .toggle-thumb { transform: translateX(14px); }
 
 /* Same для inline-style тумблера в Settings.jsx (он не использует .toggle класс,
    а инлайн-стили на button — селектор не дотянется. Поэтому в самом Settings.jsx
@@ -311,6 +316,12 @@ body.native-body { animation: none !important; }
  * Александра "Верхние пункты меню сверху обрезаны" — вкладки профиля
  * (Profile/Battle Pass/Analytics/...) на native заходили под status-bar
  * потому что site-content начинается с y=0. Добавляем safe-area-inset-top.
+ *
+ * 27.04.2026 (повторная жалоба): "Верхние пункты меню сверху обрезаны,
+ * видно, если нажать". Значит margin-top 8px+safe-area недостаточно.
+ * Увеличиваю до 16px+safe-area и добавляю min-зону через max() —
+ * на устройствах где env() = 0 (Android без edge-to-edge) гарантированно
+ * 24px зарезервировано.
  */
 .native-app .profile-card {
   border-radius: 16px;
@@ -321,8 +332,9 @@ body.native-body { animation: none !important; }
   gap: 6px !important;
   padding: 0 4px 8px !important;
   margin-bottom: 12px !important;
-  /* Сверху резервируем место под status-bar плюс небольшой gap */
-  margin-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+  /* Сверху резервируем место под status-bar плюс gap.
+     max() гарантирует минимум 24px даже если env() = 0. */
+  margin-top: max(24px, calc(env(safe-area-inset-top, 0px) + 16px)) !important;
 }
 .native-app .profile-tabs .btn {
   font-size: 13px !important;
@@ -426,9 +438,24 @@ body.native-body { animation: none !important; }
 .m-more-danger svg { stroke: #ff6066; }
 
 /* MoreTabPage — на native страница начинается под status-bar.
-   Резервируем верхний padding для всей страницы. */
+   Резервируем верхний padding для всей страницы.
+
+   27.04.2026: добавляем padding-bottom на native — Александр пишет
+   "Нижние разделы меню заходят за полосу сворачивания приложения".
+   Высота .native-tabs = 52px + safe-area-inset-bottom. Плюс gap 16px,
+   чтобы последний пункт (Logout) не упирался прямо в native-tabs. */
 .native-app .m-more-page {
-  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  padding-top: max(24px, calc(16px + env(safe-area-inset-top, 0px)));
+  padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* По той же причине добавляем padding-bottom на site-content
+   (общий контейнер всех страниц). На native все страницы должны
+   заканчиваться выше native-tabs. Без этого профильные карточки
+   (Profile/Achievements/Clubs/...) и dash-cards в Online упираются
+   в полосу сворачивания. */
+.native-app .site-content {
+  padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px) + 8px);
 }
 
 /* Side color indicator (dot) */
