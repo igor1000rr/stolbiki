@@ -8,14 +8,18 @@
  * "Под кнопку TikTok добавить кнопку Город побед, которая ведёт в профиль
  *  в раздел Город побед. Лишний повод зайти в профиль, там прикольно."
  *
- * Реализация: новая кнопка "Город побед" / "Victory City" — диспатчит
+ * 27.04.2026 — повторная жалоба: кнопки не видно. Причины:
+ * 1) Раньше показывалась только в AI-режиме (mode === 'ai'). Теперь
+ *    показывается в любом режиме с привязкой к "своему" игроку
+ *    (ai/online/spectate-online), кроме pvp (там нет привязки).
+ * 2) EN текст изменён "Victory City" → "City of Victories" по ТЗ.
+ * 3) Дополнительная проверка авторизации: без логина смысла открывать
+ *    свой Город нет — поэтому кнопка показывается только залогиненным.
+ *
+ * Реализация: кнопка "Город побед" / "City of Victories" — диспатчит
  * window event 'stolbiki-go-tab' с tab='profile' + второй event 'open-profile'
  * с initialTab='city'. App.jsx уже подписан на оба, переключает на профиль
  * с открытой вкладкой Город. Не зависит от prop-drilling.
- *
- * Кнопка не показывается в pvp/spectate-режимах (там нет smyслa "победы
- * текущего игрока"), и не показывается в online — там после партии
- * приоритет на rematch/back-to-lobby.
  */
 
 import { useState, lazy, Suspense } from 'react'
@@ -51,13 +55,17 @@ export default function GameResultPanel({
   // cooldown=false в результате — окно показывается один раз, нужна гарантированная фраза
   const snappyEvent = mode === 'pvp' ? null : (isDraw ? 'draw' : won ? 'victory' : 'defeat')
 
-  // Город побед — есть смысл показывать в одиночных AI-партиях. Не показываем
-  // в pvp (нет привязки к "своему" профилю), spectate (там нет результатов
-  // зрителя) и online (там приоритет rematch/lobby).
-  const showVictoryCityBtn = mode === 'ai' && !tournament
+  // Город побед — показываем во всех режимах где есть привязка к "своему"
+  // профилю текущего игрока. PvP исключаем (там два игрока без привязки),
+  // турниры исключаем (там приоритет на следующую партию).
+  // Также требуем токен авторизации — без логина смысла открывать свой Город нет.
+  const isLoggedIn = (() => {
+    try { return !!localStorage.getItem('stolbiki_token') } catch { return false }
+  })()
+  const showVictoryCityBtn = !tournament && mode !== 'pvp' && isLoggedIn
 
   function openVictoryCity() {
-    API.track('victory_city_from_result', 'game', { won, isDraw })
+    API.track('victory_city_from_result', 'game', { won, isDraw, mode })
     // App.jsx подписан на 'stolbiki-go-tab' (см. App.jsx useEffect) — переключает таб.
     // Дополнительно через 'open-profile' с userId=current сообщаем какой
     // initialTab выставить (city). App.jsx подхватывает оба события.
@@ -215,7 +223,7 @@ export default function GameResultPanel({
           <button className="btn" onClick={openVictoryCity}
             style={{ fontSize: isNative ? 14 : 12, padding: isNative ? '12px 16px' : '8px 12px', justifyContent: 'center',
               borderColor: 'var(--gold)', color: 'var(--gold)' }}>
-            🏙️ {en ? 'Victory City' : 'Город побед'}
+            🏙️ {en ? 'City of Victories' : 'Город побед'}
           </button>
         )}
 
