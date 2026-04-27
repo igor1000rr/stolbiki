@@ -2,7 +2,7 @@
  * Входная точка базы данных.
  *
  * Содержит только инициализацию и схему. Остальное вынесено:
- *  - migrations.js   — версионированные ALTER'ы
+ *  - migrations.js   — версионированные ALTER'ы (fail-loud)
  *  - achievements.js — определения и checkAchievements
  *  - seeds/cms.js    — сид site_content (site/landing/i18n)
  *  - blog-seed.js    — блог-посты
@@ -17,7 +17,9 @@ import { runMigrations } from './migrations.js'
 import { initAchievements, checkAchievements } from './achievements.js'
 import { seedCms } from './seeds/cms.js'
 import { seedBlogPosts } from './blog-seed.js'
+import { child } from './logger.js'
 
+const log = child('db')
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const envPath = resolve(__dirname, '.env')
 if (existsSync(envPath)) {
@@ -30,7 +32,7 @@ if (existsSync(envPath)) {
 export const PORT = process.env.PORT || 3001
 export const JWT_SECRET = process.env.JWT_SECRET || (() => {
   if (process.env.NODE_ENV === 'production') {
-    console.error('ОШИБКА: JWT_SECRET не задан! Установите в .env')
+    log.fatal({}, 'JWT_SECRET not set in production .env')
     process.exit(1)
   }
   if (process.env.VITEST) {
@@ -368,7 +370,7 @@ seedCms(db)
 seedBlogPosts(db)
 initAchievements(db)
 
-if (!process.env.VITEST) console.log('База данных готова:', DB_PATH)
+if (!process.env.VITEST) log.info({ dbPath: DB_PATH }, 'database ready')
 
 export { bcrypt, checkAchievements }
 export { __dirname as serverDir }

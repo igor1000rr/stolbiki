@@ -2,23 +2,21 @@ import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import { db, JWT_SECRET, bcrypt } from '../db.js'
 import { formatUser, addXP } from '../helpers.js'
+import { child } from '../logger.js'
 
 const router = Router()
+const log = child('auth')
 
 const ADMIN_NAMES = (process.env.ADMIN_USERNAMES || 'admin').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
 const TOKEN_EXPIRY = '7d'
-// Минимум 8 символов — NIST 800-63B рекомендация. Поднято с 6 (старое правило было
-// слабым для публичного продукта с ranked/leaderboard). Клиент валидацией не
-// занимается — ловит ошибку сервера и показывает в authError.
+// Минимум 8 символов — NIST 800-63B. Поднято с 6 (старое правило было
+// слабым для публичного продукта с ranked/leaderboard).
 const PASSWORD_MIN = 8
 // bcrypt cost factor. 12 — актуальный стандарт для железа 2026 (~150ms на хеш).
-// Раньше было 10 (~70ms) — для современного железа недостаточно. Регистрация и
-// логин стали заметно медленнее на единичной операции, но event loop не блокируется
-// (bcrypt.hash/compare — async через libuv pool).
+// Раньше было 10 (~70ms) — для современного железа недостаточно.
 const BCRYPT_ROUNDS = 12
-// Refresh принимает истёкшие токены не старше 7 дней. Раньше было 30 — слишком
-// мягко: при компрометации токена у атакующего был месяц на ротацию через /refresh
-// пока юзер не бампнет users.token_version.
+// Refresh принимает истёкшие токены не старше 7 дней. Раньше было 30 — слишком мягко
+// при компрометации токена.
 const REFRESH_GRACE_DAYS = 7
 const REFERRAL_XP = 100
 const REFERRAL_BRICKS_REG = 20
@@ -36,8 +34,6 @@ function awardBricksToReferrer(referrerId, amount, reason, refId) {
 }
 
 // PERF-ФИКС: bcrypt.hash (async) вместо hashSync — не блокирует event loop.
-// При hashSync(pwd, 10) CPU занят ~70-100ms — весь сервер стопается, нельзя
-// обрабатывать другие запросы. Async-версия отдаёт работу в пул потоков libuv.
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password, referralCode } = req.body
@@ -46,8 +42,6 @@ router.post('/register', async (req, res) => {
     if (cleanName.length < 2 || cleanName.length > 20) return res.status(400).json({ error: 'Username: 2-20 chars' })
     if (String(password).length < PASSWORD_MIN) return res.status(400).json({ error: `Password: min ${PASSWORD_MIN} chars` })
 
-    // Валидация email: необязательное поле, но если прислан — должен быть валидным
-    // (защита от мусора типа "<script>" или произвольных строк в БД).
     let cleanEmail = null
     if (email !== undefined && email !== null && email !== '') {
       const e = String(email).trim().toLowerCase()
@@ -83,12 +77,11 @@ router.post('/register', async (req, res) => {
       } catch {}
     }
 
+    log.info({ userId, username: cleanName, referrerId, hasEmail: !!cleanEmail }, 'user registered')
     const token = jwt.sign({ id: userId, username: cleanName, isAdmin: !!isAdmin, tv: 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
     res.json({ token, user: { id: userId, username: cleanName, rating: 1000, isAdmin: !!isAdmin, referralCode: refCode } })
   } catch (e) {
-    // В тестах добавляем полный стектрейс в response — без этого CI выводит только "expected 500"
-    // и не понять почему. На проде эту ветку не достигаем.
-    console.error('[auth/register] error:', e)
+    log.error({ err: e }, 'register failed')
     const payload = { error: 'Ошибка регистрации' }
     if (process.env.VITEST) {
       payload._debug = { message: e?.message, code: e?.code, stack: e?.stack?.slice(0, 500) }
@@ -104,10 +97,11 @@ router.post('/login', async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ error: 'Неверный логин или пароль' })
     }
+    log.info({ userId: user.id, username: user.username }, 'user login')
     const token = jwt.sign({ id: user.id, username: user.username, isAdmin: !!user.is_admin, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY })
     res.json({ token, user: formatUser(user) })
   } catch (e) {
-    console.error('[auth/login] error:', e)
+    log.error({ err: e }, 'login failed')
     res.status(500).json({ error: 'Ошибка входа' })
   }
 })
@@ -125,8 +119,6 @@ router.post('/refresh', (req, res) => {
     return res.status(401).json({ error: 'Токен без exp, войдите заново' })
   }
   const now = Math.floor(Date.now() / 1000)
-  // Refresh grace: REFRESH_GRACE_DAYS дней после истечения. Раньше было 30 —
-  // слишком мягко при компрометации (атакующий мог месяц ротировать).
   if (now - payload.exp > REFRESH_GRACE_DAYS * 86400) {
     return res.status(401).json({ error: 'Токен слишком старый, войдите заново' })
   }

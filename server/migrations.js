@@ -5,32 +5,34 @@
  * Новая миграция = добавить migrate(N+1, () => {...}) в конец runMigrations.
  */
 
-import { logger } from './logger.js'
+import { child } from './logger.js'
+
+const log = child('migrations')
 
 export function runMigrations(db) {
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)')
 
   const getVersion = () => db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0
-  const markDone = v => {
-    try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(v) }
-    catch (e) { logger.error({ err: e, version: v }, '[migrate] markDone failed') }
-  }
+  const markDone = v => { try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(v) } catch {} }
 
   // Fail-loud. Раньше тут было `try { fn() } catch {}; markDone(version)` —
   // outer try/catch молча глотал любые ошибки и schema_version обновлялась
   // даже при провале. Миграция больше никогда не повторялась, реальные ALTER
-  // не применялись. Сейчас: schema_version НЕ обновляется при ошибке,
-  // сервер падает на старте. Внутренние try/catch вокруг ALTER ADD COLUMN
-  // остаются — это легальный путь (повторное добавление существующей колонки
-  // → ошибка в SQLite, глотаем как idempotency).
+  // не применялись (миграция 4 с UNIQUE на это попалась — теперь UNIQUE-колонки
+  // продублированы в CREATE TABLE).
+  //
+  // Сейчас: schema_version НЕ обновляется при ошибке, сервер падает на старте.
+  // Внутренние try/catch вокруг ALTER ADD COLUMN остаются — это легальный путь
+  // (повторное добавление существующей колонки → ошибка в SQLite, мы её сознательно
+  // глотаем как idempotency). Любая другая ошибка (broken CREATE TABLE, упавший
+  // refund-transaction, неконсистентное состояние) поднимется наверх.
   function migrate(version, fn) {
     if (getVersion() >= version) return
     try {
       fn()
       markDone(version)
-      logger.info({ version }, `[migrate ${version}] applied`)
     } catch (e) {
-      logger.fatal({ err: e, version }, `[migrate ${version}] FATAL — schema_version НЕ обновлён, повтор при следующем старте`)
+      log.fatal({ version, err: e }, 'migration failed — schema_version NOT updated')
       throw e
     }
   }
@@ -117,10 +119,12 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN rush_best INTEGER DEFAULT 0') } catch {}
   })
 
+  // Флаг прохождения обучающей партии. Идемпотентность награды построена на нём.
   migrate(10, () => {
     try { db.exec('ALTER TABLE users ADD COLUMN onboarding_done INTEGER DEFAULT 0') } catch {}
   })
 
+  // Golden Rush матчи + per-user счётчики.
   migrate(11, () => {
     db.exec(`CREATE TABLE IF NOT EXISTS gr_matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,10 +147,13 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN gr_center_captures INTEGER DEFAULT 0') } catch {}
   })
 
+  // Скины фонов. Колонка на users + сид фонов в skins делается в bricks.js.
   migrate(12, () => {
     try { db.exec("ALTER TABLE users ADD COLUMN active_skin_background TEXT NOT NULL DEFAULT 'bg_city_day'") } catch {}
   })
 
+  // Удаляем фоны bg_mountains/desert/space — оставляем только day/night.
+  // Возвращаем кирпичи владельцам, чистим owned/active, деактивируем в каталоге.
   migrate(13, () => {
     const TO_REMOVE = ['bg_mountains', 'bg_desert', 'bg_space']
     const placeholders = TO_REMOVE.map(() => '?').join(',')
@@ -173,7 +180,7 @@ export function runMigrations(db) {
         }
       })
       refund()
-    } catch (e) { logger.error({ err: e }, '[migrate 13] refund error') }
+    } catch (e) { log.error({ err: e }, 'migrate 13 refund error') }
 
     try {
       db.prepare(
@@ -187,6 +194,10 @@ export function runMigrations(db) {
     } catch {}
   })
 
+  // Удаляем категорию стендов целиком. По обратной связи Александра
+  // (апр 2026): "Удалить вкладку Stands — нет игровой логики". Возвращаем
+  // кирпичи всем кто купил платный stand_*, сбрасываем активный стенд
+  // в дефолт и деактивируем все stand_* в каталоге.
   migrate(14, () => {
     let toRefund = []
     try {
@@ -195,12 +206,12 @@ export function runMigrations(db) {
          WHERE id LIKE 'stands_%' AND price_bricks > 0`
       ).all().map(r => r.id)
     } catch (e) {
-      logger.error({ err: e }, '[migrate 14] list stands error')
+      log.error({ err: e }, 'migrate 14 list stands error')
       return
     }
 
     if (toRefund.length === 0) {
-      logger.info('[migrate 14] no paid stand skins found, skipping')
+      log.info({}, 'migrate 14 — no paid stand skins, skipping')
       return
     }
 
@@ -231,8 +242,8 @@ export function runMigrations(db) {
         }
       })
       refund()
-      logger.info({ refundedCount }, `[migrate 14] refunded ${refundedCount} stand purchases`)
-    } catch (e) { logger.error({ err: e }, '[migrate 14] refund error') }
+      log.info({ refundedCount }, 'migrate 14 — refunded stand purchases')
+    } catch (e) { log.error({ err: e }, 'migrate 14 refund error') }
 
     try {
       db.prepare(
@@ -246,9 +257,10 @@ export function runMigrations(db) {
     } catch {}
   })
 
+  // Счётчик коллизий скинов (Snappy Block) — для ачивки 'style_twin'.
   migrate(15, () => {
     try { db.exec('ALTER TABLE users ADD COLUMN style_twin_count INTEGER DEFAULT 0') } catch {}
   })
 
-  logger.info({ schemaVersion: getVersion(), totalMigrations: 15 }, 'migrations complete')
+  log.info({ version: getVersion(), total: 15 }, 'schema migrations done')
 }
