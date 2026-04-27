@@ -8,37 +8,8 @@
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
 
 /**
- * @typedef {Object} Action
- * @property {[number, number]} [transfer]
- * @property {Object<string, number>} [placement]
- * @property {boolean} [swap]
- */
-
-/**
- * @typedef {Object} Move
- * @property {Action} action
- * @property {0|1} [player]
- */
-
-/**
- * @typedef {Object} VerifyResult
- * @property {boolean} ok
- * @property {number|null} [winner]
- * @property {string} [scoreStr]
- * @property {number} [turns]
- */
-
-/**
- * @typedef {Object} WalkResult
- * @property {boolean} ok
- * @property {number} [turns]
- * @property {boolean} [gameOver]
- */
-
-/**
- * @param {Action} a
- * @param {Action} b
- * @returns {boolean}
+ * @param {{swap?: boolean, transfer?: [number, number], placement?: Object<string, number>}} a
+ * @param {{swap?: boolean, transfer?: [number, number], placement?: Object<string, number>}} b
  */
 function actionsEqual(a, b) {
   if (a.swap || b.swap) return !!a.swap === !!b.swap
@@ -55,8 +26,8 @@ function actionsEqual(a, b) {
 }
 
 /**
- * @param {Move[]} moves
- * @returns {VerifyResult}
+ * @param {Array<{action: object, player?: number}>} moves
+ * @returns {{ok: boolean, winner?: number|null, scoreStr?: string, turns?: number}}
  */
 export function verifyGameFromMoves(moves) {
   if (!Array.isArray(moves) || moves.length === 0) return { ok: false }
@@ -85,8 +56,8 @@ export function verifyGameFromMoves(moves) {
  * Используется для валидации реплеев и training data — там партия может быть
  * прервана, но каждый отдельный ход должен быть легален.
  *
- * @param {Move[]} moves
- * @returns {WalkResult}
+ * @param {Array<{action: object}>} moves
+ * @returns {{ok: boolean, turns?: number, gameOver?: boolean}}
  */
 export function walkMoves(moves) {
   if (!Array.isArray(moves) || moves.length === 0) return { ok: false }

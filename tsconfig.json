@@ -2,32 +2,31 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
     "strict": false,
     "noImplicitAny": false,
-    "strictNullChecks": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
-    "lib": ["ES2022"]
+    "resolveJsonModule": true
   },
   "include": [
     "server/game-engine.js",
     "server/anticheat.js",
     "server/helpers.js",
-    "server/validate.js"
+    "server/validate.js",
+    "src/engine/game.js"
   ],
   "exclude": [
     "node_modules",
     "dist",
+    "server/node_modules",
     "android",
     "ios",
-    "**/*.test.js",
-    "**/*.test.jsx"
+    "e2e",
+    "tests"
   ]
 }

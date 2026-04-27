@@ -11,7 +11,7 @@
  * @typedef {[number, number]} Transfer - [srcStand, dstStand]
  * @typedef {Object<string, number>} Placement - { [standIdx]: chipsCount }
  * @typedef {Object} Action
- * @property {Transfer | null} [transfer] - перенос верхней группы с src на dst
+ * @property {Transfer} [transfer] - перенос верхней группы с src на dst
  * @property {Placement} [placement] - установка блоков на стойки
  * @property {boolean} [swap] - swap-ход (только turn=1, когда swapAvailable)
  * @typedef {Object} Move
@@ -41,7 +41,7 @@ export class GameState {
     this.turn = 0
     this.swapAvailable = true
     this.gameOver = false
-    /** @type {number | null} */
+    /** @type {number|null} */
     this.winner = null
   }
 
@@ -111,7 +111,7 @@ export function getValidTransfers(state) {
 export function getValidPlacements(state) {
   const maxChips = state.isFirstTurn() ? FIRST_TURN_MAX : MAX_PLACE
   const canClose = state.canCloseByPlacement()
-  /** @type {Array<[number, number]>} */
+  /** @type {[number, number][]} */
   const available = []
 
   for (const idx of state.openStands()) {
@@ -169,7 +169,7 @@ function applyPlacement(state, placement) {
     // БАГ-ФИКС: закрываем ВСЕГДА при ≥11 блоков, независимо от canClose.
     // Раньше условие было `total >= MAX_CHIPS && canClose` с fallback на
     // `total > MAX_CHIPS` (trim без закрытия). При total===MAX_CHIPS && !canClose
-    // обе ветки пропускали → стойка оставалась с 11 блоками без closed[i].
+    // обе ветки пропускали → стойка оставалась с 11 блоков без closed[i].
     // getValidPlacements уже ограничивает что можно класть → двойной гейт
     // создавал только дыру. Инвариант движка: стойка ≥11 блоков ВСЕГДА закрыта.
     if (total >= MAX_CHIPS) {
@@ -182,7 +182,7 @@ function applyPlacement(state, placement) {
 /** @param {GameState} state */
 function applySwap(state) {
   for (let i = 0; i < state.numStands; i++) {
-    state.stands[i] = state.stands[i].map(c => 1 - c)
+    state.stands[i] = state.stands[i].map(c => /** @type {Color} */ (1 - c))
   }
   /** @type {Object<string, number>} */
   const nc = {}
@@ -214,11 +214,7 @@ function determineWinner(state) {
   else state.winner = (GOLDEN_STAND in state.closed) ? state.closed[GOLDEN_STAND] : -1
 }
 
-/**
- * @param {GameState} state
- * @param {Action} action
- * @returns {GameState}
- */
+/** @param {GameState} state @param {Action} action */
 export function applyAction(state, action) {
   const ns = state.copy()
   if (action.swap) {
@@ -252,20 +248,20 @@ export function applyAction(state, action) {
   return ns
 }
 
-/** @param {GameState} state @returns {Action[]} */
+/** @param {GameState} state */
 export function getLegalActions(state) {
   if (state.gameOver) return []
   /** @type {Action[]} */
   const actions = []
   if (state.turn === 1 && state.swapAvailable) actions.push({ swap: true })
-  /** @type {Array<Transfer | null>} */
+  /** @type {(Transfer|null)[]} */
   const transfers = [null, ...getValidTransfers(state)]
   for (const transfer of transfers) {
     const temp = state.copy()
     if (transfer) applyTransfer(temp, transfer[0], transfer[1])
     for (const placement of getValidPlacements(temp)) {
       if (state.isFirstTurn() && !Object.keys(placement).length && !transfer) continue
-      actions.push({ transfer, placement })
+      actions.push({ transfer: transfer || undefined, placement })
     }
   }
   if (!actions.length) actions.push({})

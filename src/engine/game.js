@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Реэкспорт движка из server/game-engine.js
  * Единственный источник правил — server/game-engine.js
