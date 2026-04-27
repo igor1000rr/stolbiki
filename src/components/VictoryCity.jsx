@@ -16,6 +16,9 @@
  *   обновляет цвет ground.material при смене пресета.
  * - "Snappy вылетает прям на уровне города": локальный <Snappy
  *   variant='anchored'> внутри 3D-контейнера вместо global fixed overlay.
+ *
+ * 27.04.2026 — переименование EN: "Victory City" → "City of Victories"
+ * (точный обратный перевод "Город побед"). RU не задет.
  */
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useI18n } from '../engine/i18n'
@@ -1057,7 +1060,7 @@ export default function VictoryCity({ userId }) {
       const filename = `highrise-heist-city-${Date.now()}.png`
       const file = new File([blob], filename, { type: 'image/png' })
       const shareText = en
-        ? `My Victory City in Highrise Heist — ${winsCount} wins!`
+        ? `My City of Victories in Highrise Heist — ${winsCount} wins!`
         : `Мой Город побед в Highrise Heist — ${winsCount} побед!`
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
         navigator.share({ text: shareText, files: [file] })
@@ -1099,7 +1102,7 @@ export default function VictoryCity({ userId }) {
         const blob = new Blob(chunks, { type: mime })
         const filename = `highrise-heist-flythrough-${Date.now()}.${ext}`
         const file = new File([blob], filename, { type: mime })
-        const shareText = en ? 'Flythrough of my Victory City in Highrise Heist!' : 'Облёт моего Города побед в Highrise Heist!'
+        const shareText = en ? 'Flythrough of my City of Victories in Highrise Heist!' : 'Облёт моего Города побед в Highrise Heist!'
         if (navigator.canShare?.({ files: [file] }) && navigator.share) {
           navigator.share({ text: shareText, files: [file] })
             .then(() => { setSnapshotMsg(en ? 'Shared!' : 'Отправлено!'); setTimeout(() => setSnapshotMsg(null), 2000) })
