@@ -1,6 +1,6 @@
 /**
  * Schema migrations runner. Каждая миграция — атомарная, идемпотентная.
- * Версия записывается в schema_version после успеха.
+ * Версия записывается в schema_version ТОЛЬКО после успеха.
  *
  * Новая миграция = добавить migrate(N+1, () => {...}) в конец runMigrations.
  */
@@ -11,10 +11,27 @@ export function runMigrations(db) {
   const getVersion = () => db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0
   const markDone = v => { try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(v) } catch {} }
 
+  // Fail-loud. Раньше тут было `try { fn() } catch {}; markDone(version)` —
+  // outer try/catch молча глотал любые ошибки и schema_version обновлялась
+  // даже при провале. Миграция больше никогда не повторялась, реальные ALTER
+  // не применялись (миграция 4 с UNIQUE на это попалась — теперь UNIQUE-колонки
+  // продублированы в CREATE TABLE).
+  //
+  // Сейчас: schema_version НЕ обновляется при ошибке, сервер падает на старте.
+  // Внутренние try/catch вокруг ALTER ADD COLUMN остаются — это легальный путь
+  // (повторное добавление существующей колонки → ошибка в SQLite, мы её сознательно
+  // глотаем как idempotency). Любая другая ошибка (broken CREATE TABLE, упавший
+  // refund-transaction, неконсистентное состояние) поднимется наверх.
   function migrate(version, fn) {
     if (getVersion() >= version) return
-    try { fn() } catch { /* ALTER's catch their own errors */ }
-    markDone(version)
+    try {
+      fn()
+      markDone(version)
+    } catch (e) {
+      console.error(`[migrate ${version}] FATAL:`, e?.message || e)
+      if (e?.stack) console.error(e.stack)
+      throw e
+    }
   }
 
   migrate(1, () => {

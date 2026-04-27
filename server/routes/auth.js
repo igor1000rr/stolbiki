@@ -11,6 +11,15 @@ const TOKEN_EXPIRY = '7d'
 // слабым для публичного продукта с ranked/leaderboard). Клиент валидацией не
 // занимается — ловит ошибку сервера и показывает в authError.
 const PASSWORD_MIN = 8
+// bcrypt cost factor. 12 — актуальный стандарт для железа 2026 (~150ms на хеш).
+// Раньше было 10 (~70ms) — для современного железа недостаточно. Регистрация и
+// логин стали заметно медленнее на единичной операции, но event loop не блокируется
+// (bcrypt.hash/compare — async через libuv pool).
+const BCRYPT_ROUNDS = 12
+// Refresh принимает истёкшие токены не старше 7 дней. Раньше было 30 — слишком
+// мягко: при компрометации токена у атакующего был месяц на ротацию через /refresh
+// пока юзер не бампнет users.token_version.
+const REFRESH_GRACE_DAYS = 7
 const REFERRAL_XP = 100
 const REFERRAL_BRICKS_REG = 20
 const REFERRAL_BRICKS_GAMES = 30
@@ -51,7 +60,7 @@ router.post('/register', async (req, res) => {
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(cleanName)
     if (existing) return res.status(409).json({ error: 'Username taken' })
 
-    const hash = await bcrypt.hash(password, 10)
+    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS)
     const isAdmin = ADMIN_NAMES.includes(cleanName.toLowerCase()) ? 1 : 0
 
     let referrerId = null
@@ -116,7 +125,9 @@ router.post('/refresh', (req, res) => {
     return res.status(401).json({ error: 'Токен без exp, войдите заново' })
   }
   const now = Math.floor(Date.now() / 1000)
-  if (now - payload.exp > 30 * 86400) {
+  // Refresh grace: REFRESH_GRACE_DAYS дней после истечения. Раньше было 30 —
+  // слишком мягко при компрометации (атакующий мог месяц ротировать).
+  if (now - payload.exp > REFRESH_GRACE_DAYS * 86400) {
     return res.status(401).json({ error: 'Токен слишком старый, войдите заново' })
   }
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id)

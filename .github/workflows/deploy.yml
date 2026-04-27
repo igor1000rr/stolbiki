@@ -138,6 +138,25 @@ jobs:
           rm -rf server/data
           rm -f server/*.db server/*.db-*
 
+      # Защита от dead-code: SCP с overwrite:true (см. ниже шаг Upload Server)
+      # ЗАЛИВАЕТ поверх старых файлов, но НЕ УДАЛЯЕТ те что исчезли в новой версии.
+      # Со временем в server/routes накапливается мусор от удалённых роутов —
+      # потенциально работающих если кто-то импортнёт по пути.
+      # Удаляем папки которые гарантированно перегенерируются из upload (routes,
+      # seeds, blog-posts) ДО заливки. БД (data/), бэкапы (backups/), .env,
+      # .jwt-secret, .vapid, node_modules — НЕ ТРОГАЕМ.
+      - name: Clean stale routes/seeds before upload
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            rm -rf /opt/stolbiki-api/routes
+            rm -rf /opt/stolbiki-api/seeds
+            rm -rf /opt/stolbiki-api/blog-posts
+            echo "✅ Stale routes/seeds/blog-posts cleaned"
+
       - name: Upload Frontend
         uses: appleboy/scp-action@v0.1.7
         with:
