@@ -148,14 +148,16 @@ describe('username', () => {
 })
 
 // ═══ password ═══
+// Минимум 8 символов — sync с PASSWORD_MIN из routes/auth.js (NIST 800-63B)
 describe('password', () => {
-  it('допускает 6+ символов', () => {
-    expect(password('123456')).toBe('123456')
+  it('допускает 8+ символов', () => {
+    expect(password('12345678')).toBe('12345678')
     expect(password('abcdefgh')).toBe('abcdefgh')
   })
 
-  it('null если < 6 символов', () => {
-    expect(password('12345')).toBeNull()
+  it('null если < 8 символов', () => {
+    expect(password('1234567')).toBeNull()
+    expect(password('123456')).toBeNull()
     expect(password('abc')).toBeNull()
     expect(password('')).toBeNull()
   })
@@ -164,13 +166,13 @@ describe('password', () => {
     expect(password('a'.repeat(101))).toBeNull()
   })
 
-  it('допускает ровно 6 и ровно 100', () => {
-    expect(password('a'.repeat(6))).toBe('a'.repeat(6))
+  it('допускает ровно 8 и ровно 100', () => {
+    expect(password('a'.repeat(8))).toBe('a'.repeat(8))
     expect(password('a'.repeat(100))).toBe('a'.repeat(100))
   })
 
   it('null для не-строк', () => {
-    expect(password(123456)).toBeNull()
+    expect(password(12345678)).toBeNull()
     expect(password(null)).toBeNull()
   })
 
