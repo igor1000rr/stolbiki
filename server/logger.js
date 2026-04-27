@@ -1,127 +1,71 @@
-// @ts-check
 /**
- * Structured logger без зависимостей.
+ * Структурированное логирование через pino.
  *
- * Pino-подобный API: logger.info(msg, fields), logger.error(msg, fields), .child().
- * - В prod (NODE_ENV=production): однострочный JSON в stdout (грепабельно
- *   через jq, парсится Loki/Datadog/Grafana без перенастроек).
- * - В dev: цветной pretty-вывод.
- * - В тестах (VITEST=true или NODE_ENV=test): silent — не засирает CI-output.
+ * dev: pino-pretty (цветные уровни, читаемый вывод)
+ * prod: JSON-строки на stdout (грепабельно через jq, съедается DataDog/Loki/Splunk)
+ * test (VITEST=true): silent — иначе вывод тестов замусорен.
  *
- * Уровни: trace(10) debug(20) info(30) warn(40) error(50) fatal(60).
- * Фильтр через LOG_LEVEL env (default: info в prod, debug в dev).
+ * Глобальный logger для startup/shutdown/migrations/fatal событий.
+ * HTTP-логирование делает pino-http в server.js (см. httpLogger ниже).
+ */
+
+import pino from 'pino'
+import pinoHttp from 'pino-http'
+import { randomUUID } from 'node:crypto'
+
+const isProd = process.env.NODE_ENV === 'production'
+const isTest = !!process.env.VITEST
+
+const level = isTest ? 'silent' : (process.env.LOG_LEVEL || (isProd ? 'info' : 'debug'))
+
+const transport = !isProd && !isTest
+  ? { target: 'pino-pretty', options: { colorize: true, translateTime: 'HH:MM:ss', ignore: 'pid,hostname' } }
+  : undefined
+
+export const logger = pino({
+  level,
+  transport,
+  base: { service: 'stolbiki-api' },
+  timestamp: pino.stdTimeFunctions.isoTime,
+})
+
+/**
+ * HTTP-middleware: проставляет req.id (UUID v4 или из X-Request-Id)
+ * и логирует summary каждого запроса. Уровень зависит от status code.
  *
- * Без deps намеренно: pino добавил бы +200KB и потребовал бы lockfile-rebuild.
- * Этот файл ~80 LOC и закрывает 95% потребностей.
+ * БОДИ НЕ ЛОГИРУЕМ — может содержать пароли, JWT, PII.
  */
-
-import { randomUUID } from 'crypto'
-
-/** @type {Record<string, number>} */
-const LEVEL = { trace: 10, debug: 20, info: 30, warn: 40, error: 50, fatal: 60 }
-const ENV_LEVEL = LEVEL[String(process.env.LOG_LEVEL || '').toLowerCase()]
-const MIN_LEVEL = ENV_LEVEL ?? (process.env.NODE_ENV === 'production' ? LEVEL.info : LEVEL.debug)
-const PRETTY = process.env.NODE_ENV !== 'production' && !process.env.VITEST
-const SILENT = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
-
-/** @type {Record<string, number>} */
-const COLORS = { trace: 90, debug: 36, info: 32, warn: 33, error: 31, fatal: 35 }
+export const httpLogger = pinoHttp({
+  logger,
+  genReqId: (req, res) => {
+    const incoming = req.headers['x-request-id']
+    const existing = typeof incoming === 'string' && incoming.length > 0 && incoming.length < 100 ? incoming : null
+    const id = existing || randomUUID()
+    res.setHeader('X-Request-Id', id)
+    return id
+  },
+  customLogLevel: (req, res, err) => {
+    if (err || res.statusCode >= 500) return 'error'
+    if (res.statusCode >= 400) return 'warn'
+    return 'info'
+  },
+  serializers: {
+    req: (req) => ({ id: req.id, method: req.method, url: req.url, ip: req.ip }),
+    res: (res) => ({ statusCode: res.statusCode }),
+  },
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res, err) => `${req.method} ${req.url} ${res.statusCode} ${err?.message || ''}`,
+  // Обрезаем входящие X-Request-Id чтобы атакующий не запихивал в логи 1МБ строку.
+})
 
 /**
- * @param {string} level
- * @param {string} msg
- * @param {Record<string, any>} [fields]
+ * Обёртка над console.* для легаси-кода. Не использовать в новом коде — ребять logger.* напрямую.
  */
-function emit(level, msg, fields) {
-  if (SILENT) return
-  if (LEVEL[level] < MIN_LEVEL) return
-  const entry = {
-    time: new Date().toISOString(),
-    level,
-    msg,
-    pid: process.pid,
-    ...(fields || {}),
-  }
-  if (PRETTY) {
-    const c = COLORS[level] || 0
-    const fieldStr = fields && Object.keys(fields).length ? ' ' + JSON.stringify(fields) : ''
-    process.stdout.write(`\x1b[${c}m[${level.toUpperCase()}]\x1b[0m ${entry.time} ${msg}${fieldStr}\n`)
-  } else {
-    process.stdout.write(JSON.stringify(entry) + '\n')
-  }
-}
-
-/**
- * @typedef {Object} Logger
- * @property {(msg: string, fields?: Record<string, any>) => void} debug
- * @property {(msg: string, fields?: Record<string, any>) => void} info
- * @property {(msg: string, fields?: Record<string, any>) => void} warn
- * @property {(msg: string, fields?: Record<string, any>) => void} error
- * @property {(msg: string, fields?: Record<string, any>) => void} fatal
- * @property {(extra: Record<string, any>) => Logger} child
- */
-
-/**
- * @param {Record<string, any>} [bound]
- * @returns {Logger}
- */
-function makeLogger(bound) {
-  /** @param {Record<string, any> | undefined} f */
-  const merge = bound
-    ? (f) => ({ ...bound, ...(f || {}) })
-    : (f) => f
-  return {
-    debug: (msg, fields) => emit('debug', msg, merge(fields)),
-    info: (msg, fields) => emit('info', msg, merge(fields)),
-    warn: (msg, fields) => emit('warn', msg, merge(fields)),
-    error: (msg, fields) => emit('error', msg, merge(fields)),
-    fatal: (msg, fields) => emit('fatal', msg, merge(fields)),
-    child: (extra) => makeLogger({ ...(bound || {}), ...extra }),
-  }
-}
-
-export const logger = makeLogger()
-
-/**
- * Express middleware: проставляет req.id (UUID) и заголовок X-Request-ID.
- * Если клиент прислал X-Request-ID — используем его (для трассировки через
- * прокси/балансировщик). Иначе генерируем новый.
- *
- * @param {import('express').Request & { id?: string }} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-export function requestId(req, res, next) {
-  const incoming = req.headers['x-request-id']
-  req.id = (typeof incoming === 'string' && incoming.length > 0 && incoming.length < 100)
-    ? incoming
-    : randomUUID()
-  res.setHeader('X-Request-ID', req.id)
-  next()
-}
-
-/**
- * Express middleware: пишет 1 лог-строку на каждый ответ с
- * reqId/method/path/status/duration. Подключать после requestId().
- *
- * @param {import('express').Request & { id?: string }} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-export function accessLog(req, res, next) {
-  const start = Date.now()
-  res.on('finish', () => {
-    const duration = Date.now() - start
-    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
-    emit(level, 'http', {
-      reqId: req.id,
-      method: req.method,
-      path: req.path,
-      status: res.statusCode,
-      durationMs: duration,
-      ua: String(req.headers['user-agent'] || '').slice(0, 80),
-      ip: req.ip,
-    })
-  })
-  next()
+export function patchConsole() {
+  const orig = { log: console.log, info: console.info, warn: console.warn, error: console.error }
+  console.log = (...args) => logger.info({ legacy: 'console.log' }, args.map(String).join(' '))
+  console.info = (...args) => logger.info({ legacy: 'console.info' }, args.map(String).join(' '))
+  console.warn = (...args) => logger.warn({ legacy: 'console.warn' }, args.map(String).join(' '))
+  console.error = (...args) => logger.error({ legacy: 'console.error' }, args.map(String).join(' '))
+  return () => { Object.assign(console, orig) }
 }

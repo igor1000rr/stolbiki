@@ -5,31 +5,32 @@
  * Новая миграция = добавить migrate(N+1, () => {...}) в конец runMigrations.
  */
 
+import { logger } from './logger.js'
+
 export function runMigrations(db) {
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)')
 
   const getVersion = () => db.prepare('SELECT MAX(version) as v FROM schema_version').get()?.v || 0
-  const markDone = v => { try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(v) } catch {} }
+  const markDone = v => {
+    try { db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(v) }
+    catch (e) { logger.error({ err: e, version: v }, '[migrate] markDone failed') }
+  }
 
   // Fail-loud. Раньше тут было `try { fn() } catch {}; markDone(version)` —
   // outer try/catch молча глотал любые ошибки и schema_version обновлялась
   // даже при провале. Миграция больше никогда не повторялась, реальные ALTER
-  // не применялись (миграция 4 с UNIQUE на это попалась — теперь UNIQUE-колонки
-  // продублированы в CREATE TABLE).
-  //
-  // Сейчас: schema_version НЕ обновляется при ошибке, сервер падает на старте.
-  // Внутренние try/catch вокруг ALTER ADD COLUMN остаются — это легальный путь
-  // (повторное добавление существующей колонки → ошибка в SQLite, мы её сознательно
-  // глотаем как idempotency). Любая другая ошибка (broken CREATE TABLE, упавший
-  // refund-transaction, неконсистентное состояние) поднимется наверх.
+  // не применялись. Сейчас: schema_version НЕ обновляется при ошибке,
+  // сервер падает на старте. Внутренние try/catch вокруг ALTER ADD COLUMN
+  // остаются — это легальный путь (повторное добавление существующей колонки
+  // → ошибка в SQLite, глотаем как idempotency).
   function migrate(version, fn) {
     if (getVersion() >= version) return
     try {
       fn()
       markDone(version)
+      logger.info({ version }, `[migrate ${version}] applied`)
     } catch (e) {
-      console.error(`[migrate ${version}] FATAL:`, e?.message || e)
-      if (e?.stack) console.error(e.stack)
+      logger.fatal({ err: e, version }, `[migrate ${version}] FATAL — schema_version НЕ обновлён, повтор при следующем старте`)
       throw e
     }
   }
@@ -116,12 +117,10 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN rush_best INTEGER DEFAULT 0') } catch {}
   })
 
-  // Флаг прохождения обучающей партии. Идемпотентность награды построена на нём.
   migrate(10, () => {
     try { db.exec('ALTER TABLE users ADD COLUMN onboarding_done INTEGER DEFAULT 0') } catch {}
   })
 
-  // Golden Rush матчи + per-user счётчики.
   migrate(11, () => {
     db.exec(`CREATE TABLE IF NOT EXISTS gr_matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,18 +143,14 @@ export function runMigrations(db) {
     try { db.exec('ALTER TABLE users ADD COLUMN gr_center_captures INTEGER DEFAULT 0') } catch {}
   })
 
-  // Скины фонов. Колонка на users + сид фонов в skins делается в bricks.js.
   migrate(12, () => {
     try { db.exec("ALTER TABLE users ADD COLUMN active_skin_background TEXT NOT NULL DEFAULT 'bg_city_day'") } catch {}
   })
 
-  // Удаляем фоны bg_mountains/desert/space — оставляем только day/night.
-  // Возвращаем кирпичи владельцам, чистим owned/active, деактивируем в каталоге.
   migrate(13, () => {
     const TO_REMOVE = ['bg_mountains', 'bg_desert', 'bg_space']
     const placeholders = TO_REMOVE.map(() => '?').join(',')
 
-    // Юзеры с купленным удаляемым скином → рефанд + запись транзакции
     try {
       const owners = db.prepare(
         `SELECT us.user_id, us.skin_id, s.price_bricks
@@ -178,9 +173,8 @@ export function runMigrations(db) {
         }
       })
       refund()
-    } catch (e) { console.error('[migrate 13] refund error:', e) }
+    } catch (e) { logger.error({ err: e }, '[migrate 13] refund error') }
 
-    // Сброс активного фона у юзеров с удалённым активным
     try {
       db.prepare(
         `UPDATE users SET active_skin_background='bg_city_day'
@@ -188,22 +182,11 @@ export function runMigrations(db) {
       ).run(...TO_REMOVE)
     } catch {}
 
-    // Деактивация в каталоге (мягкое удаление — сохраняем FK-целостность)
     try {
       db.prepare(`UPDATE skins SET is_active=0 WHERE id IN (${placeholders})`).run(...TO_REMOVE)
     } catch {}
   })
 
-  // Удаляем категорию стендов целиком. По обратной связи Александра
-  // (апр 2026): "Удалить вкладку Stands — нет игровой логики". Возвращаем
-  // кирпичи всем кто купил платный stand_*, сбрасываем активный стенд
-  // в дефолт и деактивируем все stand_* в каталоге.
-  //
-  // ВАЖНО: settings.standStyle на клиенте остаётся в localStorage —
-  // legacy логика Board.jsx ещё применяет фон стенда из settings.
-  // Сервер забывает покупки, но визуально на устройстве ничего не пропадёт
-  // мгновенно. Через какое-то время (когда юзер сбросит настройки или
-  // переустановит приложение) settings обновится из getProfile().
   migrate(14, () => {
     let toRefund = []
     try {
@@ -212,12 +195,12 @@ export function runMigrations(db) {
          WHERE id LIKE 'stands_%' AND price_bricks > 0`
       ).all().map(r => r.id)
     } catch (e) {
-      console.error('[migrate 14] list stands error:', e)
+      logger.error({ err: e }, '[migrate 14] list stands error')
       return
     }
 
     if (toRefund.length === 0) {
-      console.log('[migrate 14] no paid stand skins found, skipping')
+      logger.info('[migrate 14] no paid stand skins found, skipping')
       return
     }
 
@@ -248,8 +231,8 @@ export function runMigrations(db) {
         }
       })
       refund()
-      console.log(`[migrate 14] refunded ${refundedCount} stand purchases`)
-    } catch (e) { console.error('[migrate 14] refund error:', e) }
+      logger.info({ refundedCount }, `[migrate 14] refunded ${refundedCount} stand purchases`)
+    } catch (e) { logger.error({ err: e }, '[migrate 14] refund error') }
 
     try {
       db.prepare(
@@ -263,13 +246,9 @@ export function runMigrations(db) {
     } catch {}
   })
 
-  // Счётчик коллизий скинов (Snappy Block) — для ачивки 'style_twin'.
-  // Инкремент происходит в server/ws.js при detectSkinCollision на старте
-  // онлайн партии. Хранится в users чтобы можно было считать персонально
-  // и для ачивки и для возможной будущей статистики.
   migrate(15, () => {
     try { db.exec('ALTER TABLE users ADD COLUMN style_twin_count INTEGER DEFAULT 0') } catch {}
   })
 
-  console.log('Schema version: ' + getVersion() + ', миграций: 15')
+  logger.info({ schemaVersion: getVersion(), totalMigrations: 15 }, 'migrations complete')
 }
