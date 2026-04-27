@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Middleware — авторизация, rate limiting, admin check
  */
@@ -6,7 +7,9 @@ import jwt from 'jsonwebtoken'
 import { db, JWT_SECRET } from './db.js'
 
 // ═══ Rate Limiting (in-memory) ═══
+/** @type {Map<string, {start: number, count: number}>} */
 export const rateLimits = new Map()
+/** @type {Map<string, number>} */
 const gameSubmitLimits = new Map()
 export { gameSubmitLimits }
 
@@ -16,8 +19,12 @@ export { gameSubmitLimits }
 // Активируется через NODE_ENV=test (ставится в e2e.yml workflow).
 const RATE_LIMIT_DISABLED = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
 
+/**
+ * @param {number} [windowMs]
+ * @param {number} [max]
+ */
 export function rateLimit(windowMs = 60000, max = 60) {
-  return (req, res, next) => {
+  return (/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) => {
     if (RATE_LIMIT_DISABLED) return next()
     const key = req.ip + ':' + req.path
     const now = Date.now()
@@ -45,6 +52,7 @@ export function rateLimit(windowMs = 60000, max = 60) {
 // lastSeenCache содержит два типа значений:
 //   - число (timestamp) — для last_seen (ключ: userId, число)
 //   - объект { at, tv } — для token_version (ключ: 'tv:<userId>')
+/** @type {Map<string | number, number | {at: number, tv: number}>} */
 const lastSeenCache = new Map()
 const LAST_SEEN_INTERVAL = 300000 // 5 минут
 
@@ -75,6 +83,11 @@ setInterval(() => {
   }
 }, 300000)
 
+/**
+ * @param {any} req
+ * @param {any} res
+ * @param {any} next
+ */
 export function auth(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'Нужна авторизация' })
@@ -85,10 +98,12 @@ export function auth(req, res, next) {
     // (старый токен до миграции 7) — тоже отклоняем. Закрывает дыру grace period'а.
     const now = Date.now()
     const cacheKey = `tv:${req.user.id}`
-    const cached = lastSeenCache.get(cacheKey)
+    const cached = /** @type {{at: number, tv: number} | undefined} */ (lastSeenCache.get(cacheKey))
     let dbTv
     if (!cached || now - cached.at > LAST_SEEN_INTERVAL) {
-      const row = db.prepare('SELECT token_version FROM users WHERE id = ?').get(req.user.id)
+      const row = /** @type {{token_version: number} | undefined} */ (
+        db.prepare('SELECT token_version FROM users WHERE id = ?').get(req.user.id)
+      )
       dbTv = row?.token_version || 0
       lastSeenCache.set(cacheKey, { at: now, tv: dbTv })
     } else {
@@ -102,14 +117,14 @@ export function auth(req, res, next) {
       return res.status(401).json({ error: 'Токен отозван', expired: true })
     }
     // Обновляем last_seen не чаще раза в 5 минут — снижаем нагрузку на SQLite
-    const lastUpdate = lastSeenCache.get(req.user.id)
+    const lastUpdate = /** @type {number | undefined} */ (lastSeenCache.get(req.user.id))
     if (!lastUpdate || now - lastUpdate > LAST_SEEN_INTERVAL) {
       db.prepare(`UPDATE users SET last_seen = datetime('now') WHERE id = ?`).run(req.user.id)
       lastSeenCache.set(req.user.id, now)
     }
     next()
   } catch (authErr) {
-    if (authErr.name === 'TokenExpiredError') {
+    if (/** @type {any} */ (authErr).name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Токен истёк', expired: true })
     }
     res.status(401).json({ error: 'Неверный токен' })
@@ -117,6 +132,11 @@ export function auth(req, res, next) {
 }
 
 // ═══ Admin Only ═══
+/**
+ * @param {any} req
+ * @param {any} res
+ * @param {any} next
+ */
 export function adminOnly(req, res, next) {
   if (!req.user?.isAdmin) return res.status(403).json({ error: 'Нужен админ-доступ' })
   next()

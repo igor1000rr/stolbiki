@@ -1,10 +1,40 @@
+// @ts-check
 /**
  * Общие хелперы — formatUser, addXP, ensureCurrentSeason, seededRandom
  */
 
 import { db } from './db.js'
 
+/**
+ * @typedef {Object} UserPublicView
+ * @property {number} id
+ * @property {string} username
+ * @property {number} rating
+ * @property {number} gamesPlayed
+ * @property {number} wins
+ * @property {number} losses
+ * @property {number} winStreak
+ * @property {number} bestStreak
+ * @property {number} goldenClosed
+ * @property {number} comebacks
+ * @property {number} perfectWins
+ * @property {boolean} beatHardAi
+ * @property {number} fastWins
+ * @property {number} onlineWins
+ * @property {number} puzzlesSolved
+ * @property {string} avatar
+ * @property {number} xp
+ * @property {number} level
+ * @property {number} bricks
+ * @property {number} styleTwinCount
+ * @property {string|null} referralCode
+ * @property {boolean} isAdmin
+ * @property {string} createdAt
+ * @property {string} lastSeen
+ */
+
 // ═══ Форматирование пользователя для API ═══
+/** @param {Record<string, any>} u @returns {UserPublicView} */
 export function formatUser(u) {
   return {
     id: u.id, username: u.username, rating: u.rating,
@@ -24,6 +54,7 @@ export function formatUser(u) {
 
 /**
  * Публичный профиль — без приватных полей (referralCode, email, isAdmin).
+ * @param {Record<string, any>} u
  */
 export function formatPublicUser(u) {
   return {
@@ -44,11 +75,14 @@ export function formatPublicUser(u) {
 // БАГ-ФИКС: раньше if → делал только один level-up за вызов. При +500 XP на level=1
 // игрок должен стать level=3+ (100+200 → 2, потом +200 на level=2 → 3, и т.д.),
 // но код поднимал только до level=2 и оставлял лишний XP. Теперь в цикле.
+/** @param {number} userId @param {number} amount */
 export function addXP(userId, amount) {
   db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(amount, userId)
   // Safety: max 20 уровней за один вызов — защита от infinite loop если данные битые
   for (let i = 0; i < 20; i++) {
-    const user = db.prepare('SELECT xp, level FROM users WHERE id=?').get(userId)
+    const user = /** @type {{xp: number, level: number} | undefined} */ (
+      db.prepare('SELECT xp, level FROM users WHERE id=?').get(userId)
+    )
     if (!user) return
     const xpForNext = user.level * 100
     if (user.xp < xpForNext) return
@@ -84,6 +118,7 @@ export function getDailySeed() {
   return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`
 }
 
+/** @param {string} seed */
 export function seededRandom(seed) {
   let h = 0
   for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0

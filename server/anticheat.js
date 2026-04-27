@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Античит: верификация результата партии по массиву ходов.
  * Проигрывает moves через движок, возвращает настоящий winner/score/turns.
@@ -6,6 +7,10 @@
 
 import { GameState, applyAction, getLegalActions } from './game-engine.js'
 
+/** @typedef {import('./game-engine.js').Action} Action */
+/** @typedef {import('./game-engine.js').Move} Move */
+
+/** @param {Action} a @param {Action} b */
 function actionsEqual(a, b) {
   if (a.swap || b.swap) return !!a.swap === !!b.swap
   const at = a.transfer, bt = b.transfer
@@ -21,8 +26,8 @@ function actionsEqual(a, b) {
 }
 
 /**
- * @param {Array<{action: object, player?: number}>} moves
- * @returns {{ok: boolean, winner?: number, scoreStr?: string, turns?: number}}
+ * @param {Array<Move>} moves
+ * @returns {{ok: boolean, winner?: number | null, scoreStr?: string, turns?: number}}
  */
 export function verifyGameFromMoves(moves) {
   if (!Array.isArray(moves) || moves.length === 0) return { ok: false }
@@ -51,7 +56,7 @@ export function verifyGameFromMoves(moves) {
  * Используется для валидации реплеев и training data — там партия может быть
  * прервана, но каждый отдельный ход должен быть легален.
  *
- * @param {Array<{action: object}>} moves
+ * @param {Array<Move>} moves
  * @returns {{ok: boolean, turns?: number, gameOver?: boolean}}
  */
 export function walkMoves(moves) {
