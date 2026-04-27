@@ -1,6 +1,17 @@
 /**
  * Lessons — 5 интерактивных уроков
  * Каждый: текст + задание на интерактивной доске
+ *
+ * 27.04.2026 — фикс по жалобе Александра "Lessons крашит приложение":
+ *  1. Сломанная phase-машина transfer: кнопка "↗ Transfer" ставила
+ *     phase='transfer-target' и selected=null, но ВЫБОР source-стойки
+ *     никак не делался. Юзер тапал кнопку → пытался тапать стойки →
+ *     ничего не происходило (мог восприниматься как "крэш" UI).
+ *     Теперь правильная FSM: place → transfer-source → transfer-target → place.
+ *  2. Try/catch вокруг lesson.setup() — даже если урок добавит баг
+ *     в state, не валим компонент. Fallback на чистый GameState.
+ *  3. Defensive check: если gs.stands[i] вдруг undefined,
+ *     handleStandClick игнорирует клик вместо крэша.
  */
 import { useState, useEffect } from 'react'
 import { GameState, getValidTransfers } from '../engine/game'
@@ -27,15 +38,18 @@ const LESSONS = [
     id: 'transfer',
     title_ru: 'Перенос: ключевой приём',
     title_en: 'Transfer: key tactic',
-    desc_ru: 'Перенос перемещает верхнюю группу блоков с одной стойки на другую. Это меняет контроль!\n\nЗадание: выполните перенос со стойки 3 на стойку 5.',
-    desc_en: 'Transfer moves the top group of blocks from one stand to another. This changes control!\n\nTask: transfer from stand 3 to stand 5.',
+    desc_ru: 'Перенос перемещает верхнюю группу блоков с одной стойки на другую. Это меняет контроль!\n\nЗадание: нажмите «↗ Перенос», выберите стойку 3, затем стойку 5.',
+    desc_en: 'Transfer moves the top group of blocks from one stand to another. This changes control!\n\nTask: press "↗ Transfer", pick stand 3, then stand 5.',
     setup: () => {
       const gs = new GameState()
       gs.turn = 6; gs.currentPlayer = 0
-      gs.stands[2] = [0, 0, 1, 1, 0, 0] // Stand 3: blue on top
-      gs.stands[4] = [1, 1, 1] // Stand 5: some red
-      gs.stands[0] = [0, 1, 0, 1, 0] // Stand 1
-      gs.stands[7] = [1, 0, 1] // Stand 8
+      // Stand 3 (idx 2): top — синий (0). Stand 5 (idx 4) теперь тоже синий
+      // на топе, чтобы перенос был валидным по getValidTransfers
+      // (dstTop === grpColor либо пустая стойка).
+      gs.stands[2] = [0, 0, 1, 1, 0, 0] // top = blue
+      gs.stands[4] = [1, 1, 0]          // top = blue (можно дополнить)
+      gs.stands[0] = [0, 1, 0, 1, 0]
+      gs.stands[7] = [1, 0, 1]
       return gs
     },
     goal: (gs, action) => {
@@ -105,6 +119,23 @@ const LESSONS = [
   },
 ]
 
+/**
+ * Defensive setup wrapper — оборачивает lesson.setup() в try/catch
+ * чтобы битый сценарий не валил компонент. Возвращает {gs, error}.
+ */
+function safeSetup(lesson) {
+  try {
+    const gs = lesson.setup()
+    if (!gs || !Array.isArray(gs.stands) || gs.stands.length === 0) {
+      throw new Error('setup returned invalid GameState')
+    }
+    return { gs, error: null }
+  } catch (e) {
+    console.error('[Lessons] setup error for', lesson?.id, e)
+    return { gs: new GameState(), error: e.message || 'setup failed' }
+  }
+}
+
 export default function Lessons({ onClose }) {
   const { lang } = useI18n()
   const en = lang === 'en'
@@ -112,9 +143,15 @@ export default function Lessons({ onClose }) {
   const [gs, setGs] = useState(null)
   const [placement, setPlacement] = useState({})
   const [transfer, setTransfer] = useState(null)
+  // Phase FSM:
+  //   'place'           — обычный режим, клики ставят блоки
+  //   'transfer-source' — после нажатия кнопки "↗ Перенос", ждём выбор источника
+  //   'transfer-target' — источник выбран, ждём цель
+  // Раньше было только 'place' и 'transfer-target', source-выбор отсутствовал.
   const [phase, setPhase] = useState('place')
   const [selected, setSelected] = useState(null)
   const [status, setStatus] = useState(null) // null | 'correct' | 'wrong'
+  const [setupError, setSetupError] = useState(null)
   const [completed, setCompleted] = useState(() => {
     try { return JSON.parse(localStorage.getItem('stolbiki_lessons') || '[]') } catch { return [] }
   })
@@ -123,20 +160,45 @@ export default function Lessons({ onClose }) {
 
   useEffect(() => {
     if (!lesson) return
-    const state = lesson.setup()
+    const { gs: state, error } = safeSetup(lesson)
     setGs(state); setPlacement({}); setTransfer(null); setPhase('place')
-    setSelected(null); setStatus(null)
-  }, [lessonIdx])
+    setSelected(null); setStatus(null); setSetupError(error)
+  }, [lessonIdx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStandClick(i) {
     if (status) return
+    // Защита от битого state — если gs.stands[i] не массив, игнорируем.
+    if (!gs || !Array.isArray(gs.stands) || !Array.isArray(gs.stands[i])) return
+
+    // Phase 'transfer-source' — выбираем стойку откуда переносить.
+    if (phase === 'transfer-source') {
+      // Источник должен быть открыт и иметь верхнюю группу.
+      if ((i in gs.closed) || gs.stands[i].length === 0) return
+      // Проверяем что хотя бы один валидный transfer существует с этой стойки.
+      const hasValidTransfer = getValidTransfers(gs).some(([s]) => s === i)
+      if (!hasValidTransfer) return
+      setSelected(i)
+      setPhase('transfer-target')
+      return
+    }
+
+    // Phase 'transfer-target' — выбираем стойку куда переносить.
     if (phase === 'transfer-target') {
-      if (selected !== null && gs && getValidTransfers(gs).some(([s, d]) => s === selected && d === i)) {
-        setTransfer([selected, i]); setSelected(null); setPhase('place')
+      if (selected === null) {
+        // Странное состояние: target без source. Возвращаемся к выбору source.
+        setPhase('transfer-source')
+        return
+      }
+      if (getValidTransfers(gs).some(([s, d]) => s === selected && d === i)) {
+        setTransfer([selected, i])
+        setSelected(null)
+        setPhase('place')
       }
       return
     }
-    if (!gs || gs.standSpace(i) <= 0 || (i in gs.closed)) return
+
+    // Phase 'place' — ставим блоки.
+    if (gs.standSpace(i) <= 0 || (i in gs.closed)) return
     const maxTotal = gs.isFirstTurn() ? 1 : 3
     const currentTotal = Object.values(placement).reduce((a, b) => a + b, 0)
     if (i in placement) {
@@ -152,17 +214,29 @@ export default function Lessons({ onClose }) {
     }
   }
 
+  function startTransferMode() {
+    // Кнопка "↗ Перенос" входит в FSM transfer-source. Раньше сразу ставила
+    // 'transfer-target' и selected=null — клики не работали (см. описание выше).
+    setPhase('transfer-source')
+    setSelected(null)
+  }
+
   function confirm() {
-    const action = { placement: { ...placement }, transfer: transfer || undefined, swap: false }
-    if (lesson.goal(gs, action)) {
-      setStatus('correct')
-      if (!completed.includes(lesson.id)) {
-        const nc = [...completed, lesson.id]
-        setCompleted(nc)
-        localStorage.setItem('stolbiki_lessons', JSON.stringify(nc))
-        if (API.isLoggedIn()) API.missionProgress('solve_puzzle').catch(() => {})
+    try {
+      const action = { placement: { ...placement }, transfer: transfer || undefined, swap: false }
+      if (lesson.goal(gs, action)) {
+        setStatus('correct')
+        if (!completed.includes(lesson.id)) {
+          const nc = [...completed, lesson.id]
+          setCompleted(nc)
+          localStorage.setItem('stolbiki_lessons', JSON.stringify(nc))
+          if (API.isLoggedIn()) API.missionProgress('solve_puzzle').catch(() => {})
+        }
+      } else {
+        setStatus('wrong')
       }
-    } else {
+    } catch (e) {
+      console.error('[Lessons] goal eval error:', e)
       setStatus('wrong')
     }
   }
@@ -173,9 +247,9 @@ export default function Lessons({ onClose }) {
   }
 
   function retry() {
-    const state = lesson.setup()
+    const { gs: state, error } = safeSetup(lesson)
     setGs(state); setPlacement({}); setTransfer(null); setPhase('place')
-    setSelected(null); setStatus(null)
+    setSelected(null); setStatus(null); setSetupError(error)
   }
 
   if (!lesson || !gs) return null
@@ -187,7 +261,9 @@ export default function Lessons({ onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)',
-      display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      display: 'flex', flexDirection: 'column', overflow: 'auto',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -210,6 +286,25 @@ export default function Lessons({ onClose }) {
           {en ? 'Exit' : 'Выход'}
         </button>
       </div>
+
+      {/* Setup error banner — мягкая ошибка вместо краха */}
+      {setupError && (
+        <div style={{ padding: '8px 16px', background: 'rgba(255,193,69,0.1)',
+          borderBottom: '1px solid rgba(255,193,69,0.2)', fontSize: 11, color: 'var(--gold)' }}>
+          {en ? `Lesson loaded with default state. Try retry button. (${setupError})`
+              : `Урок загружен с дефолтным состоянием. Попробуйте «Заново». (${setupError})`}
+        </div>
+      )}
+
+      {/* Phase indicator — для пользователя */}
+      {(phase === 'transfer-source' || phase === 'transfer-target') && !status && (
+        <div style={{ padding: '8px 16px', background: 'rgba(74,158,255,0.1)',
+          borderBottom: '1px solid rgba(74,158,255,0.2)', fontSize: 12, color: 'var(--p1)', fontWeight: 600 }}>
+          {phase === 'transfer-source'
+            ? (en ? '↗ Pick the source stand' : '↗ Выберите стойку откуда переносить')
+            : (en ? '↗ Pick the target stand' : '↗ Выберите стойку куда переносить')}
+        </div>
+      )}
 
       {/* Content */}
       <div className="lessons-content" style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
@@ -270,8 +365,12 @@ export default function Lessons({ onClose }) {
           {!status && (
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               {lesson.id !== 'basics' && (
-                <button className="btn" onClick={() => { setPhase('transfer-target'); setSelected(null) }}
-                  style={{ fontSize: 11, padding: '6px 12px' }}>↗ {en ? 'Transfer' : 'Перенос'}</button>
+                <button className="btn" onClick={startTransferMode}
+                  style={{ fontSize: 11, padding: '6px 12px',
+                    background: phase === 'transfer-source' || phase === 'transfer-target' ? 'var(--p1)' : undefined,
+                    color: phase === 'transfer-source' || phase === 'transfer-target' ? '#fff' : undefined }}>
+                  ↗ {en ? 'Transfer' : 'Перенос'}
+                </button>
               )}
               <button className="btn primary" disabled={!canConfirm} onClick={confirm}
                 style={{ fontSize: 13, padding: '10px 24px' }}>
