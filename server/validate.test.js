@@ -109,11 +109,13 @@ describe('username', () => {
 })
 
 describe('password', () => {
-  it('accepts 6+ chars', () => {
+  it('accepts 8+ chars (NIST 800-63B минимум)', () => {
     expect(password('secret123')).toBe('secret123')
-    expect(password('123456')).toBe('123456')
+    expect(password('12345678')).toBe('12345678')
   })
-  it('rejects too short', () => {
+  it('rejects too short (<8)', () => {
+    expect(password('1234567')).toBe(null)
+    expect(password('123456')).toBe(null)
     expect(password('12345')).toBe(null)
     expect(password('')).toBe(null)
   })
@@ -123,7 +125,7 @@ describe('password', () => {
   })
   it('returns null for non-strings', () => {
     expect(password(null)).toBe(null)
-    expect(password(123456)).toBe(null)
+    expect(password(12345678)).toBe(null)
   })
   it('does not sanitize (passwords can have special chars)', () => {
     expect(password('<html>pa$$word&')).toBe('<html>pa$$word&')
