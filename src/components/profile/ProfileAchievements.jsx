@@ -2,6 +2,12 @@
  * Вкладка Ачивки — прогресс, unlocked/locked с сортировкой по rarity.
  * Issue #6: rarity UI (glow, breakdown, сортировка) + живой % держателей
  * через useAchievementRarity hook (enrich ach.holders из /api/achievements/rarity).
+ *
+ * 27.04.2026 — фикс по жалобе Александра "Текст в столбиках справа выходит
+ * за границы окошек". Это про breakdown 4-column grid (Обычные/Редкие/
+ * Эпические/Легендарные). На узких экранах "ЛЕГЕНДАРНЫЕ" не помещалось
+ * в 90px ячейку. Применил overflow:hidden + минимальную ширину 0 на grid
+ * items + word-break + уменьшил label fontSize и letterSpacing.
  */
 
 import { ALL_ACHIEVEMENTS, RARITY_COLORS, RARITY_LABELS_RU, RARITY_LABELS_EN } from './_constants'
@@ -71,19 +77,24 @@ export default function ProfileAchievements({ profile, en }) {
             background: 'linear-gradient(90deg, #ffc145, #3bb8a8)', borderRadius: 3 }} />
         </div>
 
-        {/* Breakdown по rarity с счётчиками */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 14 }}>
+        {/* Breakdown по rarity с счётчиками.
+            27.04.2026: minWidth: 0 на grid items + overflow: hidden + word-break
+            на label чтобы "ЛЕГЕНДАРНЫЕ" не вылезало за границы окошка на узких
+            экранах. fontSize 9 → 8, letterSpacing 0.3 → 0.2 — текст компактнее. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6, marginTop: 14 }}>
           {breakdown.map(b => (
             <div key={b.rarity} style={{
-              padding: '8px 6px', borderRadius: 8,
+              padding: '8px 4px', borderRadius: 8,
               background: `${b.color}10`,
               border: `1px solid ${b.color}25`,
+              minWidth: 0, overflow: 'hidden',
             }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: b.color }}>
                 {b.open}<span style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 400 }}>/{b.total}</span>
               </div>
-              <div style={{ fontSize: 9, color: b.color, opacity: 0.85, marginTop: 2,
-                textTransform: 'uppercase', letterSpacing: 0.3 }}>
+              <div style={{ fontSize: 8, color: b.color, opacity: 0.85, marginTop: 2,
+                textTransform: 'uppercase', letterSpacing: 0.2,
+                wordBreak: 'break-word', lineHeight: 1.2 }}>
                 {b.label}
               </div>
             </div>
@@ -94,7 +105,7 @@ export default function ProfileAchievements({ profile, en }) {
       {unlockedAch.length > 0 && (
         <div className="dash-card" style={{ marginBottom: 16 }}>
           <h3 style={{ color: 'var(--green)' }}>{en ? 'Unlocked' : 'Разблокированные'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
             {unlockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked profile={profile} en={en} />)}
           </div>
         </div>
@@ -102,7 +113,7 @@ export default function ProfileAchievements({ profile, en }) {
 
       <div className="dash-card">
         <h3>{en ? 'Locked' : 'Заблокированные'}</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
           {lockedAch.map(a => <AchievementCard key={a.id} ach={a} unlocked={false} profile={profile} en={en} />)}
         </div>
       </div>
