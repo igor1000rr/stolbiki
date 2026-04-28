@@ -46,6 +46,7 @@ function StandItem({
   showChipCount,
   onStandClick, onStandLongPress,
   fogOfWar, fogPlayer,
+  recentClass,
 }) {
   const { pressing, handlers } = useLongPress(
     onStandLongPress ? () => onStandLongPress(i) : null,
@@ -64,6 +65,7 @@ function StandItem({
   if (ghostTransfer?.from === i) cls += ' stand-ghost-from'
   if (ghostTransfer?.to === i) cls += ' stand-ghost-to'
   if (pressing && onStandLongPress) cls += ' stand-long-pressing'
+  if (recentClass) cls += ' ' + recentClass
 
   // Скрываем чипы противника в режиме fog of war
   function isChipFogged(chipColor) {
@@ -169,12 +171,30 @@ function Board({
   const [flashSet, setFlashSet] = useState(new Set())
   const [particles, setParticles] = useState({})
   const [shaking, setShaking] = useState(false)
+  /* По ТЗ Александра (Проблема 1, 28.04.2026): «Ход противника визуально
+     непонятен, что и откуда перенесено, а что установлено, происходит быстро.
+     При необходимости, сделать у переноса и установки разные эффекты
+     у блоков». Detect-логика ниже определяет тип последнего хода
+     (transfer/place) на основе изменений stands и подсвечивает стойки
+     разными цветами на 1.2 секунды через CSS-классы:
+     - stand-recent-transfer-from — стойка-источник переноса (accent-цвет)
+     - stand-recent-transfer-to   — стойка-цель переноса (зелёный)
+     - stand-recent-place-pN      — стойка с установкой (цвет игрока) */
+  const [recentAction, setRecentAction] = useState(null)
 
   useEffect(() => {
     const prev = prevRef.current
     const nc = {}
     const fl = new Set()
     const newParticles = {}
+
+    // ─── Detection типа хода (transfer / place) для разной подсветки.
+    // По ТЗ Александра: «у переноса и установки разные эффекты у блоков».
+    // Закрытые стойки исключаем — закрытие это side-effect хода, не сам ход.
+    let transferFrom = null
+    const placedStands = []
+    let netChange = 0
+    let movedColor = null
 
     for (let i = 0; i < state.numStands; i++) {
       const oldLen = prev.stands[i]?.length || 0
@@ -195,10 +215,36 @@ function Board({
           delay: Math.random() * 0.15,
         }))
       }
+
+      // Detection: пропускаем стойки которые только что закрылись или были закрыты
+      if ((i in state.closed) || (i in prev.closed)) continue
+      const diff = newLen - oldLen
+      if (diff > 0) {
+        placedStands.push(i)
+        netChange += diff
+        if (movedColor === null && newLen > 0) {
+          movedColor = state.stands[i][newLen - 1]
+        }
+      } else if (diff < 0) {
+        transferFrom = i
+        netChange += diff
+      }
     }
 
     prevRef.current = { stands: state.stands.map(s => [...s]), closed: { ...state.closed } }
     const timers = []
+
+    // Determine action kind
+    let action = null
+    if (transferFrom !== null && placedStands.length === 1 && netChange === 0) {
+      action = { kind: 'transfer', from: transferFrom, to: placedStands[0] }
+    } else if (transferFrom === null && netChange > 0 && placedStands.length > 0 && movedColor !== null) {
+      action = { kind: 'place', stands: placedStands, color: movedColor }
+    }
+    if (action) {
+      setRecentAction(action)
+      timers.push(setTimeout(() => setRecentAction(null), 1200))
+    }
 
     if (Object.keys(nc).length > 0) {
       setNewChipMap(nc)
@@ -230,6 +276,16 @@ function Board({
         const isClosed = i in state.closed
         const isTarget = phase === 'transfer-dst' && !isClosed && i !== selected
         const isFlashing = flashSet.has(i)
+        // Класс для визуального различения недавнего хода (transfer vs place)
+        let recentClass = ''
+        if (recentAction) {
+          if (recentAction.kind === 'transfer') {
+            if (i === recentAction.from) recentClass = 'stand-recent-transfer-from'
+            else if (i === recentAction.to) recentClass = 'stand-recent-transfer-to'
+          } else if (recentAction.kind === 'place' && recentAction.stands.includes(i)) {
+            recentClass = `stand-recent-place-p${recentAction.color}`
+          }
+        }
         return (
           <StandItem
             key={i}
@@ -250,6 +306,7 @@ function Board({
             onStandLongPress={onStandLongPress}
             fogOfWar={fogOfWar}
             fogPlayer={fogPlayer}
+            recentClass={recentClass}
           />
         )
       })}

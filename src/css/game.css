@@ -171,6 +171,43 @@
   100% { opacity: 0; transform: scale(1.6); }
 }
 
+/* ─── Подсветка стоек после хода: разные эффекты у переноса vs установки.
+   По ТЗ Александра (28.04.2026, Проблема 1): «Ход противника визуально
+   непонятен, что и откуда перенесено, а что установлено... При необходимости,
+   сделать у переноса и установки разные эффекты у блоков».
+
+   Перенос: from — accent (бирюзовый, «откуда взяли»), to — green («куда»).
+   Установка: цветом игрока который ставил (p0=blue, p1=red).
+   Длительность 1.2с — достаточно чтобы заметить, не мешает следующему ходу. */
+.stand-recent-transfer-from {
+  animation: standRecentTransferFrom 1.2s ease-out !important;
+}
+@keyframes standRecentTransferFrom {
+  0%   { box-shadow: 0 0 0 3px var(--accent), 0 0 24px var(--accent-glow); border-color: var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.stand-recent-transfer-to {
+  animation: standRecentTransferTo 1.2s ease-out !important;
+}
+@keyframes standRecentTransferTo {
+  0%   { box-shadow: 0 0 0 3px var(--green), 0 0 24px var(--green-glow); border-color: var(--green); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.stand-recent-place-p0 {
+  animation: standRecentPlaceP0 1.2s ease-out !important;
+}
+@keyframes standRecentPlaceP0 {
+  0%   { box-shadow: 0 0 0 3px var(--p1), 0 0 24px var(--p1-glow); border-color: var(--p1); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.stand-recent-place-p1 {
+  animation: standRecentPlaceP1 1.2s ease-out !important;
+}
+@keyframes standRecentPlaceP1 {
+  0%   { box-shadow: 0 0 0 3px var(--p2), 0 0 24px var(--p2-glow); border-color: var(--p2); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 .close-particles { position: absolute; inset: 0; pointer-events: none; z-index: 11; }
 .close-particle {
   position: absolute;
