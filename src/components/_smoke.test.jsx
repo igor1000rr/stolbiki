@@ -2,7 +2,7 @@
 /**
  * Frontend smoke-тесты: проверяем что компоненты рендерятся без throw.
  *
- * Цель — поймать регрессии типа «prop потерялся, компонент ломается при mount».
+ * Цель — поймать регрессии типа "prop потерялся, компонент ломается при mount".
  * Не проверяют визуальный вывод или интеракцию — только факт рендера.
  */
 
@@ -77,7 +77,7 @@ describe('StreakPopup smoke', () => {
 })
 
 describe('MobileGameBar smoke', () => {
-  it('рендерится без падения с пустыми props', () => {
+  it('DEPRECATED stub — рендерится без throw', () => {
     expect(() => render(<MobileGameBar />)).not.toThrow()
   })
 })
@@ -95,8 +95,12 @@ describe('QRCode smoke', () => {
 })
 
 describe('Mascot smoke', () => {
-  it('без props → рендерит', () => {
+  it('без props → рендерит дефолтную позу hero', () => {
     expect(() => render(<Mascot />)).not.toThrow()
+  })
+
+  it('pose=celebrate → рендерит', () => {
+    expect(() => render(<Mascot pose="celebrate" />)).not.toThrow()
   })
 })
 
@@ -111,14 +115,22 @@ describe('ConfettiOverlay smoke', () => {
 })
 
 describe('CookieBanner smoke', () => {
-  it('рендерится без throw', () => {
-    expect(() => render(<CookieBanner onAccept={() => {}} onDecline={() => {}} t={k => k} />)).not.toThrow()
+  it('рендерится с корректными props { lang, onAccept }', () => {
+    expect(() => render(<CookieBanner lang="ru" onAccept={() => {}} />)).not.toThrow()
+  })
+
+  it('lang=en → рендерится', () => {
+    expect(() => render(<CookieBanner lang="en" onAccept={() => {}} />)).not.toThrow()
   })
 })
 
 describe('ModifierBadge smoke', () => {
-  it('без props → не крашится', () => {
-    expect(() => render(<ModifierBadge />)).not.toThrow()
+  it('базовые props', () => {
+    expect(() => render(<ModifierBadge label="Fog" active={false} onToggle={() => {}} />)).not.toThrow()
+  })
+
+  it('active=true', () => {
+    expect(() => render(<ModifierBadge label="Blitz" active={true} onToggle={() => {}} />)).not.toThrow()
   })
 })
 
@@ -133,8 +145,8 @@ describe('AchievementRarityBadge smoke', () => {
 })
 
 describe('TournamentBanner smoke', () => {
-  it('без props → не крашится', () => {
-    expect(() => render(<TournamentBanner t={k => k} />)).not.toThrow()
+  it('tournament=null → null рендер', () => {
+    expect(() => render(<TournamentBanner tournament={null} t={k => k} />)).not.toThrow()
   })
 })
 
@@ -155,25 +167,42 @@ describe('GameLog smoke', () => {
 })
 
 describe('GameTimers smoke', () => {
-  it('без props не крашится', () => {
-    expect(() => render(<GameTimers timer1={300} timer2={300} />)).not.toThrow()
+  it('базовые props', () => {
+    expect(() => render(<GameTimers timerLimit={300} playerTime={[300, 300]} currentPlayer={0} />)).not.toThrow()
   })
 })
 
 describe('GameScoreboard smoke', () => {
-  it('рендерится', () => {
-    expect(() => render(<GameScoreboard scores={[0, 0]} totalGames={3} currentGame={1} t={k => k} />)).not.toThrow()
+  it('рендерится с моком GameState', () => {
+    // Мок gs объекта — нужен countClosed(p) из GameState
+    const mockGs = { countClosed: () => 0 }
+    expect(() => render(
+      <GameScoreboard
+        gs={mockGs}
+        mode="pvp"
+        humanPlayer={0}
+        scoreBump={null}
+        en={false}
+        t={k => k}
+        gameCtx={null}
+        authUser={null}
+      />
+    )).not.toThrow()
   })
 })
 
 describe('GameReactions smoke', () => {
-  it('без props не крашится', () => {
-    expect(() => render(<GameReactions />)).not.toThrow()
+  it('с onSendReaction callback', () => {
+    expect(() => render(<GameReactions onSendReaction={() => {}} />)).not.toThrow()
   })
 })
 
 describe('GameEmojiReactions smoke', () => {
-  it('рендерится с onSend callback', () => {
-    expect(() => render(<GameEmojiReactions onSend={() => {}} />)).not.toThrow()
+  it('show=false', () => {
+    expect(() => render(<GameEmojiReactions show={false} floatingEmoji={null} />)).not.toThrow()
+  })
+
+  it('show=true с floating emoji', () => {
+    expect(() => render(<GameEmojiReactions show={true} floatingEmoji="🔥" />)).not.toThrow()
   })
 })
