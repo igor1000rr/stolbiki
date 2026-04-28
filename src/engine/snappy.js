@@ -11,6 +11,7 @@
  *   - 'draw'            — ничья
  *   - 'victory_city'    — открыт экран Города Побед
  *   - 'tutorial_complete' — игрок прошёл обучающую партию (TutorialGame)
+ *   - 'tutorial_wrong_target' — в обучении игрок пытается поставить блок на чужую стойку
  *   - 'skin_collision'  — два игрока выбрали одинаковые скины блоков (онлайн)
  *   - 'mistake'         — игрок сделал явно плохой ход (placeholder, пока не используется)
  *
@@ -89,6 +90,15 @@ const PHRASES = {
     { ru: 'Обучение пройдено. Ну наконец-то.', en: 'Tutorial complete. Finally.',     pose: 'celebrate', priority: 1 },
     { ru: 'Готов? Тогда играй.',               en: 'Ready? Now play.',                 pose: 'point',     priority: 0 },
     { ru: 'Запомнил всё? Проверим.',           en: 'Got it all? Let\'s see.',          pose: 'think',     priority: 0 },
+  ],
+
+  // В обучении игрок пытается поставить блок на чужую стойку
+  // (верх — чужого цвета). По ТЗ Александра (28.04.2026): «может Snappy
+  // выскочил с фразой Чужую не трогай!». Маскот «защищает чужое».
+  tutorial_wrong_target: [
+    { ru: 'Чужую не трогай!',          en: 'Hands off, that\'s not yours!', pose: 'shock',     priority: 1 },
+    { ru: 'Эй, это не твоё.',          en: 'Hey, not yours.',               pose: 'point',     priority: 0 },
+    { ru: 'Туда нельзя.',              en: 'No-go zone.',                   pose: 'wave',      priority: 0 },
   ],
 
   // Snappy Block — онлайн партия началась с одинаковыми скинами блоков
