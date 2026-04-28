@@ -841,7 +841,7 @@ export default function LandingCity3D() {
         position: 'relative',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3), 0 0 60px rgba(255,180,100,0.1)',
       }}
-      aria-label={en ? '3D preview of Victory City' : '3D-превью Города побед'}
+      aria-label={en ? '3D preview of City of Victories' : '3D-превью Города побед'}
     />
   )
 }
