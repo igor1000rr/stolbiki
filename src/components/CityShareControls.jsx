@@ -87,7 +87,7 @@ function ShareModal({ userId, userName, en, onClose }) {
 
   function nativeShare() {
     const text = en
-      ? `Check out my Victory City in Highrise Heist!`
+      ? `Check out my City of Victories in Highrise Heist!`
       : `Посмотри мой Город побед в Highrise Heist!`
     if (navigator.share) {
       navigator.share({ title: 'Highrise Heist', text, url: embedUrl }).catch(() => {})
