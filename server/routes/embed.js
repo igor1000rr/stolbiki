@@ -16,9 +16,19 @@
  *
  * Для работы нужны системные шрифты:
  *   apt install -y fontconfig fonts-dejavu-core
+ *
+ * SECURITY:
+ * - esc() для всех user-input в HTML/SVG (XSS защита).
+ * - safeJsonForScript() предотвращает </script>-инъекцию в JSON внутри inline JS.
+ * - CSP с nonce вместо 'unsafe-inline' — каждый запрос генерит crypto-nonce,
+ *   inline <script>/<style> теги получают этот nonce, CSP его разрешает.
+ * - PUBLIC_BASE_URL env вместо req.get('host') — защита от Host header
+ *   poisoning (атакующий не может подменить домен в og:image meta-теге).
+ * - X-Content-Type-Options: nosniff — браузер не угадывает тип контента.
  */
 import { Router } from 'express'
 import { Resvg } from '@resvg/resvg-js'
+import { randomBytes } from 'crypto'
 import { db } from '../db.js'
 
 const router = Router()
@@ -27,6 +37,30 @@ function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+// Безопасная сериализация JSON для вставки внутрь <script>...</script>.
+// JSON.stringify не экранирует '</' — если в данных есть строка "</script>",
+// она ломает HTML-парсинг и открывает XSS. Также экранируем U+2028/U+2029
+// (LS/PS) — в JSON они валидны как сырые символы, но в JS это line terminators
+// и они ломают парсинг скрипта.
+function safeJsonForScript(obj) {
+  return JSON.stringify(obj)
+    .replace(/<\/(script)/gi, '<\\/$1')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
+// Базовый URL для абсолютных ссылок в meta-тегах. На проде ВСЕГДА должен быть
+// задан через PUBLIC_BASE_URL — иначе используется req.get('host'), который
+// атакующий может подменить через Host header и вставить свой домен в og:image.
+// Влияние ограничено (CSRF/spam-vector, не RCE), но поправимо за 5 минут.
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || ''
+
+function getBaseUrl(req) {
+  if (PUBLIC_BASE_URL) return PUBLIC_BASE_URL.replace(/\/$/, '')
+  // Fallback для dev: req.get('host'). На проде PUBLIC_BASE_URL обязателен.
+  return `${req.protocol}://${req.get('host')}`
 }
 
 const TOWER_HEIGHT = 11
@@ -332,7 +366,9 @@ router.get('/og/city/:userId.png', (req, res) => {
   const cacheKey = `v1:${userId}`
   const cached = cacheGet(cacheKey)
   if (cached) {
-    res.set('Cache-Control', 'public, max-age=1800').type('image/png').send(cached)
+    res.set('Cache-Control', 'public, max-age=1800')
+    res.set('X-Content-Type-Options', 'nosniff')
+    res.type('image/png').send(cached)
     return
   }
 
@@ -366,7 +402,9 @@ router.get('/og/city/:userId.png', (req, res) => {
     })
     const png = resvg.render().asPng()
     cacheSet(cacheKey, png)
-    res.set('Cache-Control', 'public, max-age=1800').type('image/png').send(png)
+    res.set('Cache-Control', 'public, max-age=1800')
+    res.set('X-Content-Type-Options', 'nosniff')
+    res.type('image/png').send(png)
   } catch (e) {
     console.error('OG render error:', e)
     res.status(500).send('render error')
@@ -385,7 +423,9 @@ router.get('/og/compare/:ids.png', (req, res) => {
   const key = id1 < id2 ? `cmpv1:${id1}-${id2}` : `cmpv1:${id2}-${id1}`
   const cached = cacheGet(key)
   if (cached) {
-    res.set('Cache-Control', 'public, max-age=1800').type('image/png').send(cached)
+    res.set('Cache-Control', 'public, max-age=1800')
+    res.set('X-Content-Type-Options', 'nosniff')
+    res.type('image/png').send(cached)
     return
   }
 
@@ -425,7 +465,9 @@ router.get('/og/compare/:ids.png', (req, res) => {
     })
     const png = resvg.render().asPng()
     cacheSet(key, png)
-    res.set('Cache-Control', 'public, max-age=1800').type('image/png').send(png)
+    res.set('Cache-Control', 'public, max-age=1800')
+    res.set('X-Content-Type-Options', 'nosniff')
+    res.type('image/png').send(png)
   } catch (e) {
     console.error('OG compare render error:', e)
     res.status(500).send('render error')
@@ -460,20 +502,29 @@ router.get('/city/:userId', (req, res) => {
   const noControls = req.query.nocontrols === '1'
 
   const compactTowers = toCompact(city)
-  const dataJson = JSON.stringify({
+  // SECURITY: safeJsonForScript защищает от </script>-инъекции если в данных
+  // (player_skin_id и т.п.) попадёт строка ломающая парсер HTML.
+  const dataJson = safeJsonForScript({
     towers: compactTowers,
     bricks: city.total_bricks,
     wins: city.total_wins,
     closed,
     crowned,
   })
+  const themeJson = safeJsonForScript(theme)
 
   const ogDescription = `${city.total_wins} побед · ${city.total_bricks} кирпичей · ${closed} высоток` +
     (crowned > 0 ? ` · ★ ${crowned}` : '')
-  const baseUrl = `${req.protocol}://${req.get('host')}`
+  const baseUrl = getBaseUrl(req)
   const pageUrl = `${baseUrl}/embed/city/${userId}`
   const profileUrl = `${baseUrl}/?profile=${userId}`
   const ogImage = `${baseUrl}/embed/og/city/${userId}.png`
+
+  // SECURITY: nonce для каждого запроса. CSP script-src 'nonce-X' разрешает
+  // ТОЛЬКО inline-скрипты с этим nonce. Если злоумышленник как-то впрыснет
+  // <script>...</script> через user-input — он не получит правильный nonce
+  // и браузер заблокирует исполнение. Это убирает 'unsafe-inline'.
+  const nonce = randomBytes(16).toString('base64')
 
   const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -495,7 +546,7 @@ router.get('/city/:userId', (req, res) => {
 <meta name="twitter:title" content="Город побед ${playerName}">
 <meta name="twitter:description" content="${ogDescription}">
 <meta name="twitter:image" content="${ogImage}">
-<style>
+<style nonce="${nonce}">
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: ${theme === 'day' ? '#5ba7d9' : '#06060f'}; font-family: system-ui, -apple-system, sans-serif; color: #e8e6f2; }
   #app { position: relative; width: 100%; height: 100vh; }
@@ -521,9 +572,9 @@ router.get('/city/:userId', (req, res) => {
   ${city.towers.length === 0 ? `<div class="empty"><div class="em-emoji">🧱</div><div class="em-text">Игрок ещё не построил свой город побед</div></div>` : '<div class="loading" id="loading">Загружаю 3D...</div>'}
   ${noControls ? '' : `<div class="footer"><span>Highrise Heist · Ставь свой город</span><a href="${profileUrl}" target="_blank" rel="noopener">Открыть →</a></div>`}
 </div>
-<script type="module">
+<script type="module" nonce="${nonce}">
 const CITY = ${dataJson};
-const THEME = ${JSON.stringify(theme)};
+const THEME = ${themeJson};
 if (CITY.towers.length === 0) {
 } else {
   try {
@@ -626,7 +677,8 @@ if (CITY.towers.length === 0) {
   res.set({
     'Cache-Control': 'public, max-age=300',
     'X-Frame-Options': 'ALLOWALL',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://cdn.jsdelivr.net; frame-ancestors *;",
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: blob:; connect-src 'self' https://cdn.jsdelivr.net; frame-ancestors *;`,
   })
   res.type('html').send(html)
 })
@@ -666,13 +718,15 @@ router.get('/compare/:id1/:id2', (req, res) => {
   const name1 = esc(u1.name || `Player #${id1}`)
   const name2 = esc(u2.name || `Player #${id2}`)
 
-  const baseUrl = `${req.protocol}://${req.get('host')}`
+  const baseUrl = getBaseUrl(req)
   const pageUrl = `${baseUrl}/compare/${id1}/${id2}`
   const ogImage = `${baseUrl}/embed/og/compare/${id1}-${id2}.png`
   const title = `${name1} vs ${name2}`
   const description = `${score1} vs ${score2}` +
     (leader ? ` · Лидер: ${leader === 1 ? name1 : name2}` : ' · Ничья') +
     ' · Highrise Heist'
+
+  const nonce = randomBytes(16).toString('base64')
 
   const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -696,7 +750,7 @@ router.get('/compare/:id1/:id2', (req, res) => {
 <meta name="twitter:image" content="${ogImage}">
 <!-- Редирект на полноценный SPA compare для пользователей. Боты meta-теги выше уже прочли. -->
 <meta http-equiv="refresh" content="0; url=${pageUrl}">
-<style>
+<style nonce="${nonce}">
   body { margin: 0; background: #06060f; color: #e8e6f2; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
   .box { max-width: 600px; text-align: center; }
   img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
@@ -718,7 +772,8 @@ router.get('/compare/:id1/:id2', (req, res) => {
   res.set({
     'Cache-Control': 'public, max-age=300',
     'X-Frame-Options': 'ALLOWALL',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors *;",
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: blob:; frame-ancestors *;`,
   })
   res.type('html').send(html)
 })
