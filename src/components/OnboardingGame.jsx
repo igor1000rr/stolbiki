@@ -497,7 +497,7 @@ export default function OnboardingGame({ lang = 'ru', onComplete, onSkip, isLogg
               </div>
               <div style={{ fontSize: 13, color: '#eee', lineHeight: 1.5 }}>
                 {en
-                  ? 'A new highrise was built in your Victory City. Each win adds a building \u2014 over time you grow your own skyline.'
+                  ? 'A new highrise was built in your City of Victories. Each win adds a building \u2014 over time you grow your own skyline.'
                   : 'В вашем Городе побед построена новая высотка. Каждая победа добавляет здание \u2014 со временем у вас вырастет свой небоскрёбный город.'}
               </div>
               {isLoggedIn && (
@@ -516,7 +516,7 @@ export default function OnboardingGame({ lang = 'ru', onComplete, onSkip, isLogg
                 cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8,
               }}
             >
-              {en ? 'Visit my Victory City' : 'Открыть мой Город побед'}
+              {en ? 'Visit my City of Victories' : 'Открыть мой Город побед'}
             </button>
             <button
               onClick={() => onComplete?.({ goToCity: false })}
