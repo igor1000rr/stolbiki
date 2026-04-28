@@ -29,18 +29,21 @@ import BrickBalance from './BrickBalance.jsx'
 const t = (k) => k
 const en = false
 
-// Минимальный GameState stub
+// Минимальный GameState stub. Включает методы isFirstTurn() и getPlacementsLeft()
+// которые вызываются из GameStatusBar.
 const gs = {
   gameOver: false,
   player: 0,
   scores: [0, 0],
   closed: [],
   totalPlaced: 0,
+  isFirstTurn: () => false,
+  getPlacementsLeft: () => 9,
 }
 
 const sessionStats = { wins: 0, losses: 0, draws: 0 }
 const userSettings = { sound: true, hints: true }
-const modifiers = { fog: false, swap: false, golden: false }
+const modifiers = { fog: false, swap: false, golden: false, doubleTransfer: false }
 
 describe('GameStatusBar smoke', () => {
   it('рендерится с минимальными props', () => {
@@ -161,11 +164,12 @@ describe('GameActionsBottom smoke', () => {
 })
 
 describe('GameOnlineBanners smoke', () => {
-  it('online режим со spectatorCount=2 рендерит баннер', () => {
+  // onlinePlayers — массив имён, не число (компонент делает .join(' vs '))
+  it('online режим с массивом игроков рендерит баннер', () => {
     const { container } = render(
       <GameOnlineBanners
         mode="online" lang="ru" isNative={false}
-        onlinePlayers={2} spectatorCount={2}
+        onlinePlayers={['Alice', 'Bob']} spectatorCount={2}
       />
     )
     expect(container).toBeTruthy()
@@ -175,7 +179,7 @@ describe('GameOnlineBanners smoke', () => {
     const { container } = render(
       <GameOnlineBanners
         mode="pve" lang="ru" isNative={false}
-        onlinePlayers={0} spectatorCount={0}
+        onlinePlayers={[]} spectatorCount={0}
       />
     )
     expect(container).toBeTruthy()
@@ -236,21 +240,35 @@ describe('GameShortcutsModal smoke', () => {
 })
 
 describe('MobileSettingsSheet smoke', () => {
-  it('show=false → не рендерит overlay', () => {
+  it('show=false → не рендерит overlay (return null)', () => {
     const noop = () => {}
     const { container } = render(
       <MobileSettingsSheet
-        show={false} isNative={false} mode="pve" difficulty="medium"
+        show={false} isNative={true} mode="pve" difficulty="medium"
         modifiers={modifiers} tournament={null} lang="ru" en={en} _humanPlayer={0}
         onClose={noop} onModeChange={noop} onDifficultyChange={noop}
         toggleFog={noop} setModifiers={noop} modifiersRef={{ current: modifiers }}
         onStartTournament={noop}
       />
     )
-    expect(container).toBeTruthy()
+    expect(container.firstChild).toBeNull()
   })
 
-  it('show=true → рендерит overlay', () => {
+  it('show=true + isNative=true → рендерит overlay', () => {
+    const noop = () => {}
+    const { container } = render(
+      <MobileSettingsSheet
+        show={true} isNative={true} mode="pve" difficulty="medium"
+        modifiers={modifiers} tournament={null} lang="ru" en={en} _humanPlayer={0}
+        onClose={noop} onModeChange={noop} onDifficultyChange={noop}
+        toggleFog={noop} setModifiers={noop} modifiersRef={{ current: modifiers }}
+        onStartTournament={noop}
+      />
+    )
+    expect(container.firstChild).toBeTruthy()
+  })
+
+  it('isNative=false → не рендерит даже при show=true', () => {
     const noop = () => {}
     const { container } = render(
       <MobileSettingsSheet
@@ -261,7 +279,7 @@ describe('MobileSettingsSheet smoke', () => {
         onStartTournament={noop}
       />
     )
-    expect(container.firstChild).toBeTruthy()
+    expect(container.firstChild).toBeNull()
   })
 })
 
@@ -271,13 +289,16 @@ describe('BrickBalance smoke', () => {
     expect(container.firstChild).toBeTruthy()
   })
 
-  it('рендерится с bricks=42', () => {
-    const { getByText } = render(<BrickBalance bricks={42} />)
-    expect(getByText('42')).toBeTruthy()
+  it('содержит число bricks в textContent', () => {
+    // Текст рендерится как "🧱 42" — одна textNode, getByText не находит '42'
+    // отдельно. Проверяем через container.textContent.
+    const { container } = render(<BrickBalance bricks={42} />)
+    expect(container.textContent).toContain('42')
   })
 
   it('onClick prop делает компонент кликабельным', () => {
     const { container } = render(<BrickBalance bricks={10} onClick={() => {}} />)
     expect(container.firstChild).toBeTruthy()
+    expect(container.textContent).toContain('10')
   })
 })
