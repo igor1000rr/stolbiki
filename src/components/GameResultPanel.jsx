@@ -20,6 +20,16 @@
  * window event 'stolbiki-go-tab' с tab='profile' + второй event 'open-profile'
  * с initialTab='city'. App.jsx уже подписан на оба, переключает на профиль
  * с открытой вкладкой Город. Не зависит от prop-drilling.
+ *
+ * 28.04.2026 — фиксы по ТЗ Александра:
+ * - "Окно победы дёргается каждые 3 сек". Причина: Mascot по умолчанию
+ *   рендерит класс mascot-bounce (translateY 0 → -6px → 0, цикл 3s infinite).
+ *   В финальном экране это лишнее — отключаем animate={false}, оставляя
+ *   одноразовую анимацию появления mascot-enter.
+ * - "Чёрный экран в светлой теме на native". Причина: native-обёртка
+ *   использовала фикс. фон rgba(0,0,0,0.85) что в светлой теме выглядит
+ *   как чёрный экран поверх белого UI. Заменяем на адаптивный
+ *   color-mix с переменной --bg темы.
  */
 
 import { useState, lazy, Suspense } from 'react'
@@ -131,7 +141,10 @@ export default function GameResultPanel({
       {won && <Confetti />}
       {isNative && <div style={{ width: 60, height: 3, borderRadius: 2, background: accentColor, margin: '0 auto 16px', opacity: 0.8 }} />}
       <div style={{ marginBottom: isNative ? 8 : 4, display: 'flex', justifyContent: 'center' }}>
-        <Mascot pose={isDraw ? 'shock' : won ? 'celebrate' : 'sad'} size={isNative ? 100 : 72} className="mascot-enter" />
+        {/* animate={false}: отключаем mascot-bounce (translateY 6px каждые 3s),
+            который дёргал всё окно победы. mascot-enter (одноразовое cubic-bezier
+            появление) остаётся. */}
+        <Mascot pose={isDraw ? 'shock' : won ? 'celebrate' : 'sad'} size={isNative ? 100 : 72} className="mascot-enter" animate={false} />
       </div>
       <span style={{ fontSize: isNative ? 24 : 20, fontWeight: isNative ? 700 : 400 }}>{isDraw
         ? (t('game.draw'))
@@ -325,7 +338,11 @@ export default function GameResultPanel({
   return isNative ? (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1500,
-      background: 'rgba(0,0,0,0.85)', backdropFilter: 'none',
+      // Адаптивная подложка: на тёмной теме — почти чёрная, на светлой —
+      // полупрозрачный --bg темы. Раньше был статичный rgba(0,0,0,0.85)
+      // что в светлой теме создавало "чёрный экран" поверх белого UI.
+      background: 'color-mix(in srgb, var(--bg, #000000) 85%, transparent)',
+      backdropFilter: 'none',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '20px', animation: 'fadeIn 0.3s ease',
     }}>
