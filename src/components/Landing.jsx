@@ -98,7 +98,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
             {en ? 'In 3D' : 'В 3D'}
           </div>
           <h2 className="l-title" style={{ margin: '0 0 8px' }}>
-            {en ? 'Your future Victory City 🏙' : 'Ваш будущий Город побед 🏙'}
+            {en ? 'Your future City of Victories 🏙' : 'Ваш будущий Город побед 🏙'}
           </h2>
           <p style={{
             fontSize: 13, color: 'var(--ink3)',
@@ -267,7 +267,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[['✓','#3dd68c'],['✓','#3dd68c'],['○','#ffc145'],['✕','#ff6066'],['✓','#3dd68c'],['✓','#3dd68c']].map(([s,c],i)=><text key={i} className="l-review-mark" x={12+i*20} y={22} fill={c} fontSize="14" textAnchor="middle" fontWeight="700" style={{animationDelay:`${i*0.3}s`}}>{s}</text>)}<rect x="10" y="34" width="100" height="4" rx="2" fill="#1a1a2e"/><rect className="l-review-bar" x="10" y="34" width="0" height="4" rx="2" fill="#3dd68c80"/></svg> },
             { color: '#ff6066', title: en ? 'Arena & Battle Pass' : 'Арена и Battle Pass', desc: en ? 'Tournaments, 30 seasonal quests, missions, 33 achievements, XP levels.' : 'Турниры, 30 квестов в сезоне, миссии, 33 ачивки, уровни XP.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">{[12,20,32,24,40,16,28,36].map((h,i)=><rect key={i} className="l-bar-wave" x={8+i*14} y={48-h} width={10} height={h} rx={2} fill={`hsl(${340+i*8},70%,60%)`} style={{animationDelay:`${i*0.12}s`,transformOrigin:`${8+i*14+5}px 48px`}}/>)}</svg> },
-            { color: '#ff9800', title: en ? 'Victory City 🏙' : 'Город побед 🏙', desc: en ? 'Every win builds a skyscraper in your profile. Color = skin used in that game.' : 'Каждая победа — здание в профиле. Цвет = скин из той партии.',
+            { color: '#ff9800', title: en ? 'City of Victories 🏙' : 'Город побед 🏙', desc: en ? 'Every win builds a skyscraper in your profile. Color = skin used in that game.' : 'Каждая победа — здание в профиле. Цвет = скин из той партии.',
               visual: <svg viewBox="0 0 120 48" className="l-feat-svg">
                 {[[20,38,6,2,'#4a9eff'],[38,32,8,3,'#ff6066'],[58,36,5,2,'#9b59b6'],[76,28,10,4,'#00e5ff'],[96,34,7,2,'#ffc145']].map(([bx,by,w,floors,color],bi) =>
                   Array.from({length:floors}).map((_,fi) => (
@@ -431,7 +431,7 @@ export default function Landing({ onPlay, onTutorial, publicStats, installPrompt
              en ? 'Breaks 5:5 ties. Controlling it is key strategy.' : 'Решает при счёте 5:5. Контроль над ней — ключевая стратегия.'],
             [en ? 'What is Golden Rush?' : 'Что такое Golden Rush?',
              en ? 'A 4-player mode on a 9-stand cross. Hot-seat (one device, 4 players) or online with matchmaking in 2v2 or 4-FFA. Each match gives you bricks: +2 for participating, +10 for winning, +3 for capturing the center.' : 'Режим на 4 игроков — крест из 9 стоек. Hot-seat (одно устройство, 4 игрока) или онлайн с матчмейкингом в 2v2 или 4-FFA. Каждый матч даёт кирпичи: +2 за участие, +10 за победу, +3 за взятие центра.'],
-            [en ? 'What is Victory City?' : 'Что такое Город побед?',
+            [en ? 'What is City of Victories?' : 'Что такое Город побед?',
              en ? 'Every win adds a building to your profile. Building color reflects the block skin you used in that game. Visit your profile to see your city grow in 3D.' : 'Каждая победа добавляет здание в профиль. Цвет здания = скин блоков в той партии. Смотри как растёт твой город в 3D прямо в профиле.'],
           ].map(([q, a], i) => (
             <div key={i} className="l-qa-row" style={{ '--i': i }}>
