@@ -11,10 +11,13 @@ import { shareApp } from '../engine/appstore'
  *   "Lessons в Web уже нет, а в приложении есть и оно инициирует перезагрузку,
  *   давай тоже уберем". Пропс onLessons оставлен для обратной совместимости
  *   с App.jsx, просто перестал использоваться.
+ *
+ * 28.04.2026 (Проблема 3) — добавлена кнопка «Обучение» (Tutorial),
+ *   открывает TutorialGame с 3-х шаговой обучающей партией по ТЗ.
  */
 export default function MoreTabPage({
   authUser, lang, setLang, go,
-  onLessons, onSkinShop, onLogout,
+  onLessons, onTutorial, onSkinShop, onLogout,
 }) {
   // eslint-disable-next-line no-unused-vars
   void onLessons
@@ -47,6 +50,13 @@ export default function MoreTabPage({
         <span>{en ? 'Rules' : 'Правила'}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
       </button>
+      {onTutorial && (
+        <button className="m-more-item" onClick={onTutorial}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><path d="M2 19h20v2H2z"/><path d="M9 9h6M9 13h4"/></svg>
+          <span>{en ? 'Tutorial' : 'Обучение'}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      )}
       <button className="m-more-item" onClick={onSkinShop}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         <span>{en ? 'Customize' : 'Оформление'}</span>

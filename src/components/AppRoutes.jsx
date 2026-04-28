@@ -33,7 +33,7 @@ export default function AppRoutes({
   viewProfile, profileInitialTab, setViewProfile,
   publicStats, installPrompt,
   go,
-  onShowLessons, onShowSkinShop, onLogout,
+  onShowLessons, onShowTutorial, onShowSkinShop, onLogout,
 }) {
   return (
     <main className="site-content" id="main-content" role="main">
@@ -54,7 +54,7 @@ export default function AppRoutes({
               // Fallback — если секция по какой-то причине не найдена (лендинг не монтирован до конца).
               go('game')
             }}
-            onTutorial={onShowLessons}
+            onTutorial={onShowTutorial || onShowLessons}
             go={go}
             publicStats={publicStats}
             installPrompt={installPrompt}
@@ -89,6 +89,7 @@ export default function AppRoutes({
             setLang={setLang}
             go={go}
             onLessons={onShowLessons}
+            onTutorial={onShowTutorial}
             onSkinShop={onShowSkinShop}
             onLogout={onLogout}
           />
