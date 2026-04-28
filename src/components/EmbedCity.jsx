@@ -56,7 +56,7 @@ export default function EmbedCity({ userId }) {
   // Заголовок вкладки для шаринга
   useEffect(() => {
     if (user?.name) {
-      document.title = `${user.name} — Victory City · Highrise Heist`
+      document.title = `${user.name} — City of Victories · Highrise Heist`
     }
   }, [user])
 
