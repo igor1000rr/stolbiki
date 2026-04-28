@@ -440,6 +440,7 @@ export default function Game() {
     // Snappy: реакция на закрытие башни. Триггерим только в AI/online режимах
     // (в pvp на одном устройстве комментарий маскота сбивает второго игрока).
     // tower_takeover — игрок только что закрыл свою башню.
+    // enemy_takeover — соперник закрыл башню (по ТЗ Александра 28.04.2026).
     // near_loss — у соперника стало 5 закрытых, ещё одна — победа игрока.
     if (newClosed > oldClosed && mode !== 'pvp' && mode !== 'spectate' && mode !== 'spectate-online') {
       const opponent = humanPlayer === 0 ? 1 : 0
@@ -449,6 +450,10 @@ export default function Game() {
         // (это сильнее по эмоции), иначе обычный takeover.
         if (opponentClosed === 5) triggerSnappy('near_loss')
         else triggerSnappy('tower_takeover')
+      } else {
+        // Соперник (AI / online-противник) закрыл башню.
+        // Snappy подкалывает игрока — «у тебя забрали».
+        triggerSnappy('enemy_takeover')
       }
     }
 
