@@ -65,7 +65,12 @@ export default function App() {
     }
     return getTabFromPath()
   })
-  const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'default')
+  // По ТЗ Александра (28.04.2026): «Светлую тему сделать по умолчанию для новых
+  // игроков. Как в разных играх, всегда начинается с миленьких локаций».
+  // Значение 'minimal' соответствует светлой теме «Парк днём» / «Sunny Day in Park»
+  // в SkinShop. Существующие игроки уже имеют записанный stolbiki_theme в localStorage —
+  // их выбор сохраняется. Только новые без ключа получат 'minimal'.
+  const [theme, setTheme] = useState(() => localStorage.getItem('stolbiki_theme') || 'minimal')
   const [showTutorial, setShowTutorial] = useState(false)
   const [showLessons, setShowLessons] = useState(false)
   const [showArena, setShowArena] = useState(false)
