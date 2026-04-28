@@ -103,15 +103,14 @@
 .stand.golden {
   background: linear-gradient(180deg, rgba(255,190,48,0.10) 0%, rgba(255,190,48,0.03) 100%);
   border-color: rgba(255,190,48,0.3);
-  animation: goldenPulse 3s ease-in-out infinite;
+  /* По ТЗ Александра (28.04.2026) убрана пульсация box-shadow goldenPulse —
+     инфинит-анимация создавала «микродвижения», поле казалось нестабильным.
+     Свечение остаётся через статичный box-shadow ниже. */
+  box-shadow: 0 0 12px rgba(255,190,48,0.08);
 }
 .stand.golden:hover {
   box-shadow: 0 8px 30px rgba(255,190,48,0.2), 0 0 20px rgba(255,190,48,0.1);
   border-color: rgba(255,190,48,0.5);
-}
-@keyframes goldenPulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(255,190,48,0.05); }
-  50% { box-shadow: 0 0 20px rgba(255,190,48,0.15), 0 0 40px rgba(255,190,48,0.05); }
 }
 
 .stand.closed {
@@ -201,11 +200,9 @@
 .stand.golden .stand-label {
   color: var(--gold); font-size: 15px; top: -22px;
   text-shadow: 0 0 12px var(--gold-glow), 0 0 24px rgba(255,190,48,0.2);
-  animation: starPulse 2s ease-in-out infinite;
-}
-@keyframes starPulse {
-  0%, 100% { text-shadow: 0 0 8px var(--gold-glow); transform: scale(1); }
-  50% { text-shadow: 0 0 16px var(--gold-glow), 0 0 32px rgba(255,190,48,0.3); transform: scale(1.15); }
+  /* По ТЗ Александра: убрана starPulse infinite — звезда «дрожала» из-за
+     transform: scale в keyframe, создавала layout-сдвиг каждые 2с.
+     Статичное свечение остаётся. */
 }
 .stand-owner {
   position: absolute;
@@ -382,16 +379,11 @@
   line-height: 1;
   transition: transform 0.5s var(--ease-out-back), text-shadow 0.5s ease, color 0.5s ease;
 }
-.score-num.p0 { color: var(--p1); text-shadow: 0 0 40px var(--p1-glow); animation: scoreGlow0 3s ease-in-out infinite; }
-.score-num.p1 { color: var(--p2); text-shadow: 0 0 40px var(--p2-glow); animation: scoreGlow1 3s ease-in-out infinite; }
-@keyframes scoreGlow0 {
-  0%, 100% { text-shadow: 0 0 20px var(--p1-glow); }
-  50% { text-shadow: 0 0 40px var(--p1-glow), 0 0 60px rgba(74,158,255,0.15); }
-}
-@keyframes scoreGlow1 {
-  0%, 100% { text-shadow: 0 0 20px var(--p2-glow); }
-  50% { text-shadow: 0 0 40px var(--p2-glow), 0 0 60px rgba(255,96,102,0.15); }
-}
+/* По ТЗ Александра (28.04.2026): убраны scoreGlow0/scoreGlow1 infinite —
+   счёт пульсировал каждые 3 секунды через text-shadow, что создавало
+   эффект «микродвижений». Статичная тень остаётся для читабельности. */
+.score-num.p0 { color: var(--p1); text-shadow: 0 0 20px var(--p1-glow); }
+.score-num.p1 { color: var(--p2); text-shadow: 0 0 20px var(--p2-glow); }
 .score-num.score-bump { animation: scoreBump 0.7s var(--ease-out-back); }
 @keyframes scoreBump {
   0% { transform: scale(1); filter: brightness(1); }
