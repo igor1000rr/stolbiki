@@ -11,7 +11,12 @@ const DEFAULTS = {
   boardFlip: false,
   colorblind: false,
   reducedMotion: false,
-  largeText: true,
+  // По ТЗ Александра (28.04.2026): «Буквы над стойками прилипают к столбцам.
+  // Просто отключаем по умолчанию Крупный текст, кроме этих букв он уже почти
+  // ни на что не влияет. Помогает и в Web и в приложении».
+  // Существующие пользователи у которых уже сохранён ключ stolbiki_settings —
+  // настройка не затрагивается. Только новые получат false.
+  largeText: false,
   highContrast: false,
   showCoords: true,
   showFillBar: true,
