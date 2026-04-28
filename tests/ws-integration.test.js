@@ -567,4 +567,140 @@ run('WebSocket integration', () => {
       p1.close(); p2.close()
     })
   })
+
+  describe('Global Chat (joinGlobalChat / leaveGlobalChat / globalChat)', () => {
+    function makeToken(id, username) {
+      return jwt.sign({ id, username, isAdmin: false, tv: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })
+    }
+
+    it('joinGlobalChat → клиент получает chatHistory + chatOnline', async () => {
+      const client = makeClient(wsUrl)
+      await client.opened
+      client.send({ type: 'joinGlobalChat', channel: 'test_ch_1', username: 'Гость' })
+      const history = await client.waitFor('chatHistory', 1500)
+      expect(history.channel).toBe('test_ch_1')
+      expect(Array.isArray(history.messages)).toBe(true)
+      const online = await client.waitFor('chatOnline', 1500)
+      expect(online.channel).toBe('test_ch_1')
+      expect(online.count).toBeGreaterThanOrEqual(1)
+      client.close()
+    })
+
+    it('joinGlobalChat: канал автоматически обрезается до 20 символов', async () => {
+      const client = makeClient(wsUrl)
+      await client.opened
+      const longChannel = 'x'.repeat(50)
+      client.send({ type: 'joinGlobalChat', channel: longChannel })
+      const history = await client.waitFor('chatHistory', 1500)
+      expect(history.channel.length).toBeLessThanOrEqual(20)
+      client.close()
+    })
+
+    it('globalChat без auth → сообщение игнорируется', async () => {
+      const client = makeClient(wsUrl)
+      await client.opened
+      client.send({ type: 'joinGlobalChat', channel: 'test_ch_2' })
+      await client.waitFor('chatHistory')
+      // Отправляем сообщение БЕЗ предварительной auth (wsUser=null)
+      client.send({ type: 'globalChat', text: 'hello' })
+      // Никакого globalChat не должно прийти
+      await new Promise(r => setTimeout(r, 300))
+      const messages = client.allMessages().filter(m => m.type === 'globalChat')
+      expect(messages.length).toBe(0)
+      client.close()
+    })
+
+    it('globalChat с auth → broadcast всем подписчикам канала', async () => {
+      const tokenA = makeToken(98001, 'chat_user_a')
+      const tokenB = makeToken(98002, 'chat_user_b')
+      const a = makeClient(`${wsUrl}?token=${tokenA}`)
+      const b = makeClient(`${wsUrl}?token=${tokenB}`)
+      await Promise.all([a.opened, b.opened])
+      // Подписываемся оба на один канал
+      a.send({ type: 'joinGlobalChat', channel: 'broadcast_ch' })
+      b.send({ type: 'joinGlobalChat', channel: 'broadcast_ch' })
+      await Promise.all([a.waitFor('chatHistory'), b.waitFor('chatHistory')])
+      // A пишет сообщение
+      a.send({ type: 'globalChat', text: 'привет всем' })
+      // B должен получить
+      const msg = await b.waitFor('globalChat', 1500)
+      expect(msg.text).toBe('привет всем')
+      expect(msg.username).toBe('chat_user_a')
+      expect(msg.channel).toBe('broadcast_ch')
+      a.close(); b.close()
+    })
+
+    it('leaveGlobalChat → клиент исключён из broadcast', async () => {
+      const tokenA = makeToken(98011, 'leave_user_a')
+      const tokenB = makeToken(98012, 'leave_user_b')
+      const a = makeClient(`${wsUrl}?token=${tokenA}`)
+      const b = makeClient(`${wsUrl}?token=${tokenB}`)
+      await Promise.all([a.opened, b.opened])
+      a.send({ type: 'joinGlobalChat', channel: 'leave_ch' })
+      b.send({ type: 'joinGlobalChat', channel: 'leave_ch' })
+      await Promise.all([a.waitFor('chatHistory'), b.waitFor('chatHistory')])
+      // B покидает канал
+      b.send({ type: 'leaveGlobalChat' })
+      await new Promise(r => setTimeout(r, 100))
+      // A пишет сообщение — B НЕ должен получить
+      a.send({ type: 'globalChat', text: 'после leave' })
+      await new Promise(r => setTimeout(r, 400))
+      const bMessages = b.allMessages().filter(m => m.type === 'globalChat')
+      expect(bMessages.length).toBe(0)
+      a.close(); b.close()
+    })
+  })
+
+  describe('Reconnect', () => {
+    function makeToken(id, username) {
+      return jwt.sign({ id, username, isAdmin: false, tv: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })
+    }
+
+    it('reconnect без auth → reconnectFailed reason=no_auth', async () => {
+      const client = makeClient(wsUrl)
+      await client.opened
+      client.send({ type: 'reconnect', roomId: 'WHATEVR' })
+      const msg = await client.waitFor('reconnectFailed', 1500)
+      expect(msg.reason).toBe('no_auth')
+      client.close()
+    })
+
+    it('reconnect к несуществующей комнате → reconnectFailed reason=room_not_found', async () => {
+      const token = makeToken(97001, 'reconn_user')
+      const client = makeClient(`${wsUrl}?token=${token}`)
+      await client.opened
+      client.send({ type: 'reconnect', roomId: 'NOEXST' })
+      const msg = await client.waitFor('reconnectFailed', 1500)
+      expect(msg.reason).toBe('room_not_found')
+      client.close()
+    })
+
+    it('reconnect с невалидным roomId → reconnectFailed reason=bad_room_id', async () => {
+      const token = makeToken(97002, 'reconn_user_2')
+      const client = makeClient(`${wsUrl}?token=${token}`)
+      await client.opened
+      client.send({ type: 'reconnect', roomId: 'a' }) // слишком короткий
+      const msg = await client.waitFor('reconnectFailed', 1500)
+      expect(msg.reason).toBe('bad_room_id')
+      client.close()
+    })
+
+    it('reconnect когда юзер не в этой комнате → reconnectFailed reason=not_a_player', async () => {
+      // Создаём комнату с одним игроком (другим userId)
+      const roomId = 'RECON01'
+      rooms.set(roomId, {
+        id: roomId, created: Date.now(), mode: 'single', totalGames: 1,
+        currentGame: 0, scores: [0, 0],
+        players: [{ name: 'Other', userId: 12345, ws: null }],
+        state: 'waiting',
+      })
+      const token = makeToken(97003, 'outsider')
+      const client = makeClient(`${wsUrl}?token=${token}`)
+      await client.opened
+      client.send({ type: 'reconnect', roomId })
+      const msg = await client.waitFor('reconnectFailed', 1500)
+      expect(msg.reason).toBe('not_a_player')
+      client.close()
+    })
+  })
 })
