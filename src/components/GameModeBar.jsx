@@ -18,6 +18,11 @@ import { isGpuReady } from '../engine/neuralnet'
  *
  * Не показывается в online-режиме — там режим/сложность не редактируются
  * локальным игроком. Вместо этого выше доски рендерится GameOnlineBanners.
+ *
+ * 28.04.2026 — по ТЗ Александра убрана видимая иконка ⚙ в конце строки:
+ * «Дубль Setting в виде маленькой шестерёнки... симметрия прям страдает.
+ * Оставь кликабельной эту часть, но без шестерёнки». Кликабельность всего
+ * div сохранена — игрок откроет Settings нажав на текст режима.
  */
 export default function GameModeBar({
   mode, difficulty, modifiers, lang, t, en,
@@ -107,12 +112,11 @@ export default function GameModeBar({
         }}>⚡ {en ? 'Blitz' : 'Блиц'}</span>
       )}
 
-      {/* Подсказка ⚙ — намёк что строка кликабельна. На native откроется
-          MobileSettingsSheet; на desktop callback может быть пустым (есть
-          селекты в GameDesktopControls), тогда скрываем подсказку. */}
-      {onSettingsOpen && (
-        <span style={{ opacity: 0.35, fontSize: 11, marginLeft: 2 }}>⚙</span>
-      )}
+      {/* По ТЗ Александра (28.04.2026): «Дубль Setting в виде маленькой
+          шестерёнки... симметрия прям страдает. Оставь кликабельной
+          эту часть, но без шестерёнки». Иконка ⚙ удалена, но весь div
+          сверху по-прежнему clickable (role=button + onClick) — игрок
+          сможет открыть Settings нажав на текст режима. */}
     </div>
   )
 }
