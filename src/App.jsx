@@ -195,14 +195,34 @@ export default function App() {
   }, [tab, lang])
 
   // Фон показывается только на игровом экране.
+  // По ТЗ Александра (28.04.2026): «Игровое пространство можно двигать
+  // выше и ниже... Я в мобильных играх такое не встречал. Зафиксировать
+  // совсем игровое окно». На native-сборке (Capacitor) блокируем скролл
+  // body на /game — это убирает «резину» (rubber band) iOS и тяжелую
+  // прокрутку Android, которые и создавали эффект «двигается вверх-вниз».
+  // На вебе оставляем как есть — там скролл нужен (сайдбар, футер и т.д.).
   useEffect(() => {
     if (tab === 'game') {
       document.documentElement.classList.add('tab-game')
+      if (isNative) {
+        document.body.style.overflow = 'hidden'
+        document.documentElement.style.overflow = 'hidden'
+      }
     } else {
       document.documentElement.classList.remove('tab-game')
+      if (isNative) {
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+      }
     }
-    return () => document.documentElement.classList.remove('tab-game')
-  }, [tab])
+    return () => {
+      document.documentElement.classList.remove('tab-game')
+      if (isNative) {
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+      }
+    }
+  }, [tab, isNative])
 
   useEffect(() => {
     const onPop = () => setTab(getTabFromPath())
