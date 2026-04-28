@@ -6,11 +6,18 @@ import { shareApp } from '../engine/appstore'
  * Раньше было ~110 строк inline в App.jsx — вынесено для читаемости.
  *
  * Все хендлеры приходят пропсами (single source of truth — App.jsx).
+ *
+ * 28.04.2026 — Lessons убраны из mobile-меню по ТЗ Александра:
+ *   "Lessons в Web уже нет, а в приложении есть и оно инициирует перезагрузку,
+ *   давай тоже уберем". Пропс onLessons оставлен для обратной совместимости
+ *   с App.jsx, просто перестал использоваться.
  */
 export default function MoreTabPage({
   authUser, lang, setLang, go,
   onLessons, onSkinShop, onLogout,
 }) {
+  // eslint-disable-next-line no-unused-vars
+  void onLessons
   const en = lang === 'en'
   return (
     <div className="m-more-page">
@@ -38,11 +45,6 @@ export default function MoreTabPage({
       <button className="m-more-item" onClick={() => go('rules')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h6M8 16h4"/></svg>
         <span>{en ? 'Rules' : 'Правила'}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-      <button className="m-more-item" onClick={onLessons}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-        <span>{en ? 'Lessons' : 'Уроки'}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="m-more-chevron"><path d="M9 5l7 7-7 7"/></svg>
       </button>
       <button className="m-more-item" onClick={onSkinShop}>
