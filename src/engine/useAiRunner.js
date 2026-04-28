@@ -81,10 +81,16 @@ export function useAiRunner({
             setTimeout(() => runAiRef.current?.(ns), modeRef.current === 'spectate' ? 1200 : 600)
             return
           }
+          /* По ТЗ Александра (28.04.2026, Проблема 1): «Ход противника
+             происходит быстро, непонятно». Увеличена пауза после хода AI
+             с 500 до 1300мс — это даёт подсветке стоек (recentAction
+             в Board.jsx, длится 1200мс) полностью отыграть, чтобы игрок
+             успел заметить «откуда → куда» (для переноса) или цвет
+             установки. */
           setTimeout(() => {
             setLocked(false); setPhase('place'); setTransfer(null); setPlacement({})
             setInfo(ns.isFirstTurn() ? t('game.place1') : t('game.clickStands'))
-          }, 500)
+          }, 1300)
         }, 300)
       }, remaining)
     }, 50)
