@@ -15,6 +15,13 @@
 [data-theme="minimal"] body::before { display: none; }
 [data-theme="minimal"] .site-header { background: rgba(245,245,247,0.85); backdrop-filter: blur(20px); border-bottom-color: var(--surface2); }
 [data-theme="minimal"] .site-footer { border-top-color: var(--surface2); }
+/* По ТЗ Александра (28.04.2026): "Футер на светлой теме нечитаемый — шрифт
+   слишком блёклый". На --bg=#f5f5f7 цвет --ink3=#86868b даёт мягкий, но
+   недостаточный контраст. Перебиваем на --ink2=#515154 (контраст ~7) для
+   основного текста и ссылок; на hover — почти чёрный --ink. */
+[data-theme="minimal"] .site-footer-inner { color: var(--ink2); }
+[data-theme="minimal"] .site-footer-links a { color: var(--ink2); }
+[data-theme="minimal"] .site-footer-links a:hover { color: var(--ink); }
 [data-theme="minimal"] .site-nav-desktop button.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px var(--accent-glow); }
 [data-theme="minimal"] .nav-more-menu { background: #fff; border-color: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
 [data-theme="minimal"] .nav-more-menu button.active { color: var(--accent); background: transparent; box-shadow: none; }
