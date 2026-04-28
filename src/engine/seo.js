@@ -36,8 +36,8 @@ const ROUTES = {
     en: { title: 'Rules — Highrise Heist',   desc: 'Complete rules: setup, turn order, block transfer, completing highrises, victory. Plus the 4-player Golden Rush mode.' },
   },
   profile: {
-    ru: { title: 'Профиль — Highrise Heist', desc: 'Твои статистика, рейтинг, достижения, реплеи партий, Victory City.' },
-    en: { title: 'Profile — Highrise Heist', desc: 'Your stats, rating, achievements, match replays, Victory City.' },
+    ru: { title: 'Профиль — Highrise Heist', desc: 'Твои статистика, рейтинг, достижения, реплеи партий, City of Victories.' },
+    en: { title: 'Profile — Highrise Heist', desc: 'Your stats, rating, achievements, match replays, City of Victories.' },
   },
   settings: {
     ru: { title: 'Настройки — Highrise Heist', desc: 'Темы, звуки, язык, уведомления, управление аккаунтом.' },
