@@ -19,6 +19,11 @@
  *   занимать секунды/таймаутить — пользователь видел только форму регистрации
  *   без переключателя на вход. Теперь форма всегда полная, а блокируется только
  *   submit-кнопка при offline + конкретное сообщение почему.
+ *
+ * 28.04.2026 — ELO в публичном профиле тоже фикснут (по ТЗ Александра):
+ *   "Число ELO выходит за границы окошка". Раньше fixed только в основном
+ *   профиле, в публичном осталось без tabular-nums и flexShrink — для 4-значных
+ *   значений могло вылезать. Теперь оба места одинаково защищены.
  */
 
 import { useState, useEffect, lazy, Suspense } from 'react'
@@ -252,8 +257,11 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{pp.username}</div>
               <RatingBadge rating={pp.rating} en={en} />
             </div>
-            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--gold)' }}>{pp.rating}</div>
+            <div style={{ marginLeft: 'auto', textAlign: 'right', minWidth: 64, flexShrink: 0 }}>
+              <div style={{
+                fontSize: 28, fontWeight: 700, color: 'var(--gold)',
+                lineHeight: 1.05, fontVariantNumeric: 'tabular-nums',
+              }}>{pp.rating}</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)' }}>ELO</div>
             </div>
           </div>
