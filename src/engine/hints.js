@@ -12,9 +12,6 @@ const standLabel = i => i === GOLDEN_STAND ? '★' : String(i)
 
 /**
  * Анализирует текущую позицию и возвращает подсказку
- * @param {GameState} state
- * @param {number} simulations
- * @param {string} lang — 'ru' | 'en' (по умолчанию 'ru' для обратной совместимости)
  */
 export function getHint(state, simulations = 60, lang = 'ru') {
   if (state.gameOver) return null
@@ -37,49 +34,48 @@ export function getHint(state, simulations = 60, lang = 'ru') {
 
 function analyzePosition(state) {
   const player = state.currentPlayer
-  const opp = 1 - player
+  const opponent = 1 - player
+  const info = {
+    myScore: state.countClosed(player),
+    oppScore: state.countClosed(opponent),
+    openStands: state.numOpen(),
+    closingMoves: [],      // Стойки, которые можно закрыть прямо сейчас
+    threatenedStands: [],   // Стойки, которые может закрыть соперник
+    goldenStatus: null,     // Кто контролирует золотую
+    strongStands: [],       // Наши сильные позиции
+  }
 
-  const closingMoves = []
-  const threatenedStands = []
-  let goldenStatus = 'никто сверху'
+  const transfers = getValidTransfers(state)
 
-  // Счёты
-  let myScore = 0, oppScore = 0
-  for (const stand of state.completedStands) {
-    if (stand.winner === player) myScore++
-    else if (stand.winner === opp) oppScore++
+  // Какие стойки можно закрыть
+  for (const [src, dst] of transfers) {
+    const [_gc, gs] = state.topGroup(src)
+    if (state.stands[dst].length + gs >= MAX_CHIPS) {
+      info.closingMoves.push({ src, dst, label: `${standLabel(src)}→${standLabel(dst)}` })
+    }
   }
 
   // Анализ каждой стойки
-  const info = {
-    myScore,
-    oppScore,
-    closingMoves,
-    threatenedStands,
-    goldenStatus,
-  }
+  for (const i of state.openStands()) {
+    const chips = state.stands[i]
+    if (!chips.length) continue
+    const [topColor, _topSize] = state.topGroup(i)
+    const myChips = chips.filter(c => c === player).length
+    const oppChips = chips.filter(c => c === opponent).length
 
-  for (let i = 0; i < state.stands.length; i++) {
-    if (state.completedStands.find(c => c.idx === i)) continue
-    const total = state.stands[i].length
-    if (total >= MAX_CHIPS - 2) {
-      // Близка к достройке
-      const [topColor] = state.topGroup(i)
-      if (topColor === opp) threatenedStands.push(i)
+    // Золотая
+    if (i === GOLDEN_STAND) {
+      info.goldenStatus = topColor === player ? 'мы сверху' : topColor === opponent ? 'соперник сверху' : 'пуста'
     }
 
-    // Золотая стойка — кто сверху
-    if (i === GOLDEN_STAND && total > 0) {
-      const [topColor] = state.topGroup(i)
-      info.goldenStatus = topColor === player ? 'вы сверху' : 'соперник сверху'
+    // Наши сильные позиции (много наших фишек, мы сверху)
+    if (topColor === player && myChips >= 5) {
+      info.strongStands.push(i)
     }
-  }
 
-  // Закрывающие ходы
-  for (const [src, dst] of getValidTransfers(state)) {
-    const [, gs] = state.topGroup(src)
-    if (state.stands[dst].length + gs >= MAX_CHIPS) {
-      closingMoves.push([src, dst])
+    // Угрозы: соперник может закрыть
+    if (topColor === opponent && oppChips >= 7) {
+      info.threatenedStands.push(i)
     }
   }
 
