@@ -14,7 +14,10 @@ concurrency:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # Раньше continue-on-error: true — e2e не блокировали merge даже при падении.
+    # Снято: e2e теперь критичный gate. Если smoke/security/api-coverage упали —
+    # деплой не идёт. Если e2e слишком flaky — лучше пометить конкретный тест
+    # как .skip (`test.skip(...)`) чем игнорировать всю систему.
     timeout-minutes: 20
 
     steps:
