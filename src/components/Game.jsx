@@ -311,7 +311,8 @@ export default function Game() {
       setTimeout(() => runAi(state), 800)
     } else {
       const c = hp === 0 ? t('game.blue').toLowerCase() : t('game.red').toLowerCase()
-      setLog([{ text: `Новая партия. Вы — ${c}`, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
+      const startMsg = lang === 'en' ? `New game. You are ${c}` : `Новая партия. Вы — ${c}`
+      setLog([{ text: startMsg, player: -1, time: new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])
       if (state.currentPlayer !== hp) { setInfo(t('game.aiFirst')); setLocked(true); setTimeout(() => runAi(state), 500) }
       else setInfo(t('game.place1first'))
     }
@@ -529,7 +530,7 @@ export default function Game() {
     const currentIsHuman = mode === 'pvp' || mode === 'online' || gs.currentPlayer === humanPlayer
     if (!currentIsHuman || gs.gameOver || locked) return
     setHintLoading(true)
-    setTimeout(() => { setHint(getHint(gs, 60)); setHintLoading(false) }, 100)
+    setTimeout(() => { setHint(getHint(gs, 60, lang)); setHintLoading(false) }, 100)
   }
 
   function handleSwapAccept() {
