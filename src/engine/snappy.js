@@ -10,6 +10,7 @@
  *   - 'defeat'          — поражение в партии
  *   - 'draw'            — ничья
  *   - 'victory_city'    — открыт экран Города Побед
+ *   - 'tutorial_complete' — игрок прошёл обучающую партию (TutorialGame)
  *   - 'skin_collision'  — два игрока выбрали одинаковые скины блоков (онлайн)
  *   - 'mistake'         — игрок сделал явно плохой ход (placeholder, пока не используется)
  *
@@ -79,6 +80,15 @@ const PHRASES = {
     { ru: 'Что, нравятся?',                  en: 'What, like \'em?',               pose: 'celebrate', priority: 1 },
     { ru: 'Тебе наверное снятся владельцы.', en: 'Bet you dream of the owners.',   pose: 'think',     priority: 0 },
     { ru: 'У меня были башни. Их забрали.',  en: 'I had towers once. Got taken.',  pose: 'sad',       priority: 0 },
+  ],
+
+  // Обучающая партия пройдена. По ТЗ Александра (28.04.2026, Проблема 3)
+  // финальная фраза прописана дословно: «Обучение пройдено. Ну наконец-то.»
+  // Это первая (priority=1) — будет показана с шансом 70%.
+  tutorial_complete: [
+    { ru: 'Обучение пройдено. Ну наконец-то.', en: 'Tutorial complete. Finally.',     pose: 'celebrate', priority: 1 },
+    { ru: 'Готов? Тогда играй.',               en: 'Ready? Now play.',                 pose: 'point',     priority: 0 },
+    { ru: 'Запомнил всё? Проверим.',           en: 'Got it all? Let\'s see.',          pose: 'think',     priority: 0 },
   ],
 
   // Snappy Block — онлайн партия началась с одинаковыми скинами блоков
