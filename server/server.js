@@ -6,6 +6,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import jwt from 'jsonwebtoken'
+import pinoHttp from 'pino-http'
 import fs from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
@@ -13,6 +14,7 @@ import { db, JWT_SECRET, PORT } from './db.js'
 import { rateLimit, rateLimits, auth } from './middleware.js'
 import { setupWebSocket } from './ws.js'
 import { getGoldenRushStats } from './golden-rush-ws.js'
+import { logger, genReqId } from './logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 let APP_VERSION = '0.0.0'
@@ -52,6 +54,31 @@ const app = express()
 app.set('trust proxy', 1)
 app.set('etag', 'weak')
 
+// pino-http middleware. Добавляет req.id (корреляция запросов) и req.log
+// (child logger с reqId). Автоматически логирует каждый запрос с длительностью.
+// Игнорируем health-check и og-картинки — это частые запросы без полезной
+// инфы, засоряют логи. В тестах полностью выключаем (logger в silent + этот if).
+if (!isTest) {
+  app.use(pinoHttp({
+    logger,
+    genReqId: (req) => genReqId(req),
+    customLogLevel: (req, res, err) => {
+      if (res.statusCode >= 500 || err) return 'error'
+      if (res.statusCode >= 400) return 'warn'
+      return 'info'
+    },
+    customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+    customErrorMessage: (req, res, err) => `${req.method} ${req.url} ${res.statusCode} ${err?.message || ''}`,
+    serializers: {
+      req: (req) => ({ method: req.method, url: req.url, id: req.id }),
+      res: (res) => ({ statusCode: res.statusCode }),
+    },
+    autoLogging: {
+      ignore: (req) => req.url === '/api/health' || req.url.startsWith('/embed/og/'),
+    },
+  }))
+}
+
 const DEFAULT_ORIGINS = ['https://highriseheist.com', 'https://www.highriseheist.com', 'https://snatch-highrise.com', 'https://www.snatch-highrise.com', 'capacitor://localhost', 'http://localhost']
 const DEV_ORIGINS = process.env.NODE_ENV !== 'production' ? ['http://localhost:5173', 'http://localhost:4173'] : []
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
@@ -78,20 +105,19 @@ try {
     }
   }
 } catch (e) {
-  console.error('[CSP] Failed to read csp-hashes.json:', e.message)
+  logger.error({ err: e }, '[CSP] Failed to read csp-hashes.json')
 }
 
 if (!cspHashesFound) {
   if (allowUnsafeInline || !isProd) {
     scriptSrcDirective = ["'self'", "'unsafe-inline'", 'https://mc.yandex.ru']
-    if (isProd && !isTest) console.warn('[CSP] ⚠️  FALLBACK: unsafe-inline enabled via CSP_ALLOW_UNSAFE_INLINE=1 (emergency mode)')
-    else if (!isTest) console.log('[CSP] dev mode — unsafe-inline enabled')
+    if (isProd && !isTest) logger.warn('[CSP] FALLBACK: unsafe-inline enabled via CSP_ALLOW_UNSAFE_INLINE=1 (emergency mode)')
+    else if (!isTest) logger.debug('[CSP] dev mode — unsafe-inline enabled')
   } else if (!isTest) {
-    console.error('[CSP] ❌ PRODUCTION without csp-hashes.json! Inline scripts (JSON-LD, Metrika loader) will be BLOCKED by browser.')
-    console.error('[CSP]    Fix: run `npm run build` to generate hashes, or set CSP_ALLOW_UNSAFE_INLINE=1 as emergency fallback.')
+    logger.error('[CSP] PRODUCTION without csp-hashes.json! Inline scripts (JSON-LD, Metrika loader) will be BLOCKED. Fix: run `npm run build` to generate hashes, or set CSP_ALLOW_UNSAFE_INLINE=1 as emergency fallback.')
   }
 } else if (!isTest) {
-  console.log(`[CSP] ✅ Using ${scriptSrcDirective.length - 2} script hashes from ${cspHashesPath}`)
+  logger.info({ hashCount: scriptSrcDirective.length - 2, path: cspHashesPath }, '[CSP] script hashes loaded')
 }
 
 const helmetMw = helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], scriptSrc: scriptSrcDirective, styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], fontSrc: ["'self'", 'https://fonts.gstatic.com'], imgSrc: ["'self'", 'data:', 'blob:', 'https://mc.yandex.ru', 'https://api.qrserver.com'], connectSrc: ["'self'", 'ws:', 'wss:', 'https://mc.yandex.ru'] } }, permissionsPolicy: { features: { camera: [], microphone: [], geolocation: [] } } })
@@ -237,19 +263,22 @@ app.use('/embed', embedRouter)
 
 app.use('/api/', (req, res) => { res.status(404).json({ error: `Endpoint не найден: ${req.method} ${req.path}` }) })
 
+// Express error handler. Логируем через req.log (есть reqId) если pino-http
+// подключён, иначе через глобальный logger.
 app.use((err, req, res, _next) => {
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}:`, err.message || err)
+  const log = req.log || logger
+  log.error({ err, method: req.method, path: req.path }, 'request handler error')
   if (err.message?.startsWith('CORS:')) return res.status(403).json({ error: err.message })
   try { db.prepare('INSERT INTO error_reports (message, stack, url, ua) VALUES (?, ?, ?, ?)').run(`[SERVER] ${err.message}`.slice(0, 500), (err.stack || '').slice(0, 2000), req.originalUrl?.slice(0, 500), (req.headers['user-agent'] || '').slice(0, 200)) } catch {}
   if (!res.headersSent) res.status(500).json({ error: 'Внутренняя ошибка сервера' })
 })
 
 if (!isTest) {
-  process.on('uncaughtException', (err) => { console.error('[FATAL] uncaughtException:', err); setTimeout(() => process.exit(1), 3000) })
-  process.on('unhandledRejection', (reason) => { console.error('[ERROR] unhandledRejection:', reason) })
+  process.on('uncaughtException', (err) => { logger.fatal({ err }, 'uncaughtException'); setTimeout(() => process.exit(1), 3000) })
+  process.on('unhandledRejection', (reason) => { logger.error({ err: reason }, 'unhandledRejection') })
 
   const gracefulShutdown = (signal) => {
-    console.log(`\n⏳ ${signal} — graceful shutdown...`)
+    logger.info({ signal }, 'graceful shutdown started')
     for (const [, room] of rooms) { const msg = JSON.stringify({ type: 'serverShutdown' }); room.players.forEach(p => { try { p.ws?.readyState === 1 && p.ws.send(msg) } catch {} }) }
     server.close(() => { db.close(); process.exit(0) })
     setTimeout(() => process.exit(1), 5000)
@@ -258,7 +287,7 @@ if (!isTest) {
   process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n✅ Highrise Heist API + WS: http://0.0.0.0:${PORT}`)
+    logger.info({ port: PORT, version: APP_VERSION, node: process.version }, 'Highrise Heist API + WS started')
   })
 
   const dbMaintenance = () => {
@@ -268,7 +297,8 @@ if (!isTest) {
       db.prepare("DELETE FROM training_data WHERE created_at < datetime('now', '-90 days') AND game_data IS NULL").run()
       try { db.prepare("DELETE FROM chat_messages WHERE created_at < ?").run(Date.now() - 7 * 86400000) } catch {}
       db.pragma('wal_checkpoint(TRUNCATE)')
-    } catch (e) { console.error('DB maintenance error:', e.message) }
+      logger.debug('db maintenance done')
+    } catch (e) { logger.error({ err: e }, 'db maintenance error') }
   }
   setTimeout(dbMaintenance, 5 * 60000)
   setInterval(dbMaintenance, 24 * 3600000)
