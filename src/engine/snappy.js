@@ -3,6 +3,7 @@
  *
  * Триггеры (events):
  *   - 'tower_takeover'  — игрок закрыл башню (с большим перевесом — отобрал инициативу)
+ *   - 'enemy_takeover'  — соперник закрыл башню (Snappy комментит «у тебя забрали»)
  *   - 'near_loss'       — у соперника 5 закрытых башен, ещё одна — и проигрыш
  *   - 'comeback'        — игрок отыграл с отставания
  *   - 'victory'         — победа в партии
@@ -28,6 +29,18 @@ const PHRASES = {
     { ru: 'Ничего личного.',           en: 'Nothing personal.',          pose: 'wave',      priority: 1 },
     { ru: 'Спасибо, заберу.',          en: 'Thanks, I\'ll take that.',   pose: 'point',     priority: 0 },
     { ru: 'Без присмотра оставил?',    en: 'Left it unattended?',        pose: 'shock',     priority: 0 },
+  ],
+
+  // Соперник ЗАКРЫЛ башню — Snappy подкалывает игрока
+  // По ТЗ Александра (28.04.2026): «Snappy на ход противника тоже должен
+  // показывать — что у тебя забрали башню». Тон — насмешливый, провоцирующий
+  // игрока ответить.
+  enemy_takeover: [
+    { ru: 'Опа, забрали.',                 en: 'Oof, taken.',                  pose: 'shock',     priority: 1 },
+    { ru: 'Ты это видел?',                 en: 'You saw that?',                pose: 'point',     priority: 1 },
+    { ru: 'Ну и куда смотрел?',            en: 'Where were you looking?',      pose: 'think',     priority: 0 },
+    { ru: 'Спокойно. Это всего лишь башня.', en: 'Relax. Just a tower.',       pose: 'wave',      priority: 0 },
+    { ru: 'Так и задумано?',               en: 'Was that the plan?',           pose: 'think',     priority: 0 },
   ],
 
   // У соперника 5 закрытых, ещё одна — проигрыш
