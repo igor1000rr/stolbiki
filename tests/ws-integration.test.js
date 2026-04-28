@@ -450,4 +450,121 @@ run('WebSocket integration', () => {
       p1.close(); p2.close()
     })
   })
+
+  describe('Draw / Resign / Rematch', () => {
+    /** Helper: подключает 2 игроков и доводит до start */
+    async function setupGame(roomId) {
+      rooms.set(roomId, {
+        id: roomId, created: Date.now(), mode: 'single', totalGames: 1,
+        currentGame: 0, scores: [0, 0], players: [], state: 'waiting',
+      })
+      const p1 = makeClient(wsUrl)
+      const p2 = makeClient(wsUrl)
+      await Promise.all([p1.opened, p2.opened])
+      p1.send({ type: 'join', roomId, name: 'P1' })
+      await p1.waitFor('joined')
+      p2.send({ type: 'join', roomId, name: 'P2' })
+      await p2.waitFor('joined')
+      await Promise.all([p1.waitFor('start'), p2.waitFor('start')])
+      return { p1, p2 }
+    }
+
+    it('drawOffer от P1 → P2 получает drawOffer с from=0', async () => {
+      const { p1, p2 } = await setupGame('DRAW01')
+      p1.send({ type: 'drawOffer' })
+      const msg = await p2.waitFor('drawOffer', 1500)
+      expect(msg.from).toBe(0)
+      p1.close(); p2.close()
+    })
+
+    it('drawResponse accepted=true → оба получают serverGameOver winner=-1 (ничья)', async () => {
+      const { p1, p2 } = await setupGame('DRAW02')
+      p1.send({ type: 'drawOffer' })
+      await p2.waitFor('drawOffer')
+      p2.send({ type: 'drawResponse', accepted: true })
+      // P1 получает drawResponse с accepted=true
+      const resp = await p1.waitFor('drawResponse', 1500)
+      expect(resp.accepted).toBe(true)
+      // Оба получают serverGameOver с winner=-1
+      const [over1, over2] = await Promise.all([
+        p1.waitFor('serverGameOver', 1500),
+        p2.waitFor('serverGameOver', 1500),
+      ])
+      expect(over1.winner).toBe(-1)
+      expect(over2.winner).toBe(-1)
+      p1.close(); p2.close()
+    })
+
+    it('drawResponse accepted=false → P1 получает отказ, серверGameOver НЕ приходит', async () => {
+      const { p1, p2 } = await setupGame('DRAW03')
+      p1.send({ type: 'drawOffer' })
+      await p2.waitFor('drawOffer')
+      p2.send({ type: 'drawResponse', accepted: false })
+      const resp = await p1.waitFor('drawResponse', 1500)
+      expect(resp.accepted).toBe(false)
+      // serverGameOver НЕ должен прийти за 300мс
+      await new Promise(r => setTimeout(r, 300))
+      const overs = p1.allMessages().filter(m => m.type === 'serverGameOver')
+      expect(overs.length).toBe(0)
+      p1.close(); p2.close()
+    })
+
+    it('resign от P1 → P2 получает resign + оба получают serverGameOver (P2 победил)', async () => {
+      const { p1, p2 } = await setupGame('RES01')
+      p1.send({ type: 'resign' })
+      const resignMsg = await p2.waitFor('resign', 1500)
+      expect(resignMsg.from).toBe(0)
+      // Оба получают serverGameOver. P1 (idx=0) сдался → P2 (roomPlayer=1) выиграл
+      const [over1, over2] = await Promise.all([
+        p1.waitFor('serverGameOver', 1500),
+        p2.waitFor('serverGameOver', 1500),
+      ])
+      expect(over1.winner).toBe(1)
+      expect(over2.winner).toBe(1)
+      // scores увеличился у победителя
+      expect(over1.scores[1]).toBe(1)
+      p1.close(); p2.close()
+    })
+
+    it('rematchOffer от P1 → P2 получает rematchOffer с from=0', async () => {
+      const { p1, p2 } = await setupGame('REM01')
+      // Заканчиваем игру через resign чтобы можно было предложить rematch
+      p1.send({ type: 'resign' })
+      await Promise.all([p2.waitFor('resign'), p1.waitFor('serverGameOver'), p2.waitFor('serverGameOver')])
+      p1.send({ type: 'rematchOffer' })
+      const msg = await p2.waitFor('rematchOffer', 1500)
+      expect(msg.from).toBe(0)
+      p1.close(); p2.close()
+    })
+
+    it('rematchResponse accepted=true → оба получают rematchStart', async () => {
+      const { p1, p2 } = await setupGame('REM02')
+      p1.send({ type: 'resign' })
+      await Promise.all([p2.waitFor('resign'), p1.waitFor('serverGameOver'), p2.waitFor('serverGameOver')])
+      p1.send({ type: 'rematchOffer' })
+      await p2.waitFor('rematchOffer')
+      p2.send({ type: 'rematchResponse', accepted: true })
+      const [start1, start2] = await Promise.all([
+        p1.waitFor('rematchStart', 1500),
+        p2.waitFor('rematchStart', 1500),
+      ])
+      expect(start1.players).toEqual(['P1', 'P2'])
+      expect(start2.players).toEqual(['P1', 'P2'])
+      // firstPlayer должен быть инвертирован (был 0, стал 1)
+      expect(start1.firstPlayer).toBe(1)
+      p1.close(); p2.close()
+    })
+
+    it('rematchResponse accepted=false → P1 получает rematchDeclined', async () => {
+      const { p1, p2 } = await setupGame('REM03')
+      p1.send({ type: 'resign' })
+      await Promise.all([p2.waitFor('resign'), p1.waitFor('serverGameOver'), p2.waitFor('serverGameOver')])
+      p1.send({ type: 'rematchOffer' })
+      await p2.waitFor('rematchOffer')
+      p2.send({ type: 'rematchResponse', accepted: false })
+      const declined = await p1.waitFor('rematchDeclined', 1500)
+      expect(declined.type).toBe('rematchDeclined')
+      p1.close(); p2.close()
+    })
+  })
 })
