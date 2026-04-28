@@ -24,6 +24,11 @@
  *   "Число ELO выходит за границы окошка". Раньше fixed только в основном
  *   профиле, в публичном осталось без tabular-nums и flexShrink — для 4-значных
  *   значений могло вылезать. Теперь оба места одинаково защищены.
+ *
+ * 28.04.2026 — двойной Snappy в Городе побед (по ТЗ Александра):
+ *   Глобальный triggerSnappy('victory_city') здесь дублировался с локальным
+ *   <Snappy variant="anchored"> внутри VictoryCity.jsx. Убран глобальный —
+ *   локальный лучше по позиционированию (в углу 3D-сцены).
  */
 
 import { useState, useEffect, lazy, Suspense } from 'react'
@@ -36,7 +41,6 @@ import ProfileAccount from './ProfileAccount'
 import ProfileFriends from './ProfileFriends'
 import ProfileAnalytics from './ProfileAnalytics'
 import VictoryCity from './VictoryCity'
-import { triggerSnappy } from './Snappy'
 import CityShareControls from './CityShareControls'
 import BrickBalance from './BrickBalance'
 import SeasonPass from './SeasonPass'
@@ -73,14 +77,10 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
   const [publicLoading, setPublicLoading] = useState(false)
   const [tab, setTab] = useState(initialTab || 'profile')
 
-  // Snappy реагирует при переключении на вкладку Город Побед —
-  // комментит "трофеи" игрока. Задержка 1.2s чтобы не пересечься
-  // с анимацией загрузки 3D сцены VictoryCity.
-  useEffect(() => {
-    if (tab !== 'city') return
-    const timer = setTimeout(() => triggerSnappy('victory_city'), 1200)
-    return () => clearTimeout(timer)
-  }, [tab])
+  // Snappy в режиме Город Побед: ранее здесь был глобальный triggerSnappy('victory_city')
+  // который дублировался с локальным <Snappy variant="anchored"> внутри VictoryCity.jsx.
+  // По ТЗ Александра (28.04.2026): «Snappy на уровне города показывается дважды».
+  // Оставлен только локальный (он позиционируется по сцене города), глобальный убран.
   const [regName, setRegName] = useState('')
   const [regPass, setRegPass] = useState('')
   // Дефолт — login. Юзер уже зарегистрировался (раз попал сюда после регистрации
