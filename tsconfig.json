@@ -1,38 +1,43 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
     "strict": false,
     "noImplicitAny": false,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2022"]
+    "strictNullChecks": false,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"]
   },
   "include": [
-    "server/game-engine.js",
-    "server/anticheat.js",
-    "server/validate.js",
-    "server/skin-helpers.js",
-    "server/helpers.js",
-    "server/logger.js"
+    "src/**/*",
+    "server/**/*",
+    "scripts/**/*",
+    "vite.config.js",
+    "vitest.config.js"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "android",
     "ios",
+    "e2e",
+    "server/node_modules",
+    "server/data",
+    "server/backups",
+    "server/logs",
+    "server/blog-posts",
     "gpu_train",
     "analysis",
-    "src",
-    "e2e",
-    "tests",
-    "**/*.test.js"
+    "public",
+    "resources"
   ]
 }
