@@ -27,7 +27,7 @@ import './css/native.css'
 import './css/mobile-ui.css'
 import './css/chip-textures.css'
 
-const Tutorial = lazy(() => import('./components/Tutorial'))
+const Tutorial = lazy(() => import('./components/TutorialGame'))
 const Lessons = lazy(() => import('./components/Lessons'))
 const Arena = lazy(() => import('./components/Arena'))
 const SkinShop = lazy(() => import('./components/SkinShop'))
@@ -111,6 +111,7 @@ export default function App() {
     onBack: () => {
       if (showSkinShop)         { setShowSkinShop(false);         return }
       if (showLessons)          { setShowLessons(false);          return }
+      if (showTutorial)         { setShowTutorial(false);         return }
       if (showArena)            { setShowArena(false);            return }
       if (showWhatsNew)         { setShowWhatsNew(false); localStorage.setItem('stolbiki_seen_version', APP_VERSION); return }
       if (notifOpen)            { setNotifOpen(false);            return }
@@ -436,11 +437,12 @@ export default function App() {
         installPrompt={installPrompt}
         go={go}
         onShowLessons={() => setShowLessons(true)}
+        onShowTutorial={() => setShowTutorial(true)}
         onShowSkinShop={() => setShowSkinShop(true)}
         onLogout={doLogout}
       />
 
-      {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} /></Suspense>}
+      {showTutorial && <Suspense fallback={<LazyFallback />}><Tutorial onClose={() => { setShowTutorial(false); go('game') }} lang={lang} /></Suspense>}
       {showLessons && <Suspense fallback={<LazyFallback />}><Lessons onClose={() => { setShowLessons(false); setTab('game') }} /></Suspense>}
       {showArena && <Suspense fallback={<LazyFallback />}><Arena onClose={() => setShowArena(false)} />  </Suspense>}
       {showSkinShop && (
