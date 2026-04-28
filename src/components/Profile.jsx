@@ -364,7 +364,7 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
     { id: 'achievements', label: `${en ? 'Achievements' : 'Ачивки'} (${unlockedAch.length}/${ALL_ACHIEVEMENTS.length})` },
     { id: 'leaderboard', label: en ? 'Ranking' : 'Рейтинг' },
     { id: 'friends', label: en ? 'Friends' : 'Друзья' },
-    { id: 'city', label: en ? 'Victory City' : 'Город' },
+    { id: 'city', label: en ? 'City of Victories' : 'Город' },
     { id: 'clubs', label: en ? 'Clubs 🦝' : 'Клубы 🦝' },
     ...(serverOnline && API.isLoggedIn() ? [
       { id: 'referrals', label: en ? 'Invite' : 'Пригласить' },
@@ -538,9 +538,10 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
             </div>
           </div>
 
-          {/* Logout — выровнен по правому краю карточки сверху, чтобы не висел
-              отдельной кнопкой посередине внизу страницы. */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          {/* Logout — по центру (по ТЗ Александра 28.04.2026):
+              "Кнопку Logout сделай посередине, пожалуйста". Раньше была flex-end,
+              отдельная кнопка справа смотрелась нелогично — поменяли на center. */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
             <button className="btn" onClick={logout}
               style={{ fontSize: 11, color: 'var(--ink3)', borderColor: 'var(--surface3)' }}>
               {en ? 'Logout' : 'Выйти из профиля'}
@@ -567,7 +568,7 @@ export default function Profile({ viewUsername, onClose, initialTab }) {
       {tab === 'city' && (
         <div className="dash-card">
           <h3 style={{ margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            🏙️ {en ? 'Victory City' : 'Город побед'}
+            🏙️ {en ? 'City of Victories' : 'Город побед'}
           </h3>
           <VictoryCity userId={profile?.id} />
           <CityShareControls
