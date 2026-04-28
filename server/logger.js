@@ -19,6 +19,11 @@
  * Child logger для контекста (например, на каждый WS connection):
  *   const wsLog = logger.child({ component: 'ws', connId })
  *   wsLog.info({ msgType: 'move' }, 'received')
+ *
+ * Shorthand для модулей:
+ *   import { child } from './logger.js'
+ *   const log = child('migrations')
+ *   log.info('starting')   // → {component: 'migrations', msg: 'starting'}
  */
 
 import pino from 'pino'
@@ -80,6 +85,20 @@ if (!isProd && !isTest) {
 export const logger = transport
   ? pino(baseConfig, transport)
   : pino(baseConfig)
+
+/**
+ * Shorthand для создания child logger по имени компонента.
+ * Заменяет повторяющийся `logger.child({ component: name })` на однострочник.
+ *
+ * Используется в migrations.js, db.js и потенциально в любых модулях
+ * которые хотят свой контекст в логах.
+ *
+ * @param {string} name — имя компонента (попадёт в каждую запись)
+ * @returns child logger со структурой { component: name }
+ */
+export function child(name) {
+  return logger.child({ component: name })
+}
 
 // Helper для http-логирования. Используется в pino-http middleware.
 // Генерирует короткий req-id для корреляции записей одного запроса.
